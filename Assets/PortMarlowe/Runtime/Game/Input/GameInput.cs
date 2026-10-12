@@ -116,6 +116,12 @@ namespace PortMarlowe.Game.Input
         public bool InvertY { get; set; }
         public float LookSensitivity { get; set; } = 1f;
 
+        /// <summary>
+        /// Analog values injected by the automated smoke test (no device). When set, they replace
+        /// the device readings for move/throttle/brake/steer; buttons are unaffected.
+        /// </summary>
+        public ScriptedInput Scripted { get; set; }
+
         /// <summary>Enable gameplay actions (menus closed) or menu-only.</summary>
         public void SetGameplayEnabled(bool enabled)
         {
@@ -139,7 +145,7 @@ namespace PortMarlowe.Game.Input
                 return Vector2.zero;
             }
 
-            Vector2 raw = Move.ReadValue<Vector2>();
+            Vector2 raw = Scripted != null ? Scripted.Move : Move.ReadValue<Vector2>();
             StickShaping.Shape(raw.x, raw.y, StickInnerDeadZone, StickOuterDeadZone, MoveResponseExponent, out float x, out float y);
             return new Vector2(x, y);
         }
@@ -168,8 +174,8 @@ namespace PortMarlowe.Game.Input
             return total;
         }
 
-        public float ReadThrottle() => GameplayEnabled ? Mathf.Clamp01(Throttle.ReadValue<float>()) : 0f;
-        public float ReadBrake() => GameplayEnabled ? Mathf.Clamp01(Brake.ReadValue<float>()) : 0f;
+        public float ReadThrottle() => GameplayEnabled ? Mathf.Clamp01(Scripted != null ? Scripted.Throttle : Throttle.ReadValue<float>()) : 0f;
+        public float ReadBrake() => GameplayEnabled ? Mathf.Clamp01(Scripted != null ? Scripted.Brake : Brake.ReadValue<float>()) : 0f;
 
         public float ReadSteer()
         {
@@ -178,7 +184,7 @@ namespace PortMarlowe.Game.Input
                 return 0f;
             }
 
-            Vector2 raw = Move.ReadValue<Vector2>();
+            Vector2 raw = Scripted != null ? new Vector2(Scripted.Steer, 0f) : Move.ReadValue<Vector2>();
             float a = Mathf.Abs(raw.x);
             if (a < StickInnerDeadZone)
             {
@@ -261,5 +267,14 @@ namespace PortMarlowe.Game.Input
             { "Menu", "Pause" },
             { "View", "Diagnostics overlay" },
         };
+    }
+
+    /// <summary>Device-free analog input for automated runs.</summary>
+    public sealed class ScriptedInput
+    {
+        public Vector2 Move;
+        public float Throttle;
+        public float Brake;
+        public float Steer;
     }
 }

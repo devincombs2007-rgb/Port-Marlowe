@@ -9,6 +9,7 @@ using PortMarlowe.Core.Vehicles;
 using PortMarlowe.Game.Audio;
 using PortMarlowe.Game.Cameras;
 using PortMarlowe.Game.Characters;
+using PortMarlowe.Game.Diagnostics;
 using PortMarlowe.Game.Input;
 using PortMarlowe.Game.Law;
 using PortMarlowe.Game.Population;
@@ -61,6 +62,9 @@ namespace PortMarlowe.Game
         public SaveService Save;
         public LightingRig Lighting;
         public GameAudio Audio;
+        public DiagnosticsService Diagnostics;
+        public PlayerController PlayerControl;
+        public RoadNetwork Roads;
 
         public GameSession(ulong seed)
         {

@@ -104,6 +104,9 @@ jobs:
           du -sh editor
       - name: Compile project assemblies against Unity managed assemblies
         run: python3 Tools/UnityCompileCheck/compile_check.py --data editor/Data --project . --work compile-work --unity-version "$UNITY_VERSION"
+      - name: Diagnose Input System editor-pass type (InputSystemState)
+        if: always()
+        run: grep -rn "InputSystemState\b" compile-work/packages/com.unity.inputsystem@*/InputSystem --include=*.cs | grep -E "class|struct|#if" | head -20 || true
 
   unity-tests:
     name: Unity EditMode + PlayMode tests (licensed)

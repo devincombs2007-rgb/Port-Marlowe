@@ -299,6 +299,37 @@ namespace PortMarlowe.Game.Law
             return count;
         }
 
+        /// <summary>Protagonist strikes an officer within reach: always witnessed by that officer.</summary>
+        public bool TryStrikeOfficer(Protagonist p, float range)
+        {
+            foreach (var u in _units)
+            {
+                if (u.Destroyed || u.OfficerInCar || u.Officer == null)
+                {
+                    continue;
+                }
+
+                Vector3 to = (u.Officer.transform.position - p.transform.position).Flat();
+                if (to.magnitude > range || Vector3.Angle(p.transform.forward.Flat(), to) > 45f)
+                {
+                    continue;
+                }
+
+                var inc = _s.Incidents.CreateIncident(CrimeType.AssaultOfficer, u.Officer.transform.position.ToCore(), _s.Now, p.Id, u.OfficerId);
+                p.Record.RecordIncident(CrimeType.AssaultOfficer);
+                var c = _s.Dispatch.ReportCrimeWitnessedByOfficer(inc, u.OfficerId, p.Appearance, null, _s.Now);
+                if (c != null && u.State != UnitState.Leaving)
+                {
+                    u.CaseId = c.Id;
+                }
+
+                u.Officer.Rig.SetPose(RigPose.Cower);
+                return true;
+            }
+
+            return false;
+        }
+
         private void OfficerPerception()
         {
             double now = _s.Now;
