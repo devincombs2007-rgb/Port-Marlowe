@@ -299,6 +299,9 @@ def engine_refs(data_dir, editor):
     std = glob.glob(os.path.join(ns, "ref", "2.1.0", "netstandard.dll"))
     shims = glob.glob(os.path.join(ns, "compat", "2.1.0", "shims", "netfx", "*.dll"))
     ext = glob.glob(os.path.join(ns, "Extensions", "2.0.0", "*.dll"))
+    # Unity references System.Runtime.CompilerServices.Unsafe for all script assemblies (used by
+    # Collections); the editor ships it with the other editor extensions.
+    ext += glob.glob(os.path.join(ns, "EditorExtensions", "System.Runtime.CompilerServices.Unsafe.dll"))
     seen = set()
     out = []
     for r in std + shims + ext + refs:
@@ -517,6 +520,7 @@ def main():
     log(f"  asmdefs discovered: {len(asmdefs)}, GUIDs mapped: {len(guid_to_name)}")
 
     exit_code = 0
+    summary = []
     for label, editor, tests in (("editor", True, True), ("player", False, False)):
         log(f"== compile pass: {label}")
         results = compile_pass(label, asmdefs, guid_to_name, packages, args.data, args.work, project_names, editor, args.unity_version, tests)
@@ -531,12 +535,18 @@ def main():
                         pass
                 if scope == "project":
                     exit_code = 1
+        for n, status, detail, a in results:
+            if a.package is None:
+                summary.append(f"  {label:6} {status:7} {n}: {detail.splitlines()[0] if detail else ''}")
         # Full error text for failures.
         for n, status, detail, a in results:
             if status == "FAIL":
                 log(f"--- errors: {n}  (asmdef references: {a.data.get('references', [])}; versionDefines: {a.data.get('versionDefines', [])})")
                 for line in detail.splitlines():
                     log("    " + line)
+    log("== project assembly summary")
+    for line in summary:
+        log(line)
     sys.exit(exit_code)
 
 

@@ -1,0 +1,45 @@
+name: assets
+
+# CC0 surface sets: discovery (metadata only) and a verified fetch/convert run.
+# Fetched files are not committed; licensed build jobs run the same fetch before building.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'Tools/Assets/**'
+      - '.github/workflows/assets.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  discover:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Query Poly Haven and ambientCG APIs
+        run: python3 Tools/Assets/discover_cc0.py --out cc0-candidates.json --limit 8
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cc0-candidates
+          path: cc0-candidates.json
+
+  fetch-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -m pip install --quiet pillow
+      - name: Fetch, hash-check and convert CC0 surface sets
+        run: python3 Tools/Assets/fetch_cc0.py --update-lock --contact-sheet cc0-contact.jpg
+      - name: Lock file (commit this to pin new entries)
+        run: cat Tools/Assets/cc0_lock.json
+      - name: Converted output sizes
+        run: du -ah Assets/ThirdParty/CC0 | sort -h | tail -40
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cc0-surfaces-preview
+          path: |
+            cc0-contact.jpg
+            Tools/Assets/cc0_lock.json
+            Assets/ThirdParty/CC0/ATTRIBUTION.md

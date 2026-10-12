@@ -16,6 +16,7 @@ namespace PortMarlowe.Game.Rendering
         public const string LitEmissiveTemplate = "PM_LitEmissive";
         public const string UnlitTemplate = "PM_Unlit";
         public const string SkyTemplate = "PM_Sky";
+        public const string LitPbrTemplate = "PM_LitPbr";
 
         private static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
         private static readonly int BaseMap = Shader.PropertyToID("_BaseMap");
@@ -25,6 +26,9 @@ namespace PortMarlowe.Game.Rendering
         private static readonly int Metallic = Shader.PropertyToID("_Metallic");
         private static readonly int EmissionColor = Shader.PropertyToID("_EmissionColor");
         private static readonly int EmissionMap = Shader.PropertyToID("_EmissionMap");
+        private static readonly int MetallicGlossMap = Shader.PropertyToID("_MetallicGlossMap");
+        private static readonly int OcclusionMap = Shader.PropertyToID("_OcclusionMap");
+        private static readonly int OcclusionStrength = Shader.PropertyToID("_OcclusionStrength");
 
         private readonly Dictionary<string, Material> _templates = new Dictionary<string, Material>();
         private readonly List<Object> _owned = new List<Object>();
@@ -76,6 +80,41 @@ namespace PortMarlowe.Game.Rendering
             m.SetFloat(Smoothness, smoothness);
             m.EnableKeyword("_EMISSION");
             m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+            return m;
+        }
+
+        /// <summary>
+        /// Full PBR surface from an imported texture set: albedo, OpenGL-convention normal, and a
+        /// packed mask (R metallic, G occlusion, A smoothness) feeding both the metallic-gloss and
+        /// occlusion slots of URP Lit.
+        /// </summary>
+        public Material LitPbr(string name, Color tint, SurfaceSet set, Vector2 tiling, float normalScale = 1f)
+        {
+            var m = Instantiate(LitPbrTemplate, "Universal Render Pipeline/Lit", name);
+            m.SetColor(BaseColor, tint);
+            m.SetTexture(BaseMap, set.Albedo);
+            m.SetTextureScale(BaseMap, tiling);
+            if (set.Normal != null)
+            {
+                m.SetTexture(BumpMap, set.Normal);
+                m.SetFloat(BumpScale, normalScale);
+                m.EnableKeyword("_NORMALMAP");
+            }
+
+            if (set.Mask != null)
+            {
+                m.SetTexture(MetallicGlossMap, set.Mask);
+                m.SetTexture(OcclusionMap, set.Mask);
+                m.SetFloat(OcclusionStrength, 1f);
+                m.SetFloat(Smoothness, 1f);
+                m.EnableKeyword("_METALLICSPECGLOSSMAP");
+                m.EnableKeyword("_OCCLUSIONMAP");
+            }
+            else
+            {
+                m.SetFloat(Smoothness, set.FallbackSmoothness);
+            }
+
             return m;
         }
 

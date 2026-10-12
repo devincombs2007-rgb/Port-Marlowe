@@ -1,0 +1,16 @@
+{
+  "comment": "CC0 surface sets fetched (not committed) into Assets/ThirdParty/CC0/Resources/PM_Surfaces/<role>/. Candidates come from the asset-discovery job (2026-10-12). Hashes of downloaded source files are pinned in cc0_lock.json after the first verified fetch.",
+  "maxSize": 2048,
+  "surfaces": [
+    { "role": "road_asphalt",      "source": "polyhaven", "id": "asphalt_02",              "resolution": "2k" },
+    { "role": "sidewalk_concrete", "source": "polyhaven", "id": "concrete_floor_02",       "resolution": "2k" },
+    { "role": "concrete",          "source": "polyhaven", "id": "concrete_floor_worn_001", "resolution": "2k" },
+    { "role": "quay_stone",        "source": "polyhaven", "id": "concrete_layers_02",      "resolution": "2k" },
+    { "role": "roof",              "source": "polyhaven", "id": "aerial_asphalt_01",       "resolution": "2k" },
+    { "role": "plaza_paving",      "source": "polyhaven", "id": "red_brick_03",            "resolution": "2k" },
+    { "role": "grass",             "source": "ambientcg", "id": "Grass004",                "resolution": "2K-JPG" },
+    { "role": "facade_plaster",    "source": "polyhaven", "id": "beige_wall_001",          "resolution": "2k" },
+    { "role": "facade_brick",      "source": "polyhaven", "id": "red_brick",               "resolution": "2k" },
+    { "role": "facade_metal",      "source": "ambientcg", "id": "PaintedMetal004",         "resolution": "2K-JPG" }
+  ]
+}

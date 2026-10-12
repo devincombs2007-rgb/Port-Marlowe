@@ -94,6 +94,16 @@ namespace PortMarlowe.Game.World
             w.FabricAccent = lib.Lit("FabricAccent", new Color(0.62f, 0.38f, 0.24f), 0.05f);
             w.CourtSurface = lib.Lit("Court", new Color(0.28f, 0.42f, 0.46f), 0.3f);
 
+            // Imported CC0 PBR sets replace the procedural placeholders where present (tile size in metres).
+            w.Asphalt = Surface(lib, "road_asphalt", "Asphalt", new Color(0.9f, 0.9f, 0.9f), 4f, 1f, w.Asphalt);
+            w.Yard = Surface(lib, "road_asphalt", "Yard", new Color(0.78f, 0.78f, 0.78f), 4f, 1f, w.Yard);
+            w.Sidewalk = Surface(lib, "sidewalk_concrete", "Sidewalk", Color.white, 2f, 1f, w.Sidewalk);
+            w.Curb = Surface(lib, "concrete", "Curb", new Color(0.9f, 0.9f, 0.88f), 1.5f, 0.8f, w.Curb);
+            w.Paving = Surface(lib, "plaza_paving", "Paving", Color.white, 2.5f, 1f, w.Paving);
+            w.QuayStone = Surface(lib, "quay_stone", "QuayStone", Color.white, 3f, 1f, w.QuayStone);
+            w.Roof = Surface(lib, "roof", "Roof", new Color(0.85f, 0.85f, 0.85f), 3f, 0.8f, w.Roof);
+            w.Grass = Surface(lib, "grass", "Grass", Color.white, 3f, 1f, w.Grass);
+
             w.LampHead = lib.LitEmissive("LampHead", new Color(0.9f, 0.88f, 0.8f), null, null, Color.black, 0.6f, Vector2.one);
             w.NightEmissives.Add((w.LampHead, new Color(1f, 0.82f, 0.58f) * 2.2f));
             w.PoliceSign = lib.LitEmissive("PoliceSign", new Color(0.12f, 0.24f, 0.62f), null, null, new Color(0.1f, 0.25f, 0.9f) * 0.6f, 0.7f, Vector2.one);
@@ -124,6 +134,16 @@ namespace PortMarlowe.Game.World
                 w.Facades[1][0].GetTexture("_EmissionMap") as Texture2D, Color.black, 0.4f, new Vector2(1f / 24f, 1f / 25.6f));
             w.NightEmissives.Add((w.Skyline, new Color(1f, 0.85f, 0.6f) * 0.9f));
             return w;
+        }
+
+        private static Material Surface(MaterialLibrary lib, string role, string name, Color tint, float tileMetres, float normalScale, Material fallback)
+        {
+            if (!SurfaceLibrary.TryGet(role, out var set))
+            {
+                return fallback;
+            }
+
+            return lib.LitPbr(name, tint, set, new Vector2(1f / tileMetres, 1f / tileMetres), normalScale);
         }
 
         public Material Facade(int palette, int buildingIndex)
