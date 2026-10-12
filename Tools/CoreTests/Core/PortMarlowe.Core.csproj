@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Compiles the engine-independent core exactly as Unity does: .NET Standard 2.1 API surface, C# 9. -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AssemblyName>PortMarlowe.Core</AssemblyName>
+    <RootNamespace>PortMarlowe.Core</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../../Assets/PortMarlowe/Runtime/Core/**/*.cs" />
+  </ItemGroup>
+</Project>

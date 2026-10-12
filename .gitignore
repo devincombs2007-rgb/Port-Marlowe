@@ -45,8 +45,11 @@ crashlytics-build.properties
 *.appxupload
 
 # ---- Engine-independent core test harness (dotnet) ----
-/Tools/CoreTests/bin/
-/Tools/CoreTests/obj/
+!/Tools/**/*.csproj
+/Tools/**/bin/
+/Tools/**/obj/
+__pycache__/
+*.pyc
 
 # ---- Licensing / provenance guards ----
 # Third-party source packs must not be redistributed through this public repository.
