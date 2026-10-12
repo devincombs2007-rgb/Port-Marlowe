@@ -120,6 +120,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           lfs: true
+      - name: Fetch CC0 surface sets (pinned; procedural fallback if unavailable)
+        continue-on-error: true
+        run: |
+          python3 -m pip install --quiet pillow
+          python3 Tools/Assets/fetch_cc0.py
       - uses: actions/cache@v4
         with:
           path: Library
@@ -149,6 +154,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           lfs: true
+      - name: Fetch CC0 surface sets (pinned; procedural fallback if unavailable)
+        continue-on-error: true
+        run: |
+          python3 -m pip install --quiet pillow
+          python3 Tools/Assets/fetch_cc0.py
       - uses: actions/cache@v4
         with:
           path: Library
@@ -192,6 +202,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           lfs: true
+      - name: Fetch CC0 surface sets (pinned; procedural fallback if unavailable)
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          python -m pip install --quiet pillow
+          python Tools/Assets/fetch_cc0.py
       - name: Install Unity editor + UWP module (official silent installers)
         shell: pwsh
         run: |
