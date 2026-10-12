@@ -308,6 +308,57 @@ def analyzers(data_dir):
     return sorted(glob.glob(os.path.join(data_dir, "Tools", "Unity.SourceGenerators", "*.dll")))
 
 
+def is_managed_dll(path):
+    """True if the PE file has a CLI (.NET) header."""
+    try:
+        with open(path, "rb") as f:
+            data = f.read(4096)
+        if data[:2] != b"MZ":
+            return False
+        pe = int.from_bytes(data[0x3C:0x40], "little")
+        if data[pe:pe + 4] != b"PE\0\0":
+            return False
+        opt = pe + 24
+        magic = int.from_bytes(data[opt:opt + 2], "little")
+        dd = opt + (96 if magic == 0x10B else 112)
+        clr = dd + 14 * 8
+        return int.from_bytes(data[clr:clr + 4], "little") != 0
+    except Exception:
+        return False
+
+
+_AUTO_DLLS = {}
+
+
+def auto_referenced_dlls(packages, editor):
+    """Unity auto-references precompiled managed assemblies in packages (unless overrideReferences)."""
+    key = editor
+    if key in _AUTO_DLLS:
+        return _AUTO_DLLS[key]
+    out = []
+    for p in packages.values():
+        if not p.path:
+            continue
+        for dirpath, dirnames, filenames in os.walk(p.path):
+            dirnames[:] = [d for d in dirnames if not ROOT_SKIP.search(d) and d not in ("Tests",)]
+            for f in filenames:
+                if not f.endswith(".dll"):
+                    continue
+                full = os.path.join(dirpath, f)
+                rel = full.replace("\\", "/")
+                if not editor and "/Editor/" in rel:
+                    continue
+                meta = full + ".meta"
+                if os.path.isfile(meta):
+                    txt = open(meta, encoding="utf-8", errors="ignore").read()
+                    if "isExplicitlyReferenced: 1" in txt:
+                        continue
+                if is_managed_dll(full):
+                    out.append(full)
+    _AUTO_DLLS[key] = out
+    return out
+
+
 def precompiled(a, packages, data_dir):
     out = []
     names = list(a.data.get("precompiledReferences", []))
@@ -383,7 +434,7 @@ def compile_pass(label, asmdefs, guid_to_name, packages, data_dir, work, project
             results.append((n, "skipped", "define constraints not met", a))
             continue
         missing = [r for r in ref_names(a, guid_to_name) if r in asmdefs and eligible(asmdefs[r]) and r not in built]
-        failed_deps = [r for r in missing if any(x[0] == r and x[1] == "FAIL" for x in results)]
+        failed_deps = [r for r in missing if any(x[0] == r and x[1] in ("FAIL", "BLOCKED", "skipped") for x in results)]
         if failed_deps:
             results.append((n, "BLOCKED", "dependency failed: " + ", ".join(failed_deps), a))
             continue
@@ -392,9 +443,12 @@ def compile_pass(label, asmdefs, guid_to_name, packages, data_dir, work, project
             continue
         refs = list(base_refs)
         refs += [built[r] for r in ref_names(a, guid_to_name) if r in built]
-        if not a.data.get("overrideReferences", False) or a.is_test:
-            pass
+        if not a.data.get("overrideReferences", False):
+            refs += [d for d in auto_referenced_dlls(packages, editor) if os.path.basename(d).lower() not in {os.path.basename(x).lower() for x in refs}]
         refs += precompiled(a, packages, data_dir)
+        unresolved = [r for r in a.data.get("references", []) if (r.startswith("GUID:") and r[5:] not in guid_to_name) or (not r.startswith("GUID:") and r not in asmdefs)]
+        if unresolved:
+            log(f"      note: {n} has unresolved references: {', '.join(unresolved)}")
         if editor and a.is_test:
             for tr in ("UnityEngine.TestRunner", "UnityEditor.TestRunner"):
                 if tr in built and built[tr] not in refs:
@@ -445,6 +499,7 @@ def main():
     asmdefs, guid_to_name = discover(roots)
     project_names = [n for n, a in asmdefs.items() if a.package is None]
     log(f"  project assemblies: {', '.join(sorted(project_names))}")
+    log(f"  asmdefs discovered: {len(asmdefs)}, GUIDs mapped: {len(guid_to_name)}")
 
     exit_code = 0
     for label, editor, tests in (("editor", True, True), ("player", False, False)):
@@ -464,7 +519,7 @@ def main():
         # Full error text for failures.
         for n, status, detail, a in results:
             if status == "FAIL":
-                log(f"--- errors: {n}")
+                log(f"--- errors: {n}  (asmdef references: {a.data.get('references', [])}; versionDefines: {a.data.get('versionDefines', [])})")
                 for line in detail.splitlines():
                     log("    " + line)
     sys.exit(exit_code)
