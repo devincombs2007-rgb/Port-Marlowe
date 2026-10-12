@@ -1,0 +1,243 @@
+# Port Marlowe CI.
+#
+# Environments are deliberately separate:
+#   * Linux (ubuntu-latest): engine-independent core tests, Unity API compile check (no licence:
+#     the editor never runs), and - only when Unity licence secrets exist - Unity EditMode/PlayMode
+#     tests and a Linux development player build with an automated gameplay smoke run.
+#   * Windows (windows-latest): UWP export + MSBuild packaging for Xbox Dev Mode sideloading.
+#     Runs only when licence secrets exist. A package is reported as built only if this job
+#     produces one; nothing here claims Xbox execution.
+#
+# Licence secrets (repository Settings > Secrets and variables > Actions), as documented by GameCI:
+#   UNITY_EMAIL, UNITY_PASSWORD, and either UNITY_LICENSE (Personal, contents of Unity_lic.ulf)
+#   or UNITY_SERIAL (Plus/Pro). Values are never printed.
+name: ci
+
+on:
+  push:
+    branches: ['**']
+    paths-ignore: ['Docs/**', '**/*.md']
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  UNITY_VERSION: 6000.6.5f1
+  UNITY_REVISION: 3ff58d469c8a
+
+jobs:
+  core-tests:
+    name: Core simulation tests (dotnet)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Build core as .NET Standard 2.1 / C# 9 (Unity profile)
+        run: dotnet build Tools/CoreTests/Core/PortMarlowe.Core.csproj -warnaserror
+      - name: Run NUnit tests
+        run: dotnet test Tools/CoreTests/Tests/PortMarlowe.CoreTests.csproj --logger "trx;LogFileName=core.trx" --results-directory TestResults
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: core-test-results
+          path: TestResults
+
+  license-probe:
+    name: Unity licence availability
+    runs-on: ubuntu-latest
+    outputs:
+      available: ${{ steps.probe.outputs.available }}
+    steps:
+      - id: probe
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+        run: |
+          set_or_not() { if [ -n "$1" ]; then echo set; else echo missing; fi; }
+          echo "UNITY_EMAIL:    $(set_or_not "$UNITY_EMAIL")"
+          echo "UNITY_PASSWORD: $(set_or_not "$UNITY_PASSWORD")"
+          echo "UNITY_LICENSE:  $(set_or_not "$UNITY_LICENSE")"
+          echo "UNITY_SERIAL:   $(set_or_not "$UNITY_SERIAL")"
+          if [ -n "$UNITY_EMAIL" ] && [ -n "$UNITY_PASSWORD" ] && { [ -n "$UNITY_LICENSE" ] || [ -n "$UNITY_SERIAL" ]; }; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+            echo "Unity licence secrets present: licensed jobs will run."
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Unity licence not configured::Editor-run jobs (tests, player build, UWP package) are skipped. Add UNITY_EMAIL, UNITY_PASSWORD and UNITY_LICENSE or UNITY_SERIAL secrets."
+          fi
+
+  unity-compile-check:
+    name: Unity API compile check (no editor run)
+    runs-on: ubuntu-latest
+    env:
+      IMAGE: unityci/editor:ubuntu-6000.6.5f1-base-3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Free disk
+        run: sudo rm -rf /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL || true
+      - name: Extract managed assemblies and packages from the editor image
+        run: |
+          docker pull -q "$IMAGE"
+          docker create --name unity-editor "$IMAGE" >/dev/null
+          mkdir -p editor/Data/Resources editor/Data/Tools
+          docker cp unity-editor:/opt/unity/Editor/Data/Managed editor/Data/Managed
+          docker cp unity-editor:/opt/unity/Editor/Data/NetStandard editor/Data/NetStandard
+          docker cp unity-editor:/opt/unity/Editor/Data/Resources/PackageManager editor/Data/Resources/PackageManager
+          docker cp unity-editor:/opt/unity/Editor/Data/Tools/Unity.SourceGenerators editor/Data/Tools/Unity.SourceGenerators 2>/dev/null || echo "no source generators folder"
+          docker rm unity-editor >/dev/null
+          echo "== Bundled core package versions"
+          for p in editor/Data/Resources/PackageManager/BuiltInPackages/*/package.json; do
+            jq -r '"\(.name)@\(.version)"' "$p"
+          done | grep -E "render-pipelines|ugui|test-framework|shadergraph|mathematics|burst|collections|cinemachine|nunit" || true
+          echo "== NetStandard layout"; find editor/Data/NetStandard -maxdepth 3 -type d | head -20
+          echo "== Managed/UnityEngine editor modules"; ls editor/Data/Managed/UnityEngine | grep -c UnityEditor || true
+      - name: Compile project assemblies against Unity managed assemblies
+        run: python3 Tools/UnityCompileCheck/compile_check.py --data editor/Data --project . --work compile-work --unity-version "$UNITY_VERSION"
+
+  unity-tests:
+    name: Unity EditMode + PlayMode tests (licensed)
+    needs: [license-probe]
+    if: needs.license-probe.outputs.available == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/cache@v4
+        with:
+          path: Library
+          key: Library-linux-${{ hashFiles('Packages/manifest.json', 'ProjectSettings/ProjectVersion.txt') }}
+      - uses: game-ci/unity-test-runner@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+        with:
+          unityVersion: ${{ env.UNITY_VERSION }}
+          testMode: all
+          customParameters: -executeMethod PortMarlowe.EditorTools.ProjectSetup.RunFromCommandLine
+          artifactsPath: test-results
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unity-test-results
+          path: test-results
+
+  linux-player:
+    name: Linux development player + automated smoke run (licensed)
+    needs: [license-probe]
+    if: needs.license-probe.outputs.available == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/cache@v4
+        with:
+          path: Library
+          key: Library-linux-build-${{ hashFiles('Packages/manifest.json', 'ProjectSettings/ProjectVersion.txt') }}
+      - uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+        with:
+          unityVersion: ${{ env.UNITY_VERSION }}
+          targetPlatform: StandaloneLinux64
+          buildMethod: PortMarlowe.EditorTools.BuildTool.BuildFromCommandLine
+          customParameters: -pmProfile LinuxDev
+          buildsPath: Builds
+      - name: Headless gameplay smoke run (no GPU: logic only, graphics unverified)
+        run: |
+          exe=$(find Builds -maxdepth 3 -type f -name 'PortMarlowe*' -perm -u+x | head -1)
+          echo "player: $exe"
+          chmod +x "$exe"
+          timeout 600 "$exe" -batchmode -nographics -logFile player.log -pmAutotest autotest.json || code=$?
+          cat autotest.json 2>/dev/null || echo "no autotest report"
+          tail -n 80 player.log
+          exit ${code:-0}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: linux-player-smoke
+          path: |
+            autotest.json
+            player.log
+
+  uwp-package:
+    name: Windows UWP export + MSBuild package (licensed)
+    needs: [license-probe]
+    if: needs.license-probe.outputs.available == 'true'
+    runs-on: windows-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Install Unity editor + UWP module (official silent installers)
+        shell: pwsh
+        run: |
+          $base = "https://download.unity3d.com/download_unity/$env:UNITY_REVISION"
+          Invoke-WebRequest "$base/Windows64EditorInstaller/UnitySetup64-$env:UNITY_VERSION.exe" -OutFile editor.exe
+          Invoke-WebRequest "$base/TargetSupportInstaller/UnitySetup-Universal-Windows-Platform-Support-for-Editor-$env:UNITY_VERSION.exe" -OutFile uwp.exe
+          Start-Process .\editor.exe -ArgumentList '/S','/D=C:\Unity' -Wait
+          Start-Process .\uwp.exe -ArgumentList '/S','/D=C:\Unity' -Wait
+          Test-Path C:\Unity\Editor\Unity.exe
+          Get-ChildItem C:\Unity\Editor\Data\PlaybackEngines
+      - name: Activate licence
+        shell: pwsh
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+        run: |
+          if ($env:UNITY_SERIAL) {
+            & C:\Unity\Editor\Unity.exe -batchmode -quit -nographics -logFile activate.log -serial $env:UNITY_SERIAL -username $env:UNITY_EMAIL -password $env:UNITY_PASSWORD | Out-Null
+          } else {
+            New-Item -ItemType Directory -Force C:\ProgramData\Unity | Out-Null
+            Set-Content -Path C:\ProgramData\Unity\Unity_lic.ulf -Value $env:UNITY_LICENSE -NoNewline
+          }
+          if (Test-Path activate.log) { Get-Content activate.log -Tail 30 }
+      - name: Export UWP Visual Studio solution
+        shell: pwsh
+        run: |
+          & C:\Unity\Editor\Unity.exe -batchmode -quit -nographics -projectPath . -buildTarget WSAPlayer -logFile uwp-export.log -executeMethod PortMarlowe.EditorTools.BuildTool.BuildFromCommandLine -pmProfile UwpDiagnostic | Out-Null
+          $code = $LASTEXITCODE
+          Get-Content uwp-export.log -Tail 120
+          if ($code -ne 0) { exit $code }
+      - name: Create test signing certificate (CI only; never committed)
+        shell: pwsh
+        run: |
+          $cert = New-SelfSignedCertificate -Type Custom -Subject "CN=PortMarloweDev" -KeyUsage DigitalSignature -FriendlyName "Port Marlowe CI test" -CertStoreLocation "Cert:\CurrentUser\My" -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3", "2.5.29.19={text}")
+          $pwd = ConvertTo-SecureString -String "ci-only" -Force -AsPlainText
+          Export-PfxCertificate -Cert $cert -FilePath "$env:RUNNER_TEMP\pm_ci.pfx" -Password $pwd | Out-Null
+          Export-Certificate -Cert $cert -FilePath "PortMarlowe_CI_TestCert.cer" | Out-Null
+          "THUMB=$($cert.Thumbprint)" >> $env:GITHUB_ENV
+      - name: MSBuild x64 package (Master)
+        shell: pwsh
+        run: |
+          $msbuild = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe | Select-Object -First 1
+          $sln = Get-ChildItem Builds\UWP -Filter *.sln -Recurse | Select-Object -First 1
+          & $msbuild $sln.FullName /m /p:Configuration=Master /p:Platform=x64 /p:AppxBundle=Never /p:UapAppxPackageBuildMode=SideloadOnly /p:AppxPackageSigningEnabled=true /p:PackageCertificateKeyFile="$env:RUNNER_TEMP\pm_ci.pfx" /p:PackageCertificatePassword=ci-only /p:AppxPackageDir="$PWD\Delivery\" /v:minimal
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Get-ChildItem Delivery -Recurse | Select-Object FullName, Length
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: uwp-package
+          path: |
+            Delivery
+            PortMarlowe_CI_TestCert.cer
+            uwp-export.log

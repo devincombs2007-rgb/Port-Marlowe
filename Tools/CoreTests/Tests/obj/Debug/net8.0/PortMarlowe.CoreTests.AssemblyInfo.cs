@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PortMarlowe.CoreTests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+07bbe0bfe24e55de83a1406936aee945a9bb6fdc")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0d23dbf71f61048aba9525656c37695298c7e956")]
 [assembly: System.Reflection.AssemblyProductAttribute("PortMarlowe.CoreTests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PortMarlowe.CoreTests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
