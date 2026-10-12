@@ -384,7 +384,9 @@ def precompiled(a, packages, data_dir):
 def compile_pass(label, asmdefs, guid_to_name, packages, data_dir, work, project_names, editor, unity_version, include_tests):
     defines = unity_defines(unity_version)
     if editor:
-        defines |= {"UNITY_EDITOR", "UNITY_EDITOR_64", "UNITY_EDITOR_LINUX"}
+        # The editor compiles scripts with DEBUG and TRACE defined (some packages guard editor-used
+        # types with #if DEBUG, e.g. Input System's InputSystemState).
+        defines |= {"UNITY_EDITOR", "UNITY_EDITOR_64", "UNITY_EDITOR_LINUX", "DEBUG", "TRACE"}
         if include_tests:
             defines.add("UNITY_INCLUDE_TESTS")
     pkg_versions = {n: p.version for n, p in packages.items()}

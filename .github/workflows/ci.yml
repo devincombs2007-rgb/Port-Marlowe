@@ -110,13 +110,14 @@ jobs:
           key: unity-editor-managed-${{ env.UNITY_VERSION }}-v1
       - name: Compile project assemblies against Unity managed assemblies
         run: python3 Tools/UnityCompileCheck/compile_check.py --data editor/Data --project . --work compile-work --unity-version "$UNITY_VERSION"
-      - name: Diagnose Input System editor-pass type (InputSystemState)
+      - name: Diagnose Unity.Collections 'Unsafe' resolution
         if: always()
         run: |
-          f=$(ls compile-work/packages/com.unity.inputsystem@*/InputSystem/Runtime/InputSystemState.cs 2>/dev/null | head -1)
-          [ -n "$f" ] && grep -nE "^\s*#(if|elif|else|endif)" "$f" | head -20 || true
-          ls compile-work/packages/com.unity.inputsystem@*/InputSystem/Runtime/*.asmref compile-work/packages/com.unity.inputsystem@*/InputSystem/*.asmdef 2>/dev/null || true
-          find compile-work/packages/com.unity.inputsystem@* -name "*.asmref" | head || true
+          f=editor/Data/Resources/PackageManager/BuiltInPackages/com.unity.collections/Unity.Collections/xxHash3.cs
+          [ -f "$f" ] && sed -n '1,25p;645,656p' "$f" | grep -nE "using|Unsafe" | head -30 || true
+          find editor/Data -iname "*ILSupport*" -o -iname "*CompilerServices.Unsafe*" | head -20 || true
+          grep -rln "class Unsafe\b" editor/Data/Resources/PackageManager/BuiltInPackages/com.unity.collections 2>/dev/null | head -5 || true
+          cat editor/Data/Resources/PackageManager/BuiltInPackages/com.unity.collections/Unity.Collections/Unity.Collections.asmdef 2>/dev/null | head -30 || true
 
   unity-tests:
     name: Unity EditMode + PlayMode tests (licensed)
