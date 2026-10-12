@@ -82,9 +82,9 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
-      - name: Cache extracted editor assemblies (workflow-private cache, never published)
+      - name: Restore extracted editor assemblies (workflow-private cache, never published)
         id: editor-cache
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: editor
           key: unity-editor-managed-${{ env.UNITY_VERSION }}-v1
@@ -102,11 +102,21 @@ jobs:
           find editor -name "*.pdb" -delete
           find editor/Data/Managed -name "*.xml" -delete
           du -sh editor
+      - name: Save extracted editor assemblies (saved even if the compile step later fails)
+        if: steps.editor-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: editor
+          key: unity-editor-managed-${{ env.UNITY_VERSION }}-v1
       - name: Compile project assemblies against Unity managed assemblies
         run: python3 Tools/UnityCompileCheck/compile_check.py --data editor/Data --project . --work compile-work --unity-version "$UNITY_VERSION"
       - name: Diagnose Input System editor-pass type (InputSystemState)
         if: always()
-        run: grep -rn "InputSystemState\b" compile-work/packages/com.unity.inputsystem@*/InputSystem --include=*.cs | grep -E "class|struct|#if" | head -20 || true
+        run: |
+          f=$(ls compile-work/packages/com.unity.inputsystem@*/InputSystem/Runtime/InputSystemState.cs 2>/dev/null | head -1)
+          [ -n "$f" ] && grep -nE "^\s*#(if|elif|else|endif)" "$f" | head -20 || true
+          ls compile-work/packages/com.unity.inputsystem@*/InputSystem/Runtime/*.asmref compile-work/packages/com.unity.inputsystem@*/InputSystem/*.asmdef 2>/dev/null || true
+          find compile-work/packages/com.unity.inputsystem@* -name "*.asmref" | head || true
 
   unity-tests:
     name: Unity EditMode + PlayMode tests (licensed)
@@ -130,7 +140,6 @@ jobs:
         with:
           unityVersion: ${{ env.UNITY_VERSION }}
           testMode: all
-          customParameters: -executeMethod PortMarlowe.EditorTools.ProjectSetup.RunFromCommandLine
           artifactsPath: test-results
       - uses: actions/upload-artifact@v4
         if: always()

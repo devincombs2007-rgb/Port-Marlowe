@@ -1,0 +1,22 @@
+{
+    "name": "PortMarlowe.Rendering.Urp.Editor",
+    "rootNamespace": "PortMarlowe.Rendering.Urp.EditorTools",
+    "references": [
+        "PortMarlowe.Runtime",
+        "PortMarlowe.EditorTools",
+        "PortMarlowe.Rendering.Urp",
+        "Unity.RenderPipelines.Core.Runtime",
+        "Unity.RenderPipelines.Universal.Runtime"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
