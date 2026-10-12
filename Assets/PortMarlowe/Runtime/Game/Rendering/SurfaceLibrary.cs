@@ -10,6 +10,9 @@ namespace PortMarlowe.Game.Rendering
         public Texture2D Albedo;
         public Texture2D Normal;
         public Texture2D Mask;
+
+        /// <summary>Grey detail albedo centred on 0.5 (multiply-x2), present for facade sets.</summary>
+        public Texture2D Detail;
         public float FallbackSmoothness = 0.2f;
     }
 
@@ -47,6 +50,7 @@ namespace PortMarlowe.Game.Rendering
                 Albedo = albedo,
                 Normal = Resources.Load<Texture2D>(Folder + role + "/normal"),
                 Mask = Resources.Load<Texture2D>(Folder + role + "/mask"),
+                Detail = Resources.Load<Texture2D>(Folder + role + "/detail"),
             };
             Cache[role] = set;
             return true;

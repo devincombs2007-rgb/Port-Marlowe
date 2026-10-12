@@ -17,6 +17,7 @@ namespace PortMarlowe.Game.Rendering
         public const string UnlitTemplate = "PM_Unlit";
         public const string SkyTemplate = "PM_Sky";
         public const string LitPbrTemplate = "PM_LitPbr";
+        public const string LitEmissiveDetailTemplate = "PM_LitEmissiveDetail";
 
         private static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
         private static readonly int BaseMap = Shader.PropertyToID("_BaseMap");
@@ -29,6 +30,11 @@ namespace PortMarlowe.Game.Rendering
         private static readonly int MetallicGlossMap = Shader.PropertyToID("_MetallicGlossMap");
         private static readonly int OcclusionMap = Shader.PropertyToID("_OcclusionMap");
         private static readonly int OcclusionStrength = Shader.PropertyToID("_OcclusionStrength");
+        private static readonly int DetailAlbedoMap = Shader.PropertyToID("_DetailAlbedoMap");
+        private static readonly int DetailAlbedoMapScale = Shader.PropertyToID("_DetailAlbedoMapScale");
+        private static readonly int DetailNormalMap = Shader.PropertyToID("_DetailNormalMap");
+        private static readonly int DetailNormalMapScale = Shader.PropertyToID("_DetailNormalMapScale");
+        private static readonly int DetailMask = Shader.PropertyToID("_DetailMask");
 
         private readonly Dictionary<string, Material> _templates = new Dictionary<string, Material>();
         private readonly List<Object> _owned = new List<Object>();
@@ -115,6 +121,41 @@ namespace PortMarlowe.Game.Rendering
                 m.SetFloat(Smoothness, set.FallbackSmoothness);
             }
 
+            return m;
+        }
+
+        /// <summary>
+        /// Emissive facade material with an imported surface as URP detail maps (multiply-x2 albedo
+        /// plus detail normal), masked by the base map's alpha so glazing stays clean.
+        /// </summary>
+        public Material LitEmissiveDetail(string name, Color color, Texture2D baseMap, Texture2D emissionMap, float smoothness, Vector2 tiling,
+            SurfaceSet detail, float detailTileMetres, float detailNormalScale)
+        {
+            var m = Instantiate(LitEmissiveDetailTemplate, "Universal Render Pipeline/Lit", name);
+            m.SetColor(BaseColor, color);
+            m.SetTexture(BaseMap, baseMap);
+            m.SetTextureScale(BaseMap, tiling);
+            m.SetTexture(EmissionMap, emissionMap != null ? emissionMap : Texture2D.whiteTexture);
+            m.SetColor(EmissionColor, Color.black);
+            m.SetFloat(Smoothness, smoothness);
+            m.EnableKeyword("_EMISSION");
+            m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+
+            // Detail UVs come from raw UV0, which the district builder lays out in metres.
+            var detailTiling = new Vector2(1f / detailTileMetres, 1f / detailTileMetres);
+            m.SetTexture(DetailAlbedoMap, detail.Detail);
+            m.SetTextureScale(DetailAlbedoMap, detailTiling);
+            m.SetFloat(DetailAlbedoMapScale, 1f);
+            if (detail.Normal != null)
+            {
+                m.SetTexture(DetailNormalMap, detail.Normal);
+                m.SetTextureScale(DetailNormalMap, detailTiling);
+                m.SetFloat(DetailNormalMapScale, detailNormalScale);
+            }
+
+            m.SetTexture(DetailMask, baseMap);
+            m.EnableKeyword("_NORMALMAP");
+            m.EnableKeyword("_DETAIL_MULX2");
             return m;
         }
 

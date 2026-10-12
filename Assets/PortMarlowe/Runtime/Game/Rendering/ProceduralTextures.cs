@@ -170,6 +170,9 @@ namespace PortMarlowe.Game.Rendering
                         px = wall * 0.7f; // sill
                     }
 
+                    // Alpha marks wall (1) versus glazing/frames (0): used as the detail mask so
+                    // imported brick/plaster relief never lands on windows.
+                    px.a = inWindow ? 0f : 1f;
                     a[y * size + x] = px;
                     e[y * size + x] = em;
                 }

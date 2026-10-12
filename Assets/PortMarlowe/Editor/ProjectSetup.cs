@@ -223,6 +223,7 @@ namespace PortMarlowe.EditorTools
             CreateTemplate(log, MaterialLibrary.LitNormalTemplate, "Universal Render Pipeline/Lit", new[] { "_NORMALMAP" });
             CreateTemplate(log, MaterialLibrary.LitEmissiveTemplate, "Universal Render Pipeline/Lit", new[] { "_EMISSION" });
             CreateTemplate(log, MaterialLibrary.LitPbrTemplate, "Universal Render Pipeline/Lit", new[] { "_NORMALMAP", "_METALLICSPECGLOSSMAP", "_OCCLUSIONMAP" });
+            CreateTemplate(log, MaterialLibrary.LitEmissiveDetailTemplate, "Universal Render Pipeline/Lit", new[] { "_EMISSION", "_NORMALMAP", "_DETAIL_MULX2" });
             CreateTemplate(log, MaterialLibrary.UnlitTemplate, "Universal Render Pipeline/Unlit", null);
             CreateTemplate(log, MaterialLibrary.SkyTemplate, "Skybox/Procedural", null);
         }

@@ -124,7 +124,11 @@ namespace PortMarlowe.Game.World
                 w.Facades[style] = new Material[FacadeTints[style].Length];
                 for (int t = 0; t < FacadeTints[style].Length; t++)
                 {
-                    var m = lib.LitEmissive($"Facade_{style}_{t}", FacadeTints[style][t], albedo, lit, Color.black, style == 1 ? 0.55f : 0.25f, new Vector2(1f / 12f, 1f / 12.8f));
+                    float smooth = style == 1 ? 0.55f : 0.25f;
+                    var tiling = new Vector2(1f / 12f, 1f / 12.8f);
+                    var m = FacadeDetail(style, t, out var detail, out float detailMetres)
+                        ? lib.LitEmissiveDetail($"Facade_{style}_{t}", FacadeTints[style][t], albedo, lit, smooth, tiling, detail, detailMetres, 0.8f)
+                        : lib.LitEmissive($"Facade_{style}_{t}", FacadeTints[style][t], albedo, lit, Color.black, smooth, tiling);
                     w.Facades[style][t] = m;
                     w.NightEmissives.Add((m, new Color(1f, 0.86f, 0.62f) * (style == 2 ? 0.6f : 1.1f)));
                 }
@@ -134,6 +138,29 @@ namespace PortMarlowe.Game.World
                 w.Facades[1][0].GetTexture("_EmissionMap") as Texture2D, Color.black, 0.4f, new Vector2(1f / 24f, 1f / 25.6f));
             w.NightEmissives.Add((w.Skyline, new Color(1f, 0.85f, 0.6f) * 0.9f));
             return w;
+        }
+
+        /// <summary>Which imported surface details a facade: plaster or brick for walk-ups, concrete for offices, metal for warehouses.</summary>
+        private static bool FacadeDetail(int style, int tint, out SurfaceSet set, out float tileMetres)
+        {
+            string role;
+            switch (style)
+            {
+                case 0:
+                    role = tint == 2 ? "facade_brick" : "facade_plaster";
+                    tileMetres = tint == 2 ? 1.6f : 2.5f;
+                    break;
+                case 1:
+                    role = "concrete";
+                    tileMetres = 2.5f;
+                    break;
+                default:
+                    role = "facade_metal";
+                    tileMetres = 3f;
+                    break;
+            }
+
+            return SurfaceLibrary.TryGet(role, out set) && set.Detail != null;
         }
 
         private static Material Surface(MaterialLibrary lib, string role, string name, Color tint, float tileMetres, float normalScale, Material fallback)

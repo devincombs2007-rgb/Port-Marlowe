@@ -69,7 +69,7 @@ def ambientcg_maps(asset_id, attribute):
     return maps
 
 
-def convert(maps, out_dir, max_size):
+def convert(maps, out_dir, max_size, detail=False):
     from PIL import Image
 
     def load(key, mode):
@@ -95,7 +95,16 @@ def convert(maps, out_dir, max_size):
     b = Image.new("L", size, 0)
     a = rough.resize(size).point(lambda v: 255 - v) if rough else Image.new("L", size, 64)
     Image.merge("RGBA", (r, g, b, a)).save(os.path.join(out_dir, "mask.png"))
-    return {"size": list(size), "hasRoughness": rough is not None, "hasAO": ao is not None, "hasMetal": metal is not None}
+    if detail:
+        # URP multiply-x2 detail albedo: luminance re-centred on mid grey with a bounded spread,
+        # so the base colour is kept and only the surface variation is added.
+        from PIL import ImageStat
+        lum = albedo.convert("L").resize((1024, 1024), Image.LANCZOS)
+        st = ImageStat.Stat(lum)
+        mean, std = st.mean[0], max(st.stddev[0], 1.0)
+        gain = 30.0 / std
+        lum.point(lambda v: max(0, min(255, int(round(128 + (v - mean) * gain))))).convert("RGB").save(os.path.join(out_dir, "detail.png"))
+    return {"size": list(size), "hasRoughness": rough is not None, "hasAO": ao is not None, "hasMetal": metal is not None, "detail": detail}
 
 
 def contact_sheet(root, roles, path):
@@ -143,7 +152,7 @@ def main():
                     lock[key] = hashes
                 print(f"  (unpinned) {key}: {json.dumps(hashes)}")
             maps.pop("_archive", None)
-            info = convert(maps, os.path.join(root, role), manifest.get("maxSize", 2048))
+            info = convert(maps, os.path.join(root, role), manifest.get("maxSize", 2048), s.get("detail", False))
             report[role] = {"source": key, **info}
             page = f"https://polyhaven.com/a/{aid}" if src == "polyhaven" else f"https://ambientcg.com/view?id={aid}"
             attribution.append(f"- `{role}`: {aid} ({src}, {res}) - {page} - CC0")
