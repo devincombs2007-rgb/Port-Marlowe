@@ -243,6 +243,11 @@ def discover(roots):
     return asmdefs, guid_to_name
 
 
+# Provisional aliases for assembly names that differ between a referencing package and the
+# version actually bundled. Each is reported in the log; confirm against the printed inventory.
+ALIASES = {"Unity.ugui": "UnityEngine.UI"}
+
+
 def ref_names(a, guid_to_name):
     out = []
     for r in a.data.get("references", []):
@@ -251,7 +256,7 @@ def ref_names(a, guid_to_name):
             if n:
                 out.append(n)
         else:
-            out.append(r)
+            out.append(ALIASES.get(r, r))
     return out
 
 
@@ -446,7 +451,8 @@ def compile_pass(label, asmdefs, guid_to_name, packages, data_dir, work, project
         if not a.data.get("overrideReferences", False):
             refs += [d for d in auto_referenced_dlls(packages, editor) if os.path.basename(d).lower() not in {os.path.basename(x).lower() for x in refs}]
         refs += precompiled(a, packages, data_dir)
-        unresolved = [r for r in a.data.get("references", []) if (r.startswith("GUID:") and r[5:] not in guid_to_name) or (not r.startswith("GUID:") and r not in asmdefs)]
+        engine_names = {os.path.splitext(os.path.basename(x))[0] for x in base_refs}
+        unresolved = [r for r in a.data.get("references", []) if (r.startswith("GUID:") and r[5:] not in guid_to_name) or (not r.startswith("GUID:") and r not in asmdefs and r not in engine_names)]
         if unresolved:
             log(f"      note: {n} has unresolved references: {', '.join(unresolved)}")
         if editor and a.is_test:
@@ -498,6 +504,12 @@ def main():
     log("== discovering assembly definitions")
     asmdefs, guid_to_name = discover(roots)
     project_names = [n for n, a in asmdefs.items() if a.package is None]
+    for pkg in ("com.unity.ugui", "com.unity.collections", "com.unity.mathematics", "com.unity.inputsystem"):
+        names = sorted(f"{a.name} ({os.path.relpath(a.path, a.package.path)})" for a in asmdefs.values() if a.package is not None and a.package.name == pkg)
+        log(f"  asmdefs in {pkg}: {names}")
+    engine_dir = os.path.join(args.data, "Managed", "UnityEngine")
+    interesting = sorted(f for f in os.listdir(engine_dir) if re.search(r"(Mathematics|Properties|Collections|Burst|ugui|UI|Unsafe)", f))
+    log(f"  engine assemblies of interest: {interesting}")
     log(f"  project assemblies: {', '.join(sorted(project_names))}")
     log(f"  asmdefs discovered: {len(asmdefs)}, GUIDs mapped: {len(guid_to_name)}")
 
