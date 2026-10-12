@@ -1,0 +1,67 @@
+# ---- Unity generated ----
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+/Assets/Plugins/Editor/JetBrains*
+*.csproj
+*.sln
+*.slnx
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+sysinfo.txt
+crashlytics-build.properties
+.vs/
+.idea/
+.vscode/
+.consulo/
+
+# Build output and delivery staging live outside Assets and are never committed.
+/[Bb]uild/
+/[Bb]uilds/
+/Delivery/
+/TestResults/
+*.apk
+*.aab
+*.unitypackage
+*.msix
+*.msixbundle
+*.appx
+*.appxbundle
+*.appxupload
+
+# ---- Engine-independent core test harness (dotnet) ----
+/Tools/CoreTests/bin/
+/Tools/CoreTests/obj/
+
+# ---- Licensing / provenance guards ----
+# Third-party source packs must not be redistributed through this public repository.
+# Import them locally into Assets/ThirdParty/<Vendor>/ (ignored) and record them in Docs/AssetManifest.md.
+/Assets/ThirdParty/*
+!/Assets/ThirdParty/README.md
+!/Assets/ThirdParty/README.md.meta
+# GTA VI visual reference frames are study material only (credited to Rockstar Games); never commit them.
+/Reference/
+reference_images/
+
+# ---- Secrets ----
+*.pfx
+*.p12
+*.snk
+*.ulf
+*.alf
+.env

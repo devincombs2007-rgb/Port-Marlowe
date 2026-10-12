@@ -1,0 +1,90 @@
+# Read-only environment discovery for the Port Marlowe build route.
+# Collects facts the development sandbox cannot reach (Unity release API,
+# Unity package registry, GameCI editor image contents, Windows UWP toolchain).
+# It builds nothing and needs no secrets.
+name: env-discovery
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/env-discovery.yml
+
+jobs:
+  unity-registry-and-image:
+    runs-on: ubuntu-latest
+    env:
+      UNITY_VERSION: 6000.6.5f1
+      IMAGE: unityci/editor:ubuntu-6000.6.5f1-base-3
+    steps:
+      - name: Unity release API (newest releases + target version)
+        run: |
+          set -u
+          echo "== newest 12 releases (all streams)"
+          curl -fsS "https://services.api.unity.com/unity/editor/release/v1/releases?limit=12&order=RELEASE_DATE_DESC" \
+            | jq -r '.results[] | "\(.version)\t\(.releaseDate)\t\(.stream)\t\(.shortRevision // "")"' || echo "release API query failed"
+          echo "== target version detail"
+          curl -fsS "https://services.api.unity.com/unity/editor/release/v1/releases?version=${UNITY_VERSION}" \
+            | jq '.results[0] | {version, releaseDate, stream, shortRevision, recommended, unityHubDeepLink,
+                 downloads: [.downloads[] | {platform, architecture, url, modules: [.modules[]? | select(.id|test("universal|windows|linux|uwp";"i")) | {id, url}]}]}' \
+            || echo "target version query failed"
+
+      - name: Unity package registry versions
+        run: |
+          for p in com.unity.inputsystem com.unity.ugui com.unity.render-pipelines.universal \
+                   com.unity.render-pipelines.core com.unity.test-framework com.unity.ai.navigation \
+                   com.unity.cinemachine com.unity.mathematics com.unity.burst com.unity.collections \
+                   com.unity.ext.nunit com.unity.modules.ai; do
+            echo "== $p"
+            curl -fsS "https://packages.unity.com/$p" -o pkg.json || { echo "  (not in registry)"; continue; }
+            jq -r '"  dist-tags: \(.["dist-tags"])"' pkg.json
+            jq -r '.versions | to_entries | map(select(.key | test("pre|exp|preview|alpha|beta") | not))
+                   | sort_by(.value.version | split(".") | map(tonumber? // 0)) | .[-8:][]
+                   | "  \(.key)  unity>=\(.value.unity // "-").\(.value.unityRelease // "")  deps=\(.value.dependencies // {} | keys | join(","))"' pkg.json
+          done
+
+      - name: Free disk for editor image
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL || true
+          df -h /
+
+      - name: GameCI editor image contents
+        run: |
+          docker pull -q "$IMAGE"
+          docker run --rm "$IMAGE" bash -c '
+            E=/opt/unity/Editor; [ -d "$E" ] || E=$(dirname $(readlink -f $(which unity-editor 2>/dev/null || echo /opt/unity/Editor/Unity)))
+            echo "editor dir: $E"; ls "$E" | head -30
+            echo "== BuiltInPackages"; ls "$E/Data/Resources/PackageManager/BuiltInPackages" 2>/dev/null | tr "\n" " "; echo
+            echo "== PackageManager tree (depth 2)"; find "$E/Data/Resources/PackageManager" -maxdepth 2 | head -60
+            echo "== editor package manifests mentioning inputsystem"
+            grep -rl "com.unity.inputsystem" "$E/Data/Resources/PackageManager" 2>/dev/null | head -10
+            for f in $(grep -rl "com.unity.inputsystem" "$E/Data/Resources/PackageManager" --include=*.json 2>/dev/null | head -3); do echo "--- $f"; head -c 6000 "$f"; echo; done
+            echo "== Roslyn / dotnet"; ls "$E/Data/DotNetSdkRoslyn" 2>/dev/null | head; ls "$E/Data/NetCoreRuntime" 2>/dev/null | head
+            echo "== Managed"; ls "$E/Data/Managed" | head -40; ls "$E/Data/Managed/UnityEngine" | wc -l
+            echo "== NetStandard"; ls "$E/Data/NetStandard/ref" 2>/dev/null; ls "$E/Data/NetStandard/compat" 2>/dev/null | head
+            echo "== PlaybackEngines"; ls "$E/Data/PlaybackEngines"
+          '
+
+  windows-uwp-toolchain:
+    runs-on: windows-latest
+    steps:
+      - name: Visual Studio workloads, Windows SDKs, Docker mode
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          & $vswhere -all -products * -format json | ConvertFrom-Json | ForEach-Object {
+            "VS: $($_.displayName) $($_.installationVersion) at $($_.installationPath)"
+          }
+          "== UWP-related components"
+          & $vswhere -products * -requires Microsoft.VisualStudio.Workload.Universal -property installationPath
+          & $vswhere -products * -requires Microsoft.VisualStudio.ComponentGroup.UWP.VC -property installationPath
+          & $vswhere -products * -requires Microsoft.VisualStudio.Component.UWP.VC.ARM64 -property installationPath
+          & $vswhere -products * -requires Microsoft.VisualStudio.ComponentGroup.UWP.Support -property installationPath
+          "== Windows SDKs"
+          Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\Include" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name
+          "== makeappx / signtool"
+          Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter makeappx.exe -ErrorAction SilentlyContinue | Select-Object -First 3 -ExpandProperty FullName
+          Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter signtool.exe -ErrorAction SilentlyContinue | Select-Object -First 3 -ExpandProperty FullName
+          "== OS"; [System.Environment]::OSVersion.VersionString
+          "== Docker"; docker version --format '{{.Server.Os}} {{.Server.Version}}' 2>&1
+          "== Disk"; Get-PSDrive C | Format-Table Used,Free -AutoSize
