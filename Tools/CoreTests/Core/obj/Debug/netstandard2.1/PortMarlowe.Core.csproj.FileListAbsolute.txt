@@ -1,0 +1,10 @@
+/home/user/Port-Marlowe/Tools/CoreTests/Core/bin/Debug/netstandard2.1/PortMarlowe.Core.deps.json
+/home/user/Port-Marlowe/Tools/CoreTests/Core/bin/Debug/netstandard2.1/PortMarlowe.Core.dll
+/home/user/Port-Marlowe/Tools/CoreTests/Core/bin/Debug/netstandard2.1/PortMarlowe.Core.pdb
+/home/user/Port-Marlowe/Tools/CoreTests/Core/obj/Debug/netstandard2.1/PortMarlowe.Core.GeneratedMSBuildEditorConfig.editorconfig
+/home/user/Port-Marlowe/Tools/CoreTests/Core/obj/Debug/netstandard2.1/PortMarlowe.Core.AssemblyInfoInputs.cache
+/home/user/Port-Marlowe/Tools/CoreTests/Core/obj/Debug/netstandard2.1/PortMarlowe.Core.AssemblyInfo.cs
+/home/user/Port-Marlowe/Tools/CoreTests/Core/obj/Debug/netstandard2.1/PortMarlowe.Core.csproj.CoreCompileInputs.cache
+/home/user/Port-Marlowe/Tools/CoreTests/Core/obj/Debug/netstandard2.1/PortMarlowe.Core.sourcelink.json
+/home/user/Port-Marlowe/Tools/CoreTests/Core/obj/Debug/netstandard2.1/PortMarlowe.Core.dll
+/home/user/Port-Marlowe/Tools/CoreTests/Core/obj/Debug/netstandard2.1/PortMarlowe.Core.pdb

@@ -1,0 +1,5 @@
+is_global = true
+build_property.RootNamespace = PortMarlowe.Core
+build_property.ProjectDir = /home/user/Port-Marlowe/Tools/CoreTests/Core/
+build_property.EnableComHosting = 
+build_property.EnableGeneratedComInterfaceComImportInterop = 
