@@ -12,14 +12,14 @@ namespace PortMarlowe.Game.Vehicles
     /// </summary>
     public sealed class VehicleEntity : MonoBehaviour
     {
-        public EntityId Id;
+        public StableId Id;
         public string Archetype = "sedan";
         public string ModelName = "Aldine Courier";
         public string Plate = string.Empty;
         public ColorFamily ColorFamily;
         public Color Paint;
         public VehicleSecurityLevel Security = VehicleSecurityLevel.Low;
-        public EntityId Owner = EntityId.None;
+        public StableId Owner = StableId.None;
         public bool Locked;
         public bool Persistent;
         public bool IsPolice;
@@ -62,7 +62,7 @@ namespace PortMarlowe.Game.Vehicles
             return transform.TransformPoint(new Vector3(-p.x, p.y, p.z));
         }
 
-        public bool IsOwnedBy(EntityId who, EntityId partner) => Owner == who || (!partner.IsNone && Owner == partner);
+        public bool IsOwnedBy(StableId who, StableId partner) => Owner == who || (!partner.IsNone && Owner == partner);
 
         public void TriggerAlarm(float seconds) => _alarmUntil = Time.time + seconds;
 

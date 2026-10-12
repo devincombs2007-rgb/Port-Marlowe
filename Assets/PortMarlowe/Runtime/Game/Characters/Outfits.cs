@@ -22,7 +22,7 @@ namespace PortMarlowe.Game.Characters
     /// <summary>Static identity data for a playable protagonist (see Docs/Characters.md for full sheets).</summary>
     public sealed class ProtagonistProfile
     {
-        public EntityId Id;
+        public StableId Id;
         public string FullName;
         public string ShortName;
         public float Height;
@@ -46,8 +46,8 @@ namespace PortMarlowe.Game.Characters
 
     public static class Roster
     {
-        public static readonly EntityId RhysId = new EntityId("char.rhys");
-        public static readonly EntityId LenaId = new EntityId("char.lena");
+        public static readonly StableId RhysId = new StableId("char.rhys");
+        public static readonly StableId LenaId = new StableId("char.lena");
 
         public static ProtagonistProfile Rhys()
         {

@@ -195,7 +195,7 @@ namespace PortMarlowe.Core.Save
             {
                 _pendingSlot = slot;
                 _pendingSnapshot = snapshot;
-                _log?.Record(0, LogCategory.Save, EntityId.None, $"save to {slot} deferred: {reason}");
+                _log?.Record(0, LogCategory.Save, StableId.None, $"save to {slot} deferred: {reason}");
                 return new SaveResult { Deferred = true, Error = reason };
             }
 
@@ -237,7 +237,7 @@ namespace PortMarlowe.Core.Save
             {
                 // Never commit a structurally invalid snapshot over a good save.
                 string msg = "invalid snapshot: " + string.Join("; ", problems);
-                _log?.Record(game.SimTime, LogCategory.Save, EntityId.None, msg);
+                _log?.Record(game.SimTime, LogCategory.Save, StableId.None, msg);
                 return new SaveResult { Error = msg };
             }
 
@@ -266,12 +266,12 @@ namespace PortMarlowe.Core.Save
 
                 _storage.Delete(main);
                 _storage.Move(tmp, main);
-                _log?.Record(game.SimTime, LogCategory.Save, new EntityId(game.Controlled), $"saved {slot} ({text.Length} chars, reason={game.Reason})");
+                _log?.Record(game.SimTime, LogCategory.Save, new StableId(game.Controlled), $"saved {slot} ({text.Length} chars, reason={game.Reason})");
                 return new SaveResult { Success = true, Bytes = Encoding.UTF8.GetByteCount(text) };
             }
             catch (Exception e)
             {
-                _log?.Record(game.SimTime, LogCategory.Save, EntityId.None, $"save {slot} failed: {e.Message}");
+                _log?.Record(game.SimTime, LogCategory.Save, StableId.None, $"save {slot} failed: {e.Message}");
                 return new SaveResult { Error = e.Message };
             }
             finally
@@ -320,7 +320,7 @@ namespace PortMarlowe.Core.Save
                         Repair(slot, name);
                     }
 
-                    _log?.Record(game.SimTime, LogCategory.Save, new EntityId(game.Controlled), $"loaded {slot} from {label} (schema {fromVersion})");
+                    _log?.Record(game.SimTime, LogCategory.Save, new StableId(game.Controlled), $"loaded {slot} from {label} (schema {fromVersion})");
                     return result;
                 }
                 catch (Exception e)
@@ -504,7 +504,7 @@ namespace PortMarlowe.Core.Save
             }
             catch (Exception e)
             {
-                _log?.Record(0, LogCategory.Save, EntityId.None, $"repair of {slot} failed: {e.Message}");
+                _log?.Record(0, LogCategory.Save, StableId.None, $"repair of {slot} failed: {e.Message}");
             }
         }
     }

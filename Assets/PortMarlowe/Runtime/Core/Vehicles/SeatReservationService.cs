@@ -34,12 +34,12 @@ namespace PortMarlowe.Core.Vehicles
         private sealed class Seat
         {
             public SeatState State;
-            public EntityId Holder;
+            public StableId Holder;
             public double ReservedAt;
         }
 
-        private readonly Dictionary<EntityId, Seat[]> _vehicles = new Dictionary<EntityId, Seat[]>();
-        private readonly Dictionary<EntityId, (EntityId vehicle, int seat)> _byOccupant = new Dictionary<EntityId, (EntityId, int)>();
+        private readonly Dictionary<StableId, Seat[]> _vehicles = new Dictionary<StableId, Seat[]>();
+        private readonly Dictionary<StableId, (StableId vehicle, int seat)> _byOccupant = new Dictionary<StableId, (StableId, int)>();
         private readonly EventLog _log;
 
         public SeatReservationService(EventLog log = null)
@@ -47,10 +47,10 @@ namespace PortMarlowe.Core.Vehicles
             _log = log;
         }
 
-        public event Action<EntityId, int, EntityId> SeatOccupied;
-        public event Action<EntityId, int, EntityId> SeatVacated;
+        public event Action<StableId, int, StableId> SeatOccupied;
+        public event Action<StableId, int, StableId> SeatVacated;
 
-        public void RegisterVehicle(EntityId vehicle, int seatCount)
+        public void RegisterVehicle(StableId vehicle, int seatCount)
         {
             if (seatCount < 1)
             {
@@ -72,7 +72,7 @@ namespace PortMarlowe.Core.Vehicles
         }
 
         /// <summary>Removes a vehicle; anyone inside is released (caller must place them safely first).</summary>
-        public void UnregisterVehicle(EntityId vehicle)
+        public void UnregisterVehicle(StableId vehicle)
         {
             if (!_vehicles.TryGetValue(vehicle, out var seats))
             {
@@ -90,13 +90,13 @@ namespace PortMarlowe.Core.Vehicles
             _vehicles.Remove(vehicle);
         }
 
-        public bool IsRegistered(EntityId vehicle) => _vehicles.ContainsKey(vehicle);
+        public bool IsRegistered(StableId vehicle) => _vehicles.ContainsKey(vehicle);
 
-        public int SeatCount(EntityId vehicle) => _vehicles.TryGetValue(vehicle, out var s) ? s.Length : 0;
+        public int SeatCount(StableId vehicle) => _vehicles.TryGetValue(vehicle, out var s) ? s.Length : 0;
 
-        public SeatState GetState(EntityId vehicle, int seat, out EntityId holder)
+        public SeatState GetState(StableId vehicle, int seat, out StableId holder)
         {
-            holder = EntityId.None;
+            holder = StableId.None;
             if (!_vehicles.TryGetValue(vehicle, out var seats) || seat < 0 || seat >= seats.Length)
             {
                 return SeatState.Free;
@@ -107,7 +107,7 @@ namespace PortMarlowe.Core.Vehicles
         }
 
         /// <summary>The seat (reserved or occupied) held by <paramref name="who"/>, if any.</summary>
-        public bool TryGetSeatOf(EntityId who, out EntityId vehicle, out int seat)
+        public bool TryGetSeatOf(StableId who, out StableId vehicle, out int seat)
         {
             if (_byOccupant.TryGetValue(who, out var v))
             {
@@ -116,20 +116,20 @@ namespace PortMarlowe.Core.Vehicles
                 return true;
             }
 
-            vehicle = EntityId.None;
+            vehicle = StableId.None;
             seat = -1;
             return false;
         }
 
-        public bool IsSeated(EntityId who) =>
+        public bool IsSeated(StableId who) =>
             TryGetSeatOf(who, out var v, out int s) && GetState(v, s, out _) == SeatState.Occupied;
 
-        public EntityId Driver(EntityId vehicle)
+        public StableId Driver(StableId vehicle)
         {
-            return GetState(vehicle, 0, out var holder) == SeatState.Occupied ? holder : EntityId.None;
+            return GetState(vehicle, 0, out var holder) == SeatState.Occupied ? holder : StableId.None;
         }
 
-        public int OccupantCount(EntityId vehicle)
+        public int OccupantCount(StableId vehicle)
         {
             if (!_vehicles.TryGetValue(vehicle, out var seats))
             {
@@ -152,7 +152,7 @@ namespace PortMarlowe.Core.Vehicles
         /// First free seat. Passenger preference skips the driver seat when another seat is free;
         /// <paramref name="avoid"/> lets the partner steer clear of the seat the player is heading to.
         /// </summary>
-        public int FindFreeSeat(EntityId vehicle, bool preferPassenger, int avoid = -1)
+        public int FindFreeSeat(StableId vehicle, bool preferPassenger, int avoid = -1)
         {
             if (!_vehicles.TryGetValue(vehicle, out var seats))
             {
@@ -181,7 +181,7 @@ namespace PortMarlowe.Core.Vehicles
             return -1;
         }
 
-        public SeatResult TryReserve(EntityId vehicle, int seat, EntityId who, double now)
+        public SeatResult TryReserve(StableId vehicle, int seat, StableId who, double now)
         {
             var check = Validate(vehicle, seat, out var seats);
             if (check != SeatResult.Ok)
@@ -213,7 +213,7 @@ namespace PortMarlowe.Core.Vehicles
         }
 
         /// <summary>Commit a reserved seat (the committed transfer point of the entry sequence).</summary>
-        public SeatResult Occupy(EntityId vehicle, int seat, EntityId who)
+        public SeatResult Occupy(StableId vehicle, int seat, StableId who)
         {
             var check = Validate(vehicle, seat, out var seats);
             if (check != SeatResult.Ok)
@@ -233,14 +233,14 @@ namespace PortMarlowe.Core.Vehicles
         }
 
         /// <summary>Reserve and occupy in one step (load restore, scripted placement).</summary>
-        public SeatResult PlaceDirect(EntityId vehicle, int seat, EntityId who, double now)
+        public SeatResult PlaceDirect(StableId vehicle, int seat, StableId who, double now)
         {
             var r = TryReserve(vehicle, seat, who, now);
             return r == SeatResult.Ok ? Occupy(vehicle, seat, who) : r;
         }
 
         /// <summary>Release whatever seat <paramref name="who"/> holds (cancelled approach or completed exit).</summary>
-        public SeatResult Release(EntityId who)
+        public SeatResult Release(StableId who)
         {
             if (!_byOccupant.TryGetValue(who, out var held))
             {
@@ -252,7 +252,7 @@ namespace PortMarlowe.Core.Vehicles
             {
                 bool wasOccupied = seats[held.seat].State == SeatState.Occupied;
                 seats[held.seat].State = SeatState.Free;
-                seats[held.seat].Holder = EntityId.None;
+                seats[held.seat].Holder = StableId.None;
                 if (wasOccupied)
                 {
                     SeatVacated?.Invoke(held.vehicle, held.seat, who);
@@ -265,7 +265,7 @@ namespace PortMarlowe.Core.Vehicles
         /// <summary>Expire reservations that were never committed (blocked door, abandoned approach).</summary>
         public int ExpireReservations(double now)
         {
-            var expired = new List<EntityId>();
+            var expired = new List<StableId>();
             foreach (var kv in _vehicles)
             {
                 foreach (var seat in kv.Value)
@@ -285,7 +285,7 @@ namespace PortMarlowe.Core.Vehicles
             return expired.Count;
         }
 
-        public IEnumerable<EntityId> Occupants(EntityId vehicle)
+        public IEnumerable<StableId> Occupants(StableId vehicle)
         {
             if (!_vehicles.TryGetValue(vehicle, out var seats))
             {
@@ -307,7 +307,7 @@ namespace PortMarlowe.Core.Vehicles
             _byOccupant.Clear();
         }
 
-        private SeatResult Validate(EntityId vehicle, int seat, out Seat[] seats)
+        private SeatResult Validate(StableId vehicle, int seat, out Seat[] seats)
         {
             if (!_vehicles.TryGetValue(vehicle, out seats))
             {

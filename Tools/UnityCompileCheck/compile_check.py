@@ -245,7 +245,7 @@ def discover(roots):
 
 # Provisional aliases for assembly names that differ between a referencing package and the
 # version actually bundled. Each is reported in the log; confirm against the printed inventory.
-ALIASES = {"Unity.ugui": "UnityEngine.UI"}
+ALIASES = {"Unity.ugui": ["UnityEngine.UI", "UnityEditor.UI"]}
 
 
 def ref_names(a, guid_to_name):
@@ -256,7 +256,8 @@ def ref_names(a, guid_to_name):
             if n:
                 out.append(n)
         else:
-            out.append(ALIASES.get(r, r))
+            alias = ALIASES.get(r, r)
+            out.extend(alias if isinstance(alias, list) else [alias])
     return out
 
 

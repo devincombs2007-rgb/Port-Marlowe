@@ -54,14 +54,14 @@ namespace PortMarlowe.Core.Economy
     {
         private readonly IdempotencyLedger _ledger;
 
-        public Wallet(EntityId owner, int startingCash, IdempotencyLedger ledger)
+        public Wallet(StableId owner, int startingCash, IdempotencyLedger ledger)
         {
             Owner = owner;
             Cash = Math.Max(0, startingCash);
             _ledger = ledger ?? throw new ArgumentNullException(nameof(ledger));
         }
 
-        public EntityId Owner { get; }
+        public StableId Owner { get; }
         public int Cash { get; private set; }
 
         public WalletResult Credit(int amount, string transactionKey)

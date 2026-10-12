@@ -140,7 +140,7 @@ namespace PortMarlowe.Core.Police
         public double RecognitionEndsAt;
 
         /// <summary>Entity an officer has visually confirmed as the suspect. None until contact.</summary>
-        public EntityId ConfirmedSuspect;
+        public StableId ConfirmedSuspect;
 
         /// <summary>Plain-language reason for the current state, shown to the player.</summary>
         public string Reason = string.Empty;
@@ -240,7 +240,7 @@ namespace PortMarlowe.Core.Police
         /// descriptor match (or 1 for a person directly seen committing a crime). Returns true if
         /// this sighting is treated as contact with the case's suspect.
         /// </summary>
-        public bool ReportSighting(PoliceCase c, EntityId entity, Appearance seenAppearance, float matchScore, Vec3 position, double now, bool witnessedCrime)
+        public bool ReportSighting(PoliceCase c, StableId entity, Appearance seenAppearance, float matchScore, Vec3 position, double now, bool witnessedCrime)
         {
             if (c == null || c.Status == CaseStatus.Closed)
             {
@@ -283,7 +283,7 @@ namespace PortMarlowe.Core.Police
         /// A crime happened in direct view of an officer: creates an officer report (instant) and
         /// escalates the case the suspect is already part of.
         /// </summary>
-        public PoliceCase ReportCrimeWitnessedByOfficer(Incident incident, EntityId officer, Appearance offenderAppearance, VehicleDescriptor? vehicle, double now)
+        public PoliceCase ReportCrimeWitnessedByOfficer(Incident incident, StableId officer, Appearance offenderAppearance, VehicleDescriptor? vehicle, double now)
         {
             var desc = new SuspectDescription();
             desc.ReplacePersonFrom(offenderAppearance, 0.95f);
@@ -309,7 +309,7 @@ namespace PortMarlowe.Core.Police
         }
 
         /// <summary>Suspect detained. Closes every open case confirmed against that entity.</summary>
-        public int ReportArrest(EntityId suspect, double now)
+        public int ReportArrest(StableId suspect, double now)
         {
             int closed = 0;
             foreach (var c in _cases)
@@ -325,7 +325,7 @@ namespace PortMarlowe.Core.Police
         }
 
         /// <summary>Cases for which <paramref name="entity"/> is the confirmed suspect or the ground-truth offender.</summary>
-        public IEnumerable<PoliceCase> CasesInvolving(EntityId entity)
+        public IEnumerable<PoliceCase> CasesInvolving(StableId entity)
         {
             foreach (var c in _cases)
             {

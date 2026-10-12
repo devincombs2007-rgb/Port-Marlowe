@@ -148,7 +148,7 @@ namespace PortMarlowe.Tests.Core
             g.Characters.Add(new CharacterRecord { Id = "char.lena", Position = new Vec3(12f, 0f, 80f), Cash = 95, VehicleId = "veh.player", Seat = 1, PartnerOrder = 1 });
             g.Characters[0].Profile.CivilianViolence = 2;
             g.Vehicles.Add(new VehicleRecord { Id = "veh.player", Archetype = "sedan", FuelLitres = 31.5f, Body = 640f, Engine = 880f, Owner = "char.rhys", Plate = "PM 4471", PaintR = 0.2f, PaintG = 0.3f, PaintB = 0.25f });
-            var c = new PoliceCase { Id = 3, Stage = ResponseStage.Pursuit, Status = CaseStatus.Cooling, TotalSeverity = 4, RecognitionEndsAt = 1400, ConfirmedSuspect = new EntityId("char.rhys") };
+            var c = new PoliceCase { Id = 3, Stage = ResponseStage.Pursuit, Status = CaseStatus.Cooling, TotalSeverity = 4, RecognitionEndsAt = 1400, ConfirmedSuspect = new StableId("char.rhys") };
             c.Description.ReplacePersonFrom(new Appearance(ColorFamily.Red, ColorFamily.Blue, BuildClass.Average, HeightClass.Tall, false), 0.9f);
             c.IncidentIds.Add(11);
             g.Cases.Add(CaseRecord.From(c));

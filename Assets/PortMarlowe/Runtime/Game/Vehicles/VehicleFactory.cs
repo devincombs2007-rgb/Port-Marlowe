@@ -31,7 +31,7 @@ namespace PortMarlowe.Game.Vehicles
         private static Material _rim;
         private static Material _interior;
 
-        public static VehicleEntity CreateSedan(MaterialLibrary lib, Transform parent, EntityId id, Vector3 position, float yaw,
+        public static VehicleEntity CreateSedan(MaterialLibrary lib, Transform parent, StableId id, Vector3 position, float yaw,
             Color paint, ColorFamily family, string plate, VehicleLivery livery)
         {
             EnsureShared(lib);

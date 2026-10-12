@@ -56,7 +56,7 @@ namespace PortMarlowe.Game.Characters
     public sealed class Protagonist : MonoBehaviour
     {
         public ProtagonistProfile Profile { get; private set; }
-        public EntityId Id => Profile.Id;
+        public StableId Id => Profile.Id;
         public CharacterMotor Motor { get; private set; }
         public CharacterRig Rig { get; private set; }
         public NavMeshAgent Agent { get; private set; }
@@ -175,7 +175,7 @@ namespace PortMarlowe.Game.Characters
                 return false;
             }
 
-            bool owned = v.IsOwnedBy(Id, _session.PartnerOf(this)?.Id ?? EntityId.None);
+            bool owned = v.IsOwnedBy(Id, _session.PartnerOf(this)?.Id ?? StableId.None);
             bool breakIn = v.Locked && !owned && !v.WindowBroken;
             if (breakIn && !VehicleSecurity.CanAttempt(v.Security, false, out string why))
             {

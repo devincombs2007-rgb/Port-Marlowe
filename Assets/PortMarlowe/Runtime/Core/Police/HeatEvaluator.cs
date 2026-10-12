@@ -41,7 +41,7 @@ namespace PortMarlowe.Core.Police
         /// Evaluate the player-facing status for one protagonist. Uses ground-truth offender links only
         /// to decide which cases concern the player (feedback), never to inform police behaviour.
         /// </summary>
-        public static HeatStatus Evaluate(EntityId who, Appearance currentAppearance, VehicleDescriptor? currentVehicle,
+        public static HeatStatus Evaluate(StableId who, Appearance currentAppearance, VehicleDescriptor? currentVehicle,
             IncidentRegistry incidents, PoliceDispatchCoordinator dispatch, double now)
         {
             var status = new HeatStatus { Level = HeatLevel.Unseen, Headline = "UNSEEN", Reason = string.Empty, CaseId = -1 };

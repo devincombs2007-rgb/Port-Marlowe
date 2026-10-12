@@ -7,10 +7,10 @@ namespace PortMarlowe.Tests.Core
 {
     public class CrimeAndPoliceTests
     {
-        private static readonly EntityId Rhys = new EntityId("char.rhys");
-        private static readonly EntityId Lena = new EntityId("char.lena");
-        private static readonly EntityId Witness = new EntityId("ped.0001");
-        private static readonly EntityId Officer = new EntityId("cop.0001");
+        private static readonly StableId Rhys = new StableId("char.rhys");
+        private static readonly StableId Lena = new StableId("char.lena");
+        private static readonly StableId Witness = new StableId("ped.0001");
+        private static readonly StableId Officer = new StableId("cop.0001");
 
         private static readonly Appearance RhysOutfitA = new Appearance(ColorFamily.Red, ColorFamily.Blue, BuildClass.Average, HeightClass.Tall, false);
         private static readonly Appearance RhysOutfitB = new Appearance(ColorFamily.Grey, ColorFamily.Black, BuildClass.Average, HeightClass.Tall, true);
@@ -34,7 +34,7 @@ namespace PortMarlowe.Tests.Core
 
         private WitnessReport WitnessAssault(double now, out Incident incident)
         {
-            incident = _reg.CreateIncident(CrimeType.Assault, new Vec3(10, 0, 10), now, Rhys, new EntityId("ped.victim"));
+            incident = _reg.CreateIncident(CrimeType.Assault, new Vec3(10, 0, 10), now, Rhys, new StableId("ped.victim"));
             return _reg.RecordObservation(incident.Id, Witness, GoodDescription(RhysOutfitA), incident.Location, now, byOfficer: false);
         }
 
@@ -55,7 +55,7 @@ namespace PortMarlowe.Tests.Core
         [Test]
         public void UnobservedCrime_SummonsNobody()
         {
-            _reg.CreateIncident(CrimeType.VehicleBreakIn, new Vec3(0, 0, 0), 0, Rhys, EntityId.None);
+            _reg.CreateIncident(CrimeType.VehicleBreakIn, new Vec3(0, 0, 0), 0, Rhys, StableId.None);
             Step(1000);
             Assert.AreEqual(0, _dispatch.Cases.Count);
             var heat = HeatEvaluator.Evaluate(Rhys, RhysOutfitA, null, _reg, _dispatch, 1000);
@@ -191,8 +191,8 @@ namespace PortMarlowe.Tests.Core
         public void NewSeriousCrime_EscalatesStage()
         {
             var c = OpenContactCase(30);
-            var hit = _reg.CreateIncident(CrimeType.HitPedestrian, new Vec3(40, 0, 0), 31, Rhys, new EntityId("ped.2"));
-            var hitReport = _reg.RecordObservation(hit.Id, new EntityId("ped.3"), GoodDescription(RhysOutfitA), hit.Location, 31, false);
+            var hit = _reg.CreateIncident(CrimeType.HitPedestrian, new Vec3(40, 0, 0), 31, Rhys, new StableId("ped.2"));
+            var hitReport = _reg.RecordObservation(hit.Id, new StableId("ped.3"), GoodDescription(RhysOutfitA), hit.Location, 31, false);
             _reg.BeginCall(hitReport.Id, 31, 4);
             Step(35);
             var officerHit = _reg.CreateIncident(CrimeType.AssaultOfficer, new Vec3(40, 0, 0), 36, Rhys, Officer);
@@ -204,7 +204,7 @@ namespace PortMarlowe.Tests.Core
         [Test]
         public void OfficerWitnessedCrime_IsImmediateContact()
         {
-            var inc = _reg.CreateIncident(CrimeType.VehicleBreakIn, new Vec3(5, 0, 5), 10, Rhys, EntityId.None);
+            var inc = _reg.CreateIncident(CrimeType.VehicleBreakIn, new Vec3(5, 0, 5), 10, Rhys, StableId.None);
             var c = _dispatch.ReportCrimeWitnessedByOfficer(inc, Officer, RhysOutfitA, null, 10);
             Assert.IsNotNull(c);
             Assert.AreEqual(CaseStatus.Contact, c.Status);
@@ -301,8 +301,8 @@ namespace PortMarlowe.Tests.Core
         {
             var r1 = WitnessAssault(0, out _);
             _reg.BeginCall(r1.Id, 0, 3);
-            var inc2 = _reg.CreateIncident(CrimeType.Assault, new Vec3(30, 0, 10), 10, Rhys, new EntityId("ped.v2"));
-            var r2 = _reg.RecordObservation(inc2.Id, new EntityId("ped.0002"), GoodDescription(RhysOutfitA), inc2.Location, 10, false);
+            var inc2 = _reg.CreateIncident(CrimeType.Assault, new Vec3(30, 0, 10), 10, Rhys, new StableId("ped.v2"));
+            var r2 = _reg.RecordObservation(inc2.Id, new StableId("ped.0002"), GoodDescription(RhysOutfitA), inc2.Location, 10, false);
             _reg.BeginCall(r2.Id, 10, 3);
             Step(3);
             Step(13);

@@ -8,26 +8,26 @@ namespace PortMarlowe.Core
     /// ("char.rhys", "veh.player.sedan", "ped.0042") so save files and logs stay inspectable.
     /// </summary>
     [Serializable]
-    public readonly struct EntityId : IEquatable<EntityId>
+    public readonly struct StableId : IEquatable<StableId>
     {
         public readonly string Value;
 
-        public EntityId(string value)
+        public StableId(string value)
         {
             Value = value ?? string.Empty;
         }
 
-        public static readonly EntityId None = new EntityId(string.Empty);
+        public static readonly StableId None = new StableId(string.Empty);
 
         public bool IsNone => string.IsNullOrEmpty(Value);
 
-        public bool Equals(EntityId other) => string.Equals(Value ?? string.Empty, other.Value ?? string.Empty, StringComparison.Ordinal);
-        public override bool Equals(object obj) => obj is EntityId other && Equals(other);
+        public bool Equals(StableId other) => string.Equals(Value ?? string.Empty, other.Value ?? string.Empty, StringComparison.Ordinal);
+        public override bool Equals(object obj) => obj is StableId other && Equals(other);
         public override int GetHashCode() => (Value ?? string.Empty).GetHashCode();
         public override string ToString() => IsNone ? "<none>" : Value;
 
-        public static bool operator ==(EntityId a, EntityId b) => a.Equals(b);
-        public static bool operator !=(EntityId a, EntityId b) => !a.Equals(b);
+        public static bool operator ==(StableId a, StableId b) => a.Equals(b);
+        public static bool operator !=(StableId a, StableId b) => !a.Equals(b);
     }
 
     /// <summary>Engine-independent 3D vector used by simulation code (metres, Y up).</summary>

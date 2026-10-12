@@ -12,9 +12,9 @@ namespace PortMarlowe.Tests.Core
 {
     public class SeatTests
     {
-        private static readonly EntityId Car = new EntityId("veh.sedan");
-        private static readonly EntityId Rhys = new EntityId("char.rhys");
-        private static readonly EntityId Lena = new EntityId("char.lena");
+        private static readonly StableId Car = new StableId("veh.sedan");
+        private static readonly StableId Rhys = new StableId("char.rhys");
+        private static readonly StableId Lena = new StableId("char.lena");
 
         [Test]
         public void ReserveOccupyRelease_Sequence()
@@ -47,9 +47,9 @@ namespace PortMarlowe.Tests.Core
         {
             var seats = new SeatReservationService();
             seats.RegisterVehicle(Car, 2);
-            seats.RegisterVehicle(new EntityId("veh.other"), 2);
+            seats.RegisterVehicle(new StableId("veh.other"), 2);
             seats.PlaceDirect(Car, 0, Rhys, 0);
-            Assert.AreEqual(SeatResult.AlreadySeatedElsewhere, seats.TryReserve(new EntityId("veh.other"), 0, Rhys, 0));
+            Assert.AreEqual(SeatResult.AlreadySeatedElsewhere, seats.TryReserve(new StableId("veh.other"), 0, Rhys, 0));
             Assert.AreEqual(SeatResult.AlreadySeatedElsewhere, seats.TryReserve(Car, 1, Rhys, 0));
         }
 
@@ -82,8 +82,8 @@ namespace PortMarlowe.Tests.Core
             seats.PlaceDirect(Car, 0, Rhys, 0);
             seats.PlaceDirect(Car, 1, Lena, 0);
             Assert.AreEqual(-1, seats.FindFreeSeat(Car, true));
-            Assert.AreEqual(SeatResult.NotReservedByRequester, seats.Occupy(Car, 1, new EntityId("ped.1")));
-            Assert.AreEqual(SeatResult.InvalidSeat, seats.TryReserve(Car, 5, new EntityId("ped.1"), 0));
+            Assert.AreEqual(SeatResult.NotReservedByRequester, seats.Occupy(Car, 1, new StableId("ped.1")));
+            Assert.AreEqual(SeatResult.InvalidSeat, seats.TryReserve(Car, 5, new StableId("ped.1"), 0));
         }
 
         [Test]
@@ -188,14 +188,14 @@ namespace PortMarlowe.Tests.Core
 
     public class ControlOwnershipTests
     {
-        private static readonly EntityId Rhys = new EntityId("char.rhys");
-        private static readonly EntityId Lena = new EntityId("char.lena");
+        private static readonly StableId Rhys = new StableId("char.rhys");
+        private static readonly StableId Lena = new StableId("char.lena");
 
         private sealed class Ctx : ISwitchContext
         {
-            public readonly Dictionary<EntityId, SwitchCandidateState> States = new Dictionary<EntityId, SwitchCandidateState>();
+            public readonly Dictionary<StableId, SwitchCandidateState> States = new Dictionary<StableId, SwitchCandidateState>();
             public bool SaveInProgress { get; set; }
-            public SwitchCandidateState Describe(EntityId c) => States.TryGetValue(c, out var s) ? s : default;
+            public SwitchCandidateState Describe(StableId c) => States.TryGetValue(c, out var s) ? s : default;
         }
 
         private static (ControlOwnershipService svc, Ctx ctx) Make()
@@ -368,8 +368,8 @@ namespace PortMarlowe.Tests.Core
 
     public class EconomyAndInputTests
     {
-        private static readonly EntityId Rhys = new EntityId("char.rhys");
-        private static readonly EntityId Lena = new EntityId("char.lena");
+        private static readonly StableId Rhys = new StableId("char.rhys");
+        private static readonly StableId Lena = new StableId("char.lena");
 
         [Test]
         public void Credit_IsIdempotent()

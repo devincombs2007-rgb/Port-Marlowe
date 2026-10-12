@@ -294,7 +294,7 @@ namespace PortMarlowe.Core.Save
                 Stage = (ResponseStage)Stage,
                 Status = (CaseStatus)Status,
                 TotalSeverity = TotalSeverity,
-                ConfirmedSuspect = new EntityId(ConfirmedSuspect),
+                ConfirmedSuspect = new StableId(ConfirmedSuspect),
                 LastKnownPosition = LastKnown,
                 LastKnownTime = LastKnownTime,
                 RecognitionEndsAt = RecognitionEndsAt,

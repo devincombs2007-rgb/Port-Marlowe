@@ -78,13 +78,13 @@ namespace PortMarlowe.Core.Crime
         public int Severity;
         public Vec3 Location;
         public double Time;
-        public EntityId Victim;
+        public StableId Victim;
 
         /// <summary>
         /// Ground truth offender. Police logic never reads this to locate anyone; it is used for the
         /// player's own feedback (HUD "witnessed" state), criminal-profile bookkeeping and tests.
         /// </summary>
-        public EntityId Offender;
+        public StableId Offender;
 
         public VehicleDescriptor? OffenderVehicle;
         public int DeliveredReports;
@@ -94,7 +94,7 @@ namespace PortMarlowe.Core.Crime
     {
         public long Id;
         public long IncidentId;
-        public EntityId Witness;
+        public StableId Witness;
         public bool ByOfficer;
         public SuspectDescription Description;
         public Vec3 ReportedLocation;
@@ -138,7 +138,7 @@ namespace PortMarlowe.Core.Crime
         public IReadOnlyDictionary<long, Incident> Incidents => _incidents;
         public IReadOnlyDictionary<long, WitnessReport> Reports => _reports;
 
-        public Incident CreateIncident(CrimeType type, Vec3 location, double time, EntityId offender, EntityId victim, VehicleDescriptor? offenderVehicle = null)
+        public Incident CreateIncident(CrimeType type, Vec3 location, double time, StableId offender, StableId victim, VehicleDescriptor? offenderVehicle = null)
         {
             var incident = new Incident
             {
@@ -164,7 +164,7 @@ namespace PortMarlowe.Core.Crime
         /// Records that a witness perceived an incident. Each witness reports a given incident once.
         /// Officers deliver immediately (radio). Returns null for a duplicate.
         /// </summary>
-        public WitnessReport RecordObservation(long incidentId, EntityId witness, SuspectDescription description, Vec3 reportedLocation, double now, bool byOfficer)
+        public WitnessReport RecordObservation(long incidentId, StableId witness, SuspectDescription description, Vec3 reportedLocation, double now, bool byOfficer)
         {
             if (!_incidents.ContainsKey(incidentId))
             {
@@ -232,7 +232,7 @@ namespace PortMarlowe.Core.Crime
         /// The witness left full simulation (despawned/demoted). Its intent persists: an observed
         /// report becomes an aggregate call so the report still reaches dispatch.
         /// </summary>
-        public void OnWitnessDemoted(EntityId witness, double now)
+        public void OnWitnessDemoted(StableId witness, double now)
         {
             foreach (var r in _reports.Values)
             {
@@ -285,7 +285,7 @@ namespace PortMarlowe.Core.Crime
         }
 
         /// <summary>Count of reports in progress (observed or calling) about crimes committed by <paramref name="offender"/>.</summary>
-        public int PendingReportsAbout(EntityId offender)
+        public int PendingReportsAbout(StableId offender)
         {
             int count = 0;
             foreach (var r in _reports.Values)
@@ -300,7 +300,7 @@ namespace PortMarlowe.Core.Crime
             return count;
         }
 
-        public IEnumerable<WitnessReport> ReportsByWitness(EntityId witness)
+        public IEnumerable<WitnessReport> ReportsByWitness(StableId witness)
         {
             foreach (var r in _reports.Values)
             {

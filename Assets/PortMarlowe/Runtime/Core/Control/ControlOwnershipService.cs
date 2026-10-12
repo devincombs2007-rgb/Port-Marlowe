@@ -32,15 +32,15 @@ namespace PortMarlowe.Core.Control
 
     public interface ISwitchContext
     {
-        SwitchCandidateState Describe(EntityId character);
+        SwitchCandidateState Describe(StableId character);
         bool SaveInProgress { get; }
     }
 
     public sealed class SwitchTransaction
     {
         public int Id;
-        public EntityId From;
-        public EntityId To;
+        public StableId From;
+        public StableId To;
         public double StartedAt;
         public bool LocalHandoff;
         public bool Completed;
@@ -57,7 +57,7 @@ namespace PortMarlowe.Core.Control
         /// <summary>Characters further apart than this use the longer streaming-aware transition.</summary>
         public const float LocalHandoffDistance = 60f;
 
-        private readonly List<EntityId> _roster = new List<EntityId>();
+        private readonly List<StableId> _roster = new List<StableId>();
         private readonly EventLog _log;
         private int _nextTx = 1;
         private string _authoredLockReason = string.Empty;
@@ -67,16 +67,16 @@ namespace PortMarlowe.Core.Control
             _log = log;
         }
 
-        public EntityId Controlled { get; private set; } = EntityId.None;
+        public StableId Controlled { get; private set; } = StableId.None;
         public SwitchTransaction Active { get; private set; }
         public int CompletedSwitches { get; private set; }
 
-        public IReadOnlyList<EntityId> Roster => _roster;
+        public IReadOnlyList<StableId> Roster => _roster;
 
         /// <summary>Raised once per ownership change: (from, to, transaction).</summary>
-        public event Action<EntityId, EntityId, SwitchTransaction> OwnershipChanged;
+        public event Action<StableId, StableId, SwitchTransaction> OwnershipChanged;
 
-        public void Register(EntityId character)
+        public void Register(StableId character)
         {
             if (!_roster.Contains(character))
             {
@@ -85,7 +85,7 @@ namespace PortMarlowe.Core.Control
         }
 
         /// <summary>Initial ownership (new game / load). Not a switch: no transaction is created.</summary>
-        public void SetInitialOwner(EntityId character)
+        public void SetInitialOwner(StableId character)
         {
             if (!_roster.Contains(character))
             {
@@ -103,18 +103,18 @@ namespace PortMarlowe.Core.Control
         public string AuthoredLockReason => _authoredLockReason;
 
         /// <summary>The other roster member (two-protagonist game) or None.</summary>
-        public EntityId NextCandidate()
+        public StableId NextCandidate()
         {
             if (_roster.Count < 2)
             {
-                return EntityId.None;
+                return StableId.None;
             }
 
             int i = _roster.IndexOf(Controlled);
             return _roster[(i + 1) % _roster.Count];
         }
 
-        public SwitchBlockReason Validate(EntityId target, ISwitchContext context)
+        public SwitchBlockReason Validate(StableId target, ISwitchContext context)
         {
             if (Active != null && !Active.Completed)
             {
@@ -174,7 +174,7 @@ namespace PortMarlowe.Core.Control
         /// Validates and, if allowed, transfers ownership immediately. Returns the transaction or null
         /// with <paramref name="reason"/> explaining the block.
         /// </summary>
-        public SwitchTransaction TryBeginSwitch(EntityId target, ISwitchContext context, double now, float distanceBetween, out SwitchBlockReason reason)
+        public SwitchTransaction TryBeginSwitch(StableId target, ISwitchContext context, double now, float distanceBetween, out SwitchBlockReason reason)
         {
             reason = Validate(target, context);
             if (reason != SwitchBlockReason.None)

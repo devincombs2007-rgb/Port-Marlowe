@@ -6,6 +6,7 @@ using PortMarlowe.Core.Economy;
 using PortMarlowe.Core.Police;
 using PortMarlowe.Core.Save;
 using PortMarlowe.Core.Vehicles;
+using PortMarlowe.Game.Audio;
 using PortMarlowe.Game.Cameras;
 using PortMarlowe.Game.Characters;
 using PortMarlowe.Game.Input;
@@ -40,8 +41,8 @@ namespace PortMarlowe.Game
         public readonly DeterministicRandom Rng;
         public readonly ulong Seed;
 
-        public readonly Dictionary<EntityId, Protagonist> Protagonists = new Dictionary<EntityId, Protagonist>();
-        public readonly Dictionary<EntityId, VehicleEntity> Vehicles = new Dictionary<EntityId, VehicleEntity>();
+        public readonly Dictionary<StableId, Protagonist> Protagonists = new Dictionary<StableId, Protagonist>();
+        public readonly Dictionary<StableId, VehicleEntity> Vehicles = new Dictionary<StableId, VehicleEntity>();
 
         public GameInput Input;
         public MaterialLibrary Materials;
@@ -59,6 +60,7 @@ namespace PortMarlowe.Game
         public SwitchController Switcher;
         public SaveService Save;
         public LightingRig Lighting;
+        public GameAudio Audio;
 
         public GameSession(ulong seed)
         {
@@ -110,12 +112,12 @@ namespace PortMarlowe.Game
                 Hud.Toast(text, seconds);
             }
 
-            Log.Record(Now, LogCategory.General, EntityId.None, "notify: " + text);
+            Log.Record(Now, LogCategory.General, StableId.None, "notify: " + text);
         }
 
         public void OnVehicleEntered(Protagonist who, VehicleEntity v)
         {
-            if (!v.Persistent && (v.IsOwnedBy(who.Id, PartnerOf(who)?.Id ?? EntityId.None) || !v.IsPolice))
+            if (!v.Persistent && (v.IsOwnedBy(who.Id, PartnerOf(who)?.Id ?? StableId.None) || !v.IsPolice))
             {
                 // Vehicles a protagonist has used persist across save/load (spec: unique vehicles).
                 v.Persistent = true;

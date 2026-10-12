@@ -21,10 +21,10 @@ namespace PortMarlowe.Core
     {
         public readonly double Time;
         public readonly LogCategory Category;
-        public readonly EntityId Entity;
+        public readonly StableId Entity;
         public readonly string Message;
 
-        public LogEntry(double time, LogCategory category, EntityId entity, string message)
+        public LogEntry(double time, LogCategory category, StableId entity, string message)
         {
             Time = time;
             Category = category;
@@ -61,7 +61,7 @@ namespace PortMarlowe.Core
         /// <summary>Raised for every entry; the Unity layer mirrors entries to the player log.</summary>
         public event Action<LogEntry> Recorded;
 
-        public void Record(double time, LogCategory category, EntityId entity, string message)
+        public void Record(double time, LogCategory category, StableId entity, string message)
         {
             var entry = new LogEntry(time, category, entity, message ?? string.Empty);
             _buffer[_next] = entry;

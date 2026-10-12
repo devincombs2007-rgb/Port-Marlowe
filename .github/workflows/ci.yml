@@ -82,9 +82,14 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
-      - name: Free disk
-        run: sudo rm -rf /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL || true
+      - name: Cache extracted editor assemblies (workflow-private cache, never published)
+        id: editor-cache
+        uses: actions/cache@v4
+        with:
+          path: editor
+          key: unity-editor-managed-${{ env.UNITY_VERSION }}-v1
       - name: Extract managed assemblies and packages from the editor image
+        if: steps.editor-cache.outputs.cache-hit != 'true'
         run: |
           docker pull -q "$IMAGE"
           docker create --name unity-editor "$IMAGE" >/dev/null
@@ -92,14 +97,11 @@ jobs:
           docker cp unity-editor:/opt/unity/Editor/Data/Managed editor/Data/Managed
           docker cp unity-editor:/opt/unity/Editor/Data/NetStandard editor/Data/NetStandard
           docker cp unity-editor:/opt/unity/Editor/Data/Resources/PackageManager editor/Data/Resources/PackageManager
-          docker cp unity-editor:/opt/unity/Editor/Data/Tools/Unity.SourceGenerators editor/Data/Tools/Unity.SourceGenerators 2>/dev/null || echo "no source generators folder"
           docker rm unity-editor >/dev/null
-          echo "== Bundled core package versions"
-          for p in editor/Data/Resources/PackageManager/BuiltInPackages/*/package.json; do
-            jq -r '"\(.name)@\(.version)"' "$p"
-          done | grep -E "render-pipelines|ugui|test-framework|shadergraph|mathematics|burst|collections|cinemachine|nunit" || true
-          echo "== NetStandard layout"; find editor/Data/NetStandard -maxdepth 3 -type d | head -20
-          echo "== Managed/UnityEngine editor modules"; ls editor/Data/Managed/UnityEngine | grep -c UnityEditor || true
+          # Keep only what compilation needs (drop pdb/xml docs) to keep the cache small.
+          find editor -name "*.pdb" -delete
+          find editor/Data/Managed -name "*.xml" -delete
+          du -sh editor
       - name: Compile project assemblies against Unity managed assemblies
         run: python3 Tools/UnityCompileCheck/compile_check.py --data editor/Data --project . --work compile-work --unity-version "$UNITY_VERSION"
 
