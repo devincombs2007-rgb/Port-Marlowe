@@ -40,6 +40,12 @@ _Updated 2026‑10‑12. Branch `claude/m1-foundation`._
 | UWP export / MSBuild package | Not built (blocker 1). **No installable package exists.** |
 | Xbox device | Not tested (deferred) |
 
+## District layout
+
+![Saltmarket layout](saltmarket_layout.png)
+
+This top-down layout is drawn from the game's own district data (`DistrictPlanner.CreateSaltmarket()`). It is **not** an in-engine render; no frame of the game has been rendered yet.
+
 ## Milestone 1 feature matrix
 
 Column codes:
@@ -65,8 +71,8 @@ A dash means not yet.
 | Usable vehicle (owned Aldine Courier; parked cars; doors, seats, break-in, fuel, damage, lights, audio) | implemented | ✔ seats/fuel/damage/security | ✔ | – | – | – | – | – |
 | Partner follow, board, hold, and switching | implemented | ✔ | ✔ | – | – | – | – | – |
 | Pedestrians (budgeted, out-of-view spawning, perception, reactions, phone reports) | implemented | ✔ observation | ✔ | – | – | – | – | – |
-| Ambient traffic (AI cars on lane routes; first pass, no signals) | implemented | – | pending CI | – | – | – | – | – |
-| Minimap (camera-aligned; police shown only when seen/heard) | implemented | – | pending CI | – | – | – | – | – |
+| Ambient traffic (AI cars on lane routes; first pass, no signals) | implemented | – | ✔ | – | – | – | – | – |
+| Minimap (camera-aligned; police shown only when seen/heard) | implemented | – | ✔ | – | – | – | – | – |
 | Report-driven police (evidence pipeline, five stages, search, challenge, arrest) | implemented | ✔ | ✔ | – | – | – | – | – |
 | Safehouse (door, bed rest + autosave, wardrobe) | implemented | – | ✔ | – | – | – | – | – |
 | Save/load (manual + autosave, checksum, backup recovery, migration) | implemented | ✔ | ✔ | – | – | – | – | – |
