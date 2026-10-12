@@ -43,6 +43,7 @@ namespace PortMarlowe.Game.UI
         private MenuController _menus;
 
         public MenuController Menus => _menus;
+        public Transform CanvasRoot => _canvas.transform;
         public bool MenuOpen => _menus != null && _menus.IsOpen;
 
         public static Hud Create(Transform parent, GameSession session)

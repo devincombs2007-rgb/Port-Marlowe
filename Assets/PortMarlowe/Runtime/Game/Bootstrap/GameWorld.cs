@@ -79,6 +79,7 @@ namespace PortMarlowe.Game
             s.Audio = GameAudio.Create(root);
             s.Lighting = LightingRig.Create(root, s.Clock, s.Materials, s.District);
             s.Hud = Hud.Create(root, s);
+            Minimap.Create(s.Hud.CanvasRoot, s);
 
             s.Crime = new CrimeSystem(s);
             s.Switcher = new SwitchController(s);
@@ -88,6 +89,8 @@ namespace PortMarlowe.Game
             systems.transform.SetParent(root, false);
             s.Pedestrians = systems.AddComponent<PedestrianDirector>();
             s.Pedestrians.Init(s);
+            s.Traffic = systems.AddComponent<TrafficDirector>();
+            s.Traffic.Init(s);
             s.Police = systems.AddComponent<PoliceDispatcher>();
             s.Police.Init(s, s.Roads);
             s.Safehouse = systems.AddComponent<SafehouseController>();
@@ -105,6 +108,7 @@ namespace PortMarlowe.Game
             if (s != null)
             {
                 s.Police?.ClearAll();
+                s.Traffic?.Clear();
                 s.Pedestrians?.Clear();
                 s.Input?.Dispose();
                 s.Materials?.DestroyAll();

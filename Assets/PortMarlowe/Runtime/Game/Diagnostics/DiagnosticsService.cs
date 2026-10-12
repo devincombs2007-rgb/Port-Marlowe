@@ -125,6 +125,7 @@ namespace PortMarlowe.Game.Diagnostics
             {
                 _sb.Append("SIM  peds ").Append(_s.Pedestrians != null ? _s.Pedestrians.Active.Count : 0)
                     .Append("  vehicles ").Append(_s.Vehicles.Count)
+                    .Append(" (traffic ").Append(_s.Traffic != null ? _s.Traffic.Count : 0).Append(')')
                     .Append("  police units ").Append(_s.Police != null ? _s.Police.Units.Count : 0)
                     .Append("  open cases ").Append(CountOpenCases())
                     .Append('\n');
@@ -239,6 +240,7 @@ namespace PortMarlowe.Game.Diagnostics
                 var sim = JsonValue.NewObject();
                 sim.Set("pedestrians", _s.Pedestrians != null ? _s.Pedestrians.Active.Count : 0);
                 sim.Set("vehicles", _s.Vehicles.Count);
+                sim.Set("traffic", _s.Traffic != null ? _s.Traffic.Count : 0);
                 sim.Set("policeUnits", _s.Police != null ? _s.Police.Units.Count : 0);
                 sim.Set("openCases", CountOpenCases());
                 sim.Set("simTime", _s.Clock.Now);

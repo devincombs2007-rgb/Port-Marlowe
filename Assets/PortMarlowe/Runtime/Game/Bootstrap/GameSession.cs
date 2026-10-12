@@ -56,6 +56,7 @@ namespace PortMarlowe.Game
         public Hud Hud;
         public CrimeSystem Crime;
         public PedestrianDirector Pedestrians;
+        public TrafficDirector Traffic;
         public PoliceDispatcher Police;
         public SafehouseController Safehouse;
         public SwitchController Switcher;

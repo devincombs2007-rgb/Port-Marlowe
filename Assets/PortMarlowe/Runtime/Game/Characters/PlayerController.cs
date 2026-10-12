@@ -238,7 +238,7 @@ namespace PortMarlowe.Game.Characters
             Vector3 pos = p.transform.position;
             foreach (var v in _s.Vehicles.Values)
             {
-                if (v == null)
+                if (v == null || v.AiDriven)
                 {
                     continue;
                 }

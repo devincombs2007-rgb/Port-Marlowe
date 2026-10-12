@@ -24,6 +24,9 @@ namespace PortMarlowe.Game.Vehicles
         public bool Persistent;
         public bool IsPolice;
 
+        /// <summary>Driven by an ambient-traffic AI driver; not a player entry target.</summary>
+        public bool AiDriven;
+
         /// <summary>Seat anchors (0 = driver, 1 = front passenger, 2/3 = rear).</summary>
         public Transform[] Seats;
 
