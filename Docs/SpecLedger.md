@@ -55,7 +55,7 @@ The milestone columns are:
 | PM-021 | Peds/traffic | District schedules | VS | planned | — | Day/night budgets exist (26/12); no per-person schedules. |
 | PM-022 | Peds/traffic | Crowd reactions | M1 | implemented | C | Flee, cower, report-by-phone poses; reaction governor (U). |
 | PM-023 | Peds/traffic | Local avoidance | M1 | implemented | C | NavMesh agents with area costs (road 3.0, crosswalk 1.1). |
-| PM-024 | Peds/traffic | Lane/intersection traffic | VS | stubbed | C | Lane routing and A* exist (police use them); there is no ambient traffic yet. |
+| PM-024 | Peds/traffic | Lane/intersection traffic | M1 (first pass) | implemented (first pass) | C | `Population/TrafficDirector.cs`: 8 day / 4 night AI cars on lane routes, spawned and retired out of view, yielding through a forward obstacle check. No signals or intersection reservation yet. |
 | PM-025 | Peds/traffic | Emergency-service routing | M1 (police) | implemented (police) | C | Police take lane routes with a siren. Fire and EMS are planned. |
 | PM-026 | World | Geographic connectivity | M1 | implemented | U (plan validator), C | Saltmarket 4×4 grid, quay, park and four entry roads. Validated as connected. |
 | PM-027 | World | Enterable business rules | VS | planned | — | Storefronts are visual only. |
@@ -91,7 +91,7 @@ The milestone columns are:
 | PM-057 | Presentation | Camera profiles | M1 | implemented | C | On-foot, vehicle and interior profiles; swept collision; switch transitions. |
 | PM-058 | Presentation | Audiovisual feedback | M1 | implemented | C | Synthesised SFX, rumble, camera shake (with a reduced-shake option), post volume (URP). |
 | PM-059 | Presentation | Radio/podcasts/phone | Prod | planned | — | — |
-| PM-060 | Presentation | HUD/map/accessibility | M1 (HUD) | implemented | C | Heat panel with the reason, prompts, vehicle, clock, toasts; invert Y, sensitivity, vibration, reduced shake. No map yet. |
+| PM-060 | Presentation | HUD/map/accessibility | M1 (HUD) | implemented | C | Heat panel with the reason, prompts, vehicle, clock, toasts. Camera-aligned minimap showing partner, safehouse, owned car, and police only when seen or heard. Invert Y, sensitivity, vibration, reduced shake. No full-screen map yet. |
 | PM-061 | Runtime | Streaming/persistence | M1 (single district) | implemented | C | One district built at load. Streaming is planned. |
 | PM-062 | Runtime | Save migration | M1 | implemented | U | Versioned, checksummed, migrated, with temp/backup recovery. |
 | PM-063 | Runtime | Simulation tiers/budgets | M1 (budgets) | implemented (budgets) | C | Pedestrian budget, police unit cap, nearest-20 streetlights, partner AI at 4 Hz. |

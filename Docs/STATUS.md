@@ -65,6 +65,8 @@ A dash means not yet.
 | Usable vehicle (owned Aldine Courier; parked cars; doors, seats, break-in, fuel, damage, lights, audio) | implemented | ✔ seats/fuel/damage/security | ✔ | – | – | – | – | – |
 | Partner follow, board, hold, and switching | implemented | ✔ | ✔ | – | – | – | – | – |
 | Pedestrians (budgeted, out-of-view spawning, perception, reactions, phone reports) | implemented | ✔ observation | ✔ | – | – | – | – | – |
+| Ambient traffic (AI cars on lane routes; first pass, no signals) | implemented | – | pending CI | – | – | – | – | – |
+| Minimap (camera-aligned; police shown only when seen/heard) | implemented | – | pending CI | – | – | – | – | – |
 | Report-driven police (evidence pipeline, five stages, search, challenge, arrest) | implemented | ✔ | ✔ | – | – | – | – | – |
 | Safehouse (door, bed rest + autosave, wardrobe) | implemented | – | ✔ | – | – | – | – | – |
 | Save/load (manual + autosave, checksum, backup recovery, migration) | implemented | ✔ | ✔ | – | – | – | – | – |
@@ -81,6 +83,6 @@ Full subsystem coverage is in `SpecLedger.md` (PM‑001…070).
 
 - All art is procedural or placeholder. There are no faces, no skeletal animation clips, one vehicle model, and no ambient traffic.
 - One district, built at load. No streaming yet.
-- No combat beyond a single strike, no map, no missions or activities.
+- No combat beyond a single strike, no full-screen map, no missions or activities. Traffic has no signals or intersection reservation yet.
 - The URP setup step adds SSAO through a by-name feature lookup. It degrades to a warning if the package changes visibility.
 - Generated assets and `.meta` files are only created on the first licensed editor run. They must be committed afterwards.
