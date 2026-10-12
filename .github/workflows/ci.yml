@@ -158,7 +158,7 @@ jobs:
           buildMethod: PortMarlowe.EditorTools.BuildTool.BuildFromCommandLine
           customParameters: -pmProfile LinuxDev
           buildsPath: Builds
-      - name: Headless gameplay smoke run (no GPU: logic only, graphics unverified)
+      - name: Headless gameplay smoke run - no GPU, logic only, graphics unverified
         run: |
           exe=$(find Builds -maxdepth 3 -type f -name 'PortMarlowe*' -perm -u+x | head -1)
           echo "player: $exe"
