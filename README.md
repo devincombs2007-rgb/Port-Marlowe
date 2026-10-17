@@ -47,6 +47,10 @@ The mod finds out it is on iOS from what Amethyst passes to Java (`-DUIScreen.ma
 4. Launch. The preset is applied on the first start; you can change everything under
    **Options → Video Settings → iPhone Performance…** (or through Mod Menu).
 
+> Amethyst starts every new profile at render distance **2**. The preset never raises a setting, so it
+> stays at 2 until you change it. Most iPhones from the XS onward handle 4–6 with this mod, and 8 with
+> Sodium as well.
+
 ### Recommended companions
 
 Port Marlowe only touches things the big optimization mods leave alone, so use it together with them:
@@ -101,7 +105,9 @@ Every push runs the *Build* workflow. It builds the mod, runs the unit tests, th
 under a virtual display with a software renderer. In that run the game applies the first-launch preset,
 opens the settings screens, creates a singleplayer world, spawns particles in front of and behind the
 camera, places chests near and far, and checks that the limits, culling and FPS caps behave as
-described. It writes `PASS` or `FAIL`.
+described. It writes `PASS` or `FAIL`. A second job runs the same test with the newest 1.21.1 releases of
+Fabric API, Sodium, Lithium, FerriteCore, ModernFix, ImmediatelyFast and Entity Culling installed
+alongside.
 
 ## License
 

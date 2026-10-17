@@ -69,3 +69,56 @@ jobs:
             run-selftest/options.txt
             run-selftest/config/portmarlowe.json
           if-no-files-found: ignore
+
+  # The same in-game self-test with the usual iPhone performance stack installed alongside.
+  compat:
+    name: self-test with Sodium, Lithium & co.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Resolve companion mods
+        id: companions
+        run: scripts/companion-mods.sh >> "$GITHUB_OUTPUT"
+
+      - name: Install virtual display
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri libglx-mesa0
+
+      - name: In-game self-test with companions
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+          COMPANIONS: ${{ steps.companions.outputs.companions }}
+        run: xvfb-run -a -s "-screen 0 1280x720x24" ./gradlew runSelftest -Pcompanions="$COMPANIONS" --stacktrace
+
+      - name: Self-test result
+        if: always()
+        run: |
+          echo "::group::Loaded mods"
+          grep -A 40 "Loading [0-9]* mods" run-selftest/logs/latest.log | head -n 60 || true
+          echo "::endgroup::"
+          echo "::group::Port Marlowe log lines"
+          grep -E "Port Marlowe|[Mm]ixin|Exception|ERROR" run-selftest/logs/latest.log | head -n 300 || true
+          echo "::endgroup::"
+          cat run-selftest/portmarlowe-selftest.txt
+          grep -q '^PASS' run-selftest/portmarlowe-selftest.txt
+
+      - name: Upload self-test logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: selftest-logs-companions
+          path: |
+            run-selftest/logs/
+            run-selftest/crash-reports/
+            run-selftest/portmarlowe-selftest.txt
+          if-no-files-found: ignore

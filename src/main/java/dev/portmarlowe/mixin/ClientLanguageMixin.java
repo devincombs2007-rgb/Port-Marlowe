@@ -12,7 +12,8 @@ import java.util.Map;
 @Mixin(ClientLanguage.class)
 public abstract class ClientLanguageMixin {
     @ModifyArg(method = "loadFrom", at = @At(value = "INVOKE",
-            target = "Lcom/google/common/collect/ImmutableMap;copyOf(Ljava/util/Map;)Lcom/google/common/collect/ImmutableMap;"))
+            target = "Lcom/google/common/collect/ImmutableMap;copyOf(Ljava/util/Map;)Lcom/google/common/collect/ImmutableMap;",
+            remap = false))
     private static Map<String, String> portmarlowe$addBundledEnglish(Map<String, String> translations) {
         BundledTranslations.english().forEach(translations::putIfAbsent);
         return translations;
