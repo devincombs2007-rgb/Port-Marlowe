@@ -1,0 +1,50 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "dread:mimic",
+      "materials": {
+        "default": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/mimic"
+      },
+      "geometry": {
+        "default": "geometry.dread.mimic"
+      },
+      "render_controllers": [
+        "controller.render.dread.mimic"
+      ],
+      "animations": {
+        "disguise_idle": "animation.dread.mimic.disguise_idle",
+        "disguise_walk": "animation.dread.mimic.disguise_walk",
+        "head_turn": "animation.dread.mimic.head_turn",
+        "reveal": "animation.dread.mimic.reveal",
+        "true_idle": "animation.dread.mimic.true_idle",
+        "skitter": "animation.dread.mimic.skitter",
+        "attack": "animation.dread.mimic.attack",
+        "hurt": "animation.dread.mimic.hurt",
+        "locomotion": "controller.animation.dread.mimic.locomotion",
+        "action": "controller.animation.dread.mimic.action"
+      },
+      "scripts": {
+        "animate": [
+          "locomotion",
+          "action"
+        ]
+      },
+      "sound_effects": {
+        "step": "dread.mimic.step",
+        "voice": "dread.mimic.voice",
+        "reveal": "dread.mimic.reveal",
+        "skitter": "dread.mimic.skitter",
+        "attack": "dread.mimic.attack",
+        "hurt": "dread.mimic.hurt"
+      },
+      "spawn_egg": {
+        "base_color": "#d6cec4",
+        "overlay_color": "#241e1c"
+      }
+    }
+  }
+}

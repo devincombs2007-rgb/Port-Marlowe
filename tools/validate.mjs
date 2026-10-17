@@ -267,6 +267,8 @@ const KNOWN_SCHEMA_BUGS = [
   { type: "Fog", path: "/minecraft:fog_settings/description/identifier", message: "must be boolean" },
   // Vanilla item_texture.json uses plain strings for single textures; the schema only allows arrays.
   { type: "Item Texture", path: /^\/texture_data\/[^/]+\/textures$/, message: "must be array" },
+  // Vanilla render controllers write part_visibility as an array of {bone: condition} objects.
+  { type: "Render Controller", path: /^\/render_controllers\/[^/]+\/part_visibility$/, message: "must be object" },
 ];
 const fogIds = new Set();
 const recipeChecks = [];
@@ -399,7 +401,17 @@ for (const [k, j] of jsonIn("RP", "entity/")) {
       }
     }
   }
-  for (const rc of d.render_controllers ?? []) refCheck(k, "render controller", typeof rc === "string" ? rc : Object.keys(rc)[0], renderControllers);
+  for (const rc of d.render_controllers ?? []) {
+    const rcId = typeof rc === "string" ? rc : Object.keys(rc)[0];
+    refCheck(k, "render controller", rcId, renderControllers);
+    // part_visibility bones must exist in this entity's geometry
+    const bones = new Set(Object.values(d.geometry ?? {}).flatMap((g) => [...(geometryBones.get(g) ?? [])]));
+    for (const [, rj] of jsonIn("RP", "render_controllers/")) {
+      for (const pv of rj.render_controllers?.[rcId]?.part_visibility ?? []) for (const bone of Object.keys(pv)) {
+        if (bone !== "*" && bones.size && !bones.has(bone)) err(k, `render controller ${rcId} toggles bone "${bone}" which the geometry does not have`);
+      }
+    }
+  }
   for (const s of Object.values(d.sound_effects ?? {})) refCheck(k, "sound event", s, definedSoundEvents);
   for (const p of Object.values(d.particle_effects ?? {})) refCheck(k, "particle", p, particles);
 }

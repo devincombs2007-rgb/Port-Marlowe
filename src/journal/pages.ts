@@ -126,6 +126,26 @@ export const PAGES: readonly Page[] = [
       "lost me twice in the same hour.",
     lesson: "Water and campfire smoke wash your trail away. Sneaking leaves almost none. Doors stop it.",
   },
+  {
+    id: "mimic",
+    title: "XIII. Counting cattle",
+    text:
+      "There was a cow at the edge of the east pasture where nobody keeps cows. I went to drive it home. Six paces " +
+      "off, it opened.\n\nI do not know a better word. The back of it split and something narrow and pale came up " +
+      "out of it like a man standing up out of a bath, and the cow's head just hung there, still chewing.\n\n" +
+      "It ran. On all of its legs. I have started counting the animals every night.",
+    lesson: "Not everything grazing in the dark is an animal. It never moves while you watch it. Count your livestock.",
+  },
+  {
+    id: "turned",
+    title: "XIV. Wrong way round",
+    text:
+      "I watched one for a long time from the fence, waiting for it to move. It did not move. Real animals move.\n\n" +
+      "Then its head turned. Not the way a cow looks over its shoulder. It kept turning until it was looking at me " +
+      "backwards, upside down, and it held that for as long as I held still.\n\nWhen I looked away it was gone. " +
+      "Since then I hear the door of my hut open while I am inside it. I hear my own chest lid. I do not check anymore.",
+    lesson: "If you hear something familiar where it should not be, it may be imitating. Light and distance keep you safe from it.",
+  },
 ];
 
 export const PAGE_IDS = PAGES.map((p) => p.id);

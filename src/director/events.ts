@@ -11,7 +11,7 @@ export interface AmbientEvent {
   states: readonly DirectorState[];
   cooldown: number; // seconds
   /** Base weight given context, stress and the creature currently assigned (if any); <= 0 means "not now". */
-  weight(s: Snapshot, stress: number, active?: "lurker" | "gaunt"): number;
+  weight(s: Snapshot, stress: number, active?: "lurker" | "gaunt" | "mimic", metMimic?: boolean): number;
   build(rng: Rng, s: Snapshot): Action[];
 }
 
@@ -90,6 +90,12 @@ export const EVENTS: readonly AmbientEvent[] = [
     id: "lurker_steps", states: ["escalation"], cooldown: 75,
     weight: (_s, st, act) => (st >= 45 && act !== "gaunt" ? 2.2 : 0),
     build: (rng) => [amb("lurker_step", "behind", range(rng, 6, 12), 0.7), chance(rng, 0.5) ? amb("lurker_step", "behind", range(rng, 5, 9), 0.7) : { type: "note", text: "single step" }],
+  },
+  {
+    // after the player has met the Mimic, familiar farm/household sounds become untrustworthy everywhere
+    id: "imitation_far", states: UNEASE_PLUS, cooldown: 150,
+    weight: (s, _st, _act, met) => (met && outdoors(s) ? 1.8 : 0),
+    build: (rng) => [amb("imitation", pickBearing(rng, ["behind", "around", "front_far"]), range(rng, 18, 30), 0.8)],
   },
   {
     id: "gaunt_scrape", states: ["escalation"], cooldown: 70,

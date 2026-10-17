@@ -14,6 +14,7 @@ const AMBIENT_EVENTS = [
   "branch_snap", "leaves_rustle", "door_creak", "structure_groan", "drag", "murmur", "distant_cry", "heartbeat", "pressure_drop", "footsteps_far",
 ];
 
+const MIMIC_EVENTS = ["moo", "step", "door", "chest", "voice", "reveal", "skitter", "attack", "hurt", "death"];
 const GAUNT_EVENTS = ["step", "breath", "sniff", "vocal", "attack", "hurt", "death", "burrow", "claw_scrape"];
 
 /** Positions on a ring around the player, starting behind them (index 0), to prove 3D placement. */
@@ -31,9 +32,10 @@ export function playSoundTest(player: Player | undefined, arg: string): void {
     arg === "all" || arg === "" ? LURKER_EVENTS.map((n) => `dread.lurker.${n}`) :
     arg === "ambient" ? AMBIENT_EVENTS.map((n) => `dread.ambient.${n}`) :
     arg === "gaunt" ? GAUNT_EVENTS.map((n) => `dread.gaunt.${n}`) :
+    arg === "mimic" ? MIMIC_EVENTS.map((n) => `dread.mimic.${n}`) :
     arg.split(/\s+/).flatMap((n) => (LURKER_EVENTS.includes(n) ? [`dread.lurker.${n}`] : AMBIENT_EVENTS.includes(n) ? [`dread.ambient.${n}`] : []));
   if (ids.length === 0) {
-    tell(`Usage: dread:sound all | ambient | gaunt | <${[...LURKER_EVENTS, ...AMBIENT_EVENTS].join("|")}>`, player);
+    tell(`Usage: dread:sound all | ambient | gaunt | mimic | <${[...LURKER_EVENTS, ...AMBIENT_EVENTS].join("|")}>`, player);
     return;
   }
   tell(`Playing ${ids.length} sound(s), 3 s apart, circling you from behind.`, player);

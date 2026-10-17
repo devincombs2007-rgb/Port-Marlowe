@@ -1,0 +1,103 @@
+{
+  "format_version": "1.10.0",
+  "animation_controllers": {
+    "controller.animation.dread.mimic.locomotion": {
+      "initial_state": "disguise",
+      "states": {
+        "disguise": {
+          "animations": [
+            "disguise_idle",
+            {
+              "disguise_walk": "query.modified_move_speed > 0.02"
+            }
+          ],
+          "transitions": [
+            {
+              "reveal": "query.property('dread:form') == 'reveal'"
+            },
+            {
+              "true": "query.property('dread:form') == 'true'"
+            }
+          ]
+        },
+        "reveal": {
+          "animations": [
+            "reveal"
+          ],
+          "transitions": [
+            {
+              "true": "query.property('dread:form') == 'true' && query.all_animations_finished"
+            },
+            {
+              "disguise": "query.property('dread:form') == 'disguise'"
+            }
+          ]
+        },
+        "true": {
+          "animations": [
+            "true_idle",
+            {
+              "skitter": "query.modified_move_speed > 0.03"
+            }
+          ],
+          "transitions": [
+            {
+              "disguise": "query.property('dread:form') == 'disguise'"
+            }
+          ],
+          "blend_transition": 0.2
+        }
+      }
+    },
+    "controller.animation.dread.mimic.action": {
+      "initial_state": "none",
+      "states": {
+        "none": {
+          "transitions": [
+            {
+              "head_turn": "query.property('dread:action') == 'head_turn'"
+            },
+            {
+              "attack": "query.property('dread:action') == 'attack'"
+            },
+            {
+              "hurt": "query.property('dread:action') == 'hurt'"
+            }
+          ]
+        },
+        "head_turn": {
+          "animations": [
+            "head_turn"
+          ],
+          "transitions": [
+            {
+              "none": "query.property('dread:action') != 'head_turn'"
+            }
+          ]
+        },
+        "attack": {
+          "animations": [
+            "attack"
+          ],
+          "transitions": [
+            {
+              "none": "query.all_animations_finished"
+            }
+          ],
+          "blend_transition": 0.05
+        },
+        "hurt": {
+          "animations": [
+            "hurt"
+          ],
+          "transitions": [
+            {
+              "none": "query.all_animations_finished"
+            }
+          ],
+          "blend_transition": 0.03
+        }
+      }
+    }
+  }
+}

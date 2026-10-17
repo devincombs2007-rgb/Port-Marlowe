@@ -7,3 +7,5 @@ item.dread:journal=Field Journal
 entity.dread:gaunt.name=Gaunt
 item.spawn_egg.entity.dread:gaunt.name=Gaunt Spawn Egg
 entity.dread:scent.name=Scent
+entity.dread:mimic.name=Cow?
+item.spawn_egg.entity.dread:mimic.name=Mimic Spawn Egg

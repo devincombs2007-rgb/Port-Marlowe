@@ -36,5 +36,6 @@ export function parseMemory(raw: unknown, worldSec: number): Memory {
     hunts: Math.max(0, Math.floor(num(o.hunts, 0))), noticedCount: Math.max(0, Math.floor(num(o.noticedCount, 0))),
     survivedHunts: Math.max(0, Math.floor(num(o.survivedHunts, 0))),
     lastHuntEnd: num(o.lastHuntEnd, -1e9), lastDeath: num(o.lastDeath, -1e9), stress: clamp(num(o.stress, 10), 0, 100), dread: clamp(num(o.dread, 0), 0, 100),
+    ...(o.metMimic === true ? { metMimic: true } : {}),
   };
 }

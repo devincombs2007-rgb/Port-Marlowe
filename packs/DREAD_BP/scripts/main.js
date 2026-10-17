@@ -115,6 +115,7 @@ var AMBIENT_EVENTS = [
   "pressure_drop",
   "footsteps_far"
 ];
+var MIMIC_EVENTS = ["moo", "step", "door", "chest", "voice", "reveal", "skitter", "attack", "hurt", "death"];
 var GAUNT_EVENTS = ["step", "breath", "sniff", "vocal", "attack", "hurt", "death", "burrow", "claw_scrape"];
 function ringPosition(player, step) {
   const view = player.getViewDirection();
@@ -125,9 +126,9 @@ function ringPosition(player, step) {
 }
 function playSoundTest(player, arg) {
   if (!player) return;
-  const ids = arg === "all" || arg === "" ? LURKER_EVENTS.map((n) => `dread.lurker.${n}`) : arg === "ambient" ? AMBIENT_EVENTS.map((n) => `dread.ambient.${n}`) : arg === "gaunt" ? GAUNT_EVENTS.map((n) => `dread.gaunt.${n}`) : arg.split(/\s+/).flatMap((n) => LURKER_EVENTS.includes(n) ? [`dread.lurker.${n}`] : AMBIENT_EVENTS.includes(n) ? [`dread.ambient.${n}`] : []);
+  const ids = arg === "all" || arg === "" ? LURKER_EVENTS.map((n) => `dread.lurker.${n}`) : arg === "ambient" ? AMBIENT_EVENTS.map((n) => `dread.ambient.${n}`) : arg === "gaunt" ? GAUNT_EVENTS.map((n) => `dread.gaunt.${n}`) : arg === "mimic" ? MIMIC_EVENTS.map((n) => `dread.mimic.${n}`) : arg.split(/\s+/).flatMap((n) => LURKER_EVENTS.includes(n) ? [`dread.lurker.${n}`] : AMBIENT_EVENTS.includes(n) ? [`dread.ambient.${n}`] : []);
   if (ids.length === 0) {
-    tell(`Usage: dread:sound all | ambient | gaunt | <${[...LURKER_EVENTS, ...AMBIENT_EVENTS].join("|")}>`, player);
+    tell(`Usage: dread:sound all | ambient | gaunt | mimic | <${[...LURKER_EVENTS, ...AMBIENT_EVENTS].join("|")}>`, player);
     return;
   }
   tell(`Playing ${ids.length} sound(s), 3 s apart, circling you from behind.`, player);
@@ -282,6 +283,14 @@ var EVENTS = [
     cooldown: 75,
     weight: (_s, st, act) => st >= 45 && act !== "gaunt" ? 2.2 : 0,
     build: (rng3) => [amb("lurker_step", "behind", range(rng3, 6, 12), 0.7), chance(rng3, 0.5) ? amb("lurker_step", "behind", range(rng3, 5, 9), 0.7) : { type: "note", text: "single step" }]
+  },
+  {
+    // after the player has met the Mimic, familiar farm/household sounds become untrustworthy everywhere
+    id: "imitation_far",
+    states: UNEASE_PLUS,
+    cooldown: 150,
+    weight: (s, _st, _act, met) => met && outdoors(s) ? 1.8 : 0,
+    build: (rng3) => [amb("imitation", pickBearing(rng3, ["behind", "around", "front_far"]), range(rng3, 18, 30), 0.8)]
   },
   {
     id: "gaunt_scrape",
@@ -519,7 +528,8 @@ var DirectorBrain = class {
       this.tm.respawnLurkerAt = 0;
       if (s.globalActiveCreatures < TUNING.globalLurkerCap) {
         this.tm.observationSpawns++;
-        out.push({ type: "spawnCreature", creature: "lurker", tactic: "observe", minDist: 26, maxDist: 42 });
+        const watcher = this.pickWatcher(s);
+        out.push(watcher === "mimic" ? { type: "spawnCreature", creature: "mimic", tactic: "observe", minDist: 20, maxDist: 32 } : { type: "spawnCreature", creature: "lurker", tactic: "observe", minDist: 26, maxDist: 42 });
         this.log("observe_spawn", s.worldSec);
       }
     }
@@ -597,6 +607,22 @@ var DirectorBrain = class {
     if (this.memory.noticedCount < 2) return "lurker";
     return chance(this.rng, s.skyVisible ? 0.3 : 0.55) ? "gaunt" : "lurker";
   }
+  /**
+   * Who does the watching. Usually the Lurker; once the player knows the Lurker, a night under open sky may send
+   * the Mimic instead, standing in a field like any other animal.
+   */
+  pickWatcher(s) {
+    if (this.memory.noticedCount < 1 || !s.skyVisible || !night2(s)) return "lurker";
+    return chance(this.rng, 0.35) ? "mimic" : "lurker";
+  }
+  metMimic() {
+    return this.memory.history.some((h) => h.id.startsWith("mimic")) || this.memory.metMimic === true;
+  }
+  /** Adapter feedback: the player has seen through a Mimic. */
+  onMimicMet(worldSec2) {
+    this.memory.metMimic = true;
+    this.log("mimic_met", worldSec2);
+  }
   // -- shared machinery ---------------------------------------------------------------------
   ambientTick(s, out) {
     if (s.t < this.tm.nextEventAt) return;
@@ -607,8 +633,8 @@ var DirectorBrain = class {
   }
   fireEvent(s, out, onlyIds) {
     const stress = this.memory.stress;
-    const candidates = EVENTS.filter((e) => e.states.includes(this.memory.state) && (!onlyIds || onlyIds.includes(e.id)) && s.t - (this.tm.lastEvent.get(e.id) ?? -1e9) >= e.cooldown && e.weight(s, stress, this.tm.active) > 0);
-    const ev = pickWeighted(this.rng, candidates, (e) => e.weight(s, stress, this.tm.active) * repetitionFactor(e.id, this.memory.history, s.worldSec));
+    const candidates = EVENTS.filter((e) => e.states.includes(this.memory.state) && (!onlyIds || onlyIds.includes(e.id)) && s.t - (this.tm.lastEvent.get(e.id) ?? -1e9) >= e.cooldown && e.weight(s, stress, this.tm.active, this.metMimic()) > 0);
+    const ev = pickWeighted(this.rng, candidates, (e) => e.weight(s, stress, this.tm.active, this.metMimic()) * repetitionFactor(e.id, this.memory.history, s.worldSec));
     if (!ev) return;
     this.tm.lastEvent.set(ev.id, s.t);
     this.log(ev.id, s.worldSec);
@@ -690,7 +716,8 @@ function parseMemory(raw, worldSec2) {
     lastHuntEnd: num(o.lastHuntEnd, -1e9),
     lastDeath: num(o.lastDeath, -1e9),
     stress: clamp(num(o.stress, 10), 0, 100),
-    dread: clamp(num(o.dread, 0), 0, 100)
+    dread: clamp(num(o.dread, 0), 0, 100),
+    ...o.metMimic === true ? { metMimic: true } : {}
   };
 }
 
@@ -877,7 +904,8 @@ function playAmbient(p, a, cfg, rng3, stress) {
     }
     return;
   }
-  const id = SOUND[a.kind];
+  const IMITATIONS = ["moo", "step", "door", "chest", "voice"];
+  const id = a.kind === "imitation" ? `dread.mimic.${IMITATIONS[Math.floor(rng3.next() * IMITATIONS.length)]}` : SOUND[a.kind];
   const loc = a.kind === "pressure_drop" ? void 0 : bearingToPosition(p, a.bearing, a.distance, rng3);
   safe(() => p.playSound(id, { volume: soundVolume(a.volume, a.kind, cfg), pitch: 1, ...loc ? { location: loc } : {} }), void 0);
 }
@@ -989,6 +1017,18 @@ var PAGES = [
     title: "XII. Losing it",
     text: "Crossed the river at the ford and waited on the far bank with my heart in my teeth. It came down to the water, put its face in the shallows, and stood there a long while. Then it went back into the ground the way a mole does.\n\nWater takes the scent. So does woodsmoke, I think. And when I crept, bent double, it lost me twice in the same hour.",
     lesson: "Water and campfire smoke wash your trail away. Sneaking leaves almost none. Doors stop it."
+  },
+  {
+    id: "mimic",
+    title: "XIII. Counting cattle",
+    text: "There was a cow at the edge of the east pasture where nobody keeps cows. I went to drive it home. Six paces off, it opened.\n\nI do not know a better word. The back of it split and something narrow and pale came up out of it like a man standing up out of a bath, and the cow's head just hung there, still chewing.\n\nIt ran. On all of its legs. I have started counting the animals every night.",
+    lesson: "Not everything grazing in the dark is an animal. It never moves while you watch it. Count your livestock."
+  },
+  {
+    id: "turned",
+    title: "XIV. Wrong way round",
+    text: "I watched one for a long time from the fence, waiting for it to move. It did not move. Real animals move.\n\nThen its head turned. Not the way a cow looks over its shoulder. It kept turning until it was looking at me backwards, upside down, and it held that for as long as I held still.\n\nWhen I looked away it was gone. Since then I hear the door of my hut open while I am inside it. I hear my own chest lid. I do not check anymore.",
+    lesson: "If you hear something familiar where it should not be, it may be imitating. Light and distance keep you safe from it."
   }
 ];
 var PAGE_IDS = PAGES.map((p) => p.id);
@@ -1550,6 +1590,131 @@ var LurkerTactics = class {
 };
 var lurkerGentle = (intensity) => clamp(intensity, 0, 100) < 35;
 
+// src/mimic/tactics.ts
+var MTUNING = {
+  maxLifetime: 360,
+  revealDist: 6,
+  litRevealDist: 9,
+  watchToTurn: 5,
+  revealTime: 1.4,
+  attackMax: 20,
+  hitsToFlee: 2
+};
+var MimicTactics = class {
+  constructor(rng3) {
+    this.rng = rng3;
+    this.nextImitation = range(rng3, 8, 20);
+  }
+  rng;
+  state = "disguise";
+  stateAge = 0;
+  seenFor = 0;
+  unseenFor = 0;
+  stillWhileSeen = false;
+  nextImitation;
+  lastImitation;
+  fleeFor = 0;
+  outcome = "fled";
+  forced;
+  pending = [{ type: "group", event: "dread:set_graze" }];
+  forceRetreat(reason) {
+    if (this.state !== "gone" && this.state !== "flee") this.forced = reason;
+  }
+  flee(outcome, out) {
+    this.state = "flee";
+    this.stateAge = 0;
+    this.outcome = outcome;
+    this.fleeFor = range(this.rng, 5, 8);
+    out.push({ type: "group", event: "dread:set_flee" });
+  }
+  reveal(out) {
+    this.state = "reveal";
+    this.stateAge = 0;
+    out.push({ type: "group", event: "dread:set_reveal" }, { type: "encounter", kind: "mimic_revealed" }, { type: "stress", amount: 8 });
+  }
+  step(c) {
+    const out = this.pending.splice(0);
+    if (this.state === "gone") return out;
+    this.stateAge += c.dt;
+    this.seenFor = c.seen ? this.seenFor + c.dt : 0;
+    this.unseenFor = c.seen ? 0 : this.unseenFor + c.dt;
+    if (this.forced) {
+      const r = this.forced;
+      this.forced = void 0;
+      if (this.state === "disguise" || this.state === "turn") return this.vanishQuietly(r, out);
+      this.flee(r, out);
+      return out;
+    }
+    if (c.age > MTUNING.maxLifetime && this.state !== "flee") return this.vanishQuietly("lifetime", out);
+    switch (this.state) {
+      case "disguise":
+        this.stepDisguise(c, out);
+        break;
+      case "turn":
+        if (c.struck || c.dist < MTUNING.revealDist) this.reveal(out);
+        else if (this.stateAge > 3.2 && this.unseenFor > 2) return this.vanishQuietly("turned", out);
+        else if (this.stateAge > 20) return this.vanishQuietly("turned", out);
+        break;
+      case "reveal":
+        if (this.stateAge >= MTUNING.revealTime) {
+          if (c.requested === "hunt" && !c.playerLit && c.playerHealth > 6) {
+            this.state = "attack";
+            this.stateAge = 0;
+            out.push({ type: "group", event: "dread:set_attack" });
+          } else this.flee("revealed", out);
+        }
+        break;
+      case "attack":
+        if (c.hits >= (c.gentle ? 1 : MTUNING.hitsToFlee)) this.flee("satisfied", out);
+        else if (c.hpFrac < 0.5) this.flee("injured", out);
+        else if (c.playerLit) this.flee("light", out);
+        else if (c.playerHealth <= 6) this.flee("player-hurt", out);
+        else if (this.stateAge > MTUNING.attackMax) this.flee("timeout", out);
+        break;
+      case "flee":
+        this.fleeFor -= c.dt;
+        if (this.fleeFor <= 0 || c.dist > 40) {
+          this.state = "gone";
+          out.push({ type: "vanish", outcome: this.outcome });
+        }
+        break;
+    }
+    return out;
+  }
+  vanishQuietly(outcome, out) {
+    this.state = "gone";
+    out.push({ type: "vanish", outcome });
+    return out;
+  }
+  stepDisguise(c, out) {
+    if (c.struck || c.dist < MTUNING.revealDist || c.playerLit && c.dist < MTUNING.litRevealDist) return this.reveal(out);
+    if (c.seen && !this.stillWhileSeen) {
+      this.stillWhileSeen = true;
+      out.push({ type: "group", event: "dread:set_still" });
+    } else if (!c.seen && this.stillWhileSeen && this.unseenFor > 1.5) {
+      this.stillWhileSeen = false;
+      out.push({ type: "group", event: "dread:set_graze" });
+    }
+    if (this.seenFor >= MTUNING.watchToTurn && c.dist < 40) {
+      this.state = "turn";
+      this.stateAge = 0;
+      out.push({ type: "action", action: "head_turn" }, { type: "encounter", kind: "mimic_turned" }, { type: "stress", amount: 5 });
+      return;
+    }
+    this.nextImitation -= c.dt;
+    if (this.nextImitation <= 0) {
+      this.nextImitation = range(this.rng, 14, 34);
+      if (!c.seen && c.dist >= 8 && c.dist <= 32) {
+        const options = ["moo", "step", "door", "chest", "voice"].filter((s) => s !== this.lastImitation);
+        const pick = options[Math.floor(this.rng.next() * options.length)];
+        this.lastImitation = pick;
+        out.push({ type: "imitate", sound: pick });
+        if (chance(this.rng, 0.3)) out.push({ type: "stress", amount: 1 });
+      }
+    }
+  }
+};
+
 // src/game/trail.ts
 var CAP = 160;
 var SAMPLE_TICKS = 30;
@@ -1603,7 +1768,7 @@ function forgetTrail(playerId) {
 }
 
 // src/game/creatures.ts
-var CREATURE_TYPE = { lurker: "dread:lurker", gaunt: "dread:gaunt" };
+var CREATURE_TYPE = { lurker: "dread:lurker", gaunt: "dread:gaunt", mimic: "dread:mimic" };
 var SCENT_TYPE = "dread:scent";
 var MANAGED_TAG = "dread_managed";
 var TICK_INTERVAL = 5;
@@ -1628,10 +1793,16 @@ function initCreatures(h, r = mathRng) {
     const rec = registry.get(attacker.id);
     if (rec && e.hurtEntity.id === rec.playerId) rec.hits++;
   });
+  world5.afterEvents.entityHurt.subscribe((e) => {
+    const rec = registry.get(e.hurtEntity.id);
+    if (rec?.kind === "mimic") rec.struck = true;
+  });
 }
 function spawnCreature(player, creature, tactic, minDist, maxDist, underground) {
   if (!hooks) return false;
-  return creature === "gaunt" ? spawnGaunt(player, tactic) || spawnFallbackGaunt(player, tactic, underground) : spawnLurker(player, tactic, minDist, maxDist, underground);
+  if (creature === "gaunt") return spawnGaunt(player, tactic) || spawnFallbackGaunt(player, tactic, underground);
+  if (creature === "mimic") return spawnMimic(player, minDist, maxDist);
+  return spawnLurker(player, tactic, minDist, maxDist, underground);
 }
 function spawnLurker(player, tactic, minDist, maxDist, underground) {
   const pos = findVantage(player, minDist, maxDist, underground, rng);
@@ -1644,6 +1815,17 @@ function spawnLurker(player, tactic, minDist, maxDist, underground) {
     e.addTag(MANAGED_TAG);
     registry.set(e.id, { kind: "lurker", entity: e, playerId: player.id, tactics: new LurkerTactics(rng, tactic), spawnedTick: system4.currentTick, hits: 0, actionSince: 0, wasHunting: tactic === "hunt" });
     face(e, player.location);
+    return true;
+  }, false);
+}
+function spawnMimic(player, minDist, maxDist) {
+  const pos = findVantage(player, minDist, maxDist, false, rng);
+  if (!pos) return false;
+  return safe(() => {
+    const e = player.dimension.spawnEntity(CREATURE_TYPE.mimic, pos);
+    e.addTag(MANAGED_TAG);
+    registry.set(e.id, { kind: "mimic", entity: e, playerId: player.id, tactics: new MimicTactics(rng), spawnedTick: system4.currentTick, hits: 0, actionSince: 0, wasHunting: false, struck: false });
+    safe(() => e.teleport(pos, { rotation: { x: 0, y: rng.next() * 360 } }), void 0);
     return true;
   }, false);
 }
@@ -1719,6 +1901,7 @@ function dispose(rec) {
   if (rec.kind === "gaunt") safe(() => rec.marker?.remove(), void 0);
 }
 function vanishEffect(dim, at, kind) {
+  if (kind === "mimic") return;
   safe(() => dim.spawnParticle(kind === "lurker" ? "dread:lurker_vanish" : "dread:gaunt_burrow", at), void 0);
 }
 function tick() {
@@ -1762,6 +1945,23 @@ function tick() {
       });
       trackHunt(rec, rec.tactics.state === "hunt");
       if (ev.length) applyLurker(rec, player, ev, now);
+    } else if (rec.kind === "mimic") {
+      const ev = rec.tactics.step({
+        dt: DT,
+        age: (now - rec.spawnedTick) / 20,
+        dist,
+        seen: dist < 64 && canSee(player, e, 0.5),
+        struck: rec.struck,
+        playerLit: h.isLit(rec.playerId),
+        playerHealth: hp.cur,
+        hpFrac,
+        hits: rec.hits,
+        requested: h.requested(rec.playerId),
+        gentle
+      });
+      rec.struck = false;
+      trackHunt(rec, rec.tactics.state === "attack");
+      if (ev.length) applyMimic(rec, player, ev, now);
     } else {
       const sneaking = safe(() => player.isSneaking, false);
       const sees = dist < (sneaking ? 9 : 18) && creatureSees(e, player);
@@ -1794,7 +1994,7 @@ function trackHunt(rec, hunting) {
 }
 function clearStaleAction(rec, now) {
   const act = safe(() => rec.entity.getProperty("dread:action"), "none");
-  if (act === "none" || act === "burrow") {
+  if (act === "none" || act === "burrow" || act === "head_turn") {
     rec.actionSince = 0;
     return;
   }
@@ -1899,6 +2099,33 @@ function applyGaunt(rec, player, events, now) {
     }
   }
 }
+function applyMimic(rec, player, events, now) {
+  const h = hooks;
+  const e = rec.entity;
+  const cfg = readConfig();
+  for (const ev of events) {
+    switch (ev.type) {
+      case "group":
+        safe(() => e.triggerEvent(ev.event), void 0);
+        break;
+      case "imitate":
+        playCreatureSound(player, "mimic", ev.sound, e.location, 0.9, cfg);
+        break;
+      case "action":
+        safe(() => e.setProperty("dread:action", ev.action), void 0);
+        rec.actionSince = now;
+        break;
+      case "encounter":
+        h.onEncounter(rec.playerId, ev.kind);
+        break;
+      case "stress":
+        h.onStress(rec.playerId, ev.amount);
+        break;
+      case "vanish":
+        return vanish(rec, player, ev.outcome);
+    }
+  }
+}
 function adoptAndSweep() {
   const players = world5.getAllPlayers();
   const markers = /* @__PURE__ */ new Set();
@@ -1907,7 +2134,7 @@ function adoptAndSweep() {
     const dim = safe(() => world5.getDimension(dimId), void 0);
     if (!dim) continue;
     for (const m of safe(() => dim.getEntities({ type: SCENT_TYPE }), [])) if (!markers.has(m.id)) safe(() => m.remove(), void 0);
-    for (const kind of ["lurker", "gaunt"]) {
+    for (const kind of ["lurker", "gaunt", "mimic"]) {
       for (const e of safe(() => dim.getEntities({ type: CREATURE_TYPE[kind] }), [])) {
         if (registry.has(e.id)) continue;
         let best;
@@ -1917,7 +2144,8 @@ function adoptAndSweep() {
           if (!best || d < best.d) best = { p, d };
         }
         if (best && best.d < 96) {
-          if (kind === "lurker") registry.set(e.id, { kind, entity: e, playerId: best.p.id, tactics: new LurkerTactics(rng, "observe"), spawnedTick: system4.currentTick, hits: 0, actionSince: 0, wasHunting: false });
+          if (kind === "mimic") registry.set(e.id, { kind, entity: e, playerId: best.p.id, tactics: new MimicTactics(rng), spawnedTick: system4.currentTick, hits: 0, actionSince: 0, wasHunting: false, struck: false });
+          else if (kind === "lurker") registry.set(e.id, { kind, entity: e, playerId: best.p.id, tactics: new LurkerTactics(rng, "observe"), spawnedTick: system4.currentTick, hits: 0, actionSince: 0, wasHunting: false });
           else {
             const rec = { kind, entity: e, playerId: best.p.id, tactics: new GauntTactics(rng, "stalk"), spawnedTick: system4.currentTick, hits: 0, actionSince: 0, wasHunting: false, markerSeq: newestSeq(best.p.id) };
             registry.set(e.id, rec);
@@ -1952,11 +2180,15 @@ function initDirector(seed) {
     onNoticed: (id) => rt.get(id)?.brain.onLurkerNoticed(worldSec()),
     onEncounter: (id, kind) => {
       const p = playerById(id);
+      const r = rt.get(id);
       if (kind === "gaunt_seen" && p) unlockPage(p, "gaunt");
-      rt.get(id)?.brain.onLurkerNoticed(worldSec());
+      if (kind === "mimic_revealed" && p) unlockPage(p, "mimic");
+      if (kind === "mimic_turned" && p) unlockPage(p, "turned");
+      if (kind.startsWith("mimic")) r?.brain.onMimicMet(worldSec());
+      r?.brain.onLurkerNoticed(worldSec());
     },
     onGone: (id, creature, outcome) => {
-      rt.get(id)?.brain.onLurkerGone(worldSec(), creature === "lurker" ? outcome : `gaunt-${outcome}`);
+      rt.get(id)?.brain.onLurkerGone(worldSec(), creature === "lurker" ? outcome : `${creature}-${outcome}`);
       if (creature === "gaunt") {
         const gp = playerById(id);
         if (gp && outcome === "lost-scent") unlockPage(gp, "scent");
@@ -2170,7 +2402,7 @@ var HELP = [
   "\xA77/scriptevent dread:reset",
   "\xA77/scriptevent dread:sound all  (audio test)",
   "\xA77/scriptevent dread:state  (director status)",
-  "\xA77/scriptevent dread:spawn observe|stalk|hunt   dread:spawn gaunt [stalk|hunt]",
+  "\xA77/scriptevent dread:spawn observe|stalk|hunt   dread:spawn gaunt [stalk|hunt]   dread:spawn mimic [observe|hunt]",
   "\xA77/scriptevent dread:force dormant|unease|observation|escalation|hunt|recovery",
   "\xA77/scriptevent dread:stress <0-100>   dread:dread <0-100>   dread:clear   dread:forget",
   "\xA77Settings: " + Object.keys(DEFAULTS).join(", ")
@@ -2209,10 +2441,10 @@ function registerCommands() {
         break;
       case "spawn": {
         const [a, b] = event.message.trim().split(/\s+/);
-        const creature = a === "gaunt" ? "gaunt" : "lurker";
-        const tactic = creature === "gaunt" ? b ?? "stalk" : a;
+        const creature = a === "gaunt" ? "gaunt" : a === "mimic" ? "mimic" : "lurker";
+        const tactic = creature === "gaunt" ? b ?? "stalk" : creature === "mimic" ? b ?? "observe" : a;
         if (!player || !["observe", "stalk", "hunt"].includes(tactic) || creature === "gaunt" && tactic === "observe") {
-          reply("Usage: dread:spawn observe|stalk|hunt  or  dread:spawn gaunt [stalk|hunt]");
+          reply("Usage: dread:spawn observe|stalk|hunt  or  dread:spawn gaunt [stalk|hunt]  or  dread:spawn mimic [observe|hunt]");
           break;
         }
         reply(debugSpawn(player, tactic, creature) ? `Spawned a ${tactic} ${creature}.` : "\xA7cNo valid spot found nearby.");

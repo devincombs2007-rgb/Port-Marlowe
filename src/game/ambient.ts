@@ -7,7 +7,7 @@ import { safe } from "./helpers";
 
 type Ambient = Extract<Action, { type: "ambient" }>;
 
-const SOUND: Record<Exclude<AmbientKind, "heartbeat">, string> = {
+const SOUND: Record<Exclude<AmbientKind, "heartbeat" | "imitation">, string> = {
   branch_snap: "dread.ambient.branch_snap",
   leaves_rustle: "dread.ambient.leaves_rustle",
   door_creak: "dread.ambient.door_creak",
@@ -68,13 +68,14 @@ export function playAmbient(p: Player, a: Ambient, cfg: DreadConfig, rng: Rng, s
     }
     return;
   }
-  const id = SOUND[a.kind];
+  const IMITATIONS = ["moo", "step", "door", "chest", "voice"];
+  const id = a.kind === "imitation" ? `dread.mimic.${IMITATIONS[Math.floor(rng.next() * IMITATIONS.length)]}` : SOUND[a.kind];
   const loc = a.kind === "pressure_drop" ? undefined : bearingToPosition(p, a.bearing, a.distance, rng);
   safe(() => p.playSound(id, { volume: soundVolume(a.volume, a.kind, cfg), pitch: 1, ...(loc ? { location: loc } : {}) }), undefined);
 }
 
 /** Plays a one-off creature sound for one player at a world position. */
-export function playCreatureSound(p: Player, creature: "lurker" | "gaunt", name: string, at: Vec3, baseVolume: number, cfg: DreadConfig): void {
+export function playCreatureSound(p: Player, creature: "lurker" | "gaunt" | "mimic", name: string, at: Vec3, baseVolume: number, cfg: DreadConfig): void {
   if (cfg.soundIntensity <= 0) return;
   safe(() => p.playSound(`dread.${creature}.${name}`, { volume: soundVolume(baseVolume, name, cfg), pitch: 1, location: at }), undefined);
 }

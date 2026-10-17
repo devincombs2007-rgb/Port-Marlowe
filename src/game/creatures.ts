@@ -4,13 +4,14 @@ import { debug, logConsole } from "../core/log";
 import type { Creature, Tactic } from "../director/types";
 import { GauntTactics, type GEvent } from "../gaunt/tactics";
 import { LurkerTactics, lurkerGentle, type LEvent, type Requested } from "../lurker/tactics";
+import { MimicTactics, type MEvent } from "../mimic/tactics";
 import { mathRng, range, type Rng } from "../util/rng";
 import { len, sub, type Vec3 } from "../util/vec";
 import { playCreatureSound } from "./ambient";
 import { canSee, findStandingSpot, findVantage, health, safe } from "./helpers";
 import { aheadOf, newestSeq, pointBySeq, trailOf } from "./trail";
 
-export const CREATURE_TYPE: Record<Creature, string> = { lurker: "dread:lurker", gaunt: "dread:gaunt" };
+export const CREATURE_TYPE: Record<Creature, string> = { lurker: "dread:lurker", gaunt: "dread:gaunt", mimic: "dread:mimic" };
 const SCENT_TYPE = "dread:scent";
 const MANAGED_TAG = "dread_managed";
 const TICK_INTERVAL = 5;
@@ -38,7 +39,8 @@ interface Base {
 }
 interface LurkerRec extends Base { kind: "lurker"; tactics: LurkerTactics }
 interface GauntRec extends Base { kind: "gaunt"; tactics: GauntTactics; marker?: Entity; markerSeq: number; lastSeen?: Vec3 }
-type Rec = LurkerRec | GauntRec;
+interface MimicRec extends Base { kind: "mimic"; tactics: MimicTactics; struck: boolean }
+type Rec = LurkerRec | GauntRec | MimicRec;
 
 const registry = new Map<string, Rec>();
 let hooks: CreatureHooks | undefined;
@@ -62,12 +64,18 @@ export function initCreatures(h: CreatureHooks, r: Rng = mathRng): void {
     const rec = registry.get(attacker.id);
     if (rec && e.hurtEntity.id === rec.playerId) rec.hits++;
   });
+  world.afterEvents.entityHurt.subscribe((e) => {
+    const rec = registry.get(e.hurtEntity.id);
+    if (rec?.kind === "mimic") rec.struck = true;
+  });
 }
 
 // -- spawning ----------------------------------------------------------------------------------
 export function spawnCreature(player: Player, creature: Creature, tactic: Tactic, minDist: number, maxDist: number, underground: boolean): boolean {
   if (!hooks) return false;
-  return creature === "gaunt" ? spawnGaunt(player, tactic) || spawnFallbackGaunt(player, tactic, underground) : spawnLurker(player, tactic, minDist, maxDist, underground);
+  if (creature === "gaunt") return spawnGaunt(player, tactic) || spawnFallbackGaunt(player, tactic, underground);
+  if (creature === "mimic") return spawnMimic(player, minDist, maxDist);
+  return spawnLurker(player, tactic, minDist, maxDist, underground);
 }
 
 function spawnLurker(player: Player, tactic: Tactic, minDist: number, maxDist: number, underground: boolean): boolean {
@@ -81,6 +89,19 @@ function spawnLurker(player: Player, tactic: Tactic, minDist: number, maxDist: n
     e.addTag(MANAGED_TAG);
     registry.set(e.id, { kind: "lurker", entity: e, playerId: player.id, tactics: new LurkerTactics(rng, tactic), spawnedTick: system.currentTick, hits: 0, actionSince: 0, wasHunting: tactic === "hunt" });
     face(e, player.location);
+    return true;
+  }, false);
+}
+
+/** The Mimic stands in the open like grazing livestock, facing somewhere else. */
+function spawnMimic(player: Player, minDist: number, maxDist: number): boolean {
+  const pos = findVantage(player, minDist, maxDist, false, rng);
+  if (!pos) return false;
+  return safe(() => {
+    const e = player.dimension.spawnEntity(CREATURE_TYPE.mimic, pos);
+    e.addTag(MANAGED_TAG);
+    registry.set(e.id, { kind: "mimic", entity: e, playerId: player.id, tactics: new MimicTactics(rng), spawnedTick: system.currentTick, hits: 0, actionSince: 0, wasHunting: false, struck: false });
+    safe(() => e.teleport(pos, { rotation: { x: 0, y: rng.next() * 360 } }), undefined);
     return true;
   }, false);
 }
@@ -160,7 +181,8 @@ function dispose(rec: Rec): void {
   if (rec.kind === "gaunt") safe(() => rec.marker?.remove(), undefined);
 }
 
-function vanishEffect(dim: Dimension, at: Vec3, kind: "lurker" | "gaunt"): void {
+function vanishEffect(dim: Dimension, at: Vec3, kind: Creature): void {
+  if (kind === "mimic") return; // it is simply not there any more
   safe(() => dim.spawnParticle(kind === "lurker" ? "dread:lurker_vanish" : "dread:gaunt_burrow", at), undefined);
 }
 
@@ -200,6 +222,14 @@ function tick(): void {
       });
       trackHunt(rec, rec.tactics.state === "hunt");
       if (ev.length) applyLurker(rec, player, ev, now);
+    } else if (rec.kind === "mimic") {
+      const ev = rec.tactics.step({
+        dt: DT, age: (now - rec.spawnedTick) / 20, dist, seen: dist < 64 && canSee(player, e, 0.5), struck: rec.struck,
+        playerLit: h.isLit(rec.playerId), playerHealth: hp.cur, hpFrac, hits: rec.hits, requested: h.requested(rec.playerId), gentle,
+      });
+      rec.struck = false;
+      trackHunt(rec, rec.tactics.state === "attack");
+      if (ev.length) applyMimic(rec, player, ev, now);
     } else {
       const sneaking = safe(() => player.isSneaking, false);
       const sees = dist < (sneaking ? 9 : 18) && creatureSees(e, player);
@@ -225,7 +255,7 @@ function trackHunt(rec: Rec, hunting: boolean): void {
 /** One-shot animation flags (attack/hurt/notice/roar) are cleared after ~1.2 s so they can fire again. */
 function clearStaleAction(rec: Rec, now: number): void {
   const act = safe(() => rec.entity.getProperty("dread:action"), "none");
-  if (act === "none" || act === "burrow") {
+  if (act === "none" || act === "burrow" || act === "head_turn") { // held poses are cleared by their tactic
     rec.actionSince = 0;
     return;
   }
@@ -317,6 +347,25 @@ function applyGaunt(rec: GauntRec, player: Player, events: GEvent[], now: number
   }
 }
 
+function applyMimic(rec: MimicRec, player: Player, events: MEvent[], now: number): void {
+  const h = hooks as CreatureHooks;
+  const e = rec.entity;
+  const cfg = readConfig();
+  for (const ev of events) {
+    switch (ev.type) {
+      case "group": safe(() => e.triggerEvent(ev.event), undefined); break;
+      case "imitate": playCreatureSound(player, "mimic", ev.sound, e.location, 0.9, cfg); break;
+      case "action":
+        safe(() => e.setProperty("dread:action", ev.action), undefined);
+        rec.actionSince = now;
+        break;
+      case "encounter": h.onEncounter(rec.playerId, ev.kind); break;
+      case "stress": h.onStress(rec.playerId, ev.amount); break;
+      case "vanish": return vanish(rec, player, ev.outcome);
+    }
+  }
+}
+
 // -- housekeeping --------------------------------------------------------------------------------
 /**
  * Every 10 s: creatures that survived a reload (or were summoned with an egg/command) are adopted by the nearest
@@ -330,7 +379,7 @@ function adoptAndSweep(): void {
     const dim = safe(() => world.getDimension(dimId), undefined);
     if (!dim) continue;
     for (const m of safe(() => dim.getEntities({ type: SCENT_TYPE }), [] as Entity[])) if (!markers.has(m.id)) safe(() => m.remove(), undefined);
-    for (const kind of ["lurker", "gaunt"] as const) {
+    for (const kind of ["lurker", "gaunt", "mimic"] as const) {
       for (const e of safe(() => dim.getEntities({ type: CREATURE_TYPE[kind] }), [] as Entity[])) {
         if (registry.has(e.id)) continue;
         let best: { p: Player; d: number } | undefined;
@@ -340,7 +389,8 @@ function adoptAndSweep(): void {
           if (!best || d < best.d) best = { p, d };
         }
         if (best && best.d < 96) {
-          if (kind === "lurker") registry.set(e.id, { kind, entity: e, playerId: best.p.id, tactics: new LurkerTactics(rng, "observe"), spawnedTick: system.currentTick, hits: 0, actionSince: 0, wasHunting: false });
+          if (kind === "mimic") registry.set(e.id, { kind, entity: e, playerId: best.p.id, tactics: new MimicTactics(rng), spawnedTick: system.currentTick, hits: 0, actionSince: 0, wasHunting: false, struck: false });
+          else if (kind === "lurker") registry.set(e.id, { kind, entity: e, playerId: best.p.id, tactics: new LurkerTactics(rng, "observe"), spawnedTick: system.currentTick, hits: 0, actionSince: 0, wasHunting: false });
           else {
             const rec: GauntRec = { kind, entity: e, playerId: best.p.id, tactics: new GauntTactics(rng, "stalk"), spawnedTick: system.currentTick, hits: 0, actionSince: 0, wasHunting: false, markerSeq: newestSeq(best.p.id) };
             registry.set(e.id, rec);

@@ -11,11 +11,13 @@ import lurker
 
 import ambient
 import gaunt
+import mimic
 
 SETS = [
     # key, module sounds, event prefix, ogg dir, wav dir, wav prefix, category
     ("lurker", lurker.SOUNDS, "dread.lurker", "sounds/entity/dread/lurker", "assets-src/audio/batch_a", "lurker", "hostile"),
     ("gaunt", gaunt.SOUNDS, "dread.gaunt", "sounds/entity/dread/gaunt", "assets-src/audio/batch_c", "gaunt", "hostile"),
+    ("mimic", mimic.SOUNDS, "dread.mimic", "sounds/entity/dread/mimic", "assets-src/audio/batch_d", "mimic", "hostile"),
     ("ambient", ambient.SOUNDS, "dread.ambient", "sounds/entity/dread/ambient", "assets-src/audio/batch_b", "amb", "neutral"),
 ]
 

@@ -279,6 +279,34 @@ test("gaunt: water breaks the trail; it searches the bank and leaves without fin
   swimmer.isValid = false; __fire.leave(swimmer);
 });
 
+test("mimic: imitates while unwatched, freezes and turns its head when stared at, reveals and flees when approached", () => {
+  const farmer = sim.addPlayer("farmer", { x: 5000, y: 64, z: 5000 });
+  __fire.spawn(farmer); sim.timeOfDay = 18000; terrain.underground = false; tick(20 * 200);
+  farmer.view = { x: 0, y: 0, z: -1 };
+  say(farmer, "dread:spawn", "mimic");
+  const m = sim.dims.overworld.entities.find((e) => e.typeId === "dread:mimic" && e.isValid);
+  assert.ok(m, "mimic spawned");
+  const toMimic = () => { const dx = m.location.x - farmer.location.x, dz = m.location.z - farmer.location.z, n = Math.hypot(dx, dz); return { x: dx / n, y: 0, z: dz / n }; };
+  const away = () => { const v = toMimic(); return { x: -v.x, y: 0, z: -v.z }; };
+  farmer.view = away();
+  played.length = 0;
+  tick(20 * 80);
+  const imitations = played.filter((p) => p.player === "farmer" && p.id.startsWith("dread.mimic."));
+  assert.ok(imitations.length >= 2, `imitations heard: ${imitations.length}`);
+  farmer.view = toMimic();
+  tick(20 * 7);
+  assert.equal(m.props["dread:action"], "head_turn", "its head turned while stared at");
+  assert.ok(log.events.some((e) => e.id === m.id && e.name === "dread:set_still"), "froze while watched");
+  // walk right up to it
+  farmer.location = { x: m.location.x + 4, y: 64, z: m.location.z }; farmer.view = toMimic();
+  tick(20 * 3);
+  assert.ok(log.events.some((e) => e.id === m.id && e.name === "dread:set_reveal"), "revealed");
+  tick(20 * 15);
+  assert.equal(m.isValid, false, "fled and vanished");
+  assert.ok(String(farmer.getDynamicProperty("dread:pages")).split(",").includes("mimic"), "page XIII unlocked");
+  farmer.isValid = false; __fire.leave(farmer);
+});
+
 test("soak: 3 game-hours of a lonely underground night produce encounters, stay bounded, and never throw", () => {
   const alone = sim.addPlayer("hermit", { x: -800, y: 64, z: -800 });
   __fire.spawn(alone); terrain.underground = true; sim.timeOfDay = 16000;

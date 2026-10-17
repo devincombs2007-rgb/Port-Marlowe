@@ -16,7 +16,7 @@ const HELP = [
   "§7/scriptevent dread:reset",
   "§7/scriptevent dread:sound all  (audio test)",
   "§7/scriptevent dread:state  (director status)",
-  "§7/scriptevent dread:spawn observe|stalk|hunt   dread:spawn gaunt [stalk|hunt]",
+  "§7/scriptevent dread:spawn observe|stalk|hunt   dread:spawn gaunt [stalk|hunt]   dread:spawn mimic [observe|hunt]",
   "§7/scriptevent dread:force dormant|unease|observation|escalation|hunt|recovery",
   "§7/scriptevent dread:stress <0-100>   dread:dread <0-100>   dread:clear   dread:forget",
   "§7Settings: " + Object.keys(DEFAULTS).join(", "),
@@ -58,10 +58,10 @@ export function registerCommands(): void {
       case "spawn": {
         // "observe" | "stalk" | "hunt" spawn a Lurker; "gaunt [stalk|hunt]" spawns a Gaunt on your trail
         const [a, b] = event.message.trim().split(/\s+/);
-        const creature = a === "gaunt" ? "gaunt" : "lurker";
-        const tactic = (creature === "gaunt" ? b ?? "stalk" : a) as Tactic;
+        const creature = a === "gaunt" ? "gaunt" : a === "mimic" ? "mimic" : "lurker";
+        const tactic = (creature === "gaunt" ? b ?? "stalk" : creature === "mimic" ? b ?? "observe" : a) as Tactic;
         if (!player || !["observe", "stalk", "hunt"].includes(tactic) || (creature === "gaunt" && tactic === "observe")) {
-          reply("Usage: dread:spawn observe|stalk|hunt  or  dread:spawn gaunt [stalk|hunt]");
+          reply("Usage: dread:spawn observe|stalk|hunt  or  dread:spawn gaunt [stalk|hunt]  or  dread:spawn mimic [observe|hunt]");
           break;
         }
         reply(debugSpawn(player, tactic, creature) ? `Spawned a ${tactic} ${creature}.` : "§cNo valid spot found nearby.");

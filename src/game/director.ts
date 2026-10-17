@@ -48,11 +48,15 @@ export function initDirector(seed?: number): void {
     onNoticed: (id) => rt.get(id)?.brain.onLurkerNoticed(worldSec()),
     onEncounter: (id, kind) => {
       const p = playerById(id);
+      const r = rt.get(id);
       if (kind === "gaunt_seen" && p) unlockPage(p, "gaunt");
-      rt.get(id)?.brain.onLurkerNoticed(worldSec()); // being seen by it is a fright the director should count
+      if (kind === "mimic_revealed" && p) unlockPage(p, "mimic");
+      if (kind === "mimic_turned" && p) unlockPage(p, "turned");
+      if (kind.startsWith("mimic")) r?.brain.onMimicMet(worldSec());
+      r?.brain.onLurkerNoticed(worldSec()); // every encounter is a fright the director should count
     },
     onGone: (id, creature, outcome) => {
-      rt.get(id)?.brain.onLurkerGone(worldSec(), creature === "lurker" ? outcome : `gaunt-${outcome}`);
+      rt.get(id)?.brain.onLurkerGone(worldSec(), creature === "lurker" ? outcome : `${creature}-${outcome}`);
       if (creature === "gaunt") {
         const gp = playerById(id);
         if (gp && outcome === "lost-scent") unlockPage(gp, "scent");

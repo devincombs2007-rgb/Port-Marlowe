@@ -200,7 +200,10 @@ export class DirectorBrain implements Brain {
       this.tm.respawnLurkerAt = 0;
       if (s.globalActiveCreatures < TUNING.globalLurkerCap) {
         this.tm.observationSpawns++;
-        out.push({ type: "spawnCreature", creature: "lurker", tactic: "observe", minDist: 26, maxDist: 42 });
+        const watcher = this.pickWatcher(s);
+        out.push(watcher === "mimic"
+          ? { type: "spawnCreature", creature: "mimic", tactic: "observe", minDist: 20, maxDist: 32 }
+          : { type: "spawnCreature", creature: "lurker", tactic: "observe", minDist: 26, maxDist: 42 });
         this.log("observe_spawn", s.worldSec);
       }
     }
@@ -292,6 +295,25 @@ export class DirectorBrain implements Brain {
     return chance(this.rng, s.skyVisible ? 0.3 : 0.55) ? "gaunt" : "lurker";
   }
 
+  /**
+   * Who does the watching. Usually the Lurker; once the player knows the Lurker, a night under open sky may send
+   * the Mimic instead, standing in a field like any other animal.
+   */
+  private pickWatcher(s: Snapshot): Creature {
+    if (this.memory.noticedCount < 1 || !s.skyVisible || !night(s)) return "lurker";
+    return chance(this.rng, 0.35) ? "mimic" : "lurker";
+  }
+
+  private metMimic(): boolean {
+    return this.memory.history.some((h) => h.id.startsWith("mimic")) || this.memory.metMimic === true;
+  }
+
+  /** Adapter feedback: the player has seen through a Mimic. */
+  onMimicMet(worldSec: number): void {
+    this.memory.metMimic = true;
+    this.log("mimic_met", worldSec);
+  }
+
   // -- shared machinery ---------------------------------------------------------------------
   private ambientTick(s: Snapshot, out: Action[]): void {
     if (s.t < this.tm.nextEventAt) return;
@@ -308,8 +330,8 @@ export class DirectorBrain implements Brain {
       e.states.includes(this.memory.state) &&
       (!onlyIds || onlyIds.includes(e.id)) &&
       s.t - (this.tm.lastEvent.get(e.id) ?? -1e9) >= e.cooldown &&
-      e.weight(s, stress, this.tm.active) > 0);
-    const ev = pickWeighted(this.rng, candidates, (e) => e.weight(s, stress, this.tm.active) * repetitionFactor(e.id, this.memory.history, s.worldSec));
+      e.weight(s, stress, this.tm.active, this.metMimic()) > 0);
+    const ev = pickWeighted(this.rng, candidates, (e) => e.weight(s, stress, this.tm.active, this.metMimic()) * repetitionFactor(e.id, this.memory.history, s.worldSec));
     if (!ev) return;
     this.tm.lastEvent.set(ev.id, s.t);
     this.log(ev.id, s.worldSec);

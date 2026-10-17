@@ -128,7 +128,7 @@ test("the Lurker is always met first; the Gaunt only joins later, and more often
     for (const [list, which] of [[under, "u"], [surf, "s"]] as const) {
       const firstGaunt = list.findIndex((k) => k.creature === "gaunt");
       if (firstGaunt >= 0) assert.ok(list.slice(0, firstGaunt).filter((k) => k.creature === "lurker").length >= 2, "met the Lurker before any Gaunt");
-      assert.ok(list.every((k) => k.creature === "lurker" || k.tactic !== "observe"), "the Gaunt never 'observes'");
+      assert.ok(list.every((k) => k.creature !== "gaunt" || k.tactic !== "observe"), "the Gaunt never 'observes'");
       const esc = list.filter((k) => k.tactic === "stalk");
       if (which === "u") { gauntUnder += esc.filter((k) => k.creature === "gaunt").length; spawnsUnder += esc.length; }
       else { gauntSurface += esc.filter((k) => k.creature === "gaunt").length; spawnsSurface += esc.length; }
@@ -136,6 +136,21 @@ test("the Lurker is always met first; the Gaunt only joins later, and more often
   }
   console.log(`      gaunt share of escalations: underground ${(gauntUnder / spawnsUnder * 100).toFixed(0)}%, surface ${(gauntSurface / spawnsSurface * 100).toFixed(0)}%`);
   assert.ok(gauntUnder > 0 && gauntUnder / spawnsUnder > gauntSurface / Math.max(1, spawnsSurface), "gaunt favoured underground");
+});
+
+test("the Mimic only watches after the player has met the Lurker, at night, under open sky", () => {
+  let mimics = 0, early = 0, underground = 0;
+  for (let seed = 1; seed <= 12; seed++) {
+    const r = simulate(seed, 6, (t) => ({ timeOfDay: 14000 + (t % 8000), skyVisible: true }));
+    const spawns = r.actions.filter((x) => x.a.type === "spawnCreature").map((x) => x.a as { creature: string });
+    const firstMimic = spawns.findIndex((k) => k.creature === "mimic");
+    if (firstMimic >= 0) { mimics++; if (spawns.slice(0, firstMimic).filter((k) => k.creature === "lurker").length < 1) early++; }
+    const u = simulate(seed, 4, (t) => ({ timeOfDay: 14000 + (t % 8000), skyVisible: false }));
+    underground += u.actions.filter((x) => x.a.type === "spawnCreature" && (x.a as { creature: string }).creature === "mimic").length;
+  }
+  assert.ok(mimics > 0, "the Mimic should appear on some surface nights");
+  assert.equal(early, 0, "met before the Lurker");
+  assert.equal(underground, 0, "the Mimic never appears underground");
 });
 
 console.log(`director tests passed (${passed}); pure logic simulation, not in-game`);

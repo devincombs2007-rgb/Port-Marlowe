@@ -864,6 +864,337 @@
         }
       ]
     },
+    "dread.mimic.moo": {
+      "category": "hostile",
+      "max_distance": 48,
+      "min_distance": 4,
+      "sounds": [
+        {
+          "name": "sounds/entity/dread/mimic/moo_01",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/mimic/moo_02",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/mimic/moo_03",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        }
+      ]
+    },
+    "dread.mimic.step": {
+      "category": "hostile",
+      "max_distance": 24,
+      "min_distance": 2,
+      "sounds": [
+        {
+          "name": "sounds/entity/dread/mimic/step_01",
+          "volume": 0.7,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/mimic/step_02",
+          "volume": 0.7,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/mimic/step_03",
+          "volume": 0.7,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        }
+      ]
+    },
+    "dread.mimic.door": {
+      "category": "hostile",
+      "max_distance": 32,
+      "min_distance": 2,
+      "sounds": [
+        {
+          "name": "sounds/entity/dread/mimic/door_01",
+          "volume": 0.8,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/mimic/door_02",
+          "volume": 0.8,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        }
+      ]
+    },
+    "dread.mimic.chest": {
+      "category": "hostile",
+      "max_distance": 28,
+      "min_distance": 2,
+      "sounds": [
+        {
+          "name": "sounds/entity/dread/mimic/chest_01",
+          "volume": 0.8,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/mimic/chest_02",
+          "volume": 0.8,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/mimic/chest_03",
+          "volume": 0.8,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        }
+      ]
+    },
+    "dread.mimic.voice": {
+      "category": "hostile",
+      "max_distance": 28,
+      "min_distance": 2,
+      "sounds": [
+        {
+          "name": "sounds/entity/dread/mimic/voice_01",
+          "volume": 0.7,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/mimic/voice_02",
+          "volume": 0.7,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/mimic/voice_03",
+          "volume": 0.7,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/mimic/voice_04",
+          "volume": 0.7,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        }
+      ]
+    },
+    "dread.mimic.reveal": {
+      "category": "hostile",
+      "max_distance": 48,
+      "min_distance": 3,
+      "sounds": [
+        {
+          "name": "sounds/entity/dread/mimic/reveal_01",
+          "volume": 1.0,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/mimic/reveal_02",
+          "volume": 1.0,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        }
+      ]
+    },
+    "dread.mimic.skitter": {
+      "category": "hostile",
+      "max_distance": 28,
+      "min_distance": 2,
+      "sounds": [
+        {
+          "name": "sounds/entity/dread/mimic/skitter_01",
+          "volume": 0.8,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/mimic/skitter_02",
+          "volume": 0.8,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/mimic/skitter_03",
+          "volume": 0.8,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/mimic/skitter_04",
+          "volume": 0.8,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        }
+      ]
+    },
+    "dread.mimic.attack": {
+      "category": "hostile",
+      "max_distance": 24,
+      "min_distance": 2,
+      "sounds": [
+        {
+          "name": "sounds/entity/dread/mimic/attack_01",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/mimic/attack_02",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/mimic/attack_03",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        }
+      ]
+    },
+    "dread.mimic.hurt": {
+      "category": "hostile",
+      "max_distance": 28,
+      "min_distance": 2,
+      "sounds": [
+        {
+          "name": "sounds/entity/dread/mimic/hurt_01",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/mimic/hurt_02",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/mimic/hurt_03",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        }
+      ]
+    },
+    "dread.mimic.death": {
+      "category": "hostile",
+      "max_distance": 32,
+      "min_distance": 3,
+      "sounds": [
+        {
+          "name": "sounds/entity/dread/mimic/death_01",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/mimic/death_02",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        }
+      ]
+    },
     "dread.ambient.branch_snap": {
       "category": "neutral",
       "max_distance": 48,

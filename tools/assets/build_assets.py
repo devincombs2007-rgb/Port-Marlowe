@@ -8,11 +8,13 @@ ROOT = HERE.parents[1]
 sys.path.insert(0, str(HERE))
 import lurker_model, lurker_texture, lurker_anim
 import gaunt_model, gaunt_texture, gaunt_anim
+import mimic_model, mimic_texture, mimic_anim
 
 RP = ROOT / "packs/DREAD_RP"
 CREATURES = {
     "lurker": (lurker_model, lurker_texture, lurker_anim),
     "gaunt": (gaunt_model, gaunt_texture, gaunt_anim),
+    "mimic": (mimic_model, mimic_texture, mimic_anim),
 }
 for sub in ("models/entity", "textures/entity", "animations"):
     (RP / sub).mkdir(parents=True, exist_ok=True)

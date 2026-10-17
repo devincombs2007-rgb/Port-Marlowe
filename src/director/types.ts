@@ -42,12 +42,12 @@ export interface Snapshot {
 export type AmbientKind =
   | "branch_snap" | "leaves_rustle" | "door_creak" | "structure_groan" | "drag" | "murmur"
   | "distant_cry" | "heartbeat" | "pressure_drop" | "footsteps_far" | "lurker_breath" | "lurker_step"
-  | "lurker_creak" | "lurker_scrape" | "gaunt_scrape" | "gaunt_sniff";
+  | "lurker_creak" | "lurker_scrape" | "gaunt_scrape" | "gaunt_sniff" | "imitation";
 
 export type Bearing = "behind" | "left" | "right" | "front_far" | "around";
 
 export type Tactic = "observe" | "stalk" | "hunt";
-export type Creature = "lurker" | "gaunt";
+export type Creature = "lurker" | "gaunt" | "mimic";
 
 export type Action =
   | { type: "ambient"; kind: AmbientKind; bearing: Bearing; distance: number; volume: number }
@@ -78,6 +78,8 @@ export interface Memory {
   stress: number;
   /** Encounter-driven build-up (0-100). Rises with frights, decays slowly; gates escalation into a hunt. */
   dread: number;
+  /** The player has seen through a Mimic at least once (imitations may then happen without one). */
+  metMimic?: boolean;
 }
 
 export interface Brain {
