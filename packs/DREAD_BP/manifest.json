@@ -1,0 +1,38 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "pack.name",
+    "description": "pack.description",
+    "uuid": "502aa7ff-3704-4d8e-82b9-b6ca32fe1ffc",
+    "version": [0, 1, 0],
+    "min_engine_version": [1, 21, 90]
+  },
+  "modules": [
+    {
+      "type": "data",
+      "uuid": "a134b2b1-dda6-44e9-aa5b-7cc1d0dbdbf3",
+      "version": [0, 1, 0]
+    },
+    {
+      "type": "script",
+      "language": "javascript",
+      "uuid": "704e81b2-5cbb-4604-a0ab-f022ea04a411",
+      "entry": "scripts/main.js",
+      "version": [0, 1, 0]
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "feeef933-d300-4b1b-8422-cdfb4b9b9f3b",
+      "version": [0, 1, 0]
+    },
+    {
+      "module_name": "@minecraft/server",
+      "version": "2.0.0"
+    }
+  ],
+  "metadata": {
+    "authors": ["Port Marlowe"],
+    "generated_with": {}
+  }
+}
