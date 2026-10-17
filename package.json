@@ -1,6 +1,6 @@
 {
   "name": "dread-addon",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "DREAD - Something Is Watching. Minecraft Bedrock horror add-on.",
   "type": "module",
@@ -11,7 +11,8 @@
     "package": "node tools/package.mjs",
     "check": "npm run typecheck && npm run build:scripts && npm run test && npm run validate",
     "release": "npm run check && npm run package",
-    "test": "node tests/smoke.mjs"
+    "test": "node tests/smoke.mjs",
+    "build:audio": "python3 tools/synth/build_audio.py"
   },
   "devDependencies": {
     "@minecraft/bedrock-schemas": "1.26.50",

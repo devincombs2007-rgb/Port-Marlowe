@@ -1,6 +1,6 @@
 # Installing the test build on iPhone
 
-1. On the iPhone open this repository on GitHub in Safari and download `releases/DREAD-0.1.0-test.mcaddon`
+1. On the iPhone open this repository on GitHub in Safari and download `releases/DREAD-0.1.1-test.mcaddon`
    (tap the file → "Download raw file"). Safari saves it to Files → Downloads.
 2. In **Files**, tap the `.mcaddon`. If Minecraft is not offered, long-press → **Share** → **Minecraft**
    (or "Open in…"). Minecraft launches and shows "Import started / succeeded".

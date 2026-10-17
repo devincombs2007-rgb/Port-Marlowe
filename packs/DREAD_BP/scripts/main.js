@@ -1,12 +1,12 @@
 // src/main.ts
-import { system as system2, world as world4 } from "@minecraft/server";
+import { system as system3, world as world4 } from "@minecraft/server";
 
 // src/core/commands.ts
-import { Player, system, world as world3 } from "@minecraft/server";
+import { Player as Player2, system as system2, world as world3 } from "@minecraft/server";
 
 // src/core/constants.ts
-var ADDON_VERSION = "0.1.0";
-var BUILD_STAGE = "phase-1-foundation";
+var ADDON_VERSION = "0.1.1";
+var BUILD_STAGE = "phase-1-foundation+audio-test";
 
 // src/core/config.ts
 import { world } from "@minecraft/server";
@@ -78,18 +78,62 @@ function tell(message, target) {
   else world2.sendMessage(text);
 }
 
+// src/core/soundtest.ts
+import { system } from "@minecraft/server";
+var LURKER_EVENTS = [
+  "breath_idle",
+  "breath_alert",
+  "step",
+  "step_stalk",
+  "joint_creak",
+  "head_turn",
+  "notice",
+  "vanish",
+  "scrape",
+  "hurt",
+  "death",
+  "attack_swipe",
+  "attack_hit",
+  "chase_vocal"
+];
+function ringPosition(player, step) {
+  const view = player.getViewDirection();
+  const base = Math.atan2(-view.z, -view.x);
+  const angle = base + step * (Math.PI / 3);
+  const dist = 6;
+  return { x: player.location.x + Math.cos(angle) * dist, y: player.location.y + 1, z: player.location.z + Math.sin(angle) * dist };
+}
+function playSoundTest(player, arg) {
+  if (!player) return;
+  const names = arg === "all" || arg === "" ? LURKER_EVENTS : arg.split(/\s+/).filter((n) => LURKER_EVENTS.includes(n));
+  if (names.length === 0) {
+    tell(`Usage: dread:sound all | <${LURKER_EVENTS.join("|")}>`, player);
+    return;
+  }
+  tell(`Playing ${names.length} sound(s), 3 s apart, circling you from behind.`, player);
+  names.forEach((name, i) => {
+    system.runTimeout(() => {
+      if (!player.isValid) return;
+      const location = ringPosition(player, i);
+      player.playSound(`dread.lurker.${name}`, { location, volume: 1, pitch: 1 });
+      tell(`\xA77${name}`, player);
+    }, i * 60);
+  });
+}
+
 // src/core/commands.ts
 var HELP = [
   "\xA77/scriptevent dread:status",
   "\xA77/scriptevent dread:set <setting> <value>",
   "\xA77/scriptevent dread:reset",
+  "\xA77/scriptevent dread:sound all  (audio test)",
   "\xA77Settings: " + Object.keys(DEFAULTS).join(", ")
 ];
 function registerCommands() {
-  system.afterEvents.scriptEventReceive.subscribe((event) => {
+  system2.afterEvents.scriptEventReceive.subscribe((event) => {
     if (!event.id.startsWith("dread:")) return;
     const command = event.id.slice("dread:".length);
-    const player = event.sourceEntity instanceof Player ? event.sourceEntity : void 0;
+    const player = event.sourceEntity instanceof Player2 ? event.sourceEntity : void 0;
     const reply = (m) => tell(m, player);
     switch (command) {
       case "status": {
@@ -114,6 +158,9 @@ function registerCommands() {
         resetConfig();
         reply("Settings reset to defaults.");
         break;
+      case "sound":
+        playSoundTest(player, event.message.trim());
+        break;
       case "help":
         HELP.forEach(reply);
         break;
@@ -131,7 +178,7 @@ world4.afterEvents.playerSpawn.subscribe((event) => {
   if (!event.initialSpawn) return;
   const config = readConfig();
   if (!config.enabled || !config.debug) return;
-  system2.runTimeout(() => {
+  system3.runTimeout(() => {
     event.player.onScreenDisplay.setActionBar(`\xA78DREAD \xA77v${ADDON_VERSION} loaded \u2014 /scriptevent dread:status`);
   }, 100);
 });

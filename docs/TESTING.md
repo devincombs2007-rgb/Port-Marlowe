@@ -14,12 +14,15 @@ Known validator limits: Mojang's published schemas contain a few dangling `$ref`
 `languages.json` schema (checked by hand instead). Schema validity is not the same as in-game validity.
 
 ## Manual test checklist for Phase 1 (needs a human on a device)
-1. Import `DREAD-0.1.0-test.mcaddon`; confirm both packs appear.
+1. Import `DREAD-0.1.1-test.mcaddon`; confirm both packs appear.
 2. Create a world with cheats ON, activate DREAD BP + RP. No "Beta APIs" toggle should be required.
-3. On first join expect an action-bar message "DREAD v0.1.0 loaded" after ~5 s.
+3. On first join expect an action-bar message "DREAD v0.1.1 loaded" after ~5 s.
 4. `/scriptevent dread:status` prints settings. `/scriptevent dread:set soundIntensity 30` then status shows 30.
 5. Content log (Settings → Creator → Enable Content Log GUI) shows `[DREAD] script loaded` and no errors.
-6. Record: device, iOS version, Minecraft version, pass/fail per step.
+6. **Audio test:** run `/scriptevent dread:sound all`. 14 Lurker sounds play 3 s apart on a ring 6 blocks around you, the first
+   one directly behind. Check on headphones: left/right/behind placement, volume balance, anything that clips, is too loud, or
+   sounds more comedic than frightening. Try `/scriptevent dread:sound step_stalk` etc. for single sounds. Note which need rework.
+7. Record: device, iOS version, Minecraft version, pass/fail per step.
 
 ## Gaps
 - No iPhone, Xbox or Realms test has occurred. No performance benchmarks exist.

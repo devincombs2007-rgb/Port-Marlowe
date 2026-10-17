@@ -3,6 +3,10 @@
 Paste the **Global rules** at the top of every generation session, then request one batch at a time.
 Priority order: **Batch A (Lurker, Phase 2)** → B (ambience) → C (Gaunt/Mimic) → D (music/stingers).
 
+> **Update:** the available AI generator only makes continuous music, not short dry SFX. Use it for **Batch D (music)** and the
+> looping ambience beds in Batch B (`amb_dread_bed_*`, `chase_lurker_loop`). Batch A SFX are synthesised in `tools/synth/` instead
+> (see `docs/AUDIO_LICENSES.md`); Batch B one-shots and Batch C will be synthesised the same way unless real recordings are supplied.
+
 ## Global rules
 - Game: Minecraft Bedrock psychological horror. Tone: dread, restraint, realism. **Dry, close-mic, no reverb tail, no music, no
   voice-over, no words** unless stated (reverb is added in-game by distance; baked reverb breaks positional audio).

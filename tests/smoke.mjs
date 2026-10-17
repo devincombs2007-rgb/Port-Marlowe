@@ -8,7 +8,7 @@ await build({
 });
 const mock = await import("../tests/mock-server.mjs");
 await import("../" + out);
-const { Player, messages, __fire, world } = mock;
+const { Player, messages, __fire, world, played } = mock;
 const steve = new Player("steve");
 const last = () => messages.at(-1);
 
@@ -39,4 +39,10 @@ world.setDynamicProperty("dread:soundIntensity", "loud");
 world.setDynamicProperty("dread:effects", 7);
 __fire.scriptEvent("dread:status", "", steve);
 assert.match(last(), /sound=70/);
+__fire.scriptEvent("dread:sound", "bogus", steve);
+assert.match(last(), /Usage: dread:sound/);
+__fire.scriptEvent("dread:sound", "all", steve);
+assert.equal(played.length, 14, "all 14 lurker events play");
+assert.ok(played.every((p) => p.id.startsWith("dread.lurker.") && Number.isFinite(p.o.location.x)));
+assert.ok(played[0].o.location.z < 0, "first sound is behind a player facing +z");
 console.log("smoke tests passed (mocked API, not in-game)");

@@ -2,7 +2,8 @@
 const handlers = { scriptEvent: [], playerSpawn: [] };
 const props = new Map();
 export const messages = [];
-export class Player { constructor(name) { this.name = name; this.onScreenDisplay = { setActionBar: (m) => messages.push(`[actionbar:${name}] ${m}`) }; } sendMessage(m) { messages.push(`[${this.name}] ${m}`); } }
+export const played = [];
+export class Player { constructor(name) { this.name = name; this.isValid = true; this.location = { x: 0, y: 64, z: 0 }; this.getViewDirection = () => ({ x: 0, y: 0, z: 1 }); this.playSound = (id, o) => played.push({ id, o }); this.onScreenDisplay = { setActionBar: (m) => messages.push(`[actionbar:${name}] ${m}`) }; } sendMessage(m) { messages.push(`[${this.name}] ${m}`); } }
 export const world = {
   afterEvents: { playerSpawn: { subscribe: (f) => handlers.playerSpawn.push(f) } },
   getDynamicProperty: (k) => props.get(k),

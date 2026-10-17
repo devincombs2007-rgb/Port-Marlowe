@@ -2,6 +2,7 @@ import { Player, system, world } from "@minecraft/server";
 import { ADDON_VERSION, BUILD_STAGE } from "./constants";
 import { DEFAULTS, readConfig, resetConfig, setConfigValue } from "./config";
 import { tell } from "./log";
+import { playSoundTest } from "./soundtest";
 
 /**
  * Text interface over `/scriptevent dread:<command>`. Works on every platform that can run commands
@@ -11,6 +12,7 @@ const HELP = [
   "§7/scriptevent dread:status",
   "§7/scriptevent dread:set <setting> <value>",
   "§7/scriptevent dread:reset",
+  "§7/scriptevent dread:sound all  (audio test)",
   "§7Settings: " + Object.keys(DEFAULTS).join(", "),
 ];
 
@@ -43,6 +45,9 @@ export function registerCommands(): void {
       case "reset":
         resetConfig();
         reply("Settings reset to defaults.");
+        break;
+      case "sound":
+        playSoundTest(player, event.message.trim());
         break;
       case "help":
         HELP.forEach(reply);

@@ -1,0 +1,544 @@
+{
+  "format_version": "1.14.0",
+  "sound_definitions": {
+    "dread.lurker.breath_idle": {
+      "category": "hostile",
+      "max_distance": 18,
+      "min_distance": 1,
+      "sounds": [
+        {
+          "name": "sounds/entity/dread/lurker/breath_idle_01",
+          "volume": 0.45,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/lurker/breath_idle_02",
+          "volume": 0.45,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/lurker/breath_idle_03",
+          "volume": 0.45,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/lurker/breath_idle_04",
+          "volume": 0.45,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        }
+      ]
+    },
+    "dread.lurker.breath_alert": {
+      "category": "hostile",
+      "max_distance": 20,
+      "min_distance": 1,
+      "sounds": [
+        {
+          "name": "sounds/entity/dread/lurker/breath_alert_01",
+          "volume": 0.6,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/lurker/breath_alert_02",
+          "volume": 0.6,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/lurker/breath_alert_03",
+          "volume": 0.6,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        }
+      ]
+    },
+    "dread.lurker.step": {
+      "category": "hostile",
+      "max_distance": 28,
+      "min_distance": 2,
+      "sounds": [
+        {
+          "name": "sounds/entity/dread/lurker/step_01",
+          "volume": 0.8,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/lurker/step_02",
+          "volume": 0.8,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/lurker/step_03",
+          "volume": 0.8,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/lurker/step_04",
+          "volume": 0.8,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/lurker/step_05",
+          "volume": 0.8,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/lurker/step_06",
+          "volume": 0.8,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        }
+      ]
+    },
+    "dread.lurker.step_stalk": {
+      "category": "hostile",
+      "max_distance": 12,
+      "min_distance": 1,
+      "sounds": [
+        {
+          "name": "sounds/entity/dread/lurker/step_stalk_01",
+          "volume": 0.5,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/lurker/step_stalk_02",
+          "volume": 0.5,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/lurker/step_stalk_03",
+          "volume": 0.5,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/lurker/step_stalk_04",
+          "volume": 0.5,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/lurker/step_stalk_05",
+          "volume": 0.5,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/lurker/step_stalk_06",
+          "volume": 0.5,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        }
+      ]
+    },
+    "dread.lurker.joint_creak": {
+      "category": "hostile",
+      "max_distance": 18,
+      "min_distance": 1,
+      "sounds": [
+        {
+          "name": "sounds/entity/dread/lurker/joint_creak_01",
+          "volume": 0.6,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/lurker/joint_creak_02",
+          "volume": 0.6,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/lurker/joint_creak_03",
+          "volume": 0.6,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/lurker/joint_creak_04",
+          "volume": 0.6,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        }
+      ]
+    },
+    "dread.lurker.head_turn": {
+      "category": "hostile",
+      "max_distance": 20,
+      "min_distance": 1,
+      "sounds": [
+        {
+          "name": "sounds/entity/dread/lurker/head_turn_01",
+          "volume": 0.7,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/lurker/head_turn_02",
+          "volume": 0.7,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/lurker/head_turn_03",
+          "volume": 0.7,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        }
+      ]
+    },
+    "dread.lurker.notice": {
+      "category": "hostile",
+      "max_distance": 32,
+      "min_distance": 3,
+      "sounds": [
+        {
+          "name": "sounds/entity/dread/lurker/notice_01",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/lurker/notice_02",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/lurker/notice_03",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        }
+      ]
+    },
+    "dread.lurker.vanish": {
+      "category": "hostile",
+      "max_distance": 28,
+      "min_distance": 2,
+      "sounds": [
+        {
+          "name": "sounds/entity/dread/lurker/vanish_01",
+          "volume": 0.8,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/lurker/vanish_02",
+          "volume": 0.8,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/lurker/vanish_03",
+          "volume": 0.8,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        }
+      ]
+    },
+    "dread.lurker.scrape": {
+      "category": "hostile",
+      "max_distance": 24,
+      "min_distance": 2,
+      "sounds": [
+        {
+          "name": "sounds/entity/dread/lurker/scrape_01",
+          "volume": 0.65,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/lurker/scrape_02",
+          "volume": 0.65,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/lurker/scrape_03",
+          "volume": 0.65,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        }
+      ]
+    },
+    "dread.lurker.hurt": {
+      "category": "hostile",
+      "max_distance": 28,
+      "min_distance": 2,
+      "sounds": [
+        {
+          "name": "sounds/entity/dread/lurker/hurt_01",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/lurker/hurt_02",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/lurker/hurt_03",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        }
+      ]
+    },
+    "dread.lurker.death": {
+      "category": "hostile",
+      "max_distance": 32,
+      "min_distance": 3,
+      "sounds": [
+        {
+          "name": "sounds/entity/dread/lurker/death_01",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/lurker/death_02",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        }
+      ]
+    },
+    "dread.lurker.attack_swipe": {
+      "category": "hostile",
+      "max_distance": 24,
+      "min_distance": 2,
+      "sounds": [
+        {
+          "name": "sounds/entity/dread/lurker/attack_swipe_01",
+          "volume": 0.8,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/lurker/attack_swipe_02",
+          "volume": 0.8,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/lurker/attack_swipe_03",
+          "volume": 0.8,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        }
+      ]
+    },
+    "dread.lurker.attack_hit": {
+      "category": "hostile",
+      "max_distance": 24,
+      "min_distance": 2,
+      "sounds": [
+        {
+          "name": "sounds/entity/dread/lurker/attack_hit_01",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/lurker/attack_hit_02",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/lurker/attack_hit_03",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        }
+      ]
+    },
+    "dread.lurker.chase_vocal": {
+      "category": "hostile",
+      "max_distance": 40,
+      "min_distance": 3,
+      "sounds": [
+        {
+          "name": "sounds/entity/dread/lurker/chase_vocal_01",
+          "volume": 1.0,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/lurker/chase_vocal_02",
+          "volume": 1.0,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/lurker/chase_vocal_03",
+          "volume": 1.0,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        }
+      ]
+    }
+  }
+}
