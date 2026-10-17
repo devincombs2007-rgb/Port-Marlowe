@@ -1,23 +1,28 @@
 #!/usr/bin/env bash
-# Prints `companions=<comma separated Gradle coordinates>` for the newest Fabric release of each popular
-# performance mod on Modrinth for the project's Minecraft version. Used by CI to run the self-test with
-# Port Marlowe installed next to them.
+# Downloads the newest Fabric release of each popular performance mod on Modrinth for the project's
+# Minecraft version into the given mods folder. CI uses it to run the self-test with Port Marlowe
+# installed next to them; Fabric Loader remaps the jars to development names at launch.
 set -euo pipefail
 
+dest=${1:?usage: companion-mods.sh <mods-dir>}
 mc_version=$(grep '^minecraft_version=' gradle.properties | cut -d= -f2)
 slugs=(fabric-api sodium lithium ferrite-core modernfix immediatelyfast entityculling)
 query="game_versions=%5B%22${mc_version}%22%5D&loaders=%5B%22fabric%22%5D"
 
-coordinates=()
+mkdir -p "$dest"
 for slug in "${slugs[@]}"; do
     version=$(curl -fsSL "https://api.modrinth.com/v2/project/${slug}/version?${query}" \
-        | jq -r '([.[] | select(.version_type == "release")] + .)[0].version_number // empty')
-    if [[ -z "$version" || ! "$version" =~ ^[A-Za-z0-9.+_-]+$ ]]; then
-        echo "No usable ${slug} release for ${mc_version}" >&2
+        | jq -c '([.[] | select(.version_type == "release")] + .)[0] // empty')
+    if [[ -z "$version" ]]; then
+        echo "No ${slug} release for ${mc_version}" >&2
         exit 1
     fi
-    echo "${slug} ${version}" >&2
-    coordinates+=("maven.modrinth:${slug}:${version}")
+    number=$(jq -r '.version_number' <<<"$version")
+    url=$(jq -r '([.files[] | select(.primary)] + .files)[0].url' <<<"$version")
+    if [[ "$url" != https://cdn.modrinth.com/* ]]; then
+        echo "Unexpected download URL for ${slug}: ${url}" >&2
+        exit 1
+    fi
+    echo "${slug} ${number}"
+    curl -fsSL -o "${dest}/${slug}.jar" "$url"
 done
-
-(IFS=,; echo "companions=${coordinates[*]}")

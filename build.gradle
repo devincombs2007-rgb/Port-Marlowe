@@ -67,24 +67,6 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
-// CI compatibility run: -Pcompanions=maven.modrinth:sodium:<version>,... loads other performance mods
-// next to Port Marlowe in the development client (see scripts/companion-mods.sh).
-def companions = providers.gradleProperty('companions').orNull
-if (companions) {
-    repositories {
-        maven {
-            name = 'Modrinth'
-            url = 'https://api.modrinth.com/maven'
-            content {
-                includeGroup 'maven.modrinth'
-            }
-        }
-    }
-    dependencies {
-        companions.split(',').each { modLocalRuntime it.trim() }
-    }
-}
-
 processResources {
     inputs.property 'version', project.version
     filesMatching('fabric.mod.json') {
