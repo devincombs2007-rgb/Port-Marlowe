@@ -5,7 +5,7 @@ import { system as system6, world as world7 } from "@minecraft/server";
 import { Player as Player6, system as system5, world as world6 } from "@minecraft/server";
 
 // src/core/constants.ts
-var ADDON_VERSION = "0.2.0";
+var ADDON_VERSION = "0.2.1";
 var BUILD_STAGE = "phase-2-3-lurker-director";
 
 // src/core/config.ts
@@ -854,6 +854,34 @@ function playLurkerSound(p, name, at, baseVolume, cfg) {
   safe(() => p.playSound(`dread.lurker.${name}`, { volume: soundVolume(baseVolume, name, cfg), pitch: 1, location: at }), void 0);
 }
 
+// src/game/atmosphere.ts
+var FOG_USER_ID = "dread_atmos";
+var FOG_FOR = {
+  unease: "dread:fog_unease",
+  observation: "dread:fog_observation",
+  escalation: "dread:fog_escalation",
+  hunt: "dread:fog_hunt"
+};
+var current = /* @__PURE__ */ new Map();
+function run(p, cmd) {
+  safe(() => p.runCommand(cmd), void 0);
+}
+function setAtmosphere(p, state, cfg, daylight) {
+  const want = cfg.enabled && cfg.effects !== "performance" && !daylight ? FOG_FOR[state] : void 0;
+  if (current.get(p.id) === want) return;
+  run(p, `fog @s remove ${FOG_USER_ID}`);
+  if (want) run(p, `fog @s push ${want} ${FOG_USER_ID}`);
+  current.set(p.id, want);
+}
+function clearAtmosphere(p) {
+  current.delete(p.id);
+}
+function shake(p, cfg, strength, seconds) {
+  if (cfg.jumpscareIntensity <= 0 || cfg.effects === "performance") return;
+  const k = cfg.jumpscareIntensity / 100 * strength * (cfg.effects === "cinematic" ? 1.25 : 1);
+  run(p, `camerashake add @s ${Math.min(0.5, k).toFixed(3)} ${seconds.toFixed(1)} rotational`);
+}
+
 // src/game/environment.ts
 import { EntityComponentTypes as EntityComponentTypes2, EquipmentSlot } from "@minecraft/server";
 var LIGHT_BLOCK = /^minecraft:(torch|soul_torch|lantern|soul_lantern|campfire|soul_campfire|glowstone|sea_lantern|shroomlight|lit_pumpkin|lit_redstone_lamp|end_rod|beacon|ochre_froglight|verdant_froglight|pearlescent_froglight|lava|fire|soul_fire|underwater_torch|copper_torch)$/;
@@ -1307,7 +1335,10 @@ function initDirector(seed) {
     onHuntEnded: (id) => rt.get(id)?.brain.onHuntEnded(worldSec(), true),
     onStress: (id, amount) => {
       const r = rt.get(id);
-      if (r) r.brain.memory.stress = Math.min(100, r.brain.memory.stress + amount);
+      if (!r) return;
+      r.brain.memory.stress = Math.min(100, r.brain.memory.stress + amount);
+      const p = world5.getAllPlayers().find((x) => x.id === id);
+      if (p && amount >= 5) shake(p, readConfig(), 0.12, 0.8);
     }
   }, rng2);
   world5.afterEvents.playerSpawn.subscribe((e) => {
@@ -1318,6 +1349,7 @@ function initDirector(seed) {
     const r = rt.get(e.playerId);
     if (r) save(e.playerId, r);
     removeAll(e.playerId);
+    clearAtmosphere({ id: e.playerId });
     rt.delete(e.playerId);
   });
   world5.afterEvents.entityHurt.subscribe((e) => {
@@ -1414,6 +1446,8 @@ function stepPlayer(p, r, now) {
   const snap = snapshot(p, r, now);
   const actions = r.brain.step(snap);
   if (actions.length) apply2(p, r, actions, snap);
+  const daylight = snap.skyVisible && (snap.timeOfDay < 12500 || snap.timeOfDay > 23500);
+  setAtmosphere(p, r.brain.memory.state, readConfig(), daylight);
 }
 function apply2(p, r, actions, snap) {
   const cfg = readConfig();
@@ -1430,6 +1464,7 @@ function apply2(p, r, actions, snap) {
       }
       case "setTactic":
         r.tactic = a.tactic;
+        if (a.tactic === "hunt") shake(p, cfg, 0.25, 1.5);
         break;
       case "retreatLurkers":
         r.tactic = "observe";
@@ -1456,6 +1491,7 @@ function describe(p) {
 function debugSpawn(p, tactic) {
   const r = ensure(p);
   r.tactic = tactic;
+  if (tactic === "hunt") shake(p, readConfig(), 0.25, 1.5);
   return spawnLurker(p, tactic, 14, 24, !r.surroundings.skyVisible);
 }
 function debugSet(p, field, value) {

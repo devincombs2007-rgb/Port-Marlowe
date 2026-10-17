@@ -1,0 +1,22 @@
+{
+  "format_version": "1.16.100",
+  "minecraft:fog_settings": {
+    "description": {
+      "identifier": "dread:fog_hunt"
+    },
+    "distance": {
+      "air": {
+        "fog_start": 0.0,
+        "fog_end": 0.36,
+        "fog_color": "#1c1416",
+        "render_distance_type": "fixed"
+      },
+      "water": {
+        "fog_start": 0.0,
+        "fog_end": 28.0,
+        "fog_color": "#1c2a2b",
+        "render_distance_type": "fixed"
+      }
+    }
+  }
+}

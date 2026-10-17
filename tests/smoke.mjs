@@ -58,6 +58,32 @@ test("ambient sound test plays all 10 ambient events", () => {
   assert.ok(played.every((p) => p.id.startsWith("dread.ambient.")));
 });
 
+test("atmosphere: fog follows tense states, never daylight or Performance mode; hunts shake the camera", () => {
+  const fogCmds = () => log.commands.filter((c) => /^fog /.test(c.c));
+  tick(20 * 200); // clear the 3-minute respawn grace
+  sim.timeOfDay = 16000; terrain.underground = true; log.commands.length = 0;
+  say(steve, "dread:force", "escalation"); say(steve, "dread:clear");
+  tick(60);
+  assert.ok(fogCmds().some((c) => c.c === "fog @s push dread:fog_escalation dread_atmos"), JSON.stringify(fogCmds()));
+  say(steve, "dread:force", "dormant"); tick(60);
+  assert.ok(fogCmds().at(-1).c === "fog @s remove dread_atmos", "fog removed when relaxed");
+  log.commands.length = 0;
+  say(steve, "dread:set", "effects performance"); say(steve, "dread:force", "escalation"); say(steve, "dread:clear"); tick(60);
+  assert.equal(fogCmds().filter((c) => c.c.includes("push")).length, 0, "no fog in Performance mode");
+  say(steve, "dread:set", "effects balanced");
+  sim.timeOfDay = 6000; terrain.underground = false; log.commands.length = 0;
+  say(steve, "dread:force", "unease"); tick(60);
+  assert.equal(fogCmds().filter((c) => c.c.includes("push")).length, 0, "no fog in open daylight");
+  say(steve, "dread:force", "dormant"); say(steve, "dread:clear"); tick(40);
+  sim.timeOfDay = 18000; terrain.underground = false; log.commands.length = 0;
+  say(steve, "dread:set", "jumpscareIntensity 0"); steve.mode = "Survival";
+  say(steve, "dread:set", "jumpscareIntensity 60");
+  say(steve, "dread:force", "hunt"); tick(40);
+  assert.ok(log.commands.some((c) => /^camerashake add @s [0-9.]+ [0-9.]+ rotational$/.test(c.c)), "camera shake on hunt start");
+  say(steve, "dread:clear"); say(steve, "dread:force", "dormant"); say(steve, "dread:clear"); tick(40);
+  say(steve, "dread:reset"); say(steve, "dread:set", "debug false");
+});
+
 test("debug spawn: a Lurker appears at a vantage 14-24 blocks away, owned by the director", () => {
   terrain.underground = false;
   say(steve, "dread:spawn", "observe");

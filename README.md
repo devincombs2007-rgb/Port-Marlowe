@@ -11,6 +11,7 @@ a behavior pack (stable Script API) plus a resource pack. The earlier Java/Fabri
 * **The Lurker**: custom 51-cube model, texture, 10 animations, controllers, vanish particle, 49 synthesised sounds,
   observe/stalk/hunt tactics with light/gaze/injury counterplay.
 * **Ambience**: 34 synthesised anomalies (snaps, creaks, groans, drags, murmurs, cries, heartbeat...).
+* **Atmosphere**: director-driven fog (4 RP fog definitions pushed with `/fog`) and camera shake, off in daylight and in Performance mode.
 * Settings: intensity, sound intensity, jumpscare intensity, effects level (Performance/Balanced/Cinematic), debug.
 
 ```

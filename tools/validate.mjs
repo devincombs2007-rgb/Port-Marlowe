@@ -262,6 +262,9 @@ function checkGeometry(r, json) {
   }
 }
 
+// Mojang's published schemas have a few wrong types; these exact errors are waived and re-checked by hand where noted.
+const KNOWN_SCHEMA_BUGS = [{ type: "Fog", path: "/minecraft:fog_settings/description/identifier", message: "must be boolean" }];
+const fogIds = new Set();
 const parsed = new Map(); // rel path -> json
 let schemaChecked = 0;
 for (const file of [...bpFiles, ...rpFiles].filter((p) => p.endsWith(".json"))) {
@@ -288,8 +291,14 @@ for (const file of [...bpFiles, ...rpFiles].filter((p) => p.endsWith(".json"))) 
   if (!validate) continue;
   schemaChecked++;
   if (!validate(json)) {
-    for (const e of validate.errors.slice(0, 5)) err(r, `schema (${entry.name}) ${e.instancePath || "/"} ${e.message}`);
-    if (validate.errors.length > 5) err(r, `...and ${validate.errors.length - 5} more schema errors`);
+    const real = validate.errors.filter((e) => !KNOWN_SCHEMA_BUGS.some((b) => b.type === entry.name && b.path === e.instancePath && b.message === e.message));
+    for (const e of real.slice(0, 5)) err(r, `schema (${entry.name}) ${e.instancePath || "/"} ${e.message}`);
+    if (real.length > 5) err(r, `...and ${real.length - 5} more schema errors`);
+  }
+  if (entry.name === "Fog") {
+    const id = json["minecraft:fog_settings"]?.description?.identifier;
+    if (typeof id !== "string" || !id.includes(":")) err(r, "fog identifier must be a namespaced string");
+    else fogIds.add(id);
   }
 }
 
@@ -391,6 +400,34 @@ for (const [name, def] of Object.entries(soundDefs?.sound_definitions ?? {})) {
     const found = [".ogg", ".wav", ".fsb"].find((e) => rpFileSet.has(base + e));
     if (!found) err("sound_definitions.json", `${name}: no audio file for "${n}" (missing asset)`);
     else if (found !== ".ogg") warn("sound_definitions.json", `${name}: "${n}" is ${found}; project standard is .ogg`);
+  }
+}
+
+// ---------- 5b. identifiers used by scripts must exist in the packs --------------------------
+{
+  const mainJs = join(BP, "scripts/main.js");
+  if (existsSync(mainJs)) {
+    const code = readFileSync(mainJs, "utf8");
+    const bpEvents = new Set();
+    const props = new Set();
+    for (const [, j] of jsonIn("BP", "entities/")) {
+      for (const e of Object.keys(j["minecraft:entity"]?.events ?? {})) bpEvents.add(e);
+      for (const pr of Object.keys(j["minecraft:entity"]?.description?.properties ?? {})) props.add(pr);
+    }
+    const known = new Set([...bpEvents, ...props, ...fogIds, ...particles, ...bpEntityIds]);
+    for (const m of new Set(code.match(/"dread:[a-z_]+"/g) ?? [])) {
+      const id = m.slice(1, -1);
+      if (!known.has(id)) err("scripts/main.js", `references ${id}, which no pack file defines (entity event, property, fog, particle or entity)`);
+    }
+    for (const m of new Set(code.match(/"dread\.(?:lurker|ambient)\.[a-z_]+"/g) ?? [])) {
+      const id = m.slice(1, -1);
+      if (!definedSoundEvents.has(id)) err("scripts/main.js", `plays sound event ${id}, which is not in sound_definitions.json`);
+    }
+    // template-built sound ids: every dread.lurker.* / dread.ambient.* defined event should be reachable by name in the source
+    for (const ev of definedSoundEvents) {
+      const tail = ev.split(".").pop();
+      if (!code.includes(tail)) warn("sound_definitions.json", `${ev} is defined but its name never appears in the scripts (unused asset?)`);
+    }
   }
 }
 

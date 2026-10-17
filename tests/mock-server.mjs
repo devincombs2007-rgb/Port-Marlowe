@@ -7,7 +7,7 @@ export const EquipmentSlot = { Offhand: "Offhand", Mainhand: "Mainhand" };
 
 export const messages = [];
 export const played = [];
-export const log = { events: [], particles: [], spawned: [], removed: [] };
+export const log = { events: [], particles: [], spawned: [], removed: [], commands: [] };
 export const terrain = { underground: false, extraBlocks: new Map(), opaqueWall: null };
 
 function emitter() {
@@ -42,6 +42,7 @@ export class Player extends Entity {
   }
   getGameMode() { return this.mode; }
   sendMessage(m) { messages.push(`[${this.name}] ${m}`); }
+  runCommand(c) { log.commands.push({ player: this.name, c }); return { successCount: 1 }; }
   playSound(id, o) { played.push({ id, o, player: this.name }); }
   getComponent(t) {
     if (t === EntityComponentTypes.Inventory) return { container: { getItem: (i) => this.inventory[i] } };

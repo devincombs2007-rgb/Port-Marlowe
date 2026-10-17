@@ -7,6 +7,7 @@ import { EVENTS } from "../director/events";
 import type { Action, DirectorState, Snapshot, Tactic } from "../director/types";
 import { makeRng, mathRng, type Rng } from "../util/rng";
 import { playAmbient } from "./ambient";
+import { clearAtmosphere, setAtmosphere, shake } from "./atmosphere";
 import { scanSurroundings, type Surroundings } from "./environment";
 import { allPlayersNear, dimensionKind, health, isPlayerSurvivalish, safe } from "./helpers";
 import { initLurkers, lurkerCount, lurkersOf, removeAll, retreatAll, spawnLurker } from "./lurkers";
@@ -47,7 +48,10 @@ export function initDirector(seed?: number): void {
     onHuntEnded: (id) => rt.get(id)?.brain.onHuntEnded(worldSec(), true),
     onStress: (id, amount) => {
       const r = rt.get(id);
-      if (r) r.brain.memory.stress = Math.min(100, r.brain.memory.stress + amount);
+      if (!r) return;
+      r.brain.memory.stress = Math.min(100, r.brain.memory.stress + amount);
+      const p = world.getAllPlayers().find((x) => x.id === id);
+      if (p && amount >= 5) shake(p, readConfig(), 0.12, 0.8); // the close moment
     },
   }, rng);
 
@@ -59,6 +63,7 @@ export function initDirector(seed?: number): void {
     const r = rt.get(e.playerId);
     if (r) save(e.playerId, r);
     removeAll(e.playerId);
+    clearAtmosphere({ id: e.playerId });
     rt.delete(e.playerId);
   });
   world.afterEvents.entityHurt.subscribe((e) => {
@@ -148,6 +153,8 @@ function stepPlayer(p: Player, r: PlayerRt, now: number): void {
   const snap = snapshot(p, r, now);
   const actions = r.brain.step(snap);
   if (actions.length) apply(p, r, actions, snap);
+  const daylight = snap.skyVisible && (snap.timeOfDay < 12500 || snap.timeOfDay > 23500);
+  setAtmosphere(p, r.brain.memory.state, readConfig(), daylight);
 }
 
 function apply(p: Player, r: PlayerRt, actions: Action[], snap: Snapshot): void {
@@ -165,6 +172,7 @@ function apply(p: Player, r: PlayerRt, actions: Action[], snap: Snapshot): void 
       }
       case "setTactic":
         r.tactic = a.tactic;
+        if (a.tactic === "hunt") shake(p, cfg, 0.25, 1.5);
         break;
       case "retreatLurkers":
         r.tactic = "observe";
@@ -194,6 +202,7 @@ export function describe(p: Player): string[] {
 export function debugSpawn(p: Player, tactic: Tactic): boolean {
   const r = ensure(p);
   r.tactic = tactic;
+  if (tactic === "hunt") shake(p, readConfig(), 0.25, 1.5); // same cue as a director-started hunt
   return spawnLurker(p, tactic, 14, 24, !r.surroundings.skyVisible);
 }
 

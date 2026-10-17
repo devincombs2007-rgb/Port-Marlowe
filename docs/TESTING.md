@@ -11,13 +11,14 @@
 | `tools/validate.mjs` | Manifest structure/UUIDs/dependencies, stable-only script modules, path hygiene (iOS is case-sensitive), JSON vs Mojang's official schemas (`@minecraft/bedrock-schemas` 1.26.50; the geometry schema is broken upstream so geometry is checked structurally, including UV bounds), entity→geometry/texture/animation/controller/sound/particle references, animation→bone existence, Ogg validity, size budgets | That Minecraft accepts and renders the content |
 | Packaging | Deterministic `.mcaddon` / `.mcpack` zips with correct folder layout | That the iOS importer accepts them |
 
-Known validator limits: Mojang's published schemas contain a few dangling `$ref`s (treated permissively) and an incorrect
-`languages.json` schema (checked by hand instead). Schema validity is not the same as in-game validity.
+Known validator limits: Mojang's published schemas contain a few dangling `$ref`s (treated permissively), an incorrect
+`languages.json` schema, a geometry schema that types numbers as strings, and a fog schema that types the identifier as boolean
+(all checked by hand instead). The validator also confirms every `dread:` / `dread.` identifier the scripts reference exists in the packs. Schema validity is not the same as in-game validity.
 
 ## Manual test checklist for Phase 1 (needs a human on a device)
-1. Import `DREAD-0.2.0-test.mcaddon`; confirm both packs appear.
+1. Import `DREAD-0.2.1-test.mcaddon`; confirm both packs appear.
 2. Create a world with cheats ON, activate DREAD BP + RP. No "Beta APIs" toggle should be required.
-3. On first join expect an action-bar message "DREAD v0.2.0 loaded" after ~5 s.
+3. On first join expect an action-bar message "DREAD v0.2.1 loaded" after ~5 s.
 4. `/scriptevent dread:status` prints settings. `/scriptevent dread:set soundIntensity 30` then status shows 30.
 5. Content log (Settings → Creator → Enable Content Log GUI) shows `[DREAD] script loaded` and no errors.
 6. **Audio test:** run `/scriptevent dread:sound all`. 14 Lurker sounds play 3 s apart on a ring 6 blocks around you, the first
@@ -38,7 +39,8 @@ Run in a Survival world with cheats on (so `/scriptevent` works). Turn on `/scri
 6. **Settings**: `intensity`, `soundIntensity`, `jumpscareIntensity`, `effects`. Confirm lower values are noticeably quieter/rarer.
 7. **Multiplayer/Realm** (if possible): two players; confirm each only hears their own ambient cues and Lurkers belong to one player.
 8. **Performance**: note frame rate with a Lurker present on your iPhone model, and any hitching when ambient sounds fire.
-9. Report: device, iOS + Minecraft version, steps that failed, screenshots of the model, and content-log errors.
+9. **Fog/shake**: at night or underground, `dread:force escalation` should close the view in; `dread:force dormant` should lift it. `dread:force hunt` should shake the camera briefly. Confirm `/fog` and `/camerashake` work from script on iOS, and that `effects performance` disables both.
+10. Report: device, iOS + Minecraft version, steps that failed, screenshots of the model, and content-log errors.
 
 Unverified assumptions that this checklist should settle: component-group swapping via events behaves as intended;
 `move_towards_target` produces stalking movement; `query.property('dread:state')` drives animations on the client; animation
