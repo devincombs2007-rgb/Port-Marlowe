@@ -50,7 +50,7 @@ public final class PortMarloweConfig {
     /** Animated block textures (water, lava, fire, portals). Each frame is a texture upload. */
     public boolean textureAnimations = true;
 
-    /** Parallel chunk meshing workers; each holds ~10 MB of native buffers. 0 = automatic. */
+    /** Parallel chunk meshing workers; each holds several MB of native buffers. 0 = automatic. */
     public int chunkBuilderThreads = 0;
 
     public Preset presetOrDefault() {

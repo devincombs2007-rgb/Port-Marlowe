@@ -30,7 +30,7 @@
   "portmarlowe.options.texture_animations": "Animated Textures",
   "portmarlowe.options.texture_animations.tooltip": "Water, lava, fire and portal animations. Turning them off saves a texture upload per animation frame.",
   "portmarlowe.options.chunk_builder_threads": "Chunk Mesh Workers",
-  "portmarlowe.options.chunk_builder_threads.tooltip": "Parallel chunk meshing threads; each one keeps about 10 MB of native memory. Auto picks 3 on phones (1 with Sodium). Takes effect after a restart.",
+  "portmarlowe.options.chunk_builder_threads.tooltip": "Parallel chunk meshing threads; each one keeps several MB of native memory. Auto picks 3 on phones (1 with Sodium). Takes effect after a restart.",
   "portmarlowe.options.auto_preset": "Preset on First Launch",
   "portmarlowe.options.auto_preset.tooltip": "Apply the selected preset automatically the first time the game starts on a phone.",
 

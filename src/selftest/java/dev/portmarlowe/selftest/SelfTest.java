@@ -143,7 +143,7 @@ public final class SelfTest {
         VideoSettingsScreen video = new VideoSettingsScreen(new TitleScreen(), mc, mc.options);
         mc.setScreen(video);
         String label = Component.translatable("portmarlowe.options.open").getString();
-        check(!label.equals("portmarlowe.options.open"), "mod translations load without Fabric API: \"" + label + "\"");
+        check(!label.equals("portmarlowe.options.open"), "mod translations resolve: \"" + label + "\"");
         Button open = findButton(video, label);
         check(open != null, "\"" + label + "\" button present in Video Settings");
         open.onPress();

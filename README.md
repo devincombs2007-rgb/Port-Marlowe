@@ -28,8 +28,8 @@ settings alone).
 | **Particle frustum culling** | Vanilla builds geometry for every particle each frame, including the ones behind you. These are now skipped. |
 | **Block entity draw distance** (32 blocks) | Chests, signs (and their text), banners, heads, beds and shulker boxes are drawn as models every frame. Vanilla draws them out to 64 blocks. Beacon beams are not affected. |
 | **Fewer ambient block effects** (50%) | Every tick vanilla checks 1334 random blocks around you for torch smoke, drips and similar effects. This halves those block lookups. |
-| **Fewer chunk meshing workers** | Vanilla starts one worker per CPU core, each with about 10 MB of native buffers. iPhones report 6 cores but only 2 are performance cores, and native memory counts against iOS's memory limit. The mod uses 3 workers on phones. Sodium brings its own mesher; current versions don't allocate vanilla's buffers at all. |
-| **Optional: freeze animated textures** | Every animation frame of water, lava, fire and portals is a texture upload, and GL translation layers handle those poorly. Off by default. |
+| **Fewer chunk meshing workers** | Vanilla starts one worker per CPU core, each with several megabytes of native buffers. iPhones report 6 cores but only 2 are performance cores, and native memory counts against iOS's memory limit. The mod uses 3 workers on phones. Sodium brings its own mesher; current versions don't allocate vanilla's buffers at all. |
+| **Optional: freeze animated textures** | Every animation frame of water, lava, fire and portals is a texture upload, and GL translation layers handle those poorly. Animations stay on unless you switch them off. |
 | **F3 overlay line** | Shows the detected device and renderer, the current FPS cap and why it applies, how many particles were culled, how many block entities were skipped, and the number of mesh workers. |
 
 The mod finds out it is on iOS from what Amethyst passes to Java (`-DUIScreen.maximumFramesPerSecond`,
@@ -48,12 +48,13 @@ The mod finds out it is on iOS from what Amethyst passes to Java (`-DUIScreen.ma
    **Options → Video Settings → iPhone Performance…** (or through Mod Menu).
 
 > Amethyst starts every new profile at render distance **2**. The preset never raises a setting, so it
-> stays at 2 until you change it. Most iPhones from the XS onward handle 4–6 with this mod, and 8 with
-> Sodium as well.
+> stays at 2 until you change it. Raise it step by step and watch the FPS on the F3 screen; 4–6 is a
+> reasonable place to start.
 
 ### Recommended companions
 
-Port Marlowe only touches things the big optimization mods leave alone, so use it together with them:
+Port Marlowe only touches things the big optimization mods leave alone, and CI runs it together with
+all of these:
 
 - **Sodium**: the biggest rendering win. Use it with the *ANGLE (Metal)* or *MobileGlues* renderer, because
   GL4ES lacks the OpenGL features Sodium needs.

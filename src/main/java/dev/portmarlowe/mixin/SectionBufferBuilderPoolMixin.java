@@ -8,7 +8,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
 /**
- * Vanilla allocates one set of section buffers (~10 MB of native memory) per CPU core for chunk
+ * Vanilla allocates one set of section buffers (several MB of native memory) per CPU core for chunk
  * meshing. iPhones report 6 cores but only 2 are performance cores, and native memory counts against
  * the hard per-app limit iOS enforces, so fewer workers is both smoother and safer there.
  */
