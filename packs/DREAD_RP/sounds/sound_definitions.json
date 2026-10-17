@@ -539,6 +539,382 @@
           "weight": 1
         }
       ]
+    },
+    "dread.ambient.branch_snap": {
+      "category": "neutral",
+      "max_distance": 48,
+      "min_distance": 2,
+      "sounds": [
+        {
+          "name": "sounds/entity/dread/ambient/branch_snap_01",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/ambient/branch_snap_02",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/ambient/branch_snap_03",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/ambient/branch_snap_04",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/ambient/branch_snap_05",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        }
+      ]
+    },
+    "dread.ambient.leaves_rustle": {
+      "category": "neutral",
+      "max_distance": 40,
+      "min_distance": 2,
+      "sounds": [
+        {
+          "name": "sounds/entity/dread/ambient/leaves_rustle_01",
+          "volume": 0.7,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/ambient/leaves_rustle_02",
+          "volume": 0.7,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/ambient/leaves_rustle_03",
+          "volume": 0.7,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/ambient/leaves_rustle_04",
+          "volume": 0.7,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        }
+      ]
+    },
+    "dread.ambient.door_creak": {
+      "category": "neutral",
+      "max_distance": 40,
+      "min_distance": 2,
+      "sounds": [
+        {
+          "name": "sounds/entity/dread/ambient/door_creak_01",
+          "volume": 0.8,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/ambient/door_creak_02",
+          "volume": 0.8,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/ambient/door_creak_03",
+          "volume": 0.8,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        }
+      ]
+    },
+    "dread.ambient.structure_groan": {
+      "category": "neutral",
+      "max_distance": 56,
+      "min_distance": 3,
+      "sounds": [
+        {
+          "name": "sounds/entity/dread/ambient/structure_groan_01",
+          "volume": 0.8,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/ambient/structure_groan_02",
+          "volume": 0.8,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/ambient/structure_groan_03",
+          "volume": 0.8,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        }
+      ]
+    },
+    "dread.ambient.drag": {
+      "category": "neutral",
+      "max_distance": 40,
+      "min_distance": 2,
+      "sounds": [
+        {
+          "name": "sounds/entity/dread/ambient/drag_01",
+          "volume": 0.8,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/ambient/drag_02",
+          "volume": 0.8,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/ambient/drag_03",
+          "volume": 0.8,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        }
+      ]
+    },
+    "dread.ambient.murmur": {
+      "category": "neutral",
+      "max_distance": 36,
+      "min_distance": 2,
+      "sounds": [
+        {
+          "name": "sounds/entity/dread/ambient/murmur_01",
+          "volume": 0.55,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/ambient/murmur_02",
+          "volume": 0.55,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/ambient/murmur_03",
+          "volume": 0.55,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/ambient/murmur_04",
+          "volume": 0.55,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        }
+      ]
+    },
+    "dread.ambient.distant_cry": {
+      "category": "neutral",
+      "max_distance": 64,
+      "min_distance": 6,
+      "sounds": [
+        {
+          "name": "sounds/entity/dread/ambient/distant_cry_01",
+          "volume": 0.5,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/ambient/distant_cry_02",
+          "volume": 0.5,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/ambient/distant_cry_03",
+          "volume": 0.5,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        }
+      ]
+    },
+    "dread.ambient.heartbeat": {
+      "category": "neutral",
+      "max_distance": 16,
+      "min_distance": 1,
+      "sounds": [
+        {
+          "name": "sounds/entity/dread/ambient/heartbeat_01",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/ambient/heartbeat_02",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/ambient/heartbeat_03",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        }
+      ]
+    },
+    "dread.ambient.pressure_drop": {
+      "category": "neutral",
+      "max_distance": 16,
+      "min_distance": 1,
+      "sounds": [
+        {
+          "name": "sounds/entity/dread/ambient/pressure_drop_01",
+          "volume": 0.85,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/ambient/pressure_drop_02",
+          "volume": 0.85,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        }
+      ]
+    },
+    "dread.ambient.footsteps_far": {
+      "category": "neutral",
+      "max_distance": 40,
+      "min_distance": 3,
+      "sounds": [
+        {
+          "name": "sounds/entity/dread/ambient/footsteps_far_01",
+          "volume": 0.6,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/ambient/footsteps_far_02",
+          "volume": 0.6,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/ambient/footsteps_far_03",
+          "volume": 0.6,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/ambient/footsteps_far_04",
+          "volume": 0.6,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        }
+      ]
     }
   }
 }
