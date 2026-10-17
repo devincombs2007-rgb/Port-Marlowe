@@ -41,12 +41,16 @@ function readJson(file) {
   }
 }
 function globToRegex(glob) {
-  const re = glob
+  // Catalog globs look like "**/entities/**/*.json". Anchor directory-based ones at the pack root so
+  // "loot_tables/entities/x.json" is not mistaken for an entity file; bare filenames may float.
+  const body = glob.startsWith("**/") ? glob.slice(3) : glob;
+  const anchored = body.includes("/");
+  const re = body
     .replace(/[.+^${}()|[\]\\]/g, "\\$&")
     .replace(/\*\*\//g, "(?:.*/)?")
     .replace(/\*\*/g, ".*")
     .replace(/\*/g, "[^/]*");
-  return new RegExp("^(?:.*/)?" + re.replace(/^\(\?:\.\*\/\)\?/, "") + "$");
+  return new RegExp((anchored ? "^" : "^(?:.*/)?") + re + "$");
 }
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const isVersionArray = (v) => Array.isArray(v) && v.length === 3 && v.every((n) => Number.isInteger(n) && n >= 0);
@@ -221,6 +225,43 @@ function getValidator(entry) {
   return v;
 }
 
+const geometryBones = new Map(); // geometry identifier -> Set(bone names)
+function checkGeometry(r, json) {
+  if (typeof json.format_version !== "string") err(r, "format_version missing");
+  const geos = json["minecraft:geometry"];
+  if (!Array.isArray(geos) || geos.length === 0) return err(r, 'missing "minecraft:geometry" array');
+  const num3 = (v) => Array.isArray(v) && v.length === 3 && v.every((n) => typeof n === "number" && Number.isFinite(n));
+  for (const g of geos) {
+    const d = g.description ?? {};
+    if (!d.identifier?.startsWith("geometry.")) err(r, `identifier "${d.identifier}" must start with "geometry."`);
+    const { texture_width: tw, texture_height: th } = d;
+    if (!Number.isInteger(tw) || !Number.isInteger(th)) err(r, "texture_width/height must be integers");
+    const names = new Set();
+    for (const b of g.bones ?? []) {
+      if (names.has(b.name)) err(r, `${d.identifier}: duplicate bone ${b.name}`);
+      names.add(b.name);
+    }
+    for (const b of g.bones ?? []) {
+      if (!num3(b.pivot ?? [0, 0, 0])) err(r, `bone ${b.name}: pivot must be 3 numbers`);
+      if (b.rotation && !num3(b.rotation)) err(r, `bone ${b.name}: rotation must be 3 numbers`);
+      if (b.parent && !names.has(b.parent)) err(r, `bone ${b.name}: unknown parent ${b.parent}`);
+      for (let hops = 0, p = b; p?.parent; hops++, p = g.bones.find((x) => x.name === p.parent)) if (hops > 64) { err(r, `bone ${b.name}: parent cycle`); break; }
+      for (const [i, c] of (b.cubes ?? []).entries()) {
+        const where = `bone ${b.name} cube ${i}`;
+        if (!num3(c.origin) || !num3(c.size)) { err(r, `${where}: origin/size must be 3 numbers`); continue; }
+        if (c.size.some((n) => n < 0)) err(r, `${where}: negative size`);
+        const rects = c.uv && !Array.isArray(c.uv) ? Object.entries(c.uv).map(([f, u]) => [f, u.uv, u.uv_size]) : [["box", c.uv, null]];
+        for (const [f, uv, size] of rects) {
+          if (!Array.isArray(uv)) { err(r, `${where}: missing uv`); continue; }
+          const [u, v] = uv, [w, h] = size ?? [0, 0];
+          if (u < 0 || v < 0 || u + w > tw || v + h > th) err(r, `${where} ${f}: UV rect outside ${tw}x${th} texture`);
+        }
+      }
+    }
+    if (d.identifier) geometryBones.set(d.identifier, names);
+  }
+}
+
 const parsed = new Map(); // rel path -> json
 let schemaChecked = 0;
 for (const file of [...bpFiles, ...rpFiles].filter((p) => p.endsWith(".json"))) {
@@ -237,6 +278,12 @@ for (const file of [...bpFiles, ...rpFiles].filter((p) => p.endsWith(".json"))) 
   const inPack = r.replace(/^packs\/DREAD_(BP|RP)\//, "");
   const entry = catalogEntries.find((e) => e.res.some((re) => re.test(inPack)));
   if (!entry) continue;
+  if (entry.name === "Model Geometry") {
+    // Mojang's published geometry schema types numeric arrays as strings (unusable), so check structure directly.
+    checkGeometry(r, json);
+    schemaChecked++;
+    continue;
+  }
   const validate = getValidator(entry);
   if (!validate) continue;
   schemaChecked++;
@@ -279,6 +326,39 @@ for (const [k, j] of jsonIn("RP", "entity/")) {
   for (const g of Object.values(d.geometry ?? {})) refCheck(k, "geometry", g, geometries);
   for (const t of Object.values(d.textures ?? {})) if (!textureExists(t)) err(k, `texture "${t}" has no .png/.tga in the RP`);
   for (const a of Object.values(d.animations ?? {})) refCheck(k, "animation", a, new Set([...animations, ...animControllers]));
+  const bonesOfEntity = new Set(Object.values(d.geometry ?? {}).flatMap((g) => [...(geometryBones.get(g) ?? [])]));
+  for (const a of Object.values(d.animations ?? {})) {
+    for (const [, aj] of jsonIn("RP", "animations/")) {
+      for (const b of Object.keys(aj.animations?.[a]?.bones ?? {})) {
+        if (bonesOfEntity.size && !bonesOfEntity.has(b)) err(k, `animation ${a} animates bone "${b}" which the geometry does not have`);
+      }
+    }
+  }
+  // animation controllers reference short names that must exist in this entity's animation map
+  for (const [ck, cj] of jsonIn("RP", "animation_controllers/")) {
+    for (const [cid, c] of Object.entries(cj.animation_controllers ?? {})) {
+      if (!Object.values(d.animations ?? {}).includes(cid)) continue;
+      for (const [sn, st] of Object.entries(c.states ?? {})) {
+        for (const an of st.animations ?? []) {
+          const name = typeof an === "string" ? an : Object.keys(an)[0];
+          if (!(name in (d.animations ?? {}))) err(ck, `${cid}/${sn}: animation "${name}" is not in ${d.identifier}'s animations map`);
+        }
+        for (const t of st.transitions ?? []) {
+          const target = Object.keys(t)[0];
+          if (!(target in (c.states ?? {}))) err(ck, `${cid}/${sn}: transition to unknown state "${target}"`);
+        }
+      }
+    }
+  }
+  for (const sn of (d.scripts?.animate ?? []).map((x) => (typeof x === "string" ? x : Object.keys(x)[0]))) if (!(sn in (d.animations ?? {}))) err(k, `scripts.animate uses "${sn}" which is not in the animations map`);
+  for (const [, aj] of jsonIn("RP", "animations/")) {
+    for (const [aid, anim] of Object.entries(aj.animations ?? {})) {
+      if (!Object.values(d.animations ?? {}).includes(aid)) continue;
+      for (const tl of Object.values(anim.sound_effects ?? {})) for (const e of Array.isArray(tl) ? tl : [tl]) {
+        if (e.effect && !(e.effect in (d.sound_effects ?? {}))) err(k, `${aid} plays sound effect "${e.effect}" not in the entity's sound_effects map`);
+      }
+    }
+  }
   for (const rc of d.render_controllers ?? []) refCheck(k, "render controller", typeof rc === "string" ? rc : Object.keys(rc)[0], renderControllers);
   for (const s of Object.values(d.sound_effects ?? {})) refCheck(k, "sound event", s, definedSoundEvents);
   for (const p of Object.values(d.particle_effects ?? {})) refCheck(k, "particle", p, particles);

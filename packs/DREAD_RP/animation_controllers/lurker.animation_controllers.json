@@ -1,0 +1,60 @@
+{
+  "format_version": "1.10.0",
+  "animation_controllers": {
+    "controller.animation.dread.lurker.locomotion": {
+      "initial_state": "idle",
+      "states": {
+        "idle": {
+          "animations": [ "idle" ],
+          "transitions": [
+            { "run": "query.property('dread:state') == 'hunt'" },
+            { "stalk": "query.property('dread:state') == 'stalk' || query.property('dread:state') == 'retreat'" },
+            { "walk": "query.modified_move_speed > 0.05" }
+          ],
+          "blend_transition": 0.3
+        },
+        "walk": {
+          "animations": [ "walk" ],
+          "transitions": [
+            { "run": "query.property('dread:state') == 'hunt'" },
+            { "stalk": "query.property('dread:state') == 'stalk' || query.property('dread:state') == 'retreat'" },
+            { "idle": "query.modified_move_speed < 0.03" }
+          ],
+          "blend_transition": 0.25
+        },
+        "stalk": {
+          "animations": [ "stalk_pose", { "stalk_walk": "query.modified_move_speed > 0.03" } ],
+          "transitions": [
+            { "run": "query.property('dread:state') == 'hunt'" },
+            { "idle": "query.property('dread:state') == 'observe' || query.property('dread:state') == 'notice'" }
+          ],
+          "blend_transition": 0.4
+        },
+        "run": {
+          "animations": [ "run" ],
+          "transitions": [
+            { "idle": "query.property('dread:state') != 'hunt'" }
+          ],
+          "blend_transition": 0.2
+        }
+      }
+    },
+    "controller.animation.dread.lurker.action": {
+      "initial_state": "none",
+      "states": {
+        "none": {
+          "transitions": [
+            { "attack": "query.property('dread:action') == 'attack'" },
+            { "notice": "query.property('dread:action') == 'notice'" },
+            { "hurt": "query.property('dread:action') == 'hurt'" },
+            { "death": "query.property('dread:action') == 'death'" }
+          ]
+        },
+        "attack": { "animations": [ "attack" ], "transitions": [ { "none": "query.all_animations_finished" } ], "blend_transition": 0.05 },
+        "notice": { "animations": [ "notice" ], "transitions": [ { "none": "query.all_animations_finished" } ], "blend_transition": 0.05 },
+        "hurt": { "animations": [ "hurt" ], "transitions": [ { "none": "query.all_animations_finished" } ], "blend_transition": 0.03 },
+        "death": { "animations": [ "death" ] }
+      }
+    }
+  }
+}

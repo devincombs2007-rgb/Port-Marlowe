@@ -1,0 +1,42 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "dread:lurker",
+      "materials": { "default": "entity_alphatest" },
+      "textures": { "default": "textures/entity/lurker" },
+      "geometry": { "default": "geometry.dread.lurker" },
+      "render_controllers": [ "controller.render.dread.lurker" ],
+      "animations": {
+        "idle": "animation.dread.lurker.idle",
+        "walk": "animation.dread.lurker.walk",
+        "stalk_pose": "animation.dread.lurker.stalk_pose",
+        "stalk_walk": "animation.dread.lurker.stalk_walk",
+        "run": "animation.dread.lurker.run",
+        "attack": "animation.dread.lurker.attack",
+        "notice": "animation.dread.lurker.notice",
+        "hurt": "animation.dread.lurker.hurt",
+        "death": "animation.dread.lurker.death",
+        "look": "animation.dread.lurker.look",
+        "locomotion": "controller.animation.dread.lurker.locomotion",
+        "action": "controller.animation.dread.lurker.action"
+      },
+      "scripts": {
+        "animate": [ "locomotion", "action", "look" ]
+      },
+      "sound_effects": {
+        "breath_idle": "dread.lurker.breath_idle",
+        "breath_alert": "dread.lurker.breath_alert",
+        "step": "dread.lurker.step",
+        "step_stalk": "dread.lurker.step_stalk",
+        "notice": "dread.lurker.notice",
+        "head_turn": "dread.lurker.head_turn",
+        "attack_swipe": "dread.lurker.attack_swipe",
+        "hurt": "dread.lurker.hurt",
+        "death": "dread.lurker.death"
+      },
+      "particle_effects": { "vanish": "dread:lurker_vanish" },
+      "spawn_egg": { "base_color": "#3a403f", "overlay_color": "#c4d6e6" }
+    }
+  }
+}
