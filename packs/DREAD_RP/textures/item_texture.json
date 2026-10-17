@@ -1,0 +1,7 @@
+{
+  "resource_pack_name": "dread",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "dread_journal": { "textures": "textures/items/journal" }
+  }
+}

@@ -8,6 +8,7 @@ export const EquipmentSlot = { Offhand: "Offhand", Mainhand: "Mainhand" };
 export const messages = [];
 export const played = [];
 export const log = { events: [], particles: [], spawned: [], removed: [], commands: [] };
+export class ItemStack { constructor(typeId, amount = 1) { this.typeId = typeId; this.amount = amount; } }
 export const terrain = { underground: false, extraBlocks: new Map(), opaqueWall: null };
 
 function emitter() {
@@ -15,6 +16,7 @@ function emitter() {
   return { subscribe: (f) => (subs.push(f), f), unsubscribe: () => {}, fire: (e) => subs.forEach((f) => f(e)) };
 }
 const ev = {
+  itemUse: emitter(),
   playerSpawn: emitter(), playerLeave: emitter(), entityHurt: emitter(), entityDie: emitter(), worldLoad: emitter(),
 };
 
@@ -38,14 +40,16 @@ export class Player extends Entity {
   constructor(name, loc, dim) {
     super("minecraft:player", loc, dim); this.name = name; this.mode = GameMode.Survival; this.hp = { currentValue: 20, effectiveMax: 20 };
     this.selectedSlotIndex = 0; this.onScreenDisplay = { setActionBar: (m) => messages.push(`[actionbar:${name}] ${m}`) };
-    this.inventory = [];
+    this.inventory = []; this.dyn = new Map();
   }
+  getDynamicProperty(k) { return this.dyn.get(k); }
+  setDynamicProperty(k, v) { v === undefined ? this.dyn.delete(k) : this.dyn.set(k, v); }
   getGameMode() { return this.mode; }
   sendMessage(m) { messages.push(`[${this.name}] ${m}`); }
   runCommand(c) { log.commands.push({ player: this.name, c }); return { successCount: 1 }; }
   playSound(id, o) { played.push({ id, o, player: this.name }); }
   getComponent(t) {
-    if (t === EntityComponentTypes.Inventory) return { container: { getItem: (i) => this.inventory[i] } };
+    if (t === EntityComponentTypes.Inventory) return { container: { getItem: (i) => this.inventory[i], addItem: (it) => { this.inventory.push(it); return undefined; } } };
     if (t === EntityComponentTypes.Equippable) return { getEquipment: () => undefined };
     return super.getComponent(t);
   }
@@ -76,6 +80,7 @@ export class Dimension {
     return undefined;
   }
   spawnEntity(type, loc) { const e = new Entity(type, loc, this); this.entities.push(e); log.spawned.push(e); return e; }
+  spawnItem(it, loc) { log.spawned.push({ item: it, loc }); }
   spawnParticle(name, loc) { log.particles.push({ name, loc }); }
   getEntities(o) { return this.entities.filter((e) => !o?.type || e.typeId === o.type); }
 }
@@ -111,6 +116,7 @@ export const __fire = {
   spawn: (player, initialSpawn = true) => ev.playerSpawn.fire({ player, initialSpawn }),
   leave: (player) => ev.playerLeave.fire({ playerId: player.id, playerName: player.name }),
   hurt: (hurtEntity, damagingEntity) => ev.entityHurt.fire({ hurtEntity, damage: 2, damageSource: { damagingEntity, cause: "entityAttack" } }),
+  useItem: (source, typeId) => ev.itemUse.fire({ source, itemStack: new ItemStack(typeId) }),
   die: (deadEntity) => ev.entityDie.fire({ deadEntity, damageSource: {} }),
 };
 /** Advance the fake clock, running timers in order. */

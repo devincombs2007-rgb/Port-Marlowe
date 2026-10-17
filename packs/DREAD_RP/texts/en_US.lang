@@ -2,3 +2,5 @@ pack.name=DREAD Resource Pack
 pack.description=DREAD - Something Is Watching. Resource pack (models, textures, animations, audio). Requires the DREAD Behavior Pack.
 entity.dread:lurker.name=Lurker
 item.spawn_egg.entity.dread:lurker.name=Lurker Spawn Egg
+item.dread:journal.name=Field Journal
+item.dread:journal=Field Journal

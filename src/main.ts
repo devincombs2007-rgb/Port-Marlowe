@@ -4,6 +4,7 @@ import { readConfig } from "./core/config";
 import { ADDON_VERSION, BUILD_STAGE } from "./core/constants";
 import { logConsole } from "./core/log";
 import { initDirector } from "./game/director";
+import { initJournal } from "./journal/journal";
 
 /**
  * DREAD entry point. Phase 1: prove the pack loads, settings persist, and the command channel works.
@@ -13,6 +14,7 @@ logConsole(`script loaded v${ADDON_VERSION} (${BUILD_STAGE})`);
 
 registerCommands();
 initDirector();
+initJournal();
 
 // Confirm once per player join that the add-on is alive (debug builds only). Delayed so the
 // message is not lost while the client is still loading the world.
@@ -21,6 +23,6 @@ world.afterEvents.playerSpawn.subscribe((event) => {
   const config = readConfig();
   if (!config.enabled || !config.debug) return;
   system.runTimeout(() => {
-    event.player.onScreenDisplay.setActionBar(`§8DREAD §7v${ADDON_VERSION} loaded — /scriptevent dread:status`);
+    event.player.onScreenDisplay.setActionBar(`§8DREAD §7v${ADDON_VERSION} loaded — use the Field Journal for settings`);
   }, 100);
 });

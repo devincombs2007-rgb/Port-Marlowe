@@ -8,6 +8,7 @@ import type { Action, DirectorState, Snapshot, Tactic } from "../director/types"
 import { makeRng, mathRng, type Rng } from "../util/rng";
 import { playAmbient } from "./ambient";
 import { clearAtmosphere, setAtmosphere, shake } from "./atmosphere";
+import { unlockPage } from "../journal/journal";
 import { scanSurroundings, type Surroundings } from "./environment";
 import { allPlayersNear, dimensionKind, health, isPlayerSurvivalish, safe } from "./helpers";
 import { initLurkers, lurkerCount, lurkersOf, removeAll, retreatAll, spawnLurker } from "./lurkers";
@@ -44,14 +45,26 @@ export function initDirector(seed?: number): void {
     isUnderground: (id) => !(rt.get(id)?.surroundings.skyVisible ?? true),
     requested: (id) => rt.get(id)?.tactic ?? "observe",
     onNoticed: (id) => rt.get(id)?.brain.onLurkerNoticed(worldSec()),
-    onGone: (id, outcome) => rt.get(id)?.brain.onLurkerGone(worldSec(), outcome),
-    onHuntEnded: (id) => rt.get(id)?.brain.onHuntEnded(worldSec(), true),
+    onGone: (id, outcome) => {
+      rt.get(id)?.brain.onLurkerGone(worldSec(), outcome);
+      const page = ({ noticed: "noticed", spooked: "spooked", light: "light" } as Record<string, string>)[outcome];
+      const p = page ? playerById(id) : undefined;
+      if (p && page) unlockPage(p, page);
+    },
+    onHuntEnded: (id) => {
+      rt.get(id)?.brain.onHuntEnded(worldSec(), true);
+      const p = playerById(id);
+      if (p && p.isValid) unlockPage(p, "hunt");
+    },
     onStress: (id, amount) => {
       const r = rt.get(id);
       if (!r) return;
       r.brain.memory.stress = Math.min(100, r.brain.memory.stress + amount);
       const p = world.getAllPlayers().find((x) => x.id === id);
-      if (p && amount >= 5) shake(p, readConfig(), 0.12, 0.8); // the close moment
+      if (p && amount >= 5) {
+        shake(p, readConfig(), 0.12, 0.8); // the close moment
+        unlockPage(p, "close");
+      }
     },
   }, rng);
 
@@ -77,7 +90,9 @@ export function initDirector(seed?: number): void {
       const r = rt.get(e.deadEntity.id);
       if (!r) return;
       removeAll(e.deadEntity.id);
+      const hadEncounters = r.brain.memory.noticedCount > 0 || r.brain.memory.hunts > 0;
       r.brain.onPlayerDied(worldSec());
+      if (hadEncounters) unlockPage(e.deadEntity, "death");
       r.tactic = "observe";
       logConsole(`player ${e.deadEntity.name} died; director in recovery`);
     }
@@ -100,6 +115,7 @@ export function initDirector(seed?: number): void {
   }, SAVE_EVERY);
 }
 
+const playerById = (id: string) => world.getAllPlayers().find((p) => p.id === id);
 const worldSec = () => safe(() => world.getAbsoluteTime() / 20, system.currentTick / 20);
 
 function ensure(p: Player): PlayerRt {
@@ -154,6 +170,11 @@ function stepPlayer(p: Player, r: PlayerRt, now: number): void {
   const actions = r.brain.step(snap);
   if (actions.length) apply(p, r, actions, snap);
   const daylight = snap.skyVisible && (snap.timeOfDay < 12500 || snap.timeOfDay > 23500);
+  const m = r.brain.memory;
+  if (m.noticedCount > 0 && !daylight) {
+    if (snap.nearHome && snap.lit) unlockPage(p, "home");
+    if (snap.companions >= 2) unlockPage(p, "many");
+  }
   setAtmosphere(p, r.brain.memory.state, readConfig(), daylight);
 }
 
@@ -163,6 +184,7 @@ function apply(p: Player, r: PlayerRt, actions: Action[], snap: Snapshot): void 
     switch (a.type) {
       case "ambient":
         playAmbient(p, a, cfg, rng, r.brain.memory.stress);
+        if (a.kind !== "heartbeat" && a.kind !== "pressure_drop") unlockPage(p, "sound");
         break;
       case "spawnLurker": {
         r.tactic = a.tactic;

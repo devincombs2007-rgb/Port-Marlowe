@@ -4,3 +4,5 @@ import { initDirector } from "../src/game/director";
 
 registerCommands();
 initDirector(12345);
+import { initJournal } from "../src/journal/journal";
+initJournal();

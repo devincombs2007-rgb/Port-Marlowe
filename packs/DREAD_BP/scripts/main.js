@@ -1,8 +1,8 @@
 // src/main.ts
-import { system as system6, world as world7 } from "@minecraft/server";
+import { system as system7, world as world8 } from "@minecraft/server";
 
 // src/core/commands.ts
-import { Player as Player6, system as system5, world as world6 } from "@minecraft/server";
+import { Player as Player7, system as system6, world as world7 } from "@minecraft/server";
 
 // src/core/constants.ts
 var ADDON_VERSION = "0.2.1";
@@ -141,7 +141,7 @@ function playSoundTest(player, arg) {
 }
 
 // src/game/director.ts
-import { Player as Player5, system as system4, world as world5 } from "@minecraft/server";
+import { Player as Player6, system as system5, world as world6 } from "@minecraft/server";
 
 // src/util/rng.ts
 function makeRng(seed) {
@@ -882,8 +882,209 @@ function shake(p, cfg, strength, seconds) {
   run(p, `camerashake add @s ${Math.min(0.5, k).toFixed(3)} ${seconds.toFixed(1)} rotational`);
 }
 
+// src/journal/journal.ts
+import { EntityComponentTypes as EntityComponentTypes2, ItemStack, system as system3, world as world4 } from "@minecraft/server";
+import { ActionFormData, FormCancelationReason, ModalFormData } from "@minecraft/server-ui";
+
+// src/journal/pages.ts
+var PAGES = [
+  {
+    id: "first",
+    title: "I. The commission",
+    text: 'Eleven days out from Port Marlowe. The harbour master paid in advance and would not meet my eye.\n\n"Map the high ground. Come back before the lamps are lit." I asked why the last surveyor never filed his sheets. He said the man was careless with his lantern.\n\nI found this book in the mud by his tripod. I am keeping my notes in the back of it. It seems a waste of good paper otherwise.'
+  },
+  {
+    id: "sound",
+    title: "II. The wrong sounds",
+    text: "A branch broke behind me today. Not the crack of a deer, which is followed by running. This was followed by nothing at all.\n\nI have started to notice which sounds have an animal attached to them and which do not. Doors in places with no houses. Something heavy being dragged and then, very suddenly, not dragged.\n\nThe woods are quieter when I am alone in them. That should not be possible.",
+    lesson: "The worst sounds come when you are alone, in the dark, or underground."
+  },
+  {
+    id: "noticed",
+    title: "III. The tall one",
+    text: "At the treeline, maybe forty paces off, there was a man standing very still. Too tall. Too thin. The head craned forward like a heron's.\n\nI looked at it properly, the way you look at something you intend to draw, and it looked back. Its face did something I cannot describe, and then it simply was not there. No running. Smoke, maybe.\n\nI have decided it does not like to be studied.",
+    lesson: "Look straight at the tall one and hold your gaze. It will not stay where it is seen."
+  },
+  {
+    id: "spooked",
+    title: "IV. Approach",
+    text: "I walked toward it this time. I thought, if it is a man, it will speak. If it is not, I will know.\n\nI did not get within twenty paces. It went the same way as before. I have the feeling I was allowed to come exactly that close and no closer, and that the distance was decided by it, not by me.",
+    lesson: "It keeps its own distance. Walking toward it ends the watching. It does not end the interest."
+  },
+  {
+    id: "close",
+    title: "V. Breath",
+    text: "I was writing by the fire with my back to the trees. Someone breathed behind me. Slow, with a rattle at the end, like a man with water in his chest.\n\nI did not turn around. I could not. When I finally did there was nothing, only the long marks in the bark of the nearest pine, about the height of a man's head.\n\nNote to self: sit with your back to a wall.",
+    lesson: "When it gets close it wants you not to turn around. Turn around."
+  },
+  {
+    id: "light",
+    title: "VI. Lamp oil",
+    text: "It came for me tonight. Properly, running on those long legs, and I could hear it laughing, or breathing, or both.\n\nI had the lantern. I don't know what made me hold it up, but it stopped. It stayed at the edge of the light, swaying, and then it went back into the dark.\n\nThe harbour master was right. The other man was careless with his lantern.",
+    lesson: "Light is the only thing it respects. Hold a torch or lantern, or stand by one, and keep it lit."
+  },
+  {
+    id: "hunt",
+    title: "VII. The chase",
+    text: "Survived it. Four cuts on my back and a ruined coat. It does not try to finish you. It tries to frighten you, then it hurts you, then it leaves, as if it has learned what it came to learn.\n\nI struck it with the hatchet once and it flinched like anything else would. It is not a ghost. It can be hurt. That is a comfort I did not expect to need.",
+    lesson: "A chase does not last forever. Hurt it badly and it runs. Shelter, a bed or a campfire, ends the night's interest."
+  },
+  {
+    id: "home",
+    title: "VIII. Shelter",
+    text: "Built a proper camp: walls, a bed, a fire that I keep fed. Three nights now and nothing has come inside the ring of light. I heard it once, far off, scraping at something.\n\nI am starting to think it is not that it cannot come in. It is that it does not want to be seen doing it.",
+    lesson: "A lit home with a bed or campfire is the safest place in the world. It almost never comes there."
+  },
+  {
+    id: "death",
+    title: "IX. (in a different hand)",
+    text: "Found him by the tripod. I am the third. The book was dry, which is strange because it had rained for two days.\n\nHe was right about the light. I would add: it is patient. After it takes someone it goes quiet for a long time. Long enough that you start to think you imagined it.\n\nYou did not imagine it."
+  },
+  {
+    id: "many",
+    title: "X. Company",
+    text: "Two men from the port came up to help with the chain. While they were here I heard nothing. Not a twig. The night they left it was back at the treeline before the fire had settled.\n\nIt does not like witnesses. I have stopped telling the port about it. I do not think they would come again.",
+    lesson: "Travelling together keeps it at a distance. It prefers people who are alone."
+  }
+];
+var PAGE_IDS = PAGES.map((p) => p.id);
+
+// src/journal/journal.ts
+var JOURNAL_ITEM = "dread:journal";
+var PAGES_KEY = "dread:pages";
+var GIVEN_KEY = "dread:journal_given";
+var OWNER_KEY = "dread:settings_owner";
+var OPEN_KEY = "dread:settings_open";
+function unlockedPages(p) {
+  const raw = safe(() => p.getDynamicProperty(PAGES_KEY), void 0);
+  return new Set(typeof raw === "string" && raw.length ? raw.split(",").filter((id) => PAGES.some((pg) => pg.id === id)) : []);
+}
+function unlockPage(p, id) {
+  if (!PAGES.some((pg) => pg.id === id)) return false;
+  const have = unlockedPages(p);
+  if (have.has(id)) return false;
+  have.add(id);
+  safe(() => p.setDynamicProperty(PAGES_KEY, [...have].join(",")), void 0);
+  const page = PAGES.find((pg) => pg.id === id);
+  system3.runTimeout(() => {
+    if (!p.isValid) return;
+    safe(() => p.onScreenDisplay.setActionBar(`\xA77\xA7oA new page in your journal: ${page?.title ?? ""}`), void 0);
+    safe(() => p.playSound("item.book.page_turn", { volume: 0.8 }), void 0);
+  }, 60);
+  return true;
+}
+function giveJournal(p) {
+  safe(() => {
+    const inv = p.getComponent(EntityComponentTypes2.Inventory)?.container;
+    if (!inv) return;
+    const left = inv.addItem(new ItemStack(JOURNAL_ITEM, 1));
+    if (left) p.dimension.spawnItem(left, p.location);
+    p.setDynamicProperty(GIVEN_KEY, true);
+  }, void 0);
+}
+function initJournal() {
+  world4.afterEvents.playerSpawn.subscribe((e) => {
+    if (!e.initialSpawn) return;
+    const p = e.player;
+    system3.runTimeout(() => {
+      if (!p.isValid) return;
+      if (safe(() => p.getDynamicProperty(GIVEN_KEY), void 0) !== true) {
+        giveJournal(p);
+        unlockPage(p, "first");
+      }
+    }, 120);
+  });
+  world4.afterEvents.itemUse.subscribe((e) => {
+    if (e.itemStack.typeId === JOURNAL_ITEM) void openJournal(e.source);
+  });
+}
+async function openJournal(p) {
+  const have = unlockedPages(p);
+  const pages = PAGES.filter((pg) => have.has(pg.id));
+  const form = new ActionFormData().title("Field Journal").body(`\xA77Pages recovered: ${pages.length} of ${PAGES.length}
+\xA78Water-stained. Several hands.`);
+  const actions = [];
+  form.button("\xA7lRead the pages");
+  actions.push(() => openPageList(p, pages));
+  form.button("\xA7lWhat I know");
+  actions.push(() => openLessons(p, pages));
+  form.button("\xA7lSettings");
+  actions.push(() => openSettings(p));
+  form.button("About DREAD");
+  actions.push(() => openAbout(p));
+  const res = await form.show(p);
+  if (res.cancelationReason === FormCancelationReason.UserBusy) {
+    system3.runTimeout(() => void openJournal(p), 20);
+    return;
+  }
+  if (res.canceled || res.selection === void 0) return;
+  await actions[res.selection]?.();
+}
+async function openPageList(p, pages) {
+  if (pages.length === 0) return;
+  const form = new ActionFormData().title("Pages");
+  for (const pg2 of pages) form.button(pg2.title);
+  const res = await form.show(p);
+  if (res.canceled || res.selection === void 0) return openJournal(p);
+  const pg = pages[res.selection];
+  if (!pg) return;
+  const view = await new ActionFormData().title(pg.title).body(pg.text).button("Back").show(p);
+  if (!view.canceled) return openPageList(p, pages);
+}
+async function openLessons(p, pages) {
+  const lessons = pages.filter((pg) => pg.lesson).map((pg) => `\xA7f- ${pg.lesson}`);
+  const body = lessons.length ? lessons.join("\n\n") : "\xA77Nothing yet. Keep your eyes open, and your lantern lit.";
+  const res = await new ActionFormData().title("What I know").body(body).button("Back").show(p);
+  if (!res.canceled) return openJournal(p);
+}
+async function openAbout(p) {
+  const res = await new ActionFormData().title("DREAD").body(
+    `\xA7fDREAD \u2014 Something Is Watching\xA7r
+\xA77v${ADDON_VERSION}
+
+A psychological horror add-on. The world stays ordinary until it doesn't. Encounters respond to darkness, isolation and what you have already lived through, and every danger has a counter written somewhere in this journal.
+
+If anything feels unfair or too intense, turn Intensity or Jumpscare intensity down in Settings.`
+  ).button("Back").show(p);
+  if (!res.canceled) return openJournal(p);
+}
+function canEditSettings(p) {
+  if (world4.getAllPlayers().length <= 1) return true;
+  if (world4.getDynamicProperty(OPEN_KEY) === true) return true;
+  const owner = world4.getDynamicProperty(OWNER_KEY);
+  return owner === void 0 || owner === p.id;
+}
+var EFFECTS = ["performance", "balanced", "cinematic"];
+var EFFECT_LABELS = ["Performance (no fog or camera shake)", "Balanced", "Cinematic (stronger effects)"];
+async function openSettings(p) {
+  const c = readConfig();
+  if (!canEditSettings(p)) {
+    const ro = await new ActionFormData().title("Settings").body(`\xA77Settings are managed by the world's DREAD owner.
+
+\xA7fIntensity ${c.intensity}
+Sound ${c.soundIntensity}
+Jumpscares ${c.jumpscareIntensity}
+Effects ${c.effects}`).button("Back").show(p);
+    if (!ro.canceled) return openJournal(p);
+    return;
+  }
+  const form = new ModalFormData().title("DREAD Settings").toggle("Horror enabled", { defaultValue: c.enabled, tooltip: "Turn the whole add-on off without removing it." }).slider("Intensity (how often things happen)", 0, 100, { defaultValue: c.intensity, valueStep: 5, tooltip: "Below 35 the Lurker is gentler: shorter chases, fewer hits." }).slider("Sound volume (DREAD sounds only)", 0, 100, { defaultValue: c.soundIntensity, valueStep: 5 }).slider("Jumpscare intensity", 0, 100, { defaultValue: c.jumpscareIntensity, valueStep: 5, tooltip: "Scales sudden/close sounds and camera shake. 0 removes camera shake." }).dropdown("Visual effects", EFFECT_LABELS, { defaultValueIndex: Math.max(0, EFFECTS.indexOf(c.effects)) }).toggle("Let every player change settings", { defaultValue: world4.getDynamicProperty(OPEN_KEY) === true }).toggle("Debug messages", { defaultValue: c.debug }).submitButton("Save");
+  const res = await form.show(p);
+  if (res.canceled || !res.formValues) return openJournal(p);
+  const [enabled, intensity, sound, jump, effectIdx, open, dbg] = res.formValues;
+  setConfigValue("enabled", String(enabled === true));
+  setConfigValue("intensity", String(Number(intensity)));
+  setConfigValue("soundIntensity", String(Number(sound)));
+  setConfigValue("jumpscareIntensity", String(Number(jump)));
+  setConfigValue("effects", EFFECTS[Number(effectIdx)] ?? "balanced");
+  setConfigValue("debug", String(dbg === true));
+  world4.setDynamicProperty(OPEN_KEY, open === true);
+  if (world4.getDynamicProperty(OWNER_KEY) === void 0) world4.setDynamicProperty(OWNER_KEY, p.id);
+  safe(() => p.onScreenDisplay.setActionBar("\xA77DREAD settings saved."), void 0);
+}
+
 // src/game/environment.ts
-import { EntityComponentTypes as EntityComponentTypes2, EquipmentSlot } from "@minecraft/server";
+import { EntityComponentTypes as EntityComponentTypes3, EquipmentSlot } from "@minecraft/server";
 var LIGHT_BLOCK = /^minecraft:(torch|soul_torch|lantern|soul_lantern|campfire|soul_campfire|glowstone|sea_lantern|shroomlight|lit_pumpkin|lit_redstone_lamp|end_rod|beacon|ochre_froglight|verdant_froglight|pearlescent_froglight|lava|fire|soul_fire|underwater_torch|copper_torch)$/;
 var HELD_LIGHT = /^minecraft:(torch|soul_torch|lantern|soul_lantern|glow_stick|lit_pumpkin|end_rod|copper_torch)$/;
 var HOME_BLOCK = /(_bed$|^minecraft:bed$|^minecraft:campfire$|^minecraft:soul_campfire$|^minecraft:respawn_anchor$)/;
@@ -912,17 +1113,17 @@ function scanSurroundings(p) {
 }
 function heldLight(p) {
   return safe(() => {
-    const inv = p.getComponent(EntityComponentTypes2.Inventory);
+    const inv = p.getComponent(EntityComponentTypes3.Inventory);
     const main = inv?.container?.getItem(p.selectedSlotIndex)?.typeId;
     if (main && HELD_LIGHT.test(main)) return true;
-    const eq = p.getComponent(EntityComponentTypes2.Equippable);
+    const eq = p.getComponent(EntityComponentTypes3.Equippable);
     const off = eq?.getEquipment(EquipmentSlot.Offhand)?.typeId;
     return !!off && HELD_LIGHT.test(off);
   }, false);
 }
 
 // src/game/lurkers.ts
-import { system as system3, world as world4 } from "@minecraft/server";
+import { system as system4, world as world5 } from "@minecraft/server";
 
 // src/lurker/tactics.ts
 var LTUNING = {
@@ -1135,9 +1336,9 @@ function lurkersOf(playerId) {
 function initLurkers(h, r = mathRng) {
   hooks = h;
   rng = r;
-  system3.runInterval(tick, TICK_INTERVAL);
-  system3.runInterval(adoptAndSweep, 200);
-  world4.afterEvents.entityHurt.subscribe((e) => {
+  system4.runInterval(tick, TICK_INTERVAL);
+  system4.runInterval(adoptAndSweep, 200);
+  world5.afterEvents.entityHurt.subscribe((e) => {
     const attacker = e.damageSource.damagingEntity;
     if (!attacker || attacker.typeId !== LURKER_TYPE) return;
     const rec = registry.get(attacker.id);
@@ -1165,7 +1366,7 @@ function register(e, playerId, initial) {
     entity: e,
     playerId,
     tactics: new LurkerTactics(rng, initial),
-    spawnedTick: system3.currentTick,
+    spawnedTick: system4.currentTick,
     hits: 0,
     actionSince: 0,
     wasHunting: initial === "hunt"
@@ -1245,7 +1446,7 @@ function apply(rec, player, events, cfgTick) {
 function tick() {
   const h = hooks;
   if (!h || registry.size === 0) return;
-  const now = system3.currentTick;
+  const now = system4.currentTick;
   const cfg = readConfig();
   for (const [id, rec] of [...registry]) {
     const e = rec.entity;
@@ -1291,9 +1492,9 @@ function tick() {
   }
 }
 function adoptAndSweep() {
-  const players = world4.getAllPlayers();
+  const players = world5.getAllPlayers();
   for (const dimId of ["overworld", "nether", "the_end"]) {
-    const dim = safe(() => world4.getDimension(dimId), void 0);
+    const dim = safe(() => world5.getDimension(dimId), void 0);
     if (!dim) continue;
     for (const e of safe(() => dim.getEntities({ type: LURKER_TYPE }), [])) {
       if (registry.has(e.id)) continue;
@@ -1326,75 +1527,90 @@ var nextOffset = 0;
 function initDirector(seed) {
   rng2 = seed === void 0 ? mathRng : makeRng(seed);
   initLurkers({
-    playerFor: (id) => world5.getAllPlayers().find((p) => p.id === id),
+    playerFor: (id) => world6.getAllPlayers().find((p) => p.id === id),
     isLit: (id) => rt.get(id)?.surroundings.lit ?? false,
     isUnderground: (id) => !(rt.get(id)?.surroundings.skyVisible ?? true),
     requested: (id) => rt.get(id)?.tactic ?? "observe",
     onNoticed: (id) => rt.get(id)?.brain.onLurkerNoticed(worldSec()),
-    onGone: (id, outcome) => rt.get(id)?.brain.onLurkerGone(worldSec(), outcome),
-    onHuntEnded: (id) => rt.get(id)?.brain.onHuntEnded(worldSec(), true),
+    onGone: (id, outcome) => {
+      rt.get(id)?.brain.onLurkerGone(worldSec(), outcome);
+      const page = { noticed: "noticed", spooked: "spooked", light: "light" }[outcome];
+      const p = page ? playerById(id) : void 0;
+      if (p && page) unlockPage(p, page);
+    },
+    onHuntEnded: (id) => {
+      rt.get(id)?.brain.onHuntEnded(worldSec(), true);
+      const p = playerById(id);
+      if (p && p.isValid) unlockPage(p, "hunt");
+    },
     onStress: (id, amount) => {
       const r = rt.get(id);
       if (!r) return;
       r.brain.memory.stress = Math.min(100, r.brain.memory.stress + amount);
-      const p = world5.getAllPlayers().find((x) => x.id === id);
-      if (p && amount >= 5) shake(p, readConfig(), 0.12, 0.8);
+      const p = world6.getAllPlayers().find((x) => x.id === id);
+      if (p && amount >= 5) {
+        shake(p, readConfig(), 0.12, 0.8);
+        unlockPage(p, "close");
+      }
     }
   }, rng2);
-  world5.afterEvents.playerSpawn.subscribe((e) => {
+  world6.afterEvents.playerSpawn.subscribe((e) => {
     const r = ensure(e.player);
-    r.respawnTick = system4.currentTick;
+    r.respawnTick = system5.currentTick;
   });
-  world5.afterEvents.playerLeave.subscribe((e) => {
+  world6.afterEvents.playerLeave.subscribe((e) => {
     const r = rt.get(e.playerId);
     if (r) save(e.playerId, r);
     removeAll(e.playerId);
     clearAtmosphere({ id: e.playerId });
     rt.delete(e.playerId);
   });
-  world5.afterEvents.entityHurt.subscribe((e) => {
-    if (e.hurtEntity instanceof Player5) {
+  world6.afterEvents.entityHurt.subscribe((e) => {
+    if (e.hurtEntity instanceof Player6) {
       const r = rt.get(e.hurtEntity.id);
-      if (r) r.lastHurtTick = system4.currentTick;
+      if (r) r.lastHurtTick = system5.currentTick;
     }
   });
-  world5.afterEvents.entityDie.subscribe((e) => {
-    if (e.deadEntity instanceof Player5) {
+  world6.afterEvents.entityDie.subscribe((e) => {
+    if (e.deadEntity instanceof Player6) {
       const r = rt.get(e.deadEntity.id);
       if (!r) return;
       removeAll(e.deadEntity.id);
+      const hadEncounters = r.brain.memory.noticedCount > 0 || r.brain.memory.hunts > 0;
       r.brain.onPlayerDied(worldSec());
+      if (hadEncounters) unlockPage(e.deadEntity, "death");
       r.tactic = "observe";
       logConsole(`player ${e.deadEntity.name} died; director in recovery`);
     }
   });
-  system4.runInterval(() => {
-    const now = system4.currentTick;
-    for (const p of world5.getAllPlayers()) {
+  system5.runInterval(() => {
+    const now = system5.currentTick;
+    for (const p of world6.getAllPlayers()) {
       const r = ensure(p);
       if ((now + r.stepOffset) % STEP_TICKS !== 0) continue;
       stepPlayer(p, r, now);
     }
   }, 1);
-  system4.runInterval(() => {
-    for (const p of world5.getAllPlayers()) {
+  system5.runInterval(() => {
+    for (const p of world6.getAllPlayers()) {
       const r = rt.get(p.id);
       if (r) save(p.id, r);
     }
   }, SAVE_EVERY);
 }
-var worldSec = () => safe(() => world5.getAbsoluteTime() / 20, system4.currentTick / 20);
+var playerById = (id) => world6.getAllPlayers().find((p) => p.id === id);
+var worldSec = () => safe(() => world6.getAbsoluteTime() / 20, system5.currentTick / 20);
 function ensure(p) {
   let r = rt.get(p.id);
   if (r) return r;
-  const mem = parseMemory(safe(() => world5.getDynamicProperty(MEM_KEY(p.id)), void 0), worldSec());
+  const mem = parseMemory(safe(() => world6.getDynamicProperty(MEM_KEY(p.id)), void 0), worldSec());
   r = {
-    brain: new DirectorBrain(mem, rng2, system4.currentTick / 20),
+    brain: new DirectorBrain(mem, rng2, system5.currentTick / 20),
     surroundings: { lit: false, nearHome: false, skyVisible: true },
     scannedAt: -1e9,
     lastHurtTick: -1e9,
-    respawnTick: system4.currentTick,
-    idleSince: system4.currentTick,
+    respawnTick: system5.currentTick,
+    idleSince: system5.currentTick,
     lastPos: { ...p.location },
     tactic: "observe",
     stepOffset: (nextOffset += 7) % STEP_TICKS
@@ -1403,7 +1619,7 @@ function ensure(p) {
   return r;
 }
 function save(id, r) {
-  safe(() => world5.setDynamicProperty(MEM_KEY(id), serializeMemory(r.brain.memory)), void 0);
+  safe(() => world6.setDynamicProperty(MEM_KEY(id), serializeMemory(r.brain.memory)), void 0);
 }
 function snapshot(p, r, now) {
   const cfg = readConfig();
@@ -1421,9 +1637,9 @@ function snapshot(p, r, now) {
     worldSec: worldSec(),
     playerId: p.id,
     dimension: dimensionKind(p.dimension),
-    timeOfDay: safe(() => world5.getTimeOfDay(), 6e3),
+    timeOfDay: safe(() => world6.getTimeOfDay(), 6e3),
     gameMode: mode === GameMode2.Creative ? "creative" : mode === GameMode2.Spectator ? "spectator" : mode === GameMode2.Adventure ? "adventure" : "survival",
-    peaceful: safe(() => world5.getDifficulty() === Difficulty.Peaceful, false),
+    peaceful: safe(() => world6.getDifficulty() === Difficulty.Peaceful, false),
     health: hp.cur,
     maxHealth: hp.max,
     sinceHurt: (now - r.lastHurtTick) / 20,
@@ -1447,6 +1663,11 @@ function stepPlayer(p, r, now) {
   const actions = r.brain.step(snap);
   if (actions.length) apply2(p, r, actions, snap);
   const daylight = snap.skyVisible && (snap.timeOfDay < 12500 || snap.timeOfDay > 23500);
+  const m = r.brain.memory;
+  if (m.noticedCount > 0 && !daylight) {
+    if (snap.nearHome && snap.lit) unlockPage(p, "home");
+    if (snap.companions >= 2) unlockPage(p, "many");
+  }
   setAtmosphere(p, r.brain.memory.state, readConfig(), daylight);
 }
 function apply2(p, r, actions, snap) {
@@ -1455,6 +1676,7 @@ function apply2(p, r, actions, snap) {
     switch (a.type) {
       case "ambient":
         playAmbient(p, a, cfg, rng2, r.brain.memory.stress);
+        if (a.kind !== "heartbeat" && a.kind !== "pressure_drop") unlockPage(p, "sound");
         break;
       case "spawnLurker": {
         r.tactic = a.tactic;
@@ -1499,7 +1721,7 @@ function debugSet(p, field, value) {
   r.brain.memory[field] = Math.max(0, Math.min(100, value));
 }
 function debugForce(p, state) {
-  ensure(p).brain.forceState(state, worldSec(), system4.currentTick / 20);
+  ensure(p).brain.forceState(state, worldSec(), system5.currentTick / 20);
 }
 function debugClear(p) {
   return removeAll(p?.id);
@@ -1524,15 +1746,15 @@ var HELP = [
   "\xA77Settings: " + Object.keys(DEFAULTS).join(", ")
 ];
 function registerCommands() {
-  system5.afterEvents.scriptEventReceive.subscribe((event) => {
+  system6.afterEvents.scriptEventReceive.subscribe((event) => {
     if (!event.id.startsWith("dread:")) return;
     const command = event.id.slice("dread:".length);
-    const player = event.sourceEntity instanceof Player6 ? event.sourceEntity : void 0;
+    const player = event.sourceEntity instanceof Player7 ? event.sourceEntity : void 0;
     const reply = (m) => tell(m, player);
     switch (command) {
       case "status": {
         const c = readConfig();
-        reply(`v${ADDON_VERSION} (${BUILD_STAGE}) \u2014 players online: ${world6.getAllPlayers().length}`);
+        reply(`v${ADDON_VERSION} (${BUILD_STAGE}) \u2014 players online: ${world7.getAllPlayers().length}`);
         reply(
           `enabled=${c.enabled} intensity=${c.intensity} sound=${c.soundIntensity} jumpscare=${c.jumpscareIntensity} effects=${c.effects} debug=${c.debug}`
         );
@@ -1612,11 +1834,12 @@ function registerCommands() {
 logConsole(`script loaded v${ADDON_VERSION} (${BUILD_STAGE})`);
 registerCommands();
 initDirector();
-world7.afterEvents.playerSpawn.subscribe((event) => {
+initJournal();
+world8.afterEvents.playerSpawn.subscribe((event) => {
   if (!event.initialSpawn) return;
   const config = readConfig();
   if (!config.enabled || !config.debug) return;
-  system6.runTimeout(() => {
-    event.player.onScreenDisplay.setActionBar(`\xA78DREAD \xA77v${ADDON_VERSION} loaded \u2014 /scriptevent dread:status`);
+  system7.runTimeout(() => {
+    event.player.onScreenDisplay.setActionBar(`\xA78DREAD \xA77v${ADDON_VERSION} loaded \u2014 use the Field Journal for settings`);
   }, 100);
 });

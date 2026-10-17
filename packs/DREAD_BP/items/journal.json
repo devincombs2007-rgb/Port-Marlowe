@@ -1,0 +1,16 @@
+{
+  "format_version": "1.21.40",
+  "minecraft:item": {
+    "description": {
+      "identifier": "dread:journal",
+      "menu_category": { "category": "items" }
+    },
+    "components": {
+      "minecraft:icon": { "textures": { "default": "dread_journal" } },
+      "minecraft:display_name": { "value": "item.dread:journal.name" },
+      "minecraft:max_stack_size": 1,
+      "minecraft:use_modifiers": { "use_duration": 0.25, "movement_modifier": 1.0 },
+      "minecraft:cooldown": { "category": "dread_journal", "duration": 0.5 }
+    }
+  }
+}

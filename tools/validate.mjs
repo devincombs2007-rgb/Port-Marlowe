@@ -263,8 +263,33 @@ function checkGeometry(r, json) {
 }
 
 // Mojang's published schemas have a few wrong types; these exact errors are waived and re-checked by hand where noted.
-const KNOWN_SCHEMA_BUGS = [{ type: "Fog", path: "/minecraft:fog_settings/description/identifier", message: "must be boolean" }];
+const KNOWN_SCHEMA_BUGS = [
+  { type: "Fog", path: "/minecraft:fog_settings/description/identifier", message: "must be boolean" },
+  // Vanilla item_texture.json uses plain strings for single textures; the schema only allows arrays.
+  { type: "Item Texture", path: /^\/texture_data\/[^/]+\/textures$/, message: "must be array" },
+];
 const fogIds = new Set();
+const recipeChecks = [];
+function checkRecipe(r, json) {
+  const kind = Object.keys(json).find((k) => k.startsWith("minecraft:recipe_"));
+  if (!kind) return err(r, "no minecraft:recipe_* body");
+  const body = json[kind];
+  if (!/^[a-z0-9_]+:[a-z0-9_]+$/.test(body.description?.identifier ?? "")) err(r, "description.identifier must be namespaced");
+  if (!Array.isArray(body.tags) || body.tags.length === 0) err(r, "tags must list at least one crafting station");
+  const items = [];
+  if (kind === "minecraft:recipe_shapeless") {
+    if (!Array.isArray(body.ingredients) || body.ingredients.length === 0 || body.ingredients.length > 9) err(r, "shapeless needs 1-9 ingredients");
+    for (const i of body.ingredients ?? []) items.push(i.item ?? i);
+  } else if (kind === "minecraft:recipe_shaped") {
+    const pat = body.pattern ?? [];
+    const keys = new Set(pat.join("").replace(/ /g, ""));
+    for (const k of keys) if (!body.key?.[k]) err(r, `pattern symbol "${k}" missing from key`);
+    for (const v of Object.values(body.key ?? {})) items.push(v.item ?? v);
+  } else warn(r, `${kind} is not structurally checked`);
+  const res = body.result;
+  items.push(res?.item ?? res);
+  recipeChecks.push([r, items]);
+}
 const parsed = new Map(); // rel path -> json
 let schemaChecked = 0;
 for (const file of [...bpFiles, ...rpFiles].filter((p) => p.endsWith(".json"))) {
@@ -281,6 +306,12 @@ for (const file of [...bpFiles, ...rpFiles].filter((p) => p.endsWith(".json"))) 
   const inPack = r.replace(/^packs\/DREAD_(BP|RP)\//, "");
   const entry = catalogEntries.find((e) => e.res.some((re) => re.test(inPack)));
   if (!entry) continue;
+  if (entry.name === "Recipe" && !json["minecraft:recipe_brewing_mix"]) {
+    // The published package only ships the brewing schema; check crafting recipes structurally.
+    checkRecipe(r, json);
+    schemaChecked++;
+    continue;
+  }
   if (entry.name === "Model Geometry") {
     // Mojang's published geometry schema types numeric arrays as strings (unusable), so check structure directly.
     checkGeometry(r, json);
@@ -291,7 +322,7 @@ for (const file of [...bpFiles, ...rpFiles].filter((p) => p.endsWith(".json"))) 
   if (!validate) continue;
   schemaChecked++;
   if (!validate(json)) {
-    const real = validate.errors.filter((e) => !KNOWN_SCHEMA_BUGS.some((b) => b.type === entry.name && b.path === e.instancePath && b.message === e.message));
+    const real = validate.errors.filter((e) => !KNOWN_SCHEMA_BUGS.some((b) => b.type === entry.name && (b.path instanceof RegExp ? b.path.test(e.instancePath) : b.path === e.instancePath) && b.message === e.message));
     for (const e of real.slice(0, 5)) err(r, `schema (${entry.name}) ${e.instancePath || "/"} ${e.message}`);
     if (real.length > 5) err(r, `...and ${real.length - 5} more schema errors`);
   }
@@ -403,6 +434,37 @@ for (const [name, def] of Object.entries(soundDefs?.sound_definitions ?? {})) {
   }
 }
 
+// recipes must only use vanilla items or items this pack defines
+{
+  const ownItems = new Set();
+  for (const [, j] of jsonIn("BP", "items/")) if (j["minecraft:item"]?.description?.identifier) ownItems.add(j["minecraft:item"].description.identifier);
+  for (const [r, items] of recipeChecks) for (const it of items) {
+    if (typeof it !== "string") { err(r, "ingredient/result item must be a string id"); continue; }
+    if (!it.startsWith("minecraft:") && !ownItems.has(it)) err(r, `unknown item ${it}`);
+  }
+}
+
+// item icons resolve through item_texture.json to real files; names are localised
+{
+  const itemTex = inRP("textures/item_texture.json")?.texture_data ?? {};
+  const rpLang = existsSync(join(RP, "texts/en_US.lang")) ? readFileSync(join(RP, "texts/en_US.lang"), "utf8") : "";
+  const hasLang = (k) => new RegExp(`^${k.replace(/[.:]/g, (c) => "\\" + c)}=`, "m").test(rpLang);
+  for (const [k, j] of jsonIn("BP", "items/")) {
+    const comps = j["minecraft:item"]?.components ?? {};
+    const icon = comps["minecraft:icon"];
+    const short = typeof icon === "string" ? icon : icon?.textures?.default ?? icon?.texture;
+    if (!short) err(k, "item has no minecraft:icon");
+    else if (!itemTex[short]) err(k, `icon "${short}" is not in textures/item_texture.json`);
+    else {
+      const t = itemTex[short].textures;
+      for (const path of Array.isArray(t) ? t : [t]) if (!textureExists(path)) err("item_texture.json", `${short} -> ${path} has no .png/.tga`);
+    }
+    const dn = comps["minecraft:display_name"]?.value;
+    if (dn && !hasLang(dn)) err(k, `display name key ${dn} missing from RP en_US.lang`);
+  }
+  for (const id of bpEntityIds) if (!hasLang(`entity.${id}.name`)) err("texts/en_US.lang", `missing entity.${id}.name`);
+}
+
 // ---------- 5b. identifiers used by scripts must exist in the packs --------------------------
 {
   const mainJs = join(BP, "scripts/main.js");
@@ -414,7 +476,14 @@ for (const [name, def] of Object.entries(soundDefs?.sound_definitions ?? {})) {
       for (const e of Object.keys(j["minecraft:entity"]?.events ?? {})) bpEvents.add(e);
       for (const pr of Object.keys(j["minecraft:entity"]?.description?.properties ?? {})) props.add(pr);
     }
-    const known = new Set([...bpEvents, ...props, ...fogIds, ...particles, ...bpEntityIds]);
+    const ownItems = new Set();
+    for (const [, j] of jsonIn("BP", "items/")) if (j["minecraft:item"]?.description?.identifier) ownItems.add(j["minecraft:item"].description.identifier);
+    // dynamic-property storage keys are declared in source as `const SOMETHING_KEY = "dread:..."`
+    const storageKeys = new Set();
+    for (const f of walk(join(ROOT, "src")).filter((x) => x.endsWith(".ts"))) {
+      for (const m of readFileSync(f, "utf8").matchAll(/const [A-Z_]+_KEY = "(dread:[a-z_]+)"/g)) storageKeys.add(m[1]);
+    }
+    const known = new Set([...bpEvents, ...props, ...fogIds, ...particles, ...bpEntityIds, ...ownItems, ...storageKeys]);
     for (const m of new Set(code.match(/"dread:[a-z_]+"/g) ?? [])) {
       const id = m.slice(1, -1);
       if (!known.has(id)) err("scripts/main.js", `references ${id}, which no pack file defines (entity event, property, fog, particle or entity)`);

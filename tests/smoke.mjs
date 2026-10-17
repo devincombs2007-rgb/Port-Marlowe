@@ -5,12 +5,15 @@ import assert from "node:assert/strict";
 
 const bundle = async (entry, out) => {
   await build({ entryPoints: [entry], outfile: out, bundle: true, format: "esm", platform: "node",
-    alias: { "@minecraft/server": "../tests/mock-server.mjs" }, external: ["../tests/mock-server.mjs"], logLevel: "silent" });
+    alias: { "@minecraft/server": "../tests/mock-server.mjs", "@minecraft/server-ui": "../tests/mock-server-ui.mjs" },
+    external: ["../tests/mock-server.mjs", "../tests/mock-server-ui.mjs"], logLevel: "silent" });
 };
 await bundle("tests/entry.ts", ".tmp/smoke-entry.mjs");
 const mock = await import("../tests/mock-server.mjs");
 await import("../.tmp/smoke-entry.mjs");
 const { sim, messages, played, log, terrain, tick, __fire, world } = mock;
+const { ui } = await import("../tests/mock-server-ui.mjs");
+const flush = () => new Promise((r) => setTimeout(r, 0));
 
 let passed = 0;
 const test = (name, fn) => { fn(); passed++; console.log(`  ok  ${name}`); };
@@ -22,6 +25,51 @@ const stateLine = (p) => { messages.length = 0; say(p, "dread:state"); return me
 const steve = sim.addPlayer("steve");
 __fire.spawn(steve);
 say(steve, "dread:set", "debug false"); // keep the transcript quiet
+const atest = async (name, fn) => { await fn(); passed++; console.log(`  ok  ${name}`); };
+
+tick(130);
+await atest("first join: the Field Journal is given once and its first page unlocked", async () => {
+  assert.equal(steve.inventory.filter((i) => i.typeId === "dread:journal").length, 1);
+  assert.equal(steve.getDynamicProperty("dread:pages"), "first");
+  __fire.spawn(steve, true); tick(130);
+  assert.equal(steve.inventory.filter((i) => i.typeId === "dread:journal").length, 1, "not given twice");
+});
+
+await atest("journal: settings form round-trips every setting without cheats", async () => {
+  ui.shown.length = 0;
+  ui.respond = (f) => f.kind === "action" ? { canceled: false, selection: 2 } : { canceled: false, formValues: [true, 25, 40, 0, 0, false, false] };
+  __fire.useItem(steve, "dread:journal");
+  await flush(); await flush(); await flush();
+  const modal = ui.shown.find((f) => f.kind === "modal");
+  assert.ok(modal, "settings form shown");
+  assert.equal(modal.controls.length, 7);
+  say(steve, "dread:status");
+  assert.match(lastMsg(), /intensity=25 sound=40 jumpscare=0 effects=performance debug=false/);
+  ui.respond = () => ({ canceled: true });
+});
+
+await atest("journal: pages and lessons list only what the player has earned", async () => {
+  ui.shown.length = 0;
+  const answers = [{ canceled: false, selection: 1 }, { canceled: true }];
+  ui.respond = () => answers.shift() ?? { canceled: true };
+  __fire.useItem(steve, "dread:journal");
+  await flush(); await flush(); await flush();
+  const lessons = ui.shown.find((f) => f._title === "What I know");
+  assert.ok(lessons && /Nothing yet/.test(lessons._body), "no lessons before any encounter");
+});
+
+await atest("multiplayer: settings belong to whoever saved them first unless opened to everyone", async () => {
+  const guest = sim.addPlayer("guest", { x: 3000, y: 64, z: 3000 });
+  ui.shown.length = 0;
+  ui.respond = (f) => f.kind === "action" && f._title === "Field Journal" ? { canceled: false, selection: 2 } : { canceled: true };
+  __fire.useItem(guest, "dread:journal");
+  await flush(); await flush(); await flush();
+  assert.ok(ui.shown.some((f) => f.kind === "action" && /managed by the world's DREAD owner/.test(f._body)));
+  assert.ok(!ui.shown.some((f) => f.kind === "modal"));
+  guest.isValid = false; __fire.leave(guest);
+  ui.respond = () => ({ canceled: true });
+  say(steve, "dread:reset"); say(steve, "dread:set", "debug false");
+});
 
 test("config: ranges, enums, persistence and corrupt-value fallback", () => {
   say(steve, "dread:set", "soundIntensity 150");
@@ -71,7 +119,7 @@ test("atmosphere: fog follows tense states, never daylight or Performance mode; 
   say(steve, "dread:set", "effects performance"); say(steve, "dread:force", "escalation"); say(steve, "dread:clear"); tick(60);
   assert.equal(fogCmds().filter((c) => c.c.includes("push")).length, 0, "no fog in Performance mode");
   say(steve, "dread:set", "effects balanced");
-  sim.timeOfDay = 6000; terrain.underground = false; log.commands.length = 0;
+  sim.timeOfDay = 6000; terrain.underground = false; tick(20 * 4); log.commands.length = 0; // let the 3 s scan cache refresh
   say(steve, "dread:force", "unease"); tick(60);
   assert.equal(fogCmds().filter((c) => c.c.includes("push")).length, 0, "no fog in open daylight");
   say(steve, "dread:force", "dormant"); say(steve, "dread:clear"); tick(40);
@@ -105,6 +153,8 @@ test("observer: looking at it makes it notice, freeze, vanish; director learns t
   assert.ok(log.particles.some((p) => p.name === "dread:lurker_vanish"), "vanish particle");
   assert.ok(log.events.some((e) => e.name === "dread:set_observe"));
   assert.match(stateLine(steve), /noticed=1/);
+  tick(80);
+  assert.ok(String(steve.getDynamicProperty("dread:pages")).split(",").includes("noticed"), "journal page unlocked");
   assert.ok(played.some((p) => p.id === "dread.lurker.vanish"), "vanish sound played");
 });
 
