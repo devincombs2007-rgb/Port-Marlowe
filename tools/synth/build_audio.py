@@ -10,10 +10,12 @@ from dsp import SR, finish, write_wav
 import lurker
 
 import ambient
+import gaunt
 
 SETS = [
     # key, module sounds, event prefix, ogg dir, wav dir, wav prefix, category
     ("lurker", lurker.SOUNDS, "dread.lurker", "sounds/entity/dread/lurker", "assets-src/audio/batch_a", "lurker", "hostile"),
+    ("gaunt", gaunt.SOUNDS, "dread.gaunt", "sounds/entity/dread/gaunt", "assets-src/audio/batch_c", "gaunt", "hostile"),
     ("ambient", ambient.SOUNDS, "dread.ambient", "sounds/entity/dread/ambient", "assets-src/audio/batch_b", "amb", "neutral"),
 ]
 
@@ -33,7 +35,8 @@ for key, sounds, prefix, ogg_rel, wav_rel, wav_prefix, category in SETS:
             write_wav(wav, x)
             ogg = ogg_dir / f"{base}.ogg"
             subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(wav), "-ac", "1", "-ar", "44100",
-                            "-c:a", "libvorbis", "-q:a", "4", "-map_metadata", "-1", str(ogg)], check=True)
+                            "-c:a", "libvorbis", "-q:a", "4", "-map_metadata", "-1",
+                            "-fflags", "+bitexact", "-flags:a", "+bitexact", "-serial_offset", "1", str(ogg)], check=True)
             entries.append({"name": f"{ogg_rel}/{base}", "volume": params["volume"], "pitch": [0.94, 1.06], "weight": 1})
             rms = float(np.sqrt(np.mean(x ** 2)))
             report.append((f"{wav_prefix}_{base}", len(x) / SR, 20 * np.log10(np.max(np.abs(x))), 20 * np.log10(rms + 1e-12), ogg.stat().st_size))

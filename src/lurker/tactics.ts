@@ -66,12 +66,14 @@ export class LurkerTactics {
   private nextVocalIn: number;
   private huntAge = 0;
   private afterNotice: "retreat" | "vanish" = "vanish";
+  /** Events produced before the first step (initial component group), flushed by step(). */
+  private pending: LEvent[] = [];
 
   constructor(private readonly rng: Rng, initial: Requested = "observe") {
     this.noticeNeeded = range(rng, 0.8, 1.8);
     this.observeLimit = range(rng, 50, 120);
     this.nextVocalIn = range(rng, 8, 16);
-    if (initial !== "observe") this.switchTo(initial === "stalk" ? "stalk" : "hunt", []);
+    this.switchTo(initial === "observe" ? "observe" : initial === "stalk" ? "stalk" : "hunt", this.pending);
   }
 
   private switchTo(next: LState, out: LEvent[]): void {
@@ -110,7 +112,7 @@ export class LurkerTactics {
   }
 
   step(c: LCtx): LEvent[] {
-    const out: LEvent[] = [];
+    const out: LEvent[] = this.pending.splice(0);
     if (this.state === "gone") return out;
     this.stateAge += c.dt;
 

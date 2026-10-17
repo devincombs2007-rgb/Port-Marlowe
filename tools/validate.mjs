@@ -493,9 +493,11 @@ for (const [name, def] of Object.entries(soundDefs?.sound_definitions ?? {})) {
       if (!definedSoundEvents.has(id)) err("scripts/main.js", `plays sound event ${id}, which is not in sound_definitions.json`);
     }
     // template-built sound ids: every dread.lurker.* / dread.ambient.* defined event should be reachable by name in the source
+    const viaEntities = new Set();
+    for (const [, j] of jsonIn("RP", "entity/")) for (const v of Object.values(j["minecraft:client_entity"]?.description?.sound_effects ?? {})) viaEntities.add(v);
     for (const ev of definedSoundEvents) {
       const tail = ev.split(".").pop();
-      if (!code.includes(tail)) warn("sound_definitions.json", `${ev} is defined but its name never appears in the scripts (unused asset?)`);
+      if (!code.includes(tail) && !viaEntities.has(ev)) warn("sound_definitions.json", `${ev} is defined but its name never appears in the scripts (unused asset?)`);
     }
   }
 }

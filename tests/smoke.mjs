@@ -19,6 +19,7 @@ let passed = 0;
 const test = (name, fn) => { fn(); passed++; console.log(`  ok  ${name}`); };
 const say = (p, id, msg = "") => __fire.scriptEvent(id, msg, p);
 const lastMsg = () => messages.at(-1);
+const creaturesIn = () => sim.dims.overworld.entities.filter((e) => (e.typeId === "dread:lurker" || e.typeId === "dread:gaunt") && e.isValid);
 const lurkersIn = () => sim.dims.overworld.entities.filter((e) => e.typeId === "dread:lurker" && e.isValid);
 const stateLine = (p) => { messages.length = 0; say(p, "dread:state"); return messages.join("\n"); };
 
@@ -140,7 +141,7 @@ test("debug spawn: a Lurker appears at a vantage 14-24 blocks away, owned by the
   const d = Math.hypot(l[0].location.x - steve.location.x, l[0].location.z - steve.location.z);
   assert.ok(d > 10 && d < 30, `distance ${d}`);
   assert.ok(l[0].tags.has("dread_managed"));
-  assert.match(stateLine(steve), /lurkers\(own\/global\)=1\/1/);
+  assert.match(stateLine(steve), /creatures\(own\/global\)=1\/1/);
 });
 
 test("observer: looking at it makes it notice, freeze, vanish; director learns the player noticed", () => {
@@ -196,7 +197,7 @@ test("an unowned Lurker (egg/summon/reload survivor) is adopted and always event
   steve.view = { x: -1, y: 0, z: -1 }; // looking away from it
   const stray = sim.dims.overworld.spawnEntity("dread:lurker", { x: 20, y: 64, z: 20 });
   tick(20 * 12);
-  assert.match(stateLine(steve), /lurkers\(own\/global\)=1\/1/, "adopted");
+  assert.match(stateLine(steve), /creatures\(own\/global\)=1\/1/, "adopted");
   tick(20 * 450);
   assert.equal(stray.isValid, false, "stray Lurker must not live forever");
 });
@@ -213,6 +214,71 @@ test("leaving the game saves director memory and removes that player's Lurkers",
   assert.equal(JSON.parse(saved).v, 1);
 });
 
+test("gaunt: spawns on the player's old trail, follows the scent marker point by point, searches, burrows away", () => {
+  const walker = sim.addPlayer("walker", { x: 2000, y: 64, z: 2000 });
+  __fire.spawn(walker); terrain.underground = false; sim.timeOfDay = 18000;
+  walker.view = { x: 1, y: 0, z: 0 };
+  // walk east for ~100 s, leaving a trail
+  for (let i = 0; i < 100 * 20; i++) { walker.location = { x: 2000 + i * 0.04, y: 64, z: 2000 }; tick(1); }
+  // block the view backwards so the trail spawn is hidden
+  terrain.opaqueWall = (x, y, z) => x === Math.floor(walker.location.x) - 3 && y >= 64 && y < 70;
+  walker.view = { x: 1, y: 0, z: 0 };
+  say(walker, "dread:spawn", "gaunt stalk");
+  const g = sim.dims.overworld.entities.find((e) => e.typeId === "dread:gaunt" && e.isValid);
+  assert.ok(g, "gaunt spawned");
+  assert.ok(g.location.x < walker.location.x - 18, `spawned behind on the trail (x=${g.location.x.toFixed(1)}, player ${walker.location.x.toFixed(1)})`);
+  const marker = () => sim.dims.overworld.entities.find((e) => e.typeId === "dread:scent" && e.isValid);
+  assert.ok(marker(), "scent marker placed");
+  const startMarkerX = marker().location.x;
+  // emulate move_towards_target: while the track group is active, walk toward the marker
+  let group = "";
+  const groups = () => log.events.filter((e) => e.id === g.id).map((e) => e.name);
+  tick(20 * 60, () => {
+    group = groups().filter((n) => n.startsWith("dread:set_")).at(-1) ?? "";
+    const m = marker();
+    if (g.isValid && m && group === "dread:set_track") {
+      const dx = m.location.x - g.location.x, dz = m.location.z - g.location.z, d = Math.hypot(dx, dz);
+      if (d > 0.1) g.location = { x: g.location.x + (dx / d) * 0.15, y: 64, z: g.location.z + (dz / d) * 0.15 };
+    }
+  });
+  const advanced = (marker()?.location.x ?? 1e9) > startMarkerX + 3;
+  assert.ok(advanced || !g.isValid, "marker advanced along the trail");
+  assert.ok(groups().includes("dread:set_pause") && groups().includes("dread:set_track"), "stop-start tracking");
+  tick(20 * 400);
+  assert.equal(g.isValid, false, "gaunt left eventually");
+  assert.equal(marker(), undefined, "scent marker cleaned up");
+  assert.ok(log.particles.some((p) => p.name === "dread:gaunt_burrow"), "burrow particles");
+  terrain.opaqueWall = null;
+  walker.isValid = false; __fire.leave(walker);
+});
+
+test("gaunt: water breaks the trail; it searches the bank and leaves without finding you", () => {
+  const swimmer = sim.addPlayer("swimmer", { x: -3000, y: 64, z: 0 });
+  __fire.spawn(swimmer); sim.timeOfDay = 18000; swimmer.view = { x: 1, y: 0, z: 0 };
+  for (let i = 0; i < 90 * 20; i++) { swimmer.location = { x: -3000 + i * 0.04, y: 64, z: 0 }; tick(1); }
+  terrain.opaqueWall = (x, y) => x === Math.floor(swimmer.location.x) - 3 && y >= 64 && y < 70;
+  say(swimmer, "dread:spawn", "gaunt stalk");
+  const g = sim.dims.overworld.entities.find((e) => e.typeId === "dread:gaunt" && e.isValid && e.location.x < -2900);
+  assert.ok(g);
+  swimmer.isInWater = true; tick(40); swimmer.isInWater = false;
+  // keep walking a bit after the swim
+  for (let i = 0; i < 20 * 10; i++) { swimmer.location = { x: swimmer.location.x + 0.04, y: 64, z: 0 }; tick(1); }
+  tick(20 * 120, () => {
+    const m = sim.dims.overworld.entities.find((e) => e.typeId === "dread:scent" && e.isValid);
+    const grp = log.events.filter((e) => e.id === g.id && e.name.startsWith("dread:set_")).at(-1)?.name;
+    if (g.isValid && m && grp === "dread:set_track") {
+      const dx = m.location.x - g.location.x, d = Math.abs(dx);
+      if (d > 0.1) g.location = { x: g.location.x + Math.sign(dx) * 0.2, y: 64, z: 0 };
+    }
+  });
+  assert.ok(log.events.some((e) => e.id === g.id && e.name === "dread:set_search"), "searched: " + log.events.filter((e) => e.id === g.id).map((e) => e.name).join(",") + " valid=" + g.isValid + " gx=" + g.location.x.toFixed(1) + " px=" + swimmer.location.x.toFixed(1));
+  tick(20 * 120);
+  assert.equal(g.isValid, false);
+  assert.ok(!log.events.some((e) => e.id === g.id && e.name === "dread:set_pursue"), "never chased");
+  terrain.opaqueWall = null;
+  swimmer.isValid = false; __fire.leave(swimmer);
+});
+
 test("soak: 3 game-hours of a lonely underground night produce encounters, stay bounded, and never throw", () => {
   const alone = sim.addPlayer("hermit", { x: -800, y: 64, z: -800 });
   __fire.spawn(alone); terrain.underground = true; sim.timeOfDay = 16000;
@@ -221,12 +287,12 @@ test("soak: 3 game-hours of a lonely underground night produce encounters, stay 
   const kinds = new Set();
   played.length = 0;
   tick(20 * 3600 * 3, () => {
-    if (mock.system.currentTick % 20 === 0) maxLurkers = Math.max(maxLurkers, lurkersIn().length);
+    if (mock.system.currentTick % 20 === 0) maxLurkers = Math.max(maxLurkers, creaturesIn().length);
   });
   for (const p of played) kinds.add(p.id);
   const st = stateLine(alone);
   console.log("      " + st.replace(/\n/g, " | ").replace(/\[hermit\] .{0,30}/g, ""));
-  assert.ok(maxLurkers <= 1, `max simultaneous lurkers ${maxLurkers}`);
+  assert.ok(maxLurkers <= 1, `max simultaneous creatures ${maxLurkers}`);
   assert.ok(kinds.size >= 5, `only ${kinds.size} distinct sounds played`);
   assert.ok(played.length > 30, `only ${played.length} sounds in 3 hours`);
   assert.ok(lurkersIn().length <= 1);

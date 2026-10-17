@@ -1,0 +1,345 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:entity": {
+    "description": {
+      "identifier": "dread:gaunt",
+      "is_spawnable": true,
+      "is_summonable": true,
+      "is_experimental": false,
+      "properties": {
+        "dread:state": {
+          "type": "enum",
+          "values": [
+            "track",
+            "search",
+            "pursue",
+            "retreat"
+          ],
+          "default": "track",
+          "client_sync": true
+        },
+        "dread:action": {
+          "type": "enum",
+          "values": [
+            "none",
+            "attack",
+            "roar",
+            "burrow",
+            "hurt"
+          ],
+          "default": "none",
+          "client_sync": true
+        }
+      }
+    },
+    "component_groups": {
+      "dread:track_move": {
+        "minecraft:movement": {
+          "value": 0.15
+        },
+        "minecraft:behavior.nearest_attackable_target": {
+          "priority": 1,
+          "must_see": false,
+          "reselect_targets": true,
+          "within_radius": 96,
+          "scan_interval": 5,
+          "entity_types": [
+            {
+              "filters": {
+                "test": "is_family",
+                "subject": "other",
+                "value": "dread_scent"
+              },
+              "max_dist": 96
+            }
+          ]
+        },
+        "minecraft:behavior.move_towards_target": {
+          "priority": 2,
+          "speed_multiplier": 1.0,
+          "within_radius": 0.5
+        }
+      },
+      "dread:track_pause": {
+        "minecraft:movement": {
+          "value": 0.0
+        },
+        "minecraft:behavior.random_look_around": {
+          "priority": 3,
+          "look_time": [
+            1,
+            3
+          ]
+        }
+      },
+      "dread:search": {
+        "minecraft:movement": {
+          "value": 0.09
+        },
+        "minecraft:behavior.random_stroll": {
+          "priority": 4,
+          "speed_multiplier": 1.0,
+          "xz_dist": 5,
+          "y_dist": 2,
+          "interval": 40
+        },
+        "minecraft:behavior.random_look_around": {
+          "priority": 5
+        }
+      },
+      "dread:pursue": {
+        "minecraft:movement": {
+          "value": 0.3
+        },
+        "minecraft:behavior.nearest_attackable_target": {
+          "priority": 1,
+          "must_see": false,
+          "reselect_targets": true,
+          "within_radius": 40,
+          "scan_interval": 5,
+          "entity_types": [
+            {
+              "filters": {
+                "test": "is_family",
+                "subject": "other",
+                "value": "player"
+              },
+              "max_dist": 40
+            }
+          ]
+        },
+        "minecraft:behavior.melee_attack": {
+          "priority": 2,
+          "speed_multiplier": 1.0,
+          "cooldown_time": 1.6,
+          "reach_multiplier": 1.6,
+          "track_target": true,
+          "on_attack": {
+            "event": "dread:on_attack",
+            "target": "self"
+          }
+        }
+      },
+      "dread:retreat": {
+        "minecraft:movement": {
+          "value": 0.26
+        },
+        "minecraft:behavior.avoid_mob_type": {
+          "priority": 1,
+          "max_dist": 24,
+          "max_flee": 40,
+          "walk_speed_multiplier": 1.0,
+          "sprint_speed_multiplier": 1.2,
+          "ignore_visibility": true,
+          "entity_types": [
+            {
+              "filters": {
+                "test": "is_family",
+                "subject": "other",
+                "value": "player"
+              },
+              "max_dist": 24
+            }
+          ]
+        }
+      },
+      "dread:dead": {
+        "minecraft:movement": {
+          "value": 0.0
+        }
+      }
+    },
+    "components": {
+      "minecraft:type_family": {
+        "family": [
+          "dread",
+          "gaunt",
+          "monster"
+        ]
+      },
+      "minecraft:health": {
+        "value": 60,
+        "max": 60
+      },
+      "minecraft:collision_box": {
+        "width": 0.9,
+        "height": 1.7
+      },
+      "minecraft:attack": {
+        "damage": 6
+      },
+      "minecraft:knockback_resistance": {
+        "value": 0.7
+      },
+      "minecraft:movement.basic": {},
+      "minecraft:navigation.walk": {
+        "can_path_over_water": false,
+        "avoid_water": true,
+        "avoid_damage_blocks": true,
+        "can_pass_doors": true,
+        "can_open_doors": false,
+        "can_break_doors": false
+      },
+      "minecraft:jump.static": {},
+      "minecraft:physics": {},
+      "minecraft:pushable": {
+        "is_pushable": false,
+        "is_pushable_by_piston": true
+      },
+      "minecraft:follow_range": {
+        "value": 96,
+        "max": 96
+      },
+      "minecraft:damage_sensor": {
+        "triggers": [
+          {
+            "on_damage": {
+              "event": "dread:on_hurt",
+              "target": "self"
+            },
+            "deals_damage": "yes"
+          }
+        ]
+      },
+      "minecraft:despawn": {
+        "despawn_from_distance": {
+          "min_distance": 96,
+          "max_distance": 128
+        }
+      },
+      "minecraft:loot": {
+        "table": "loot_tables/entities/dread_gaunt.json"
+      },
+      "minecraft:experience_reward": {
+        "on_death": "12"
+      },
+      "minecraft:nameable": {}
+    },
+    "events": {
+      "minecraft:entity_spawned": {
+        "add": {
+          "component_groups": [
+            "dread:track_pause"
+          ]
+        }
+      },
+      "dread:set_track": {
+        "remove": {
+          "component_groups": [
+            "dread:track_pause",
+            "dread:search",
+            "dread:pursue",
+            "dread:retreat",
+            "dread:dead"
+          ]
+        },
+        "add": {
+          "component_groups": [
+            "dread:track_move"
+          ]
+        },
+        "set_property": {
+          "dread:state": "track"
+        }
+      },
+      "dread:set_pause": {
+        "remove": {
+          "component_groups": [
+            "dread:track_move",
+            "dread:search",
+            "dread:pursue",
+            "dread:retreat",
+            "dread:dead"
+          ]
+        },
+        "add": {
+          "component_groups": [
+            "dread:track_pause"
+          ]
+        },
+        "set_property": {
+          "dread:state": "track"
+        }
+      },
+      "dread:set_search": {
+        "remove": {
+          "component_groups": [
+            "dread:track_move",
+            "dread:track_pause",
+            "dread:pursue",
+            "dread:retreat",
+            "dread:dead"
+          ]
+        },
+        "add": {
+          "component_groups": [
+            "dread:search"
+          ]
+        },
+        "set_property": {
+          "dread:state": "search"
+        }
+      },
+      "dread:set_pursue": {
+        "remove": {
+          "component_groups": [
+            "dread:track_move",
+            "dread:track_pause",
+            "dread:search",
+            "dread:retreat",
+            "dread:dead"
+          ]
+        },
+        "add": {
+          "component_groups": [
+            "dread:pursue"
+          ]
+        },
+        "set_property": {
+          "dread:state": "pursue"
+        }
+      },
+      "dread:set_retreat": {
+        "remove": {
+          "component_groups": [
+            "dread:track_move",
+            "dread:track_pause",
+            "dread:search",
+            "dread:pursue",
+            "dread:dead"
+          ]
+        },
+        "add": {
+          "component_groups": [
+            "dread:retreat"
+          ]
+        },
+        "set_property": {
+          "dread:state": "retreat"
+        }
+      },
+      "dread:on_attack": {
+        "set_property": {
+          "dread:action": "attack"
+        }
+      },
+      "dread:on_hurt": {
+        "set_property": {
+          "dread:action": "hurt"
+        }
+      },
+      "dread:clear_action": {
+        "set_property": {
+          "dread:action": "none"
+        }
+      },
+      "dread:vanish": {
+        "add": {
+          "component_groups": [
+            "dread:dead"
+          ]
+        }
+      }
+    }
+  }
+}

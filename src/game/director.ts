@@ -4,14 +4,15 @@ import { debug, logConsole } from "../core/log";
 import { DirectorBrain, freshMemory } from "../director/brain";
 import { parseMemory, serializeMemory } from "../director/persistence";
 import { EVENTS } from "../director/events";
-import type { Action, DirectorState, Snapshot, Tactic } from "../director/types";
+import type { Action, Creature, DirectorState, Snapshot, Tactic } from "../director/types";
 import { makeRng, mathRng, type Rng } from "../util/rng";
 import { playAmbient } from "./ambient";
 import { clearAtmosphere, setAtmosphere, shake } from "./atmosphere";
 import { unlockPage } from "../journal/journal";
 import { scanSurroundings, type Surroundings } from "./environment";
 import { allPlayersNear, dimensionKind, health, isPlayerSurvivalish, safe } from "./helpers";
-import { initLurkers, lurkerCount, lurkersOf, removeAll, retreatAll, spawnLurker } from "./lurkers";
+import { creatureCount, creaturesOf, initCreatures, removeAll, retreatAll, spawnCreature } from "./creatures";
+import { forgetTrail, sampleTrail } from "./trail";
 import type { Requested } from "../lurker/tactics";
 import { GameMode, Difficulty } from "@minecraft/server";
 
@@ -39,14 +40,24 @@ let nextOffset = 0;
 export function initDirector(seed?: number): void {
   rng = seed === undefined ? mathRng : makeRng(seed);
 
-  initLurkers({
+  initCreatures({
     playerFor: (id) => world.getAllPlayers().find((p) => p.id === id),
     isLit: (id) => rt.get(id)?.surroundings.lit ?? false,
     isUnderground: (id) => !(rt.get(id)?.surroundings.skyVisible ?? true),
     requested: (id) => rt.get(id)?.tactic ?? "observe",
     onNoticed: (id) => rt.get(id)?.brain.onLurkerNoticed(worldSec()),
-    onGone: (id, outcome) => {
-      rt.get(id)?.brain.onLurkerGone(worldSec(), outcome);
+    onEncounter: (id, kind) => {
+      const p = playerById(id);
+      if (kind === "gaunt_seen" && p) unlockPage(p, "gaunt");
+      rt.get(id)?.brain.onLurkerNoticed(worldSec()); // being seen by it is a fright the director should count
+    },
+    onGone: (id, creature, outcome) => {
+      rt.get(id)?.brain.onLurkerGone(worldSec(), creature === "lurker" ? outcome : `gaunt-${outcome}`);
+      if (creature === "gaunt") {
+        const gp = playerById(id);
+        if (gp && outcome === "lost-scent") unlockPage(gp, "scent");
+        return;
+      }
       const page = ({ noticed: "noticed", spooked: "spooked", light: "light" } as Record<string, string>)[outcome];
       const p = page ? playerById(id) : undefined;
       if (p && page) unlockPage(p, page);
@@ -76,6 +87,7 @@ export function initDirector(seed?: number): void {
     const r = rt.get(e.playerId);
     if (r) save(e.playerId, r);
     removeAll(e.playerId);
+    forgetTrail(e.playerId);
     clearAtmosphere({ id: e.playerId });
     rt.delete(e.playerId);
   });
@@ -102,6 +114,7 @@ export function initDirector(seed?: number): void {
     const now = system.currentTick;
     for (const p of world.getAllPlayers()) {
       const r = ensure(p);
+      sampleTrail(p, now, r.surroundings.nearHome && r.surroundings.lit);
       if ((now + r.stepOffset) % STEP_TICKS !== 0) continue;
       stepPlayer(p, r, now);
     }
@@ -157,7 +170,7 @@ function snapshot(p: Player, r: PlayerRt, now: number): Snapshot {
     skyVisible: r.surroundings.skyVisible, lit: r.surroundings.lit, nearHome: r.surroundings.nearHome,
     inWater: safe(() => p.isInWater, false), sleeping: safe(() => p.isSleeping, false),
     companions: allPlayersNear(p, 48), idleFor: (now - r.idleSince) / 20,
-    globalActiveLurkers: lurkerCount(), ownLurkers: lurkersOf(p.id),
+    globalActiveCreatures: creatureCount(), ownCreatures: creaturesOf(p.id),
     settings: { enabled: cfg.enabled, effects: cfg.effects, intensity: cfg.intensity },
   };
 }
@@ -186,9 +199,9 @@ function apply(p: Player, r: PlayerRt, actions: Action[], snap: Snapshot): void 
         playAmbient(p, a, cfg, rng, r.brain.memory.stress);
         if (a.kind !== "heartbeat" && a.kind !== "pressure_drop") unlockPage(p, "sound");
         break;
-      case "spawnLurker": {
+      case "spawnCreature": {
         r.tactic = a.tactic;
-        const ok = spawnLurker(p, a.tactic, a.minDist, a.maxDist, !snap.skyVisible);
+        const ok = spawnCreature(p, a.creature, a.tactic, a.minDist, a.maxDist, !snap.skyVisible);
         if (!ok) r.brain.onLurkerGone(worldSec(), "no-spot");
         break;
       }
@@ -216,16 +229,16 @@ export function describe(p: Player): string[] {
   const recent = m.history.slice(-6).map((h) => h.id).join(", ") || "-";
   return [
     `state=${m.state} stress=${m.stress.toFixed(0)} dread=${m.dread.toFixed(0)} lit=${r.surroundings.lit} home=${r.surroundings.nearHome} sky=${r.surroundings.skyVisible}`,
-    `hunts=${m.hunts} survived=${m.survivedHunts} noticed=${m.noticedCount} lurkers(own/global)=${lurkersOf(p.id)}/${lurkerCount()}`,
+    `hunts=${m.hunts} survived=${m.survivedHunts} noticed=${m.noticedCount} creatures(own/global)=${creaturesOf(p.id)}/${creatureCount()}`,
     `recent: ${recent}`,
   ];
 }
 
-export function debugSpawn(p: Player, tactic: Tactic): boolean {
+export function debugSpawn(p: Player, tactic: Tactic, creature: Creature = "lurker"): boolean {
   const r = ensure(p);
   r.tactic = tactic;
   if (tactic === "hunt") shake(p, readConfig(), 0.25, 1.5); // same cue as a director-started hunt
-  return spawnLurker(p, tactic, 14, 24, !r.surroundings.skyVisible);
+  return spawnCreature(p, creature, tactic, 14, 24, !r.surroundings.skyVisible);
 }
 
 export function debugSet(p: Player, field: "stress" | "dread", value: number): void {

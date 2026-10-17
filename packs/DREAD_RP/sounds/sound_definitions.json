@@ -540,6 +540,330 @@
         }
       ]
     },
+    "dread.gaunt.step": {
+      "category": "hostile",
+      "max_distance": 32,
+      "min_distance": 2,
+      "sounds": [
+        {
+          "name": "sounds/entity/dread/gaunt/step_01",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/gaunt/step_02",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/gaunt/step_03",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/gaunt/step_04",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/gaunt/step_05",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        }
+      ]
+    },
+    "dread.gaunt.breath": {
+      "category": "hostile",
+      "max_distance": 20,
+      "min_distance": 1,
+      "sounds": [
+        {
+          "name": "sounds/entity/dread/gaunt/breath_01",
+          "volume": 0.7,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/gaunt/breath_02",
+          "volume": 0.7,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/gaunt/breath_03",
+          "volume": 0.7,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        }
+      ]
+    },
+    "dread.gaunt.sniff": {
+      "category": "hostile",
+      "max_distance": 24,
+      "min_distance": 1,
+      "sounds": [
+        {
+          "name": "sounds/entity/dread/gaunt/sniff_01",
+          "volume": 0.8,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/gaunt/sniff_02",
+          "volume": 0.8,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/gaunt/sniff_03",
+          "volume": 0.8,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/gaunt/sniff_04",
+          "volume": 0.8,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        }
+      ]
+    },
+    "dread.gaunt.vocal": {
+      "category": "hostile",
+      "max_distance": 56,
+      "min_distance": 4,
+      "sounds": [
+        {
+          "name": "sounds/entity/dread/gaunt/vocal_01",
+          "volume": 1.0,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/gaunt/vocal_02",
+          "volume": 1.0,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/gaunt/vocal_03",
+          "volume": 1.0,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        }
+      ]
+    },
+    "dread.gaunt.attack": {
+      "category": "hostile",
+      "max_distance": 24,
+      "min_distance": 2,
+      "sounds": [
+        {
+          "name": "sounds/entity/dread/gaunt/attack_01",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/gaunt/attack_02",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/gaunt/attack_03",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        }
+      ]
+    },
+    "dread.gaunt.hurt": {
+      "category": "hostile",
+      "max_distance": 28,
+      "min_distance": 2,
+      "sounds": [
+        {
+          "name": "sounds/entity/dread/gaunt/hurt_01",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/gaunt/hurt_02",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/gaunt/hurt_03",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        }
+      ]
+    },
+    "dread.gaunt.death": {
+      "category": "hostile",
+      "max_distance": 32,
+      "min_distance": 3,
+      "sounds": [
+        {
+          "name": "sounds/entity/dread/gaunt/death_01",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/gaunt/death_02",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        }
+      ]
+    },
+    "dread.gaunt.burrow": {
+      "category": "hostile",
+      "max_distance": 28,
+      "min_distance": 2,
+      "sounds": [
+        {
+          "name": "sounds/entity/dread/gaunt/burrow_01",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/gaunt/burrow_02",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/gaunt/burrow_03",
+          "volume": 0.9,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        }
+      ]
+    },
+    "dread.gaunt.claw_scrape": {
+      "category": "hostile",
+      "max_distance": 28,
+      "min_distance": 2,
+      "sounds": [
+        {
+          "name": "sounds/entity/dread/gaunt/claw_scrape_01",
+          "volume": 0.7,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/gaunt/claw_scrape_02",
+          "volume": 0.7,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        },
+        {
+          "name": "sounds/entity/dread/gaunt/claw_scrape_03",
+          "volume": 0.7,
+          "pitch": [
+            0.94,
+            1.06
+          ],
+          "weight": 1
+        }
+      ]
+    },
     "dread.ambient.branch_snap": {
       "category": "neutral",
       "max_distance": 48,

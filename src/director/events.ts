@@ -10,8 +10,8 @@ export interface AmbientEvent {
   /** States in which this event may fire. */
   states: readonly DirectorState[];
   cooldown: number; // seconds
-  /** Base weight given context and stress; <= 0 means "not now". */
-  weight(s: Snapshot, stress: number): number;
+  /** Base weight given context, stress and the creature currently assigned (if any); <= 0 means "not now". */
+  weight(s: Snapshot, stress: number, active?: "lurker" | "gaunt"): number;
   build(rng: Rng, s: Snapshot): Action[];
 }
 
@@ -73,23 +73,33 @@ export const EVENTS: readonly AmbientEvent[] = [
   },
   {
     id: "lurker_breath", states: NEAR_STATES, cooldown: 80,
-    weight: (_s, st) => (st >= 40 ? 2.0 : 0),
+    weight: (_s, st, act) => (st >= 40 && act !== "gaunt" ? 2.0 : 0),
     build: (rng) => [amb("lurker_breath", "behind", range(rng, 4, 8), 0.8)],
   },
   {
     id: "lurker_creak", states: NEAR_STATES, cooldown: 90,
-    weight: (_s, st) => (st >= 35 ? 1.6 : 0),
+    weight: (_s, st, act) => (st >= 35 && act !== "gaunt" ? 1.6 : 0),
     build: (rng) => [amb("lurker_creak", pickBearing(rng, ["left", "right", "behind"]), range(rng, 6, 12), 0.8)],
   },
   {
     id: "lurker_scrape", states: NEAR_STATES, cooldown: 130,
-    weight: (s) => (outdoors(s) ? 1.8 : 1.0),
+    weight: (s, _st, act) => (act === "gaunt" ? 0 : outdoors(s) ? 1.8 : 1.0),
     build: (rng) => [amb("lurker_scrape", pickBearing(rng, ["left", "right", "front_far"]), range(rng, 9, 16), 0.8)],
   },
   {
     id: "lurker_steps", states: ["escalation"], cooldown: 75,
-    weight: (_s, st) => (st >= 45 ? 2.2 : 0),
+    weight: (_s, st, act) => (st >= 45 && act !== "gaunt" ? 2.2 : 0),
     build: (rng) => [amb("lurker_step", "behind", range(rng, 6, 12), 0.7), chance(rng, 0.5) ? amb("lurker_step", "behind", range(rng, 5, 9), 0.7) : { type: "note", text: "single step" }],
+  },
+  {
+    id: "gaunt_scrape", states: ["escalation"], cooldown: 70,
+    weight: (s, _st, act) => (act === "gaunt" ? (s.skyVisible ? 1.6 : 2.6) : 0),
+    build: (rng) => [amb("gaunt_scrape", pickBearing(rng, ["behind", "left", "right"]), range(rng, 10, 20), 0.8)],
+  },
+  {
+    id: "gaunt_sniff", states: ["escalation"], cooldown: 60,
+    weight: (_s, st, act) => (act === "gaunt" && st >= 35 ? 2.4 : 0),
+    build: (rng) => [amb("gaunt_sniff", "behind", range(rng, 8, 16), 0.9)],
   },
 ];
 

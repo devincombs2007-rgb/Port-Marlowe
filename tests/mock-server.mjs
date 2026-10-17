@@ -25,7 +25,7 @@ export class Entity {
   constructor(typeId, location, dimension) {
     this.id = `e${nextId++}`; this.typeId = typeId; this.location = { ...location }; this.dimension = dimension;
     this.tags = new Set(); this.props = { "dread:action": "none", "dread:state": "observe" }; this.isValid = true;
-    this.isInWater = false; this.isSleeping = false; this.hp = { currentValue: 36, effectiveMax: 36 };
+    this.isInWater = false; this.isSleeping = false; this.isSneaking = false; this.hp = { currentValue: 36, effectiveMax: 36 };
   }
   getComponent(t) { return t === EntityComponentTypes.Health ? this.hp : undefined; }
   addTag(t) { this.tags.add(t); return true; } hasTag(t) { return this.tags.has(t); }

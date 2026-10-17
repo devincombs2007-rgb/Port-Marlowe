@@ -4,3 +4,6 @@ entity.dread:lurker.name=Lurker
 item.spawn_egg.entity.dread:lurker.name=Lurker Spawn Egg
 item.dread:journal.name=Field Journal
 item.dread:journal=Field Journal
+entity.dread:gaunt.name=Gaunt
+item.spawn_egg.entity.dread:gaunt.name=Gaunt Spawn Egg
+entity.dread:scent.name=Scent

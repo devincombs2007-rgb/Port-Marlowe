@@ -1,0 +1,57 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "dread:gaunt",
+      "materials": {
+        "default": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/gaunt"
+      },
+      "geometry": {
+        "default": "geometry.dread.gaunt"
+      },
+      "render_controllers": [
+        "controller.render.dread.gaunt"
+      ],
+      "animations": {
+        "idle": "animation.dread.gaunt.idle",
+        "walk": "animation.dread.gaunt.walk",
+        "track": "animation.dread.gaunt.track",
+        "search": "animation.dread.gaunt.search",
+        "run": "animation.dread.gaunt.run",
+        "attack": "animation.dread.gaunt.attack",
+        "roar": "animation.dread.gaunt.roar",
+        "burrow": "animation.dread.gaunt.burrow",
+        "hurt": "animation.dread.gaunt.hurt",
+        "look": "animation.dread.gaunt.look",
+        "locomotion": "controller.animation.dread.gaunt.locomotion",
+        "action": "controller.animation.dread.gaunt.action"
+      },
+      "scripts": {
+        "animate": [
+          "locomotion",
+          "action",
+          "look"
+        ]
+      },
+      "sound_effects": {
+        "step": "dread.gaunt.step",
+        "breath": "dread.gaunt.breath",
+        "sniff": "dread.gaunt.sniff",
+        "vocal": "dread.gaunt.vocal",
+        "attack": "dread.gaunt.attack",
+        "hurt": "dread.gaunt.hurt",
+        "burrow": "dread.gaunt.burrow"
+      },
+      "particle_effects": {
+        "burrow": "dread:gaunt_burrow"
+      },
+      "spawn_egg": {
+        "base_color": "#3b1a16",
+        "overlay_color": "#c8bfa0"
+      }
+    }
+  }
+}

@@ -1,0 +1,151 @@
+{
+  "format_version": "1.10.0",
+  "animation_controllers": {
+    "controller.animation.dread.gaunt.locomotion": {
+      "initial_state": "idle",
+      "states": {
+        "idle": {
+          "animations": [
+            "idle"
+          ],
+          "transitions": [
+            {
+              "run": "query.property('dread:state') == 'pursue'"
+            },
+            {
+              "search": "query.property('dread:state') == 'search'"
+            },
+            {
+              "track": "query.property('dread:state') == 'track' && query.modified_move_speed > 0.02"
+            },
+            {
+              "walk": "query.modified_move_speed > 0.05"
+            }
+          ],
+          "blend_transition": 0.3
+        },
+        "walk": {
+          "animations": [
+            "walk"
+          ],
+          "transitions": [
+            {
+              "run": "query.property('dread:state') == 'pursue'"
+            },
+            {
+              "track": "query.property('dread:state') == 'track'"
+            },
+            {
+              "search": "query.property('dread:state') == 'search'"
+            },
+            {
+              "idle": "query.modified_move_speed < 0.03"
+            }
+          ],
+          "blend_transition": 0.25
+        },
+        "track": {
+          "animations": [
+            "track"
+          ],
+          "transitions": [
+            {
+              "run": "query.property('dread:state') == 'pursue'"
+            },
+            {
+              "search": "query.property('dread:state') == 'search'"
+            },
+            {
+              "idle": "query.modified_move_speed < 0.015 || query.property('dread:state') == 'retreat'"
+            }
+          ],
+          "blend_transition": 0.35
+        },
+        "search": {
+          "animations": [
+            "search"
+          ],
+          "transitions": [
+            {
+              "run": "query.property('dread:state') == 'pursue'"
+            },
+            {
+              "idle": "!(query.property('dread:state') == 'search')"
+            }
+          ],
+          "blend_transition": 0.4
+        },
+        "run": {
+          "animations": [
+            "run"
+          ],
+          "transitions": [
+            {
+              "idle": "!(query.property('dread:state') == 'pursue')"
+            }
+          ],
+          "blend_transition": 0.2
+        }
+      }
+    },
+    "controller.animation.dread.gaunt.action": {
+      "initial_state": "none",
+      "states": {
+        "none": {
+          "transitions": [
+            {
+              "attack": "query.property('dread:action') == 'attack'"
+            },
+            {
+              "roar": "query.property('dread:action') == 'roar'"
+            },
+            {
+              "burrow": "query.property('dread:action') == 'burrow'"
+            },
+            {
+              "hurt": "query.property('dread:action') == 'hurt'"
+            }
+          ]
+        },
+        "attack": {
+          "animations": [
+            "attack"
+          ],
+          "transitions": [
+            {
+              "none": "query.all_animations_finished"
+            }
+          ],
+          "blend_transition": 0.05
+        },
+        "roar": {
+          "animations": [
+            "roar"
+          ],
+          "transitions": [
+            {
+              "none": "query.all_animations_finished"
+            }
+          ],
+          "blend_transition": 0.1
+        },
+        "hurt": {
+          "animations": [
+            "hurt"
+          ],
+          "transitions": [
+            {
+              "none": "query.all_animations_finished"
+            }
+          ],
+          "blend_transition": 0.03
+        },
+        "burrow": {
+          "animations": [
+            "burrow"
+          ]
+        }
+      }
+    }
+  }
+}

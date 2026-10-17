@@ -21,10 +21,12 @@ const SOUND: Record<Exclude<AmbientKind, "heartbeat">, string> = {
   lurker_step: "dread.lurker.step_stalk",
   lurker_creak: "dread.lurker.joint_creak",
   lurker_scrape: "dread.lurker.scrape",
+  gaunt_scrape: "dread.gaunt.claw_scrape",
+  gaunt_sniff: "dread.gaunt.sniff",
 };
 
 /** Sudden or close sounds get an extra scale from the player's jumpscare-intensity setting. */
-const LOUD = new Set<string>(["pressure_drop", "lurker_breath", "distant_cry", "notice", "chase_vocal"]);
+const LOUD = new Set<string>(["pressure_drop", "lurker_breath", "distant_cry", "notice", "chase_vocal", "vocal"]);
 
 export function soundVolume(base: number, kind: string, cfg: DreadConfig): number {
   const master = cfg.soundIntensity / 100;
@@ -71,8 +73,8 @@ export function playAmbient(p: Player, a: Ambient, cfg: DreadConfig, rng: Rng, s
   safe(() => p.playSound(id, { volume: soundVolume(a.volume, a.kind, cfg), pitch: 1, ...(loc ? { location: loc } : {}) }), undefined);
 }
 
-/** Plays a one-off Lurker sound for one player at a world position. */
-export function playLurkerSound(p: Player, name: string, at: Vec3, baseVolume: number, cfg: DreadConfig): void {
+/** Plays a one-off creature sound for one player at a world position. */
+export function playCreatureSound(p: Player, creature: "lurker" | "gaunt", name: string, at: Vec3, baseVolume: number, cfg: DreadConfig): void {
   if (cfg.soundIntensity <= 0) return;
-  safe(() => p.playSound(`dread.lurker.${name}`, { volume: soundVolume(baseVolume, name, cfg), pitch: 1, location: at }), undefined);
+  safe(() => p.playSound(`dread.${creature}.${name}`, { volume: soundVolume(baseVolume, name, cfg), pitch: 1, location: at }), undefined);
 }

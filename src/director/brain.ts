@@ -1,7 +1,7 @@
 import { chance, clamp, pickWeighted, range, type Rng } from "../util/rng";
 import { EVENTS, repetitionFactor, type AmbientEvent } from "./events";
 import { updateStress } from "./stress";
-import type { Action, Brain, DirectorState, EncounterRecord, Memory, Snapshot } from "./types";
+import type { Action, Brain, Creature, DirectorState, EncounterRecord, Memory, Snapshot } from "./types";
 
 /**
  * The Horror Director's per-player brain: a six-state machine (dormant, unease, observation, escalation,
@@ -32,6 +32,7 @@ interface Timers {
   observationSpawns: number;
   noticedThisPhase: number;
   respawnLurkerAt: number; // when to place a replacement observer (0 = none)
+  active?: Creature; // which creature the last spawn sent
   pendingHuntRetreat: boolean;
   lastTickT: number;
 }
@@ -127,13 +128,14 @@ export class DirectorBrain implements Brain {
   // -- main step ----------------------------------------------------------------------------
   step(s: Snapshot): Action[] {
     const out: Action[] = [];
+    if (s.ownCreatures === 0 && this.memory.state !== "observation" && this.memory.state !== "escalation" && this.memory.state !== "hunt") this.tm.active = undefined;
     const dt = clamp(s.t - this.tm.lastTickT, 0, 30);
     this.tm.lastTickT = s.t;
     this.memory.stress = updateStress(this.memory.stress, s, dt);
     // Dread: encounter-driven build-up. Decays with a ~3 minute half-life (3x faster in recovery / safe places).
     const calm = this.memory.state === "recovery" || s.lit || s.nearHome;
     this.memory.dread *= Math.exp(-dt / (calm ? 90 : 260));
-    if (this.memory.state === "escalation" && s.ownLurkers > 0) this.memory.dread = Math.min(100, this.memory.dread + 0.6 * dt);
+    if (this.memory.state === "escalation" && s.ownCreatures > 0) this.memory.dread = Math.min(100, this.memory.dread + 0.6 * dt);
 
     const block = blockedReason(s, this.memory, false);
     if (block) {
@@ -145,6 +147,12 @@ export class DirectorBrain implements Brain {
       return out;
     }
 
+    this.dispatch(s, out);
+    for (const a of out) if (a.type === "spawnCreature") this.tm.active = a.creature;
+    return out;
+  }
+
+  private dispatch(s: Snapshot, out: Action[]): void {
     switch (this.memory.state) {
       case "dormant": this.stepDormant(s, out); break;
       case "unease": this.stepUnease(s, out); break;
@@ -153,7 +161,6 @@ export class DirectorBrain implements Brain {
       case "hunt": this.stepHunt(s, out); break;
       case "recovery": this.stepRecovery(s, out); break;
     }
-    return out;
   }
 
   // -- states -------------------------------------------------------------------------------
@@ -177,7 +184,7 @@ export class DirectorBrain implements Brain {
 
     const age = s.t - (this.tm.stateEndsAt - this.durationFor("unease", s.t));
     const dark = night(s) || !s.skyVisible;
-    const eligible = dark && this.memory.stress >= 25 && s.companions <= 1 && !blockedReason(s, this.memory, false) && s.globalActiveLurkers < TUNING.globalLurkerCap;
+    const eligible = dark && this.memory.stress >= 25 && s.companions <= 1 && !blockedReason(s, this.memory, false) && s.globalActiveCreatures < TUNING.globalLurkerCap;
     if (age > 120 && eligible && chance(this.rng, 0.17 * pace(s))) {
       if (chance(this.rng, 0.4)) out.push({ type: "ambient", kind: "pressure_drop", bearing: "around", distance: 1, volume: 0.8 });
       this.enter("observation", s.worldSec, s.t);
@@ -189,11 +196,11 @@ export class DirectorBrain implements Brain {
 
   private stepObservation(s: Snapshot, out: Action[]): void {
     this.ambientTick(s, out);
-    if (this.tm.respawnLurkerAt > 0 && s.t >= this.tm.respawnLurkerAt && s.ownLurkers === 0) {
+    if (this.tm.respawnLurkerAt > 0 && s.t >= this.tm.respawnLurkerAt && s.ownCreatures === 0) {
       this.tm.respawnLurkerAt = 0;
-      if (s.globalActiveLurkers < TUNING.globalLurkerCap) {
+      if (s.globalActiveCreatures < TUNING.globalLurkerCap) {
         this.tm.observationSpawns++;
-        out.push({ type: "spawnLurker", tactic: "observe", minDist: 26, maxDist: 42 });
+        out.push({ type: "spawnCreature", creature: "lurker", tactic: "observe", minDist: 26, maxDist: 42 });
         this.log("observe_spawn", s.worldSec);
       }
     }
@@ -204,16 +211,16 @@ export class DirectorBrain implements Brain {
     const fatigue = this.tm.noticedThisPhase >= 2 || this.memory.noticedCount >= 4 && this.memory.stress >= 45;
     if ((wantsMore || fatigue) && chance(this.rng, 0.35)) {
       this.enter("escalation", s.worldSec, s.t);
-      if (s.ownLurkers > 0) out.push({ type: "setTactic", tactic: "stalk" });
-      else out.push({ type: "spawnLurker", tactic: "stalk", minDist: 24, maxDist: 34 });
+      if (s.ownCreatures > 0) out.push({ type: "setTactic", tactic: "stalk" });
+      else out.push({ type: "spawnCreature", creature: this.pickHunter(s), tactic: "stalk", minDist: 24, maxDist: 34 });
       return;
     }
     if (s.t >= this.tm.stateEndsAt) {
       // The player never noticed it: sometimes it grows bolder, otherwise it loses interest.
       if (chance(this.rng, 0.45) && this.memory.stress >= 35 && !blockedReason(s, this.memory, false)) {
         this.enter("escalation", s.worldSec, s.t);
-        if (s.ownLurkers > 0) out.push({ type: "setTactic", tactic: "stalk" });
-        else out.push({ type: "spawnLurker", tactic: "stalk", minDist: 24, maxDist: 34 });
+        if (s.ownCreatures > 0) out.push({ type: "setTactic", tactic: "stalk" });
+        else out.push({ type: "spawnCreature", creature: this.pickHunter(s), tactic: "stalk", minDist: 24, maxDist: 34 });
       } else {
         out.push({ type: "retreatLurkers", reason: "lost-interest" });
         this.enter("recovery", s.worldSec, s.t);
@@ -263,7 +270,7 @@ export class DirectorBrain implements Brain {
       this.onHuntEnded(s.worldSec, true);
       return;
     }
-    if (s.ownLurkers === 0 && age > 8) this.onHuntEnded(s.worldSec, true); // lurker gave up or was killed
+    if (s.ownCreatures === 0 && age > 8) this.onHuntEnded(s.worldSec, true); // lurker gave up or was killed
   }
 
   private stepRecovery(s: Snapshot, out: Action[]): void {
@@ -273,6 +280,16 @@ export class DirectorBrain implements Brain {
       if (this.memory.stress > 18 && chance(this.rng, 0.35)) this.fireEvent(s, out, ["snap_behind", "rustle_side", "door_far", "groan"]);
     }
     if (s.t >= this.tm.stateEndsAt) this.enter("dormant", s.worldSec, s.t);
+  }
+
+  /**
+   * Which creature escalates. The Lurker is always met first (it is the one that watches); once the player has
+   * spotted it a couple of times the Gaunt can take over, more often underground, so the player cannot learn one
+   * routine and rely on it.
+   */
+  private pickHunter(s: Snapshot): Creature {
+    if (this.memory.noticedCount < 2) return "lurker";
+    return chance(this.rng, s.skyVisible ? 0.3 : 0.55) ? "gaunt" : "lurker";
   }
 
   // -- shared machinery ---------------------------------------------------------------------
@@ -291,14 +308,14 @@ export class DirectorBrain implements Brain {
       e.states.includes(this.memory.state) &&
       (!onlyIds || onlyIds.includes(e.id)) &&
       s.t - (this.tm.lastEvent.get(e.id) ?? -1e9) >= e.cooldown &&
-      e.weight(s, stress) > 0);
-    const ev = pickWeighted(this.rng, candidates, (e) => e.weight(s, stress) * repetitionFactor(e.id, this.memory.history, s.worldSec));
+      e.weight(s, stress, this.tm.active) > 0);
+    const ev = pickWeighted(this.rng, candidates, (e) => e.weight(s, stress, this.tm.active) * repetitionFactor(e.id, this.memory.history, s.worldSec));
     if (!ev) return;
     this.tm.lastEvent.set(ev.id, s.t);
     this.log(ev.id, s.worldSec);
     for (const a of ev.build(this.rng, s)) out.push(a);
     // Every anomaly leaves a mark: close-range Lurker cues unsettle far more than distant noises.
-    const close = ev.id.startsWith("lurker_");
+    const close = ev.id.startsWith("lurker_") || ev.id.startsWith("gaunt_");
     this.memory.stress = clamp(this.memory.stress + (close ? 2.2 : 1.0), 0, 100);
     this.memory.dread = clamp(this.memory.dread + (close ? 7 : 3), 0, 100);
   }
@@ -318,7 +335,8 @@ export class DirectorBrain implements Brain {
   private durationFor(state: DirectorState, _t: number): number {
     const r = this.rng;
     switch (state) {
-      case "dormant": return range(r, 150, 420) * (1.25 - this.memory.stress / 160);
+      // long-tailed: usually a few minutes, occasionally much longer, so quiet never has a predictable length
+      case "dormant": return range(r, 150, 420) * (0.55 + r.next() * r.next() * 1.6) * (1.25 - this.memory.stress / 160);
       case "unease": return range(r, 150, 420);
       case "observation": return range(r, 90, 300);
       case "escalation": return range(r, 120, 330);

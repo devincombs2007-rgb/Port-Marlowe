@@ -6,7 +6,7 @@ export type Ctx = Partial<Snapshot>;
 export const base = (over: Ctx = {}): Snapshot => ({
   t: 0, worldSec: 100000, playerId: "p1", dimension: "overworld", timeOfDay: 18000, gameMode: "survival", peaceful: false,
   health: 20, maxHealth: 20, sinceHurt: 9999, sinceRespawn: 9999, skyVisible: false, lit: false, nearHome: false, inWater: false,
-  sleeping: false, companions: 0, idleFor: 0, globalActiveLurkers: 0, ownLurkers: 0,
+  sleeping: false, companions: 0, idleFor: 0, globalActiveCreatures: 0, ownCreatures: 0,
   settings: { enabled: true, effects: "balanced", intensity: 60 }, ...over,
 });
 
@@ -36,16 +36,16 @@ export function simulate(seed: number, hours: number, ctx: (t: number) => Ctx, o
   let stateStart = 0;
   let huntStart = -1;
   for (let t = 1; t <= hours * 3600; t++) {
-    const snap = base({ t, worldSec: 100000 + t, ...ctx(t), ownLurkers: lurker ? 1 : 0, globalActiveLurkers: lurker ? 1 : 0 });
+    const snap = base({ t, worldSec: 100000 + t, ...ctx(t), ownCreatures: lurker ? 1 : 0, globalActiveCreatures: lurker ? 1 : 0 });
     const stateBefore = brain.memory.state;
     const memBefore = { ...brain.memory };
     const acts = brain.step(snap);
     for (const a of acts) {
       res.actions.push({ t, a, state: brain.memory.state });
       if (a.type === "ambient") res.events[a.kind] = (res.events[a.kind] ?? 0) + 1;
-      const hostile = a.type === "spawnLurker" || (a.type === "setTactic" && a.tactic !== "observe");
+      const hostile = a.type === "spawnCreature" || (a.type === "setTactic" && a.tactic !== "observe");
       if (hostile && blockedReason(snap, memBefore, a.type === "setTactic" && a.tactic === "hunt")) res.hostileWhileBlocked++;
-      if (a.type === "spawnLurker") lurker = { tactic: a.tactic, since: t, noticeAt: t + 20 + world.next() * 80 };
+      if (a.type === "spawnCreature") lurker = { tactic: a.tactic, since: t, noticeAt: t + 20 + world.next() * 80 };
       if (a.type === "setTactic" && lurker) {
         lurker.tactic = a.tactic;
         lurker.since = t;

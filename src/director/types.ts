@@ -31,10 +31,10 @@ export interface Snapshot {
   companions: number;
   /** Seconds the player has been continuously moving vs standing (activity cue), 0..N. */
   idleFor: number;
-  /** Number of Lurkers (any player) currently alive, for global caps. */
-  globalActiveLurkers: number;
-  /** Lurkers currently assigned to this player. */
-  ownLurkers: number;
+  /** Creatures (any player) currently alive, for global caps. */
+  globalActiveCreatures: number;
+  /** Creatures currently assigned to this player. */
+  ownCreatures: number;
   /** Player's settings. */
   settings: { enabled: boolean; effects: "performance" | "balanced" | "cinematic"; intensity: number };
 }
@@ -42,15 +42,16 @@ export interface Snapshot {
 export type AmbientKind =
   | "branch_snap" | "leaves_rustle" | "door_creak" | "structure_groan" | "drag" | "murmur"
   | "distant_cry" | "heartbeat" | "pressure_drop" | "footsteps_far" | "lurker_breath" | "lurker_step"
-  | "lurker_creak" | "lurker_scrape";
+  | "lurker_creak" | "lurker_scrape" | "gaunt_scrape" | "gaunt_sniff";
 
 export type Bearing = "behind" | "left" | "right" | "front_far" | "around";
 
 export type Tactic = "observe" | "stalk" | "hunt";
+export type Creature = "lurker" | "gaunt";
 
 export type Action =
   | { type: "ambient"; kind: AmbientKind; bearing: Bearing; distance: number; volume: number }
-  | { type: "spawnLurker"; tactic: Tactic; minDist: number; maxDist: number }
+  | { type: "spawnCreature"; creature: Creature; tactic: Tactic; minDist: number; maxDist: number }
   | { type: "setTactic"; tactic: Tactic }
   | { type: "retreatLurkers"; reason: string }
   | { type: "stress"; amount: number }

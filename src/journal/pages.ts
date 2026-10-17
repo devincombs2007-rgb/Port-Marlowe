@@ -106,6 +106,26 @@ export const PAGES: readonly Page[] = [
       "I have stopped telling the port about it. I do not think they would come again.",
     lesson: "Travelling together keeps it at a distance. It prefers people who are alone.",
   },
+  {
+    id: "gaunt",
+    title: "XI. The low one",
+    text:
+      "There is a second thing, and it is nothing like the first. Low to the ground, on arms like a man's legs, " +
+      "and no eyes at all, only that long white skull swinging back and forth over my footprints.\n\n" +
+      "It was not looking for me. It was looking for where I had been. It followed the exact line I had walked " +
+      "that morning, stopping where I had stopped, tasting the air where I had stood to light my pipe.",
+    lesson: "The low one follows the path you walked, not where you are. It is hunting your trail.",
+  },
+  {
+    id: "scent",
+    title: "XII. Losing it",
+    text:
+      "Crossed the river at the ford and waited on the far bank with my heart in my teeth. It came down to the " +
+      "water, put its face in the shallows, and stood there a long while. Then it went back into the ground the " +
+      "way a mole does.\n\nWater takes the scent. So does woodsmoke, I think. And when I crept, bent double, it " +
+      "lost me twice in the same hour.",
+    lesson: "Water and campfire smoke wash your trail away. Sneaking leaves almost none. Doors stop it.",
+  },
 ];
 
 export const PAGE_IDS = PAGES.map((p) => p.id);

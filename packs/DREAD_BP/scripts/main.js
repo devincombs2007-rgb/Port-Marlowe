@@ -115,6 +115,7 @@ var AMBIENT_EVENTS = [
   "pressure_drop",
   "footsteps_far"
 ];
+var GAUNT_EVENTS = ["step", "breath", "sniff", "vocal", "attack", "hurt", "death", "burrow", "claw_scrape"];
 function ringPosition(player, step) {
   const view = player.getViewDirection();
   const base = Math.atan2(-view.z, -view.x);
@@ -124,9 +125,9 @@ function ringPosition(player, step) {
 }
 function playSoundTest(player, arg) {
   if (!player) return;
-  const ids = arg === "all" || arg === "" ? LURKER_EVENTS.map((n) => `dread.lurker.${n}`) : arg === "ambient" ? AMBIENT_EVENTS.map((n) => `dread.ambient.${n}`) : arg.split(/\s+/).flatMap((n) => LURKER_EVENTS.includes(n) ? [`dread.lurker.${n}`] : AMBIENT_EVENTS.includes(n) ? [`dread.ambient.${n}`] : []);
+  const ids = arg === "all" || arg === "" ? LURKER_EVENTS.map((n) => `dread.lurker.${n}`) : arg === "ambient" ? AMBIENT_EVENTS.map((n) => `dread.ambient.${n}`) : arg === "gaunt" ? GAUNT_EVENTS.map((n) => `dread.gaunt.${n}`) : arg.split(/\s+/).flatMap((n) => LURKER_EVENTS.includes(n) ? [`dread.lurker.${n}`] : AMBIENT_EVENTS.includes(n) ? [`dread.ambient.${n}`] : []);
   if (ids.length === 0) {
-    tell(`Usage: dread:sound all | ambient | <${[...LURKER_EVENTS, ...AMBIENT_EVENTS].join("|")}>`, player);
+    tell(`Usage: dread:sound all | ambient | gaunt | <${[...LURKER_EVENTS, ...AMBIENT_EVENTS].join("|")}>`, player);
     return;
   }
   tell(`Playing ${ids.length} sound(s), 3 s apart, circling you from behind.`, player);
@@ -258,29 +259,43 @@ var EVENTS = [
     id: "lurker_breath",
     states: NEAR_STATES,
     cooldown: 80,
-    weight: (_s, st) => st >= 40 ? 2 : 0,
+    weight: (_s, st, act) => st >= 40 && act !== "gaunt" ? 2 : 0,
     build: (rng3) => [amb("lurker_breath", "behind", range(rng3, 4, 8), 0.8)]
   },
   {
     id: "lurker_creak",
     states: NEAR_STATES,
     cooldown: 90,
-    weight: (_s, st) => st >= 35 ? 1.6 : 0,
+    weight: (_s, st, act) => st >= 35 && act !== "gaunt" ? 1.6 : 0,
     build: (rng3) => [amb("lurker_creak", pickBearing(rng3, ["left", "right", "behind"]), range(rng3, 6, 12), 0.8)]
   },
   {
     id: "lurker_scrape",
     states: NEAR_STATES,
     cooldown: 130,
-    weight: (s) => outdoors(s) ? 1.8 : 1,
+    weight: (s, _st, act) => act === "gaunt" ? 0 : outdoors(s) ? 1.8 : 1,
     build: (rng3) => [amb("lurker_scrape", pickBearing(rng3, ["left", "right", "front_far"]), range(rng3, 9, 16), 0.8)]
   },
   {
     id: "lurker_steps",
     states: ["escalation"],
     cooldown: 75,
-    weight: (_s, st) => st >= 45 ? 2.2 : 0,
+    weight: (_s, st, act) => st >= 45 && act !== "gaunt" ? 2.2 : 0,
     build: (rng3) => [amb("lurker_step", "behind", range(rng3, 6, 12), 0.7), chance(rng3, 0.5) ? amb("lurker_step", "behind", range(rng3, 5, 9), 0.7) : { type: "note", text: "single step" }]
+  },
+  {
+    id: "gaunt_scrape",
+    states: ["escalation"],
+    cooldown: 70,
+    weight: (s, _st, act) => act === "gaunt" ? s.skyVisible ? 1.6 : 2.6 : 0,
+    build: (rng3) => [amb("gaunt_scrape", pickBearing(rng3, ["behind", "left", "right"]), range(rng3, 10, 20), 0.8)]
+  },
+  {
+    id: "gaunt_sniff",
+    states: ["escalation"],
+    cooldown: 60,
+    weight: (_s, st, act) => act === "gaunt" && st >= 35 ? 2.4 : 0,
+    build: (rng3) => [amb("gaunt_sniff", "behind", range(rng3, 8, 16), 0.9)]
   }
 ];
 function repetitionFactor(id, history, worldSec2) {
@@ -430,12 +445,13 @@ var DirectorBrain = class {
   // -- main step ----------------------------------------------------------------------------
   step(s) {
     const out = [];
+    if (s.ownCreatures === 0 && this.memory.state !== "observation" && this.memory.state !== "escalation" && this.memory.state !== "hunt") this.tm.active = void 0;
     const dt = clamp(s.t - this.tm.lastTickT, 0, 30);
     this.tm.lastTickT = s.t;
     this.memory.stress = updateStress(this.memory.stress, s, dt);
     const calm = this.memory.state === "recovery" || s.lit || s.nearHome;
     this.memory.dread *= Math.exp(-dt / (calm ? 90 : 260));
-    if (this.memory.state === "escalation" && s.ownLurkers > 0) this.memory.dread = Math.min(100, this.memory.dread + 0.6 * dt);
+    if (this.memory.state === "escalation" && s.ownCreatures > 0) this.memory.dread = Math.min(100, this.memory.dread + 0.6 * dt);
     const block = blockedReason(s, this.memory, false);
     if (block) {
       if (this.memory.state !== "dormant" && this.memory.state !== "recovery") {
@@ -444,6 +460,11 @@ var DirectorBrain = class {
       }
       return out;
     }
+    this.dispatch(s, out);
+    for (const a of out) if (a.type === "spawnCreature") this.tm.active = a.creature;
+    return out;
+  }
+  dispatch(s, out) {
     switch (this.memory.state) {
       case "dormant":
         this.stepDormant(s, out);
@@ -464,7 +485,6 @@ var DirectorBrain = class {
         this.stepRecovery(s, out);
         break;
     }
-    return out;
   }
   // -- states -------------------------------------------------------------------------------
   stepDormant(s, out) {
@@ -484,7 +504,7 @@ var DirectorBrain = class {
     this.tm.nextCheckAt = s.t + 10;
     const age = s.t - (this.tm.stateEndsAt - this.durationFor("unease", s.t));
     const dark = night2(s) || !s.skyVisible;
-    const eligible = dark && this.memory.stress >= 25 && s.companions <= 1 && !blockedReason(s, this.memory, false) && s.globalActiveLurkers < TUNING.globalLurkerCap;
+    const eligible = dark && this.memory.stress >= 25 && s.companions <= 1 && !blockedReason(s, this.memory, false) && s.globalActiveCreatures < TUNING.globalLurkerCap;
     if (age > 120 && eligible && chance(this.rng, 0.17 * pace(s))) {
       if (chance(this.rng, 0.4)) out.push({ type: "ambient", kind: "pressure_drop", bearing: "around", distance: 1, volume: 0.8 });
       this.enter("observation", s.worldSec, s.t);
@@ -495,11 +515,11 @@ var DirectorBrain = class {
   }
   stepObservation(s, out) {
     this.ambientTick(s, out);
-    if (this.tm.respawnLurkerAt > 0 && s.t >= this.tm.respawnLurkerAt && s.ownLurkers === 0) {
+    if (this.tm.respawnLurkerAt > 0 && s.t >= this.tm.respawnLurkerAt && s.ownCreatures === 0) {
       this.tm.respawnLurkerAt = 0;
-      if (s.globalActiveLurkers < TUNING.globalLurkerCap) {
+      if (s.globalActiveCreatures < TUNING.globalLurkerCap) {
         this.tm.observationSpawns++;
-        out.push({ type: "spawnLurker", tactic: "observe", minDist: 26, maxDist: 42 });
+        out.push({ type: "spawnCreature", creature: "lurker", tactic: "observe", minDist: 26, maxDist: 42 });
         this.log("observe_spawn", s.worldSec);
       }
     }
@@ -509,15 +529,15 @@ var DirectorBrain = class {
     const fatigue = this.tm.noticedThisPhase >= 2 || this.memory.noticedCount >= 4 && this.memory.stress >= 45;
     if ((wantsMore || fatigue) && chance(this.rng, 0.35)) {
       this.enter("escalation", s.worldSec, s.t);
-      if (s.ownLurkers > 0) out.push({ type: "setTactic", tactic: "stalk" });
-      else out.push({ type: "spawnLurker", tactic: "stalk", minDist: 24, maxDist: 34 });
+      if (s.ownCreatures > 0) out.push({ type: "setTactic", tactic: "stalk" });
+      else out.push({ type: "spawnCreature", creature: this.pickHunter(s), tactic: "stalk", minDist: 24, maxDist: 34 });
       return;
     }
     if (s.t >= this.tm.stateEndsAt) {
       if (chance(this.rng, 0.45) && this.memory.stress >= 35 && !blockedReason(s, this.memory, false)) {
         this.enter("escalation", s.worldSec, s.t);
-        if (s.ownLurkers > 0) out.push({ type: "setTactic", tactic: "stalk" });
-        else out.push({ type: "spawnLurker", tactic: "stalk", minDist: 24, maxDist: 34 });
+        if (s.ownCreatures > 0) out.push({ type: "setTactic", tactic: "stalk" });
+        else out.push({ type: "spawnCreature", creature: this.pickHunter(s), tactic: "stalk", minDist: 24, maxDist: 34 });
       } else {
         out.push({ type: "retreatLurkers", reason: "lost-interest" });
         this.enter("recovery", s.worldSec, s.t);
@@ -559,7 +579,7 @@ var DirectorBrain = class {
       this.onHuntEnded(s.worldSec, true);
       return;
     }
-    if (s.ownLurkers === 0 && age > 8) this.onHuntEnded(s.worldSec, true);
+    if (s.ownCreatures === 0 && age > 8) this.onHuntEnded(s.worldSec, true);
   }
   stepRecovery(s, out) {
     if (s.t >= this.tm.nextEventAt) {
@@ -567,6 +587,15 @@ var DirectorBrain = class {
       if (this.memory.stress > 18 && chance(this.rng, 0.35)) this.fireEvent(s, out, ["snap_behind", "rustle_side", "door_far", "groan"]);
     }
     if (s.t >= this.tm.stateEndsAt) this.enter("dormant", s.worldSec, s.t);
+  }
+  /**
+   * Which creature escalates. The Lurker is always met first (it is the one that watches); once the player has
+   * spotted it a couple of times the Gaunt can take over, more often underground, so the player cannot learn one
+   * routine and rely on it.
+   */
+  pickHunter(s) {
+    if (this.memory.noticedCount < 2) return "lurker";
+    return chance(this.rng, s.skyVisible ? 0.3 : 0.55) ? "gaunt" : "lurker";
   }
   // -- shared machinery ---------------------------------------------------------------------
   ambientTick(s, out) {
@@ -578,13 +607,13 @@ var DirectorBrain = class {
   }
   fireEvent(s, out, onlyIds) {
     const stress = this.memory.stress;
-    const candidates = EVENTS.filter((e) => e.states.includes(this.memory.state) && (!onlyIds || onlyIds.includes(e.id)) && s.t - (this.tm.lastEvent.get(e.id) ?? -1e9) >= e.cooldown && e.weight(s, stress) > 0);
-    const ev = pickWeighted(this.rng, candidates, (e) => e.weight(s, stress) * repetitionFactor(e.id, this.memory.history, s.worldSec));
+    const candidates = EVENTS.filter((e) => e.states.includes(this.memory.state) && (!onlyIds || onlyIds.includes(e.id)) && s.t - (this.tm.lastEvent.get(e.id) ?? -1e9) >= e.cooldown && e.weight(s, stress, this.tm.active) > 0);
+    const ev = pickWeighted(this.rng, candidates, (e) => e.weight(s, stress, this.tm.active) * repetitionFactor(e.id, this.memory.history, s.worldSec));
     if (!ev) return;
     this.tm.lastEvent.set(ev.id, s.t);
     this.log(ev.id, s.worldSec);
     for (const a of ev.build(this.rng, s)) out.push(a);
-    const close = ev.id.startsWith("lurker_");
+    const close = ev.id.startsWith("lurker_") || ev.id.startsWith("gaunt_");
     this.memory.stress = clamp(this.memory.stress + (close ? 2.2 : 1), 0, 100);
     this.memory.dread = clamp(this.memory.dread + (close ? 7 : 3), 0, 100);
   }
@@ -602,8 +631,9 @@ var DirectorBrain = class {
   durationFor(state, _t) {
     const r = this.rng;
     switch (state) {
+      // long-tailed: usually a few minutes, occasionally much longer, so quiet never has a predictable length
       case "dormant":
-        return range(r, 150, 420) * (1.25 - this.memory.stress / 160);
+        return range(r, 150, 420) * (0.55 + r.next() * r.next() * 1.6) * (1.25 - this.memory.stress / 160);
       case "unease":
         return range(r, 150, 420);
       case "observation":
@@ -797,9 +827,11 @@ var SOUND = {
   lurker_breath: "dread.lurker.breath_idle",
   lurker_step: "dread.lurker.step_stalk",
   lurker_creak: "dread.lurker.joint_creak",
-  lurker_scrape: "dread.lurker.scrape"
+  lurker_scrape: "dread.lurker.scrape",
+  gaunt_scrape: "dread.gaunt.claw_scrape",
+  gaunt_sniff: "dread.gaunt.sniff"
 };
-var LOUD = /* @__PURE__ */ new Set(["pressure_drop", "lurker_breath", "distant_cry", "notice", "chase_vocal"]);
+var LOUD = /* @__PURE__ */ new Set(["pressure_drop", "lurker_breath", "distant_cry", "notice", "chase_vocal", "vocal"]);
 function soundVolume(base, kind, cfg) {
   const master = cfg.soundIntensity / 100;
   const shock = LOUD.has(kind) ? 0.25 + 0.75 * (cfg.jumpscareIntensity / 100) : 1;
@@ -849,9 +881,9 @@ function playAmbient(p, a, cfg, rng3, stress) {
   const loc = a.kind === "pressure_drop" ? void 0 : bearingToPosition(p, a.bearing, a.distance, rng3);
   safe(() => p.playSound(id, { volume: soundVolume(a.volume, a.kind, cfg), pitch: 1, ...loc ? { location: loc } : {} }), void 0);
 }
-function playLurkerSound(p, name, at, baseVolume, cfg) {
+function playCreatureSound(p, creature, name, at, baseVolume, cfg) {
   if (cfg.soundIntensity <= 0) return;
-  safe(() => p.playSound(`dread.lurker.${name}`, { volume: soundVolume(baseVolume, name, cfg), pitch: 1, location: at }), void 0);
+  safe(() => p.playSound(`dread.${creature}.${name}`, { volume: soundVolume(baseVolume, name, cfg), pitch: 1, location: at }), void 0);
 }
 
 // src/game/atmosphere.ts
@@ -945,6 +977,18 @@ var PAGES = [
     title: "X. Company",
     text: "Two men from the port came up to help with the chain. While they were here I heard nothing. Not a twig. The night they left it was back at the treeline before the fire had settled.\n\nIt does not like witnesses. I have stopped telling the port about it. I do not think they would come again.",
     lesson: "Travelling together keeps it at a distance. It prefers people who are alone."
+  },
+  {
+    id: "gaunt",
+    title: "XI. The low one",
+    text: "There is a second thing, and it is nothing like the first. Low to the ground, on arms like a man's legs, and no eyes at all, only that long white skull swinging back and forth over my footprints.\n\nIt was not looking for me. It was looking for where I had been. It followed the exact line I had walked that morning, stopping where I had stopped, tasting the air where I had stood to light my pipe.",
+    lesson: "The low one follows the path you walked, not where you are. It is hunting your trail."
+  },
+  {
+    id: "scent",
+    title: "XII. Losing it",
+    text: "Crossed the river at the ford and waited on the far bank with my heart in my teeth. It came down to the water, put its face in the shallows, and stood there a long while. Then it went back into the ground the way a mole does.\n\nWater takes the scent. So does woodsmoke, I think. And when I crept, bent double, it lost me twice in the same hour.",
+    lesson: "Water and campfire smoke wash your trail away. Sneaking leaves almost none. Doors stop it."
   }
 ];
 var PAGE_IDS = PAGES.map((p) => p.id);
@@ -1122,8 +1166,195 @@ function heldLight(p) {
   }, false);
 }
 
-// src/game/lurkers.ts
+// src/game/creatures.ts
 import { system as system4, world as world5 } from "@minecraft/server";
+
+// src/gaunt/tactics.ts
+var GTUNING = {
+  maxLifetime: 480,
+  pursueMax: 60,
+  hitsToSatisfy: 2,
+  lostSightSearch: 6,
+  fleeHealth: 0.5,
+  playerHealthAbort: 6,
+  burrowTime: 1.6
+};
+var GauntTactics = class {
+  constructor(rng3, initial = "stalk") {
+    this.rng = rng3;
+    this.nextSniff = range(rng3, 3, 6);
+    if (initial === "hunt") this.to("search", this.pending);
+    else this.pending.push({ type: "group", event: "dread:set_pause" });
+  }
+  rng;
+  state = "track";
+  stateAge = 0;
+  moving = false;
+  phaseLeft = 0;
+  searchFor = 0;
+  unseenFor = 0;
+  lastMarkerDist = Infinity;
+  stallFor = 0;
+  stalls = 0;
+  roarLeft = 0;
+  sizeupLeft = 0;
+  burrowLeft = 0;
+  outcome = "retreat";
+  forced;
+  announced = false;
+  nextSniff;
+  pending = [];
+  forceRetreat(reason) {
+    if (this.state !== "gone" && this.state !== "burrow") this.forced = reason;
+  }
+  to(next, out) {
+    this.state = next;
+    this.stateAge = 0;
+    switch (next) {
+      case "track":
+        this.moving = false;
+        this.phaseLeft = 0;
+        break;
+      case "search":
+        this.searchFor = range(this.rng, 8, 16);
+        out.push({ type: "group", event: "dread:set_search" });
+        break;
+      case "pursue":
+        this.unseenFor = 0;
+        out.push({ type: "group", event: "dread:set_pursue" });
+        break;
+      case "roar":
+        this.roarLeft = 1.8;
+        out.push({ type: "group", event: "dread:set_pause" }, { type: "action", action: "roar" }, { type: "stress", amount: 6 });
+        break;
+      case "sizeup":
+        this.sizeupLeft = range(this.rng, 2, 3.5);
+        out.push({ type: "group", event: "dread:set_pause" }, { type: "sound", id: "breath", volume: 0.9, near: true }, { type: "stress", amount: 4 });
+        break;
+      case "burrow":
+        this.burrowLeft = GTUNING.burrowTime;
+        out.push({ type: "group", event: "dread:set_retreat" }, { type: "action", action: "burrow" });
+        break;
+      default:
+        break;
+    }
+  }
+  leave(outcome, out) {
+    this.outcome = outcome;
+    this.to("burrow", out);
+  }
+  seen(c, out) {
+    if (!c.sees) return false;
+    if (!this.announced) {
+      this.announced = true;
+      out.push({ type: "encounter", kind: "gaunt_seen" });
+    }
+    this.to(c.requested === "hunt" ? "roar" : "sizeup", out);
+    return true;
+  }
+  step(c) {
+    const out = this.pending.splice(0);
+    if (this.state === "gone") return out;
+    this.stateAge += c.dt;
+    if (this.forced && this.state !== "burrow") {
+      const r = this.forced;
+      this.forced = void 0;
+      this.leave(r, out);
+      return out;
+    }
+    if (c.age > GTUNING.maxLifetime && this.state !== "burrow") {
+      this.leave("lifetime", out);
+      return out;
+    }
+    switch (this.state) {
+      case "track":
+        this.stepTrack(c, out);
+        break;
+      case "sizeup":
+        this.sizeupLeft -= c.dt;
+        if (c.requested === "hunt") this.to("roar", out);
+        else if (this.sizeupLeft <= 0) this.leave("sized-up", out);
+        break;
+      case "roar":
+        this.roarLeft -= c.dt;
+        if (this.roarLeft <= 0) this.to("pursue", out);
+        break;
+      case "search":
+        this.stepSearch(c, out);
+        break;
+      case "pursue":
+        this.stepPursue(c, out);
+        break;
+      case "burrow":
+        this.burrowLeft -= c.dt;
+        if (this.burrowLeft <= 0) {
+          this.state = "gone";
+          out.push({ type: "vanish", outcome: this.outcome });
+        }
+        break;
+    }
+    return out;
+  }
+  stepTrack(c, out) {
+    if (this.seen(c, out)) return;
+    if (c.trailBroken && c.trailLeft === 0) return this.to("search", out);
+    this.phaseLeft -= c.dt;
+    if (this.phaseLeft <= 0) {
+      this.moving = !this.moving;
+      this.phaseLeft = this.moving ? range(this.rng, 2, 5) : range(this.rng, 1, 3);
+      out.push({ type: "group", event: this.moving ? "dread:set_track" : "dread:set_pause" });
+      if (!this.moving && chance(this.rng, 0.6)) out.push({ type: "sound", id: "sniff", volume: 0.9, near: false });
+    }
+    if (this.moving) {
+      if (c.markerDist < 2.2) {
+        if (c.trailLeft > 0) out.push({ type: "marker", op: "next" });
+        else return this.to("search", out);
+        this.stallFor = 0;
+        this.lastMarkerDist = Infinity;
+      } else if (c.markerDist < this.lastMarkerDist - 0.4) {
+        this.lastMarkerDist = c.markerDist;
+        this.stallFor = 0;
+      } else {
+        this.stallFor += c.dt;
+        if (this.stallFor > 6) {
+          this.stalls++;
+          this.stallFor = 0;
+          if (this.stalls >= 3) return this.leave("stuck", out);
+          if (c.trailLeft > 0) out.push({ type: "marker", op: "next" });
+        }
+      }
+    }
+  }
+  stepSearch(c, out) {
+    if (this.seen(c, out)) return;
+    this.nextSniff -= c.dt;
+    if (this.nextSniff <= 0) {
+      this.nextSniff = range(this.rng, 3, 6);
+      out.push({ type: "sound", id: "sniff", volume: 1, near: false });
+    }
+    if (this.stateAge >= this.searchFor) {
+      if (c.trailLeft > 0 && !c.trailBroken) this.to("track", out);
+      else this.leave("lost-scent", out);
+    }
+  }
+  stepPursue(c, out) {
+    const cap = c.gentle ? GTUNING.pursueMax * 0.6 : GTUNING.pursueMax;
+    if (c.playerHealth <= GTUNING.playerHealthAbort) return this.leave("player-hurt", out);
+    if (c.hits >= (c.gentle ? 1 : GTUNING.hitsToSatisfy)) return this.leave("satisfied", out);
+    if (c.hpFrac < GTUNING.fleeHealth) return this.leave("injured", out);
+    if (this.stateAge > cap) return this.leave("timeout", out);
+    if (c.dist > 64) return this.leave("lost", out);
+    if (c.playerInWater) {
+      out.push({ type: "marker", op: "lastSeen" });
+      return this.to("search", out);
+    }
+    this.unseenFor = c.sees ? 0 : this.unseenFor + c.dt;
+    if (this.unseenFor >= GTUNING.lostSightSearch) {
+      out.push({ type: "marker", op: "lastSeen" });
+      this.to("search", out);
+    }
+  }
+};
 
 // src/lurker/tactics.ts
 var LTUNING = {
@@ -1143,7 +1374,7 @@ var LurkerTactics = class {
     this.noticeNeeded = range(rng3, 0.8, 1.8);
     this.observeLimit = range(rng3, 50, 120);
     this.nextVocalIn = range(rng3, 8, 16);
-    if (initial !== "observe") this.switchTo(initial === "stalk" ? "stalk" : "hunt", []);
+    this.switchTo(initial === "observe" ? "observe" : initial === "stalk" ? "stalk" : "hunt", this.pending);
   }
   rng;
   state = "observe";
@@ -1161,6 +1392,8 @@ var LurkerTactics = class {
   nextVocalIn;
   huntAge = 0;
   afterNotice = "vanish";
+  /** Events produced before the first step (initial component group), flushed by step(). */
+  pending = [];
   switchTo(next, out) {
     this.state = next;
     this.stateAge = 0;
@@ -1192,7 +1425,7 @@ var LurkerTactics = class {
     out.push({ type: "vanish", outcome });
   }
   step(c) {
-    const out = [];
+    const out = this.pending.splice(0);
     if (this.state === "gone") return out;
     this.stateAge += c.dt;
     this.lightHold = c.playerLit ? this.lightHold + c.dt : Math.max(0, this.lightHold - c.dt * 0.5);
@@ -1317,90 +1550,280 @@ var LurkerTactics = class {
 };
 var lurkerGentle = (intensity) => clamp(intensity, 0, 100) < 35;
 
-// src/game/lurkers.ts
-var LURKER_TYPE = "dread:lurker";
+// src/game/trail.ts
+var CAP = 160;
+var SAMPLE_TICKS = 30;
+var trails = /* @__PURE__ */ new Map();
+function sampleTrail(p, now, nearFire) {
+  if (now % SAMPLE_TICKS !== 0) return;
+  let tr = trails.get(p.id);
+  if (!tr) {
+    tr = { points: [], seq: 0, sneakSkip: 0 };
+    trails.set(p.id, tr);
+  }
+  const loc = p.location;
+  const last = tr.points[tr.points.length - 1];
+  const inWater = safe(() => p.isInWater, false);
+  if (inWater || nearFire) {
+    if (last) last.brokenAfter = true;
+    return;
+  }
+  if (last && Math.hypot(loc.x - last.x, loc.z - last.z) < 1.5 && Math.abs(loc.y - last.y) < 1.5) return;
+  if (safe(() => p.isSneaking, false) && tr.sneakSkip++ % 4 !== 0) return;
+  tr.points.push({ x: loc.x, y: loc.y, z: loc.z, seq: ++tr.seq, t: now / 20, brokenAfter: false });
+  if (tr.points.length > CAP) tr.points.splice(0, tr.points.length - CAP);
+}
+function trailOf(playerId) {
+  return trails.get(playerId)?.points ?? [];
+}
+function pointBySeq(playerId, seq) {
+  return trailOf(playerId).find((p) => p.seq === seq);
+}
+function newestSeq(playerId) {
+  const pts = trailOf(playerId);
+  return pts.length ? pts[pts.length - 1].seq : 0;
+}
+function aheadOf(playerId, seq) {
+  let left = 0;
+  let next;
+  for (const p of trailOf(playerId)) {
+    if (p.seq < seq) continue;
+    if (p.seq === seq) {
+      if (p.brokenAfter) return { left: 0, broken: true };
+      continue;
+    }
+    left++;
+    next ??= p;
+    if (p.brokenAfter) return { left, broken: true, next };
+  }
+  return { left, broken: false, next };
+}
+function forgetTrail(playerId) {
+  trails.delete(playerId);
+}
+
+// src/game/creatures.ts
+var CREATURE_TYPE = { lurker: "dread:lurker", gaunt: "dread:gaunt" };
+var SCENT_TYPE = "dread:scent";
 var MANAGED_TAG = "dread_managed";
 var TICK_INTERVAL = 5;
 var DT = TICK_INTERVAL / 20;
 var registry = /* @__PURE__ */ new Map();
 var hooks;
 var rng = mathRng;
-function lurkerCount() {
-  return registry.size;
-}
-function lurkersOf(playerId) {
+var creatureCount = () => registry.size;
+function creaturesOf(playerId) {
   let n = 0;
   for (const r of registry.values()) if (r.playerId === playerId) n++;
   return n;
 }
-function initLurkers(h, r = mathRng) {
+function initCreatures(h, r = mathRng) {
   hooks = h;
   rng = r;
   system4.runInterval(tick, TICK_INTERVAL);
   system4.runInterval(adoptAndSweep, 200);
   world5.afterEvents.entityHurt.subscribe((e) => {
     const attacker = e.damageSource.damagingEntity;
-    if (!attacker || attacker.typeId !== LURKER_TYPE) return;
+    if (!attacker) return;
     const rec = registry.get(attacker.id);
     if (rec && e.hurtEntity.id === rec.playerId) rec.hits++;
   });
 }
-function spawnLurker(player, tactic, minDist, maxDist, underground) {
+function spawnCreature(player, creature, tactic, minDist, maxDist, underground) {
   if (!hooks) return false;
+  return creature === "gaunt" ? spawnGaunt(player, tactic) || spawnFallbackGaunt(player, tactic, underground) : spawnLurker(player, tactic, minDist, maxDist, underground);
+}
+function spawnLurker(player, tactic, minDist, maxDist, underground) {
   const pos = findVantage(player, minDist, maxDist, underground, rng);
   if (!pos) {
     debug(`no vantage found for ${tactic} Lurker`);
     return false;
   }
   return safe(() => {
-    const e = player.dimension.spawnEntity(LURKER_TYPE, pos);
+    const e = player.dimension.spawnEntity(CREATURE_TYPE.lurker, pos);
     e.addTag(MANAGED_TAG);
-    register(e, player.id, tactic);
+    registry.set(e.id, { kind: "lurker", entity: e, playerId: player.id, tactics: new LurkerTactics(rng, tactic), spawnedTick: system4.currentTick, hits: 0, actionSince: 0, wasHunting: tactic === "hunt" });
     face(e, player.location);
-    if (tactic !== "observe") e.triggerEvent(tactic === "stalk" ? "dread:set_stalk" : "dread:set_hunt");
     return true;
   }, false);
 }
-function register(e, playerId, initial) {
-  registry.set(e.id, {
-    entity: e,
-    playerId,
-    tactics: new LurkerTactics(rng, initial),
-    spawnedTick: system4.currentTick,
-    hits: 0,
-    actionSince: 0,
-    wasHunting: initial === "hunt"
-  });
+function spawnGaunt(player, tactic) {
+  const pts = trailOf(player.id);
+  const now = system4.currentTick / 20;
+  const candidates = pts.filter((p) => now - p.t >= 40 && now - p.t <= 90 && len(sub(p, player.location)) >= 18);
+  for (const p of [...candidates].sort(() => rng.next() - 0.5).slice(0, 8)) {
+    const spot = findStandingSpot(player.dimension, Math.floor(p.x), Math.floor(p.z), p.y, true);
+    if (!spot) continue;
+    const visible = safe(() => {
+      const eye = player.getHeadLocation();
+      const to = sub({ x: spot.x, y: spot.y + 1, z: spot.z }, eye);
+      return player.dimension.getBlockFromRay(eye, { x: to.x / len(to), y: to.y / len(to), z: to.z / len(to) }, { maxDistance: len(to) - 1, includePassableBlocks: false, includeLiquidBlocks: false }) === void 0;
+    }, true);
+    if (visible) continue;
+    return placeGaunt(player, spot, p.seq + 1, tactic);
+  }
+  return false;
+}
+function spawnFallbackGaunt(player, tactic, underground) {
+  const pos = findVantage(player, 26, 36, underground, rng);
+  return pos ? placeGaunt(player, pos, newestSeq(player.id), tactic) : false;
+}
+function placeGaunt(player, pos, markerSeq, tactic) {
+  return safe(() => {
+    const e = player.dimension.spawnEntity(CREATURE_TYPE.gaunt, pos);
+    e.addTag(MANAGED_TAG);
+    const rec = {
+      kind: "gaunt",
+      entity: e,
+      playerId: player.id,
+      tactics: new GauntTactics(rng, tactic),
+      spawnedTick: system4.currentTick,
+      hits: 0,
+      actionSince: 0,
+      wasHunting: false,
+      markerSeq
+    };
+    registry.set(e.id, rec);
+    moveMarker(rec, player);
+    safe(() => e.dimension.spawnParticle("dread:gaunt_burrow", pos), void 0);
+    return true;
+  }, false);
+}
+function moveMarker(rec, player, to) {
+  const target = to ?? pointBySeq(rec.playerId, rec.markerSeq) ?? player.location;
+  safe(() => {
+    if (!rec.marker || !rec.marker.isValid) {
+      rec.marker = rec.entity.dimension.spawnEntity(SCENT_TYPE, target);
+      rec.marker.addTag(MANAGED_TAG);
+    } else rec.marker.teleport(target);
+  }, void 0);
 }
 function face(e, at) {
   safe(() => e.teleport(e.location, { facingLocation: at }), void 0);
 }
 function retreatAll(playerId, reason) {
-  for (const rec of registry.values()) {
-    if (rec.playerId !== playerId) continue;
-    const l = rec.tactics;
-    forceRetreat(rec, reason);
-    void l;
-  }
-}
-function forceRetreat(rec, reason) {
-  safe(() => rec.entity.triggerEvent("dread:set_retreat"), void 0);
-  rec.tactics.forceRetreat(reason);
+  for (const rec of registry.values()) if (rec.playerId === playerId) rec.tactics.forceRetreat(reason);
 }
 function removeAll(playerId) {
   let n = 0;
   for (const [id, rec] of [...registry]) {
     if (playerId && rec.playerId !== playerId) continue;
-    safe(() => rec.entity.remove(), void 0);
+    dispose(rec);
     registry.delete(id);
     n++;
   }
   return n;
 }
-function vanishEffect(dim, at) {
-  safe(() => dim.spawnParticle("dread:lurker_vanish", at), void 0);
+function dispose(rec) {
+  safe(() => rec.entity.remove(), void 0);
+  if (rec.kind === "gaunt") safe(() => rec.marker?.remove(), void 0);
 }
-function apply(rec, player, events, cfgTick) {
+function vanishEffect(dim, at, kind) {
+  safe(() => dim.spawnParticle(kind === "lurker" ? "dread:lurker_vanish" : "dread:gaunt_burrow", at), void 0);
+}
+function tick() {
+  const h = hooks;
+  if (!h || registry.size === 0) return;
+  const now = system4.currentTick;
+  const cfg = readConfig();
+  const gentle = lurkerGentle(cfg.intensity);
+  for (const [id, rec] of [...registry]) {
+    const e = rec.entity;
+    if (!e.isValid) {
+      registry.delete(id);
+      if (rec.kind === "gaunt") safe(() => rec.marker?.remove(), void 0);
+      h.onGone(rec.playerId, rec.kind, "unloaded");
+      continue;
+    }
+    const player = h.playerFor(rec.playerId);
+    if (!player || !player.isValid || player.dimension.id !== e.dimension.id) {
+      dispose(rec);
+      registry.delete(id);
+      if (player) h.onGone(rec.playerId, rec.kind, "dimension");
+      continue;
+    }
+    clearStaleAction(rec, now);
+    const dist = len(sub(e.location, player.location));
+    const hp = health(player);
+    const ehp = health(e);
+    const hpFrac = ehp.max > 0 ? ehp.cur / ehp.max : 1;
+    if (rec.kind === "lurker") {
+      const ev = rec.tactics.step({
+        dt: DT,
+        age: (now - rec.spawnedTick) / 20,
+        dist,
+        seen: dist < 80 && canSee(player, e, 0.45),
+        playerLit: h.isLit(rec.playerId),
+        playerHealth: hp.cur,
+        lurkerHealthFrac: hpFrac,
+        hitsLanded: rec.hits,
+        requested: h.requested(rec.playerId),
+        gentle
+      });
+      trackHunt(rec, rec.tactics.state === "hunt");
+      if (ev.length) applyLurker(rec, player, ev, now);
+    } else {
+      const sneaking = safe(() => player.isSneaking, false);
+      const sees = dist < (sneaking ? 9 : 18) && creatureSees(e, player);
+      if (sees) rec.lastSeen = { ...player.location };
+      const markerDist = rec.marker?.isValid ? len(sub(e.location, rec.marker.location)) : Infinity;
+      const ahead = aheadOf(rec.playerId, rec.markerSeq);
+      const ev = rec.tactics.step({
+        dt: DT,
+        age: (now - rec.spawnedTick) / 20,
+        dist,
+        sees,
+        playerInWater: safe(() => player.isInWater, false),
+        playerHealth: hp.cur,
+        hpFrac,
+        hits: rec.hits,
+        requested: h.requested(rec.playerId),
+        gentle,
+        markerDist,
+        trailLeft: ahead.left,
+        trailBroken: ahead.broken
+      });
+      trackHunt(rec, rec.tactics.state === "pursue" || rec.tactics.state === "roar");
+      if (ev.length) applyGaunt(rec, player, ev, now);
+    }
+  }
+}
+function trackHunt(rec, hunting) {
+  if (rec.wasHunting && !hunting) hooks?.onHuntEnded(rec.playerId);
+  rec.wasHunting = hunting;
+}
+function clearStaleAction(rec, now) {
+  const act = safe(() => rec.entity.getProperty("dread:action"), "none");
+  if (act === "none" || act === "burrow") {
+    rec.actionSince = 0;
+    return;
+  }
+  if (rec.actionSince === 0) rec.actionSince = now;
+  else if (now - rec.actionSince > 24) {
+    safe(() => rec.entity.triggerEvent("dread:clear_action"), void 0);
+    rec.actionSince = 0;
+  }
+}
+function creatureSees(e, p) {
+  return safe(() => {
+    const from = { x: e.location.x, y: e.location.y + 1.3, z: e.location.z };
+    const to = sub(p.getHeadLocation(), from);
+    const l = len(to);
+    if (l < 1) return true;
+    return e.dimension.getBlockFromRay(from, { x: to.x / l, y: to.y / l, z: to.z / l }, { maxDistance: l - 0.5, includePassableBlocks: false, includeLiquidBlocks: false }) === void 0;
+  }, false);
+}
+function vanish(rec, player, outcome) {
+  const h = hooks;
+  const e = rec.entity;
+  const at = e.location;
+  vanishEffect(e.dimension, at, rec.kind);
+  if (player && rec.kind === "lurker") playCreatureSound(player, "lurker", "vanish", at, 0.9, readConfig());
+  dispose(rec);
+  registry.delete(e.id);
+  h.onGone(rec.playerId, rec.kind, outcome);
+}
+function applyLurker(rec, player, events, now) {
   const h = hooks;
   const e = rec.entity;
   const cfg = readConfig();
@@ -1410,17 +1833,16 @@ function apply(rec, player, events, cfgTick) {
         safe(() => e.triggerEvent(ev.event), void 0);
         break;
       case "sound":
-        if (player) playLurkerSound(player, ev.id, e.location, ev.volume, cfg);
+        playCreatureSound(player, "lurker", ev.id, e.location, ev.volume, cfg);
         break;
       case "action":
         safe(() => e.setProperty("dread:action", ev.action), void 0);
-        rec.actionSince = cfgTick;
+        rec.actionSince = now;
         break;
       case "reposition": {
-        if (!player) break;
         const pos = findVantage(player, 26, 42, h.isUnderground(rec.playerId), rng);
         if (pos) {
-          vanishEffect(e.dimension, e.location);
+          vanishEffect(e.dimension, e.location, "lurker");
           safe(() => e.teleport(pos, { facingLocation: player.location }), void 0);
         }
         break;
@@ -1431,88 +1853,84 @@ function apply(rec, player, events, cfgTick) {
       case "stress":
         h.onStress(rec.playerId, ev.amount);
         break;
-      case "vanish": {
-        const at = e.location;
-        vanishEffect(e.dimension, at);
-        if (player) playLurkerSound(player, "vanish", at, 0.9, cfg);
-        safe(() => e.remove(), void 0);
-        registry.delete(e.id);
-        h.onGone(rec.playerId, ev.outcome);
-        break;
-      }
+      case "vanish":
+        return vanish(rec, player, ev.outcome);
     }
   }
 }
-function tick() {
+function applyGaunt(rec, player, events, now) {
   const h = hooks;
-  if (!h || registry.size === 0) return;
-  const now = system4.currentTick;
+  const e = rec.entity;
   const cfg = readConfig();
-  for (const [id, rec] of [...registry]) {
-    const e = rec.entity;
-    if (!e.isValid) {
-      registry.delete(id);
-      h.onGone(rec.playerId, "unloaded");
-      continue;
+  for (const ev of events) {
+    switch (ev.type) {
+      case "group":
+        safe(() => e.triggerEvent(ev.event), void 0);
+        break;
+      case "sound":
+        playCreatureSound(player, "gaunt", ev.id, e.location, ev.volume, cfg);
+        break;
+      case "action":
+        safe(() => e.setProperty("dread:action", ev.action), void 0);
+        rec.actionSince = now;
+        if (ev.action === "roar") playCreatureSound(player, "gaunt", "vocal", e.location, 1, cfg);
+        if (ev.action === "burrow") vanishEffect(e.dimension, e.location, "gaunt");
+        break;
+      case "marker":
+        if (ev.op === "next") {
+          const next = aheadOf(rec.playerId, rec.markerSeq).next;
+          if (next) {
+            rec.markerSeq = next.seq;
+            moveMarker(rec, player);
+          }
+        } else {
+          rec.markerSeq = Math.max(0, newestSeq(rec.playerId) - 2);
+          moveMarker(rec, player, rec.lastSeen ?? player.location);
+        }
+        break;
+      case "encounter":
+        h.onEncounter(rec.playerId, ev.kind);
+        break;
+      case "stress":
+        h.onStress(rec.playerId, ev.amount);
+        break;
+      case "vanish":
+        return vanish(rec, player, ev.outcome);
     }
-    const player = h.playerFor(rec.playerId);
-    if (!player || !player.isValid || player.dimension.id !== e.dimension.id) {
-      safe(() => e.remove(), void 0);
-      registry.delete(id);
-      if (player) h.onGone(rec.playerId, "dimension");
-      continue;
-    }
-    const act = safe(() => e.getProperty("dread:action"), "none");
-    if (act !== "none") {
-      if (rec.actionSince === 0) rec.actionSince = now;
-      else if (now - rec.actionSince > 24) {
-        safe(() => e.triggerEvent("dread:clear_action"), void 0);
-        rec.actionSince = 0;
-      }
-    } else rec.actionSince = 0;
-    const dist = len(sub(e.location, player.location));
-    const hp = health(player);
-    const lhp = health(e);
-    const events = rec.tactics.step({
-      dt: DT,
-      age: (now - rec.spawnedTick) / 20,
-      dist,
-      seen: dist < 80 && canSee(player, e, 0.45),
-      playerLit: h.isLit(rec.playerId),
-      playerHealth: hp.cur,
-      lurkerHealthFrac: lhp.max > 0 ? lhp.cur / lhp.max : 1,
-      hitsLanded: rec.hits,
-      requested: h.requested(rec.playerId),
-      gentle: lurkerGentle(cfg.intensity)
-    });
-    const hunting = rec.tactics.state === "hunt";
-    if (rec.wasHunting && !hunting) h.onHuntEnded(rec.playerId);
-    rec.wasHunting = hunting;
-    if (events.length) apply(rec, player, events, now);
   }
 }
 function adoptAndSweep() {
   const players = world5.getAllPlayers();
+  const markers = /* @__PURE__ */ new Set();
+  for (const r of registry.values()) if (r.kind === "gaunt" && r.marker) markers.add(r.marker.id);
   for (const dimId of ["overworld", "nether", "the_end"]) {
     const dim = safe(() => world5.getDimension(dimId), void 0);
     if (!dim) continue;
-    for (const e of safe(() => dim.getEntities({ type: LURKER_TYPE }), [])) {
-      if (registry.has(e.id)) continue;
-      let best;
-      for (const p of players) {
-        if (p.dimension.id !== e.dimension.id) continue;
-        const d = len(sub(p.location, e.location));
-        if (!best || d < best.d) best = { p, d };
-      }
-      if (best && best.d < 96) {
-        register(e, best.p.id, "observe");
-        safe(() => e.triggerEvent("dread:set_observe"), void 0);
-        logConsole(`adopted Lurker ${e.id}`);
-      } else if (e.hasTag(MANAGED_TAG)) {
-        safe(() => e.remove(), void 0);
+    for (const m of safe(() => dim.getEntities({ type: SCENT_TYPE }), [])) if (!markers.has(m.id)) safe(() => m.remove(), void 0);
+    for (const kind of ["lurker", "gaunt"]) {
+      for (const e of safe(() => dim.getEntities({ type: CREATURE_TYPE[kind] }), [])) {
+        if (registry.has(e.id)) continue;
+        let best;
+        for (const p of players) {
+          if (p.dimension.id !== e.dimension.id) continue;
+          const d = len(sub(p.location, e.location));
+          if (!best || d < best.d) best = { p, d };
+        }
+        if (best && best.d < 96) {
+          if (kind === "lurker") registry.set(e.id, { kind, entity: e, playerId: best.p.id, tactics: new LurkerTactics(rng, "observe"), spawnedTick: system4.currentTick, hits: 0, actionSince: 0, wasHunting: false });
+          else {
+            const rec = { kind, entity: e, playerId: best.p.id, tactics: new GauntTactics(rng, "stalk"), spawnedTick: system4.currentTick, hits: 0, actionSince: 0, wasHunting: false, markerSeq: newestSeq(best.p.id) };
+            registry.set(e.id, rec);
+            moveMarker(rec, best.p);
+          }
+          logConsole(`adopted ${kind} ${e.id}`);
+        } else if (e.hasTag(MANAGED_TAG)) {
+          safe(() => e.remove(), void 0);
+        }
       }
     }
   }
+  void range;
 }
 
 // src/game/director.ts
@@ -1526,14 +1944,24 @@ var rng2 = mathRng;
 var nextOffset = 0;
 function initDirector(seed) {
   rng2 = seed === void 0 ? mathRng : makeRng(seed);
-  initLurkers({
+  initCreatures({
     playerFor: (id) => world6.getAllPlayers().find((p) => p.id === id),
     isLit: (id) => rt.get(id)?.surroundings.lit ?? false,
     isUnderground: (id) => !(rt.get(id)?.surroundings.skyVisible ?? true),
     requested: (id) => rt.get(id)?.tactic ?? "observe",
     onNoticed: (id) => rt.get(id)?.brain.onLurkerNoticed(worldSec()),
-    onGone: (id, outcome) => {
-      rt.get(id)?.brain.onLurkerGone(worldSec(), outcome);
+    onEncounter: (id, kind) => {
+      const p = playerById(id);
+      if (kind === "gaunt_seen" && p) unlockPage(p, "gaunt");
+      rt.get(id)?.brain.onLurkerNoticed(worldSec());
+    },
+    onGone: (id, creature, outcome) => {
+      rt.get(id)?.brain.onLurkerGone(worldSec(), creature === "lurker" ? outcome : `gaunt-${outcome}`);
+      if (creature === "gaunt") {
+        const gp = playerById(id);
+        if (gp && outcome === "lost-scent") unlockPage(gp, "scent");
+        return;
+      }
       const page = { noticed: "noticed", spooked: "spooked", light: "light" }[outcome];
       const p = page ? playerById(id) : void 0;
       if (p && page) unlockPage(p, page);
@@ -1562,6 +1990,7 @@ function initDirector(seed) {
     const r = rt.get(e.playerId);
     if (r) save(e.playerId, r);
     removeAll(e.playerId);
+    forgetTrail(e.playerId);
     clearAtmosphere({ id: e.playerId });
     rt.delete(e.playerId);
   });
@@ -1587,6 +2016,7 @@ function initDirector(seed) {
     const now = system5.currentTick;
     for (const p of world6.getAllPlayers()) {
       const r = ensure(p);
+      sampleTrail(p, now, r.surroundings.nearHome && r.surroundings.lit);
       if ((now + r.stepOffset) % STEP_TICKS !== 0) continue;
       stepPlayer(p, r, now);
     }
@@ -1651,8 +2081,8 @@ function snapshot(p, r, now) {
     sleeping: safe(() => p.isSleeping, false),
     companions: allPlayersNear(p, 48),
     idleFor: (now - r.idleSince) / 20,
-    globalActiveLurkers: lurkerCount(),
-    ownLurkers: lurkersOf(p.id),
+    globalActiveCreatures: creatureCount(),
+    ownCreatures: creaturesOf(p.id),
     settings: { enabled: cfg.enabled, effects: cfg.effects, intensity: cfg.intensity }
   };
 }
@@ -1661,7 +2091,7 @@ function stepPlayer(p, r, now) {
   }
   const snap = snapshot(p, r, now);
   const actions = r.brain.step(snap);
-  if (actions.length) apply2(p, r, actions, snap);
+  if (actions.length) apply(p, r, actions, snap);
   const daylight = snap.skyVisible && (snap.timeOfDay < 12500 || snap.timeOfDay > 23500);
   const m = r.brain.memory;
   if (m.noticedCount > 0 && !daylight) {
@@ -1670,7 +2100,7 @@ function stepPlayer(p, r, now) {
   }
   setAtmosphere(p, r.brain.memory.state, readConfig(), daylight);
 }
-function apply2(p, r, actions, snap) {
+function apply(p, r, actions, snap) {
   const cfg = readConfig();
   for (const a of actions) {
     switch (a.type) {
@@ -1678,9 +2108,9 @@ function apply2(p, r, actions, snap) {
         playAmbient(p, a, cfg, rng2, r.brain.memory.stress);
         if (a.kind !== "heartbeat" && a.kind !== "pressure_drop") unlockPage(p, "sound");
         break;
-      case "spawnLurker": {
+      case "spawnCreature": {
         r.tactic = a.tactic;
-        const ok = spawnLurker(p, a.tactic, a.minDist, a.maxDist, !snap.skyVisible);
+        const ok = spawnCreature(p, a.creature, a.tactic, a.minDist, a.maxDist, !snap.skyVisible);
         if (!ok) r.brain.onLurkerGone(worldSec(), "no-spot");
         break;
       }
@@ -1706,15 +2136,15 @@ function describe(p) {
   const recent = m.history.slice(-6).map((h) => h.id).join(", ") || "-";
   return [
     `state=${m.state} stress=${m.stress.toFixed(0)} dread=${m.dread.toFixed(0)} lit=${r.surroundings.lit} home=${r.surroundings.nearHome} sky=${r.surroundings.skyVisible}`,
-    `hunts=${m.hunts} survived=${m.survivedHunts} noticed=${m.noticedCount} lurkers(own/global)=${lurkersOf(p.id)}/${lurkerCount()}`,
+    `hunts=${m.hunts} survived=${m.survivedHunts} noticed=${m.noticedCount} creatures(own/global)=${creaturesOf(p.id)}/${creatureCount()}`,
     `recent: ${recent}`
   ];
 }
-function debugSpawn(p, tactic) {
+function debugSpawn(p, tactic, creature = "lurker") {
   const r = ensure(p);
   r.tactic = tactic;
   if (tactic === "hunt") shake(p, readConfig(), 0.25, 1.5);
-  return spawnLurker(p, tactic, 14, 24, !r.surroundings.skyVisible);
+  return spawnCreature(p, creature, tactic, 14, 24, !r.surroundings.skyVisible);
 }
 function debugSet(p, field, value) {
   const r = ensure(p);
@@ -1740,7 +2170,7 @@ var HELP = [
   "\xA77/scriptevent dread:reset",
   "\xA77/scriptevent dread:sound all  (audio test)",
   "\xA77/scriptevent dread:state  (director status)",
-  "\xA77/scriptevent dread:spawn observe|stalk|hunt",
+  "\xA77/scriptevent dread:spawn observe|stalk|hunt   dread:spawn gaunt [stalk|hunt]",
   "\xA77/scriptevent dread:force dormant|unease|observation|escalation|hunt|recovery",
   "\xA77/scriptevent dread:stress <0-100>   dread:dread <0-100>   dread:clear   dread:forget",
   "\xA77Settings: " + Object.keys(DEFAULTS).join(", ")
@@ -1778,12 +2208,14 @@ function registerCommands() {
         if (player) describe(player).forEach(reply);
         break;
       case "spawn": {
-        const tactic = event.message.trim();
-        if (!player || !["observe", "stalk", "hunt"].includes(tactic)) {
-          reply("Usage: dread:spawn observe|stalk|hunt");
+        const [a, b] = event.message.trim().split(/\s+/);
+        const creature = a === "gaunt" ? "gaunt" : "lurker";
+        const tactic = creature === "gaunt" ? b ?? "stalk" : a;
+        if (!player || !["observe", "stalk", "hunt"].includes(tactic) || creature === "gaunt" && tactic === "observe") {
+          reply("Usage: dread:spawn observe|stalk|hunt  or  dread:spawn gaunt [stalk|hunt]");
           break;
         }
-        reply(debugSpawn(player, tactic) ? `Spawned a ${tactic} Lurker.` : "\xA7cNo valid spot found nearby.");
+        reply(debugSpawn(player, tactic, creature) ? `Spawned a ${tactic} ${creature}.` : "\xA7cNo valid spot found nearby.");
         break;
       }
       case "force": {

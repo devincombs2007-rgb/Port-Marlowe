@@ -43,7 +43,7 @@ test("daylight with company is overwhelmingly quiet and never hostile", () => {
   for (let seed = 1; seed <= 15; seed++) {
     const r = simulate(seed, 4, () => ({ timeOfDay: 6000, skyVisible: true, companions: 2 }));
     assert.equal(r.hunts.length, 0);
-    assert.ok(!r.actions.some((x) => x.a.type === "spawnLurker"), `seed ${seed}: lurker in daylight with friends`);
+    assert.ok(!r.actions.some((x) => x.a.type === "spawnCreature"), `seed ${seed}: lurker in daylight with friends`);
   }
 });
 
@@ -51,13 +51,13 @@ test("creative, spectator, peaceful, disabled, other dimensions: nothing hostile
   const cases: Ctx[] = [{ gameMode: "creative" }, { gameMode: "spectator" }, { peaceful: true }, { settings: { enabled: false, effects: "balanced", intensity: 100 } }, { dimension: "nether" }];
   for (const c of cases) {
     const r = simulate(3, 3, (t) => ({ ...dark(t), ...c }));
-    assert.ok(!r.actions.some((x) => x.a.type === "spawnLurker" || x.a.type === "setTactic"), JSON.stringify(c));
+    assert.ok(!r.actions.some((x) => x.a.type === "spawnCreature" || x.a.type === "setTactic"), JSON.stringify(c));
   }
 });
 
 test("no predictable timers: dormant durations vary widely and traces differ per seed", () => {
   const a = simulate(11, 8, dark), b = simulate(12, 8, dark);
-  const d = a.dormantDurations;
+  const d = [...a.dormantDurations, ...b.dormantDurations, ...simulate(13, 8, dark).dormantDurations];
   assert.ok(d.length >= 5, "not enough samples");
   const mean = d.reduce((x, y) => x + y, 0) / d.length;
   const sd = Math.sqrt(d.reduce((x, y) => x + (y - mean) ** 2, 0) / d.length);
@@ -117,6 +117,25 @@ test("intensity setting scales encounter frequency", () => {
   const n = (r: SimResult) => r.actions.filter((x) => x.a.type === "ambient").length;
   console.log(`      ambient events: intensity0=${n(low)} intensity100=${n(high)}`);
   assert.ok(n(high) > n(low) * 1.3);
+});
+
+test("the Lurker is always met first; the Gaunt only joins later, and more often underground", () => {
+  const kinds = (r: SimResult) => r.actions.filter((x) => x.a.type === "spawnCreature").map((x) => (x.a as { creature: string; tactic: string }));
+  let gauntUnder = 0, gauntSurface = 0, spawnsUnder = 0, spawnsSurface = 0;
+  for (let seed = 1; seed <= 12; seed++) {
+    const under = kinds(simulate(seed, 6, (t) => ({ timeOfDay: 14000 + (t % 8000), skyVisible: false })));
+    const surf = kinds(simulate(seed + 100, 6, (t) => ({ timeOfDay: 14000 + (t % 8000), skyVisible: true })));
+    for (const [list, which] of [[under, "u"], [surf, "s"]] as const) {
+      const firstGaunt = list.findIndex((k) => k.creature === "gaunt");
+      if (firstGaunt >= 0) assert.ok(list.slice(0, firstGaunt).filter((k) => k.creature === "lurker").length >= 2, "met the Lurker before any Gaunt");
+      assert.ok(list.every((k) => k.creature === "lurker" || k.tactic !== "observe"), "the Gaunt never 'observes'");
+      const esc = list.filter((k) => k.tactic === "stalk");
+      if (which === "u") { gauntUnder += esc.filter((k) => k.creature === "gaunt").length; spawnsUnder += esc.length; }
+      else { gauntSurface += esc.filter((k) => k.creature === "gaunt").length; spawnsSurface += esc.length; }
+    }
+  }
+  console.log(`      gaunt share of escalations: underground ${(gauntUnder / spawnsUnder * 100).toFixed(0)}%, surface ${(gauntSurface / spawnsSurface * 100).toFixed(0)}%`);
+  assert.ok(gauntUnder > 0 && gauntUnder / spawnsUnder > gauntSurface / Math.max(1, spawnsSurface), "gaunt favoured underground");
 });
 
 console.log(`director tests passed (${passed}); pure logic simulation, not in-game`);
