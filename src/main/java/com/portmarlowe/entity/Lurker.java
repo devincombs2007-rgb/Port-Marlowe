@@ -1,5 +1,6 @@
 package com.portmarlowe.entity;
 
+import com.portmarlowe.director.HorrorDirector;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.EntityType;
@@ -19,7 +20,7 @@ import net.minecraft.world.phys.Vec3;
  * Moves fast and hits hard, but only while nobody is watching. Look at it and it freezes in place,
  * mid-stride, until you look away.
  */
-public class Lurker extends Monster {
+public class Lurker extends Monster implements HorrorMob {
 	private static final double WATCH_RANGE = 48.0;
 
 	public Lurker(EntityType<? extends Lurker> type, Level level) {
@@ -76,6 +77,15 @@ public class Lurker extends Monster {
 			}
 		}
 		super.aiStep();
+	}
+
+	@Override
+	public boolean doHurtTarget(net.minecraft.world.entity.Entity target) {
+		boolean hit = super.doHurtTarget(target);
+		if (hit) {
+			HorrorDirector.onHorrorHit(target);
+		}
+		return hit;
 	}
 
 	@Override

@@ -5,5 +5,11 @@
   "item.portmarlowe.lurker_spawn_egg": "Lurker Spawn Egg",
   "item.portmarlowe.gaunt_spawn_egg": "Gaunt Spawn Egg",
   "item.portmarlowe.tollwraith_spawn_egg": "Tollwraith Spawn Egg",
-  "key.portmarlowe.toggle_dread": "Toggle Dread Shader"
+  "key.portmarlowe.toggle_dread": "Toggle Dread Shader",
+  "entity.portmarlowe.mimic": "Mimic",
+  "entity.portmarlowe.watcher": "Watcher",
+  "item.portmarlowe.mimic_spawn_egg": "Mimic Spawn Egg",
+  "item.portmarlowe.watcher_spawn_egg": "Watcher Spawn Egg",
+  "item.portmarlowe.marlowe_bell": "Marlowe Bell",
+  "item.portmarlowe.soothing_tonic": "Soothing Tonic"
 }

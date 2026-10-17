@@ -1,0 +1,6 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": ["minecraft:glass_bottle", "minecraft:fermented_spider_eye", "minecraft:glow_berries"],
+  "result": { "id": "portmarlowe:soothing_tonic", "count": 1 }
+}

@@ -1,5 +1,6 @@
 package com.portmarlowe.entity;
 
+import com.portmarlowe.director.HorrorDirector;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -26,7 +27,7 @@ import java.util.List;
  * A drowned harbour-bell keeper. It never hurries, but it tolls a bell every few seconds; everyone
  * who hears it is weighed down and the world dims. Its grip drags you under.
  */
-public class Tollwraith extends Monster {
+public class Tollwraith extends Monster implements HorrorMob {
 	private static final double TOLL_RANGE = 24.0;
 	private static final int TOLL_INTERVAL = 220;
 
@@ -76,6 +77,9 @@ public class Tollwraith extends Monster {
 	@Override
 	public boolean doHurtTarget(Entity target) {
 		boolean hit = super.doHurtTarget(target);
+		if (hit) {
+			HorrorDirector.onHorrorHit(target);
+		}
 		if (hit && target instanceof LivingEntity living) {
 			living.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 100, 2), this);
 		}

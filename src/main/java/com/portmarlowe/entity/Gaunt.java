@@ -1,5 +1,6 @@
 package com.portmarlowe.entity;
 
+import com.portmarlowe.director.HorrorDirector;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -26,7 +27,7 @@ import java.util.EnumSet;
  * Tall, slow and silent. When its victim is not looking it blinks to a spot right behind them and
  * a heartbeat the victim can hear starts to speed up. Its touch swallows the light.
  */
-public class Gaunt extends Monster {
+public class Gaunt extends Monster implements HorrorMob {
 	public Gaunt(EntityType<? extends Gaunt> type, Level level) {
 		super(type, level);
 	}
@@ -52,6 +53,9 @@ public class Gaunt extends Monster {
 	@Override
 	public boolean doHurtTarget(Entity target) {
 		boolean hit = super.doHurtTarget(target);
+		if (hit) {
+			HorrorDirector.onHorrorHit(target);
+		}
 		if (hit && target instanceof LivingEntity living) {
 			living.addEffect(new MobEffectInstance(MobEffects.DARKNESS, 160, 0), this);
 		}

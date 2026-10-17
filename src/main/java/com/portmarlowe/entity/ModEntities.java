@@ -25,15 +25,25 @@ public final class ModEntities {
 	public static final EntityType<Gaunt> GAUNT = entity("gaunt", Gaunt::new, 0.55f, 2.9f);
 	public static final EntityType<Tollwraith> TOLLWRAITH = entity("tollwraith", Tollwraith::new, 0.6f, 1.95f);
 
+	public static final EntityType<Mimic> MIMIC = entity("mimic", Mimic::new, 0.6f, 1.95f);
+	public static final EntityType<Watcher> WATCHER = entity("watcher", Watcher::new, MobCategory.MISC, 0.5f, 2.6f);
+
+	public static final Item MIMIC_EGG = egg("mimic", MIMIC);
+	public static final Item WATCHER_EGG = egg("watcher", WATCHER);
 	public static final Item LURKER_EGG = egg("lurker", LURKER);
 	public static final Item GAUNT_EGG = egg("gaunt", GAUNT);
 	public static final Item TOLLWRAITH_EGG = egg("tollwraith", TOLLWRAITH);
 
 	private static <T extends net.minecraft.world.entity.Mob> EntityType<T> entity(
 			String name, EntityType.EntityFactory<T> factory, float w, float h) {
+		return entity(name, factory, MobCategory.MONSTER, w, h);
+	}
+
+	private static <T extends net.minecraft.world.entity.Mob> EntityType<T> entity(
+			String name, EntityType.EntityFactory<T> factory, MobCategory category, float w, float h) {
 		ResourceKey<EntityType<?>> key = ResourceKey.create(Registries.ENTITY_TYPE, PortMarlowe.id(name));
 		return Registry.register(BuiltInRegistries.ENTITY_TYPE, key,
-				EntityType.Builder.of(factory, MobCategory.MONSTER).sized(w, h).clientTrackingRange(10).build(key));
+				EntityType.Builder.of(factory, category).sized(w, h).clientTrackingRange(10).build(key));
 	}
 
 	private static Item egg(String name, EntityType<? extends net.minecraft.world.entity.Mob> type) {
@@ -46,12 +56,16 @@ public final class ModEntities {
 		FabricDefaultAttributeRegistry.register(LURKER, Lurker.createAttributes());
 		FabricDefaultAttributeRegistry.register(GAUNT, Gaunt.createAttributes());
 		FabricDefaultAttributeRegistry.register(TOLLWRAITH, Tollwraith.createAttributes());
+		FabricDefaultAttributeRegistry.register(MIMIC, Mimic.createAttributes());
+		FabricDefaultAttributeRegistry.register(WATCHER, Watcher.createAttributes());
 
 		SpawnPlacements.register(LURKER, SpawnPlacementTypes.ON_GROUND,
 				Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Monster::checkMonsterSpawnRules);
 		SpawnPlacements.register(GAUNT, SpawnPlacementTypes.ON_GROUND,
 				Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Monster::checkMonsterSpawnRules);
 		SpawnPlacements.register(TOLLWRAITH, SpawnPlacementTypes.ON_GROUND,
+				Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Monster::checkMonsterSpawnRules);
+		SpawnPlacements.register(MIMIC, SpawnPlacementTypes.ON_GROUND,
 				Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Monster::checkMonsterSpawnRules);
 
 		// Lurkers and Gaunts haunt the whole overworld; Tollwraiths cling to the water's edge.
@@ -60,10 +74,14 @@ public final class ModEntities {
 		BiomeModifications.addSpawn(BiomeSelectors.includeByKey(Biomes.BEACH, Biomes.RIVER, Biomes.STONY_SHORE,
 				Biomes.SWAMP, Biomes.MANGROVE_SWAMP), MobCategory.MONSTER, TOLLWRAITH, 30, 1, 1);
 
+		BiomeModifications.addSpawn(BiomeSelectors.foundInOverworld(), MobCategory.MONSTER, MIMIC, 10, 1, 1);
+
 		ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.SPAWN_EGGS).register(entries -> {
 			entries.accept(LURKER_EGG);
 			entries.accept(GAUNT_EGG);
 			entries.accept(TOLLWRAITH_EGG);
+			entries.accept(MIMIC_EGG);
+			entries.accept(WATCHER_EGG);
 		});
 	}
 

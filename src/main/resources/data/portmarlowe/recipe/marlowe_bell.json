@@ -1,0 +1,6 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "equipment",
+  "ingredients": ["minecraft:bell", "minecraft:amethyst_shard", "minecraft:soul_torch"],
+  "result": { "id": "portmarlowe:marlowe_bell", "count": 1 }
+}
