@@ -24,9 +24,9 @@ public abstract class DebugScreenOverlayMixin {
         result.add("");
         result.add("[Port Marlowe] " + PortMarlowe.device().platform().displayName() + " / "
                 + PortMarlowe.device().renderer().displayName() + " | FPS cap " + cap);
-        result.add("[Port Marlowe] Culled particles " + RenderStats.lastFrameParticlesCulled
+        result.add("[Port Marlowe] Culled particles " + RenderStats.lastFrameParticlesCulled + "/" + RenderStats.lastFrameParticlesTested
                 + " | Skipped block entities " + RenderStats.lastFrameBlockEntitiesSkipped
-                + " | Mesh workers " + RenderStats.chunkBuilderPacks);
+                + " | Mesh workers " + (RenderStats.chunkBuilderPacks < 0 ? "n/a" : RenderStats.chunkBuilderPacks));
         return result;
     }
 }

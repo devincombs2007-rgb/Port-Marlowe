@@ -43,6 +43,7 @@ public final class ParticleCulling {
         if (!valid || !(particle instanceof SingleQuadParticle quad) || !PortMarlowe.config().particleCulling) {
             return true;
         }
+        RenderStats.particlesTested++;
         AABB box = particle.getBoundingBox();
         float radius = quad.getQuadSize(partialTick) + MARGIN;
         boolean visible = FRUSTUM.testAab(

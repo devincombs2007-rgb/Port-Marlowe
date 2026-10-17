@@ -28,7 +28,7 @@ settings alone).
 | **Particle frustum culling** | Vanilla builds geometry for every particle each frame, including the ones behind you. These are now skipped. |
 | **Block entity draw distance** (32 blocks) | Chests, signs (and their text), banners, heads, beds and shulker boxes are drawn as models every frame. Vanilla draws them out to 64 blocks. Beacon beams are not affected. |
 | **Fewer ambient block effects** (50%) | Every tick vanilla checks 1334 random blocks around you for torch smoke, drips and similar effects. This halves those block lookups. |
-| **Fewer chunk meshing workers** | Vanilla starts one worker per CPU core, each with about 10 MB of native buffers. iPhones report 6 cores but only 2 are performance cores, and native memory counts against iOS's memory limit. The mod uses 3 workers on phones, or 1 when Sodium (which brings its own mesher) is installed. |
+| **Fewer chunk meshing workers** | Vanilla starts one worker per CPU core, each with about 10 MB of native buffers. iPhones report 6 cores but only 2 are performance cores, and native memory counts against iOS's memory limit. The mod uses 3 workers on phones. Sodium brings its own mesher; current versions don't allocate vanilla's buffers at all. |
 | **Optional: freeze animated textures** | Every animation frame of water, lava, fire and portals is a texture upload, and GL translation layers handle those poorly. Off by default. |
 | **F3 overlay line** | Shows the detected device and renderer, the current FPS cap and why it applies, how many particles were culled, how many block entities were skipped, and the number of mesh workers. |
 

@@ -66,7 +66,8 @@ public final class PortMarlowe implements ClientModInitializer {
         if (!device().platform().isMobile()) {
             return 0;
         }
-        // Sodium meshes chunks with its own buffers, so vanilla's pool is dead weight there.
+        // Sodium meshes chunks with its own buffers. Current versions skip vanilla's pool entirely;
+        // for older ones a single pack keeps the dead weight small.
         return isSodiumLoaded() ? 1 : 3;
     }
 

@@ -65,7 +65,7 @@ public final class SelfTest {
     private static int stageTicks;
     private static int worldTicks;
     private static int maxLiveParticles;
-    private static int maxCulledParticles;
+    private static String cullingFrame;
     private static final List<String> passed = new ArrayList<>();
 
     private SelfTest() {
@@ -126,8 +126,13 @@ public final class SelfTest {
         check(options.menuBackgroundBlurriness().get() == 0, "menu blur: " + options.menuBackgroundBlurriness().get());
         check(options.entityDistanceScaling().get() <= 0.5, "entity distance: " + options.entityDistanceScaling().get());
 
-        check(RenderStats.chunkBuilderPacks >= 1 && RenderStats.chunkBuilderPacks <= 3,
-                "chunk mesh workers capped: " + RenderStats.chunkBuilderPacks);
+        int packs = RenderStats.chunkBuilderPacks;
+        if (PortMarlowe.isSodiumLoaded()) {
+            // Sodium meshes chunks itself; recent versions never allocate vanilla's pool (-1).
+            check(packs <= 1, "chunk mesh workers with Sodium: " + (packs < 0 ? "vanilla pool not allocated" : packs));
+        } else {
+            check(packs >= 1 && packs <= 3, "chunk mesh workers capped: " + packs);
+        }
 
         int menuLimit = frameLimit(mc);
         check(menuLimit <= config.menuFps, "title screen frame cap " + menuLimit + " <= " + config.menuFps);
@@ -169,18 +174,22 @@ public final class SelfTest {
         }
         if (++worldTicks >= 100) {
             check(true, "singleplayer world loaded and rendered for 100 ticks");
+            // A glass platform high above the terrain: nothing occludes the test scene and the
+            // player stands still, so the camera is exactly where the scene expects it.
             LocalPlayer player = mc.player;
+            player.connection.sendCommand("fill ~-2 219 ~-2 ~2 219 ~2 minecraft:glass");
             player.connection.sendCommand("tp @s ~ 220 ~");
-            player.getAbilities().flying = true;
-            player.onUpdateAbilities();
             next(Stage.LIFT_OFF);
         }
     }
 
     private static void liftOff(Minecraft mc) {
-        faceEast(mc.player);
-        if (stageTicks >= 40) {
+        LocalPlayer player = mc.player;
+        faceEast(player);
+        if (stageTicks >= 40 && player.getY() > 219.5 && player.onGround()) {
             next(Stage.PARTICLES);
+        } else if (stageTicks > STAGE_TIMEOUT_TICKS) {
+            throw new AssertionError("player never settled on the test platform (y=" + player.getY() + ")");
         }
     }
 
@@ -200,16 +209,23 @@ public final class SelfTest {
             throw new AssertionError("live particles " + live + " exceed the limit " + config.particleLimit);
         }
         maxLiveParticles = Math.max(maxLiveParticles, live);
-        maxCulledParticles = Math.max(maxCulledParticles, RenderStats.lastFrameParticlesCulled);
 
-        if (maxLiveParticles >= config.particleLimit / 2 && maxCulledParticles > 0 && stageTicks >= 20) {
+        // Half the particles are behind the camera: roughly half must be culled, and the other half drawn.
+        int tested = RenderStats.lastFrameParticlesTested;
+        int culled = RenderStats.lastFrameParticlesCulled;
+        if (tested >= config.particleLimit / 2 && culled >= tested / 4 && culled <= tested * 3 / 4) {
+            cullingFrame = culled + " of " + tested;
+        }
+
+        if (maxLiveParticles >= config.particleLimit / 2 && cullingFrame != null && stageTicks >= 20) {
             check(true, "particle limit holds (peak " + maxLiveParticles + " <= " + config.particleLimit + ")");
-            check(true, "particles behind the camera culled (peak " + maxCulledParticles + " in one frame)");
+            check(true, "particles behind the camera culled, the ones in front drawn (" + cullingFrame + " culled in one frame)");
             player.connection.sendCommand("setblock ~10 ~ ~ minecraft:chest");
             player.connection.sendCommand("fill ~48 ~-1 ~-2 ~48 ~1 ~2 minecraft:chest");
             next(Stage.BLOCK_ENTITIES);
         } else if (stageTicks > STAGE_TIMEOUT_TICKS) {
-            throw new AssertionError("particles: peak live " + maxLiveParticles + ", peak culled " + maxCulledParticles);
+            throw new AssertionError("particles: peak live " + maxLiveParticles + ", last frame culled "
+                    + RenderStats.lastFrameParticlesCulled + " of " + RenderStats.lastFrameParticlesTested);
         }
     }
 
