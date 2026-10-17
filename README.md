@@ -43,8 +43,7 @@ The mod finds out it is on iOS from what Amethyst passes to Java (`-DUIScreen.ma
    runs far too slowly for any mod to help.
 2. In Amethyst, create a **Fabric** profile for **1.21.1**.
 3. Download `portmarlowe-<version>.jar` from this repository's **Actions** tab (latest green *Build* run,
-   artifact `portmarlowe-mod`) and copy it into that profile's `mods` folder with the Files app.
-   Ignore the `-sources.jar` file.
+   artifact `portmarlowe-mod`), unzip it, and copy the jar into that profile's `mods` folder with the Files app.
 4. Launch. The preset is applied on the first start; you can change everything under
    **Options → Video Settings → iPhone Performance…** (or through Mod Menu).
 

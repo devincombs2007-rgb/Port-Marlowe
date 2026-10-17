@@ -135,7 +135,7 @@ public final class SelfTest {
     }
 
     private static void menus(Minecraft mc) {
-        VideoSettingsScreen video = new VideoSettingsScreen(new TitleScreen(), mc.options);
+        VideoSettingsScreen video = new VideoSettingsScreen(new TitleScreen(), mc, mc.options);
         mc.setScreen(video);
         String label = Component.translatable("portmarlowe.options.open").getString();
         Button open = findButton(video, label);
