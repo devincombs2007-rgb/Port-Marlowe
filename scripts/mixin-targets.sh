@@ -30,6 +30,7 @@ show net.minecraft.client.multiplayer.ClientLevel 'animateTick'
 show net.minecraft.client.renderer.texture.TextureAtlas 'cycleAnimationFrames|tick'
 show net.minecraft.client.renderer.SectionBufferBuilderPool
 show net.minecraft.client.gui.components.DebugScreenOverlay 'getGameInformation'
+show net.minecraft.client.resources.language.ClientLanguage 'loadFrom'
 show net.minecraft.client.gui.screens.options.OptionsSubScreen
 show net.minecraft.client.gui.screens.options.VideoSettingsScreen
 show net.minecraft.client.gui.components.OptionsList 'add'
@@ -42,5 +43,7 @@ echo "== ParticleEngine.render call sites"
 javap -p -c -cp "$jar" net.minecraft.client.particle.ParticleEngine | grep -E 'Method .*render|invoke.*Particle\.render' || true
 echo "== BlockEntityRenderDispatcher.render call sites"
 javap -p -c -cp "$jar" net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher | grep -E 'shouldRender' || true
+echo "== ClientLanguage.loadFrom call sites"
+javap -p -c -cp "$jar" net.minecraft.client.resources.language.ClientLanguage | grep -E 'ImmutableMap.copyOf' || true
 echo "== ClientLevel.animateTick constants"
 javap -p -c -cp "$jar" net.minecraft.client.multiplayer.ClientLevel | grep -E 'sipush\s+667' || true

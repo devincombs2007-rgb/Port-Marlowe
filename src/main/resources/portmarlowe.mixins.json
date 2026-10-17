@@ -5,6 +5,7 @@
   "compatibilityLevel": "JAVA_21",
   "client": [
     "BlockEntityRenderDispatcherMixin",
+    "ClientLanguageMixin",
     "ClientLevelMixin",
     "DebugScreenOverlayMixin",
     "KeyboardHandlerMixin",
