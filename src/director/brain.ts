@@ -118,6 +118,12 @@ export class DirectorBrain implements Brain {
     if (this.memory.state === "hunt") this.enter("recovery", worldSec, this.tm.lastTickT, range(this.rng, 480, 900));
   }
 
+  /** Developer override (commands/tests): jump straight to a state. Hostile states still obey step() safety gates. */
+  forceState(state: DirectorState, worldSec: number, t: number): void {
+    this.enter(state, worldSec, t);
+    if (state === "hunt") this.tm.huntStartedAt = t;
+  }
+
   // -- main step ----------------------------------------------------------------------------
   step(s: Snapshot): Action[] {
     const out: Action[] = [];

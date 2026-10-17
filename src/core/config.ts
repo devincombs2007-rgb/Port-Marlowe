@@ -12,6 +12,8 @@ export interface DreadConfig {
   enabled: boolean;
   /** 0-100. Scales volume of scripted horror audio (not vanilla sounds). */
   soundIntensity: number;
+  /** 0-100. How busy the Horror Director is (event frequency). Below ~35 also enables gentle Lurker behaviour. */
+  intensity: number;
   /** 0-100. 0 disables jumpscares entirely; scripted stingers scale with this. */
   jumpscareIntensity: number;
   effects: EffectsLevel;
@@ -22,6 +24,7 @@ export interface DreadConfig {
 export const DEFAULTS: Readonly<DreadConfig> = {
   enabled: true,
   soundIntensity: 70,
+  intensity: 60,
   jumpscareIntensity: 40,
   effects: "balanced",
   debug: true, // Phase-1 test builds are verbose on purpose; flip to false for release.
@@ -40,6 +43,7 @@ export function readConfig(): DreadConfig {
   return {
     enabled: typeof enabled === "boolean" ? enabled : DEFAULTS.enabled,
     soundIntensity: clampPercent(world.getDynamicProperty(KEY("soundIntensity")), DEFAULTS.soundIntensity),
+    intensity: clampPercent(world.getDynamicProperty(KEY("intensity")), DEFAULTS.intensity),
     jumpscareIntensity: clampPercent(world.getDynamicProperty(KEY("jumpscareIntensity")), DEFAULTS.jumpscareIntensity),
     effects: effects === "performance" || effects === "balanced" || effects === "cinematic" ? effects : DEFAULTS.effects,
     debug: typeof debug === "boolean" ? debug : DEFAULTS.debug,
@@ -58,6 +62,7 @@ export function setConfigValue(name: string, raw: string): SetResult {
       return { ok: true, value: raw };
     }
     case "soundIntensity":
+    case "intensity":
     case "jumpscareIntensity": {
       const n = Number(raw);
       if (!Number.isFinite(n) || n < 0 || n > 100) return { ok: false, error: `${name} must be a number from 0 to 100` };

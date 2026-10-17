@@ -1,48 +1,159 @@
+// Integration smoke tests: the real TypeScript (config, commands, director adapter, Lurker adapter) running against the
+// mock API in tests/mock-server.mjs. Proves the wiring and logic; it does NOT prove behaviour inside Minecraft.
 import { build } from "esbuild";
 import assert from "node:assert/strict";
 
-const out = "dist/smoke.mjs";
-await build({
-  entryPoints: ["src/main.ts"], outfile: out, bundle: true, format: "esm", platform: "node",
-  alias: { "@minecraft/server": "../tests/mock-server.mjs" }, external: ["../tests/mock-server.mjs"], logLevel: "silent",
-});
+const bundle = async (entry, out) => {
+  await build({ entryPoints: [entry], outfile: out, bundle: true, format: "esm", platform: "node",
+    alias: { "@minecraft/server": "../tests/mock-server.mjs" }, external: ["../tests/mock-server.mjs"], logLevel: "silent" });
+};
+await bundle("tests/entry.ts", ".tmp/smoke-entry.mjs");
 const mock = await import("../tests/mock-server.mjs");
-await import("../" + out);
-const { Player, messages, __fire, world, played } = mock;
-const steve = new Player("steve");
-const last = () => messages.at(-1);
+await import("../.tmp/smoke-entry.mjs");
+const { sim, messages, played, log, terrain, tick, __fire, world } = mock;
 
-__fire.spawn(steve);
-assert.match(last(), /DREAD .*loaded/, "join banner");
+let passed = 0;
+const test = (name, fn) => { fn(); passed++; console.log(`  ok  ${name}`); };
+const say = (p, id, msg = "") => __fire.scriptEvent(id, msg, p);
+const lastMsg = () => messages.at(-1);
+const lurkersIn = () => sim.dims.overworld.entities.filter((e) => e.typeId === "dread:lurker" && e.isValid);
+const stateLine = (p) => { messages.length = 0; say(p, "dread:state"); return messages.join("\n"); };
 
-__fire.scriptEvent("dread:set", "soundIntensity 150", steve);
-assert.match(last(), /0 to 100/, "range rejected");
-__fire.scriptEvent("dread:set", "soundIntensity 35", steve);
-assert.equal(world.getDynamicProperty("dread:soundIntensity"), 35);
-__fire.scriptEvent("dread:set", "effects cinematic", steve);
-__fire.scriptEvent("dread:set", "effects ultra", steve);
-assert.match(last(), /performance, balanced or cinematic/);
-__fire.scriptEvent("dread:set", "debug false", steve);
-__fire.scriptEvent("dread:status", "", steve);
-assert.match(last(), /sound=35 jumpscare=40 effects=cinematic debug=false/);
-messages.length = 0;
+const steve = sim.addPlayer("steve");
 __fire.spawn(steve);
-assert.equal(messages.length, 0, "debug off => silent join");
-__fire.scriptEvent("dread:reset", "", steve);
-__fire.scriptEvent("dread:status", "", steve);
-assert.match(last(), /sound=70 .*effects=balanced debug=true/);
-__fire.scriptEvent("other:thing", "", steve);
-__fire.scriptEvent("dread:bogus", "", steve);
-assert.ok(messages.some((m) => /Unknown command "bogus"/.test(m)));
-// corrupt stored values must fall back to defaults, never throw
-world.setDynamicProperty("dread:soundIntensity", "loud");
-world.setDynamicProperty("dread:effects", 7);
-__fire.scriptEvent("dread:status", "", steve);
-assert.match(last(), /sound=70/);
-__fire.scriptEvent("dread:sound", "bogus", steve);
-assert.match(last(), /Usage: dread:sound/);
-__fire.scriptEvent("dread:sound", "all", steve);
-assert.equal(played.length, 14, "all 14 lurker events play");
-assert.ok(played.every((p) => p.id.startsWith("dread.lurker.") && Number.isFinite(p.o.location.x)));
-assert.ok(played[0].o.location.z < 0, "first sound is behind a player facing +z");
-console.log("smoke tests passed (mocked API, not in-game)");
+say(steve, "dread:set", "debug false"); // keep the transcript quiet
+
+test("config: ranges, enums, persistence and corrupt-value fallback", () => {
+  say(steve, "dread:set", "soundIntensity 150");
+  assert.match(lastMsg(), /0 to 100/);
+  say(steve, "dread:set", "soundIntensity 35");
+  assert.equal(world.getDynamicProperty("dread:soundIntensity"), 35);
+  say(steve, "dread:set", "effects ultra");
+  assert.match(lastMsg(), /performance, balanced or cinematic/);
+  say(steve, "dread:status");
+  assert.match(lastMsg(), /sound=35 jumpscare=40 effects=balanced debug=false/);
+  say(steve, "dread:reset"); say(steve, "dread:set", "debug false");
+  world.setDynamicProperty("dread:soundIntensity", "loud"); world.setDynamicProperty("dread:effects", 7);
+  say(steve, "dread:status");
+  assert.match(lastMsg(), /sound=70/);
+  say(steve, "dread:reset"); say(steve, "dread:set", "debug false");
+  say(steve, "dread:bogus");
+  assert.ok(messages.some((m) => /Unknown command "bogus"/.test(m)));
+});
+
+test("sound test command plays 14 positional Lurker sounds, first one behind the player", () => {
+  played.length = 0;
+  say(steve, "dread:sound", "all");
+  tick(14 * 60 + 5);
+  assert.equal(played.length, 14);
+  assert.ok(played.every((p) => p.id.startsWith("dread.lurker.") && Number.isFinite(p.o.location.x)));
+  assert.ok(played[0].o.location.z < steve.location.z, "behind a player facing +z");
+});
+
+test("ambient sound test plays all 10 ambient events", () => {
+  played.length = 0;
+  say(steve, "dread:sound", "ambient");
+  tick(10 * 60 + 5);
+  assert.equal(played.length, 10);
+  assert.ok(played.every((p) => p.id.startsWith("dread.ambient.")));
+});
+
+test("debug spawn: a Lurker appears at a vantage 14-24 blocks away, owned by the director", () => {
+  terrain.underground = false;
+  say(steve, "dread:spawn", "observe");
+  const l = lurkersIn();
+  assert.equal(l.length, 1);
+  const d = Math.hypot(l[0].location.x - steve.location.x, l[0].location.z - steve.location.z);
+  assert.ok(d > 10 && d < 30, `distance ${d}`);
+  assert.ok(l[0].tags.has("dread_managed"));
+  assert.match(stateLine(steve), /lurkers\(own\/global\)=1\/1/);
+});
+
+test("observer: looking at it makes it notice, freeze, vanish; director learns the player noticed", () => {
+  const l = lurkersIn()[0];
+  steve.view = { x: l.location.x - steve.location.x, y: 0, z: l.location.z - steve.location.z };
+  const n = Math.hypot(steve.view.x, steve.view.z); steve.view = { x: steve.view.x / n, y: 0, z: steve.view.z / n };
+  log.particles.length = 0;
+  tick(20 * 10);
+  assert.equal(lurkersIn().length, 0, "lurker should be gone");
+  assert.ok(log.particles.some((p) => p.name === "dread:lurker_vanish"), "vanish particle");
+  assert.ok(log.events.some((e) => e.name === "dread:set_observe"));
+  assert.match(stateLine(steve), /noticed=1/);
+  assert.ok(played.some((p) => p.id === "dread.lurker.vanish"), "vanish sound played");
+});
+
+test("hunt: attacks are capped at 3 hits, then it retreats and leaves", () => {
+  steve.view = { x: 0, y: 0, z: 1 };
+  say(steve, "dread:spawn", "hunt");
+  const l = lurkersIn()[0];
+  l.location = { x: steve.location.x + 2, y: 64, z: steve.location.z };
+  for (let i = 0; i < 3; i++) { __fire.hurt(steve, l); tick(10); }
+  tick(20 * 25);
+  assert.equal(lurkersIn().length, 0);
+  assert.ok(log.events.some((e) => e.id === l.id && e.name === "dread:set_retreat"));
+});
+
+test("light counterplay: a torch beside the player ends a hunt", () => {
+  const p = steve.location;
+  terrain.extraBlocks.set(`${Math.floor(p.x) + 1},${Math.floor(p.y)},${Math.floor(p.z)}`, "minecraft:torch");
+  say(steve, "dread:spawn", "hunt");
+  const l = lurkersIn()[0];
+  l.location = { x: p.x + 8, y: 64, z: p.z + 8 };
+  const t0 = world.getAbsoluteTime();
+  tick(20 * 40);
+  assert.equal(lurkersIn().length, 0, "lurker still alive in torchlight");
+  assert.ok(log.events.some((e) => e.id === l.id && e.name === "dread:set_retreat"));
+  terrain.extraBlocks.clear();
+  void t0;
+});
+
+test("death: Lurkers are removed and the director enters recovery with grace", () => {
+  say(steve, "dread:spawn", "hunt");
+  assert.equal(lurkersIn().length, 1);
+  __fire.die(steve);
+  assert.equal(lurkersIn().length, 0);
+  assert.match(stateLine(steve), /state=recovery/);
+});
+
+test("an unowned Lurker (egg/summon/reload survivor) is adopted and always eventually leaves", () => {
+  tick(20 * 6); // let the cached light scan refresh after the torch test
+  steve.view = { x: -1, y: 0, z: -1 }; // looking away from it
+  const stray = sim.dims.overworld.spawnEntity("dread:lurker", { x: 20, y: 64, z: 20 });
+  tick(20 * 12);
+  assert.match(stateLine(steve), /lurkers\(own\/global\)=1\/1/, "adopted");
+  tick(20 * 450);
+  assert.equal(stray.isValid, false, "stray Lurker must not live forever");
+});
+
+test("leaving the game saves director memory and removes that player's Lurkers", () => {
+  const alex = sim.addPlayer("alex", { x: 500, y: 64, z: 500 });
+  __fire.spawn(alex); tick(40);
+  say(alex, "dread:spawn", "observe");
+  assert.equal(lurkersIn().filter((e) => Math.abs(e.location.x - 500) < 60).length, 1);
+  __fire.leave(alex); alex.isValid = false;
+  assert.equal(lurkersIn().filter((e) => Math.abs(e.location.x - 500) < 60).length, 0);
+  const saved = world.getDynamicProperty(`dread:mem:${alex.id}`);
+  assert.equal(typeof saved, "string");
+  assert.equal(JSON.parse(saved).v, 1);
+});
+
+test("soak: 3 game-hours of a lonely underground night produce encounters, stay bounded, and never throw", () => {
+  const alone = sim.addPlayer("hermit", { x: -800, y: 64, z: -800 });
+  __fire.spawn(alone); terrain.underground = true; sim.timeOfDay = 16000;
+  for (const p of sim.players) if (p !== alone && p.isValid) p.isValid = false;
+  let maxLurkers = 0;
+  const kinds = new Set();
+  played.length = 0;
+  tick(20 * 3600 * 3, () => {
+    if (mock.system.currentTick % 20 === 0) maxLurkers = Math.max(maxLurkers, lurkersIn().length);
+  });
+  for (const p of played) kinds.add(p.id);
+  const st = stateLine(alone);
+  console.log("      " + st.replace(/\n/g, " | ").replace(/\[hermit\] .{0,30}/g, ""));
+  assert.ok(maxLurkers <= 1, `max simultaneous lurkers ${maxLurkers}`);
+  assert.ok(kinds.size >= 5, `only ${kinds.size} distinct sounds played`);
+  assert.ok(played.length > 30, `only ${played.length} sounds in 3 hours`);
+  assert.ok(lurkersIn().length <= 1);
+});
+
+console.log(`integration smoke tests passed (${passed}); mocked API, not in-game`);

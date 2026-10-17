@@ -4,7 +4,9 @@
 |---|---|---|---|
 | Lurker Batch A (49 Ogg files, `packs/DREAD_RP/sounds/entity/dread/lurker/`) | **Procedurally synthesised** in `tools/synth/` (numpy/scipy, seeded, reproducible: `npm run build:audio`). No samples, no third-party audio. | Original work of this project, released under the project licence. | **Intermediate.** Synthetic placeholders good enough to test mechanics and timing. Not final-quality creature audio; replace with recorded/edited material where noted in `docs/ASSET_GAPS.md`. |
 
-Per-file generator and seed: `assets-src/audio/batch_a/SOURCES.csv`.
+| Ambient Batch B (34 Ogg files, `sounds/entity/dread/ambient/`) | **Procedurally synthesised** (same toolchain): branch snaps, leaf rustle, door creak, structure groan, drag, murmurs, distant cry, heartbeat, pressure drop, far footsteps. | Original work of this project. | **Intermediate.** The murmurs and cry are formant-noise approximations of voices (no words) and are the weakest assets; real recordings are recommended. |
+
+Per-file generator and seed: `assets-src/audio/batch_a/SOURCES.csv` and `batch_b/SOURCES.csv`.
 
 ## Rules for adding audio
 - Every file needs a row: file, tool, prompt/generator, licence, status.

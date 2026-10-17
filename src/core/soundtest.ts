@@ -10,6 +10,10 @@ const LURKER_EVENTS = [
   "vanish", "scrape", "hurt", "death", "attack_swipe", "attack_hit", "chase_vocal",
 ];
 
+const AMBIENT_EVENTS = [
+  "branch_snap", "leaves_rustle", "door_creak", "structure_groan", "drag", "murmur", "distant_cry", "heartbeat", "pressure_drop", "footsteps_far",
+];
+
 /** Positions on a ring around the player, starting behind them (index 0), to prove 3D placement. */
 function ringPosition(player: Player, step: number): { x: number; y: number; z: number } {
   const view = player.getViewDirection();
@@ -21,18 +25,21 @@ function ringPosition(player: Player, step: number): { x: number; y: number; z: 
 
 export function playSoundTest(player: Player | undefined, arg: string): void {
   if (!player) return;
-  const names = arg === "all" || arg === "" ? LURKER_EVENTS : arg.split(/\s+/).filter((n) => LURKER_EVENTS.includes(n));
-  if (names.length === 0) {
-    tell(`Usage: dread:sound all | <${LURKER_EVENTS.join("|")}>`, player);
+  const ids =
+    arg === "all" || arg === "" ? LURKER_EVENTS.map((n) => `dread.lurker.${n}`) :
+    arg === "ambient" ? AMBIENT_EVENTS.map((n) => `dread.ambient.${n}`) :
+    arg.split(/\s+/).flatMap((n) => (LURKER_EVENTS.includes(n) ? [`dread.lurker.${n}`] : AMBIENT_EVENTS.includes(n) ? [`dread.ambient.${n}`] : []));
+  if (ids.length === 0) {
+    tell(`Usage: dread:sound all | ambient | <${[...LURKER_EVENTS, ...AMBIENT_EVENTS].join("|")}>`, player);
     return;
   }
-  tell(`Playing ${names.length} sound(s), 3 s apart, circling you from behind.`, player);
-  names.forEach((name, i) => {
+  tell(`Playing ${ids.length} sound(s), 3 s apart, circling you from behind.`, player);
+  ids.forEach((id, i) => {
     system.runTimeout(() => {
       if (!player.isValid) return;
       const location = ringPosition(player, i);
-      player.playSound(`dread.lurker.${name}`, { location, volume: 1, pitch: 1 });
-      tell(`§7${name}`, player);
+      player.playSound(id, { location, volume: 1, pitch: 1 });
+      tell(`§7${id.replace("dread.", "")}`, player);
     }, i * 60);
   });
 }

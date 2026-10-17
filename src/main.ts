@@ -3,6 +3,7 @@ import { registerCommands } from "./core/commands";
 import { readConfig } from "./core/config";
 import { ADDON_VERSION, BUILD_STAGE } from "./core/constants";
 import { logConsole } from "./core/log";
+import { initDirector } from "./game/director";
 
 /**
  * DREAD entry point. Phase 1: prove the pack loads, settings persist, and the command channel works.
@@ -11,6 +12,7 @@ import { logConsole } from "./core/log";
 logConsole(`script loaded v${ADDON_VERSION} (${BUILD_STAGE})`);
 
 registerCommands();
+initDirector();
 
 // Confirm once per player join that the add-on is alive (debug builds only). Delayed so the
 // message is not lost while the client is still loading the world.
