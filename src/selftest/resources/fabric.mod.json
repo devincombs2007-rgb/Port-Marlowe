@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "portmarlowe-selftest",
+  "version": "1.0.0",
+  "name": "Port Marlowe Self-Test",
+  "description": "Development-only: boots the game, creates a world and verifies every Port Marlowe optimization.",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "dev.portmarlowe.selftest.SelfTestClient"
+    ]
+  },
+  "mixins": [
+    "portmarlowe-selftest.mixins.json"
+  ],
+  "depends": {
+    "portmarlowe": "*"
+  }
+}

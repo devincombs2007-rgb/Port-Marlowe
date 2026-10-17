@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "id": "portmarlowe",
+  "version": "${version}",
+  "name": "Port Marlowe",
+  "description": "Performance mod for Minecraft: Java Edition on iPhone and iPad (Amethyst / PojavLauncher). Mobile-tuned settings, dynamic frame rate for battery and thermals, particle limits and culling, shorter block entity draw distance and lower native memory use. Works alongside Sodium, Lithium, FerriteCore and friends.",
+  "authors": [
+    "Port Marlowe contributors"
+  ],
+  "contact": {
+    "sources": "https://github.com/devincombs2007-rgb/port-marlowe"
+  },
+  "license": "MIT",
+  "icon": "assets/portmarlowe/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "dev.portmarlowe.PortMarlowe"
+    ],
+    "modmenu": [
+      "dev.portmarlowe.compat.ModMenuIntegration"
+    ]
+  },
+  "mixins": [
+    "portmarlowe.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.15.0",
+    "minecraft": ">=1.21 <1.21.2",
+    "java": ">=21"
+  },
+  "suggests": {
+    "sodium": "*",
+    "lithium": "*",
+    "ferritecore": "*",
+    "modernfix": "*",
+    "immediatelyfast": "*",
+    "entityculling": "*"
+  }
+}

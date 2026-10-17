@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "dev.portmarlowe.selftest.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "MinecraftAccessor",
+    "MinecraftSelfTestMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
