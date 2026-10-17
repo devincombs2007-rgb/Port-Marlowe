@@ -1,0 +1,7 @@
+{
+  "required": true,
+  "package": "com.portmarlowe.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": ["GameRendererInvoker"],
+  "injectors": { "defaultRequire": 1 }
+}

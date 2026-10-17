@@ -1,0 +1,9 @@
+{
+  "entity.portmarlowe.lurker": "Lurker",
+  "entity.portmarlowe.gaunt": "Gaunt",
+  "entity.portmarlowe.tollwraith": "Tollwraith",
+  "item.portmarlowe.lurker_spawn_egg": "Lurker Spawn Egg",
+  "item.portmarlowe.gaunt_spawn_egg": "Gaunt Spawn Egg",
+  "item.portmarlowe.tollwraith_spawn_egg": "Tollwraith Spawn Egg",
+  "key.portmarlowe.toggle_dread": "Toggle Dread Shader"
+}

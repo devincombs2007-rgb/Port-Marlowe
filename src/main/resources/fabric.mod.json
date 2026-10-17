@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "portmarlowe",
+  "version": "${version}",
+  "name": "Port Marlowe",
+  "description": "Something is wrong with the harbour. Three new horrors and a dread-soaked post-process shader.",
+  "authors": ["Port Marlowe"],
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["com.portmarlowe.PortMarlowe"],
+    "client": ["com.portmarlowe.client.PortMarloweClient"]
+  },
+  "mixins": ["portmarlowe.mixins.json"],
+  "depends": {
+    "fabricloader": ">=0.16.10",
+    "minecraft": "~1.21.4",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}
