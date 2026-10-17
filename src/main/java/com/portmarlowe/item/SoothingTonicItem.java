@@ -27,8 +27,8 @@ public class SoothingTonicItem extends Item {
 			if (player instanceof ServerPlayer sp) {
 				HorrorDirector.addSanity(sp, 40);
 			}
-			player.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 400, 0));
-			player.addEffect(new MobEffectInstance(MobEffects.NAUSEA, 120, 0));
+			player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 400, 0));
+			player.addEffect(new MobEffectInstance(MobEffects.CONFUSION, 120, 0));
 		}
 		if (!player.getAbilities().instabuild) {
 			stack.shrink(1);

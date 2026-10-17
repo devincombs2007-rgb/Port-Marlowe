@@ -80,8 +80,8 @@ public class Lurker extends Monster implements HorrorMob {
 	}
 
 	@Override
-	public boolean doHurtTarget(net.minecraft.world.entity.Entity target) {
-		boolean hit = super.doHurtTarget(target);
+	public boolean doHurtTarget(net.minecraft.server.level.ServerLevel level, net.minecraft.world.entity.Entity target) {
+		boolean hit = super.doHurtTarget(level, target);
 		if (hit) {
 			HorrorDirector.onHorrorHit(target);
 		}

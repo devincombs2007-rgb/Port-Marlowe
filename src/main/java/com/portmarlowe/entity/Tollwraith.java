@@ -69,19 +69,19 @@ public class Tollwraith extends Monster implements HorrorMob {
 		List<ServerPlayer> victims = level().getEntitiesOfClass(ServerPlayer.class,
 				getBoundingBox().inflate(TOLL_RANGE), p -> !p.isCreative() && !p.isSpectator());
 		for (ServerPlayer player : victims) {
-			player.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 100, 0), this);
+			player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 100, 0), this);
 			player.addEffect(new MobEffectInstance(MobEffects.DARKNESS, 100, 0), this);
 		}
 	}
 
 	@Override
-	public boolean doHurtTarget(Entity target) {
-		boolean hit = super.doHurtTarget(target);
+	public boolean doHurtTarget(net.minecraft.server.level.ServerLevel level, Entity target) {
+		boolean hit = super.doHurtTarget(level, target);
 		if (hit) {
 			HorrorDirector.onHorrorHit(target);
 		}
 		if (hit && target instanceof LivingEntity living) {
-			living.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 100, 2), this);
+			living.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 100, 2), this);
 		}
 		return hit;
 	}

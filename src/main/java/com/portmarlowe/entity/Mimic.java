@@ -48,8 +48,8 @@ public class Mimic extends Monster implements HorrorMob {
 	}
 
 	@Override
-	public boolean doHurtTarget(Entity target) {
-		boolean hit = super.doHurtTarget(target);
+	public boolean doHurtTarget(net.minecraft.server.level.ServerLevel level, Entity target) {
+		boolean hit = super.doHurtTarget(level, target);
 		if (hit) {
 			HorrorDirector.onHorrorHit(target);
 		}
@@ -123,7 +123,7 @@ public class Mimic extends Monster implements HorrorMob {
 				mimic.getNavigation().moveTo(target, 1.35);
 				if (attackCooldown <= 0 && mimic.distanceToSqr(target) < 4.5) {
 					mimic.swing(InteractionHand.MAIN_HAND);
-					mimic.doHurtTarget(target);
+					mimic.doHurtTarget((net.minecraft.server.level.ServerLevel) mimic.level(), target);
 					attackCooldown = 20;
 				}
 			}

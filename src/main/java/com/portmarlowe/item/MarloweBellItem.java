@@ -27,7 +27,7 @@ public class MarloweBellItem extends Item {
 			for (Mob mob : level.getEntitiesOfClass(Mob.class, player.getBoundingBox().inflate(16.0), e -> e instanceof HorrorMob)) {
 				mob.setTarget(null);
 				mob.addEffect(new MobEffectInstance(MobEffects.GLOWING, 160, 0));
-				mob.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 160, 3));
+				mob.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 160, 3));
 			}
 			if (player instanceof ServerPlayer sp) {
 				HorrorDirector.addSanity(sp, 12);
