@@ -27,7 +27,7 @@ import {
   forgetWatcherTarget, isWatcherTracked, onWatcherDied, onWatcherHurt, onWatcherStruck, startWatcher, tryStartWatcher, watcherCount,
 } from "./creatures/watcher";
 import { registerBlockComponents, startBlockSystems } from "./items/blocks";
-import { registerItemComponents } from "./items/components";
+import { registerItemComponents, startMaterialPickups } from "./items/components";
 import { startAmbience } from "./systems/ambience";
 import { startCleanup, sweepLoaded, trackType } from "./systems/cleanup";
 import { addStarter, startDirector } from "./systems/director";
@@ -64,6 +64,7 @@ function init(): void {
   startDirector();
   startAmbience();
   startBlockSystems();
+  startMaterialPickups();
   startSites();
   startWatcher();
   startBorrowed();

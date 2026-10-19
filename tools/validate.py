@@ -320,6 +320,22 @@ def check_rp_entities(c, bp_props):
                     for bone in c["animations"][full][1].get("bones", {}):
                         if bone not in bones:
                             err(f"{rel(p)}: animation {full} animates missing bone {bone}")
+        # sound / particle effects: entity maps resolve, and animations only use declared short names
+        for short, sid in desc.get("sound_effects", {}).items():
+            if sid not in c["sounds"]:
+                err(f"{rel(p)}: sound_effects.{short} -> {sid} not defined")
+        for short, pid in desc.get("particle_effects", {}).items():
+            if pid not in c["particles"] and not pid.startswith("minecraft:"):
+                err(f"{rel(p)}: particle_effects.{short} -> {pid} not defined")
+        for short, full in anims.items():
+            a = c["animations"].get(full, (None, {}))[1]
+            for kind, declared in (("sound_effects", desc.get("sound_effects", {})), ("particle_effects", desc.get("particle_effects", {}))):
+                for frame in a.get(kind, {}).values():
+                    for fx in frame if isinstance(frame, list) else [frame]:
+                        if fx.get("effect") not in declared:
+                            err(f"{rel(p)}: animation {full} {kind} effect {fx.get('effect')} not declared on the entity")
+        if "spawn_egg" in desc and f"item.spawn_egg.entity.{ident}.name" not in c["lang"]:
+            err(f"lang: missing item.spawn_egg.entity.{ident}.name")
         # property queries must exist on the server entity
         text = json.dumps(desc)
         for prop in re.findall(r"query\.property\('([^']+)'\)", text):
@@ -656,7 +672,14 @@ def check_visuals(c):
     n = 0
     for p in glob.glob(os.path.join(VP, "biomes", "*.json")):
         n += 1
-        d = load_json(p)["minecraft:client_biome"]["components"]
+        doc = load_json(p)
+        if SCH.available:
+            for e in SCH.validate("client_biome", doc)[:5]:
+                err(f"{rel(p)}: schema: {e}")
+        ident = doc["minecraft:client_biome"]["description"]["identifier"]
+        if not os.path.exists(os.path.join(SAMPLES, "resource_pack", "biomes", ident.split(":")[1] + ".client_biome.json")):
+            err(f"{rel(p)}: {ident} is not a vanilla client biome")
+        d = doc["minecraft:client_biome"]["components"]
         for comp, field in comp_map.items():
             if comp in d:
                 v = d[comp][field]
@@ -693,8 +716,15 @@ def main():
     check_script_ids(c)
     check_structures(c)
     check_visuals(c)
+    sch = "schema-validated + " if SCH.available else ""
+    info(f"behavior entities: {len(c['bp_entities'])} ({sch}component names, events, component groups, properties, loot paths, lang)")
+    info(f"client entities: {len(c['rp_entities'])} (textures, geometry, animations, controllers, render controllers, bones, Molang properties)")
+    info(f"geometry: {len(c['geometry'])} models (UV bounds); animations: {len(c['animations'])}; controllers: {len(c['controllers'])}; render controllers: {len(c['render_controllers'])}")
+    info(f"items: {len(c['items'])}, blocks: {len(c['blocks'])} ({sch}icons, terrain textures, custom components registered in script, states, lang)")
+    info(f"particles: {len(c['particles'])}; fogs: {len(c['fogs'])}")
+    info("scripts: every hollow:* id, sound, particle, fog, event, property and block state referenced from TypeScript resolves")
 
-    report = ["# Static validation report (generated)", ""]
+    report =["# Static validation report (generated)", ""]
     report.append(f"Errors: **{len(errors)}** · Warnings: **{len(warnings)}**")
     report.append("")
     for title, items in (("Errors", errors), ("Warnings", warnings), ("Checks run", infos)):

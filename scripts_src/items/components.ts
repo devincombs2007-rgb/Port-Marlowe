@@ -1,4 +1,4 @@
-import { EquipmentSlot, GameMode, ItemStack, Player, StartupEvent, system } from "@minecraft/server";
+import { EquipmentSlot, GameMode, ItemStack, Player, StartupEvent, system, world } from "@minecraft/server";
 import { ui } from "../core/audio";
 import { notice } from "../core/fx";
 import { ENT, FAMILY, ITEM, PROP, SND } from "../core/ids";
@@ -145,7 +145,7 @@ export function registerItemComponents(ev: StartupEvent): void {
   });
 
   ev.itemComponentRegistry.registerCustomComponent("hollow:material", {
-    // Crafting materials: picking one up the first time teaches the matching recipe page.
+    // Crafting materials: using one re-reads its hint (pickup teaches the recipe, see below).
     onUse(e) {
       const p = e.source;
       const id = e.itemStack?.typeId;
@@ -169,6 +169,18 @@ function describeMaterial(p: Player, id: string | undefined): void {
   if (!h) return;
   unlock(p, h[0]);
   notice(p, h[1]);
+}
+
+/** Picking up a creature material the first time teaches the recipe that uses it. */
+export function startMaterialPickups(): void {
+  world.afterEvents.entityItemPickup.subscribe((ev) => {
+    const p = ev.entity;
+    if (!(p instanceof Player)) return;
+    for (const stack of ev.items) {
+      const h = MATERIAL_HINTS[stack.typeId];
+      if (h && !hasEntry(p, h[0])) describeMaterial(p, stack.typeId);
+    }
+  }, { entityFilter: { type: "minecraft:player" }, itemFilter: { includeTypes: Object.keys(MATERIAL_HINTS) } });
 }
 
 export function giveOrDrop(p: Player, stack: ItemStack): void {

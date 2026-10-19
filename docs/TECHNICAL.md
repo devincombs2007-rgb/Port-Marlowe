@@ -1,0 +1,191 @@
+# Technical notes
+
+## 1. Verified targets
+
+Versions were checked on 2026-10-19 against primary sources: Mojang's `bedrock-samples` release tag, the
+official Minecraft Creator docs (the MicrosoftDocs/minecraft-creator GitHub source), and npm.
+
+| Item | Pinned | Notes |
+|---|---|---|
+| Minecraft Bedrock | **26.50** (`1.26.50`), `min_engine_version` [1,26,50] | `bedrock-samples` tag `v1.26.50.4` (Mojang's sample and metadata release for 26.50). 26.52 is the current hotfix. |
+| `@minecraft/server` | **2.10.0** | Stable (no `-beta`). Present in `metadata/script_modules` for 1.26.50. |
+| `@minecraft/server-ui` | **2.2.0** | Stable. Present in `metadata/script_modules` for 1.26.50. |
+| `@minecraft/vanilla-data` | 1.26.52 | Typings only, never shipped or imported at runtime. |
+| Manifest | `format_version` 2 | BP depends on the RP by UUID and version. Both RPs declare the `pbr` capability. |
+| Entity (BP) | `1.26.50` | Validated against `json_schemas/server/entity/1.26.50`. |
+| Item | `1.26.30` | Custom components V2 (component keys directly in `components`). |
+| Block | `1.26.20` | Custom states are int ranges (`{"values":{"min":0,"max":4}}`). Bool arrays aren't valid in this format. |
+| Recipes | `1.20.10` | Shaped and shapeless, `crafting_table` tag, `unlock` conditions. |
+| Client entity | `1.10.0`; geometry `1.16.0`; animations `1.8.0`; controllers `1.10.0`; render controllers `1.8.0` | |
+| Particles | `1.10.0` | Validated against `json_schemas/client/particles/1.21.10`. |
+| Texture sets | `1.21.30` | MERS (RGBA: metalness, emissive, roughness, subsurface) + heightmap. |
+| Fog | `1.21.90` | Distance fog + volumetric density, media coefficients, Henyey–Greenstein. |
+| Lighting | `1.26.0` | Sun and moon, keyframed ambient and sky intensity, emissive desaturation. |
+| Atmospherics | `1.21.40` | Keyframed sky zenith and horizon colours, Rayleigh/Mie, moon Mie. |
+| Color grading | `1.21.90` | Generic tone mapping across every look. Only one operator may be used in a pack set. |
+| Water | `1.21.120` | Per-look chlorophyll, sediment and CDOM (murky swamp water). |
+| Local lighting | `1.21.120` | Point and static light colours for torch, lantern, campfire and HOLLOW blocks. |
+| Client biome | `1.21.120` (vanilla base) | Validated against `json_schemas/client/biome/1.21.130`. |
+| Structures | `.mcstructure` (LE NBT), block palette version `1.26.50.4` | Every palette entry is validated against `mojang-blocks.json` 1.26.50. |
+
+**Not used:** beta APIs, experimental toggles, Preview-only features, Molang features gated behind experiments,
+Java shaders, renderer injection, RTX.
+
+## 2. Architecture
+
+```
+scripts_src/main.ts           wiring: startup registration, worldLoad init, player/entity events, script events
+ core/                        shared services
+   scheduler.ts               every(), everyPlayer() (staggered), later(), safe() (per-label failure isolation)
+   config.ts                  world rules (operators) + per-player prefs, sanitised, cached, persisted
+   players.ts                 per-player runtime, cooldowns, huntable(), newcomer and respawn grace
+   world.ts                   bounded world queries (block raycasts, small-volume searches via BlockVolume filters)
+   audio.ts, fx.ts            cue gating (min gaps), fog stack, soft fades, hints
+ systems/
+   director.ts                one evaluation per player per 5 s → creature starters in priority order
+   noise.ts                   Hollowed hearing (event-driven + movement polling only near Hollowed)
+   ambience.ts                context ambience (forest, cave, swamp) and the rare bedtime knock
+   sites.ts                   lazy cabin and campsite placement, shrine on demand, discovery, validation
+   journal.ts, settings_ui.ts controller-friendly forms (ActionFormData / ModalFormData)
+   cleanup.ts                 orphan removal on entityLoad + one sweep after init
+ creatures/*.ts               one module per creature: spawn rules, script state machine, events, cleanup
+ items/                       custom item and block components (journal, lens, heartseeker, chime, ward, altar, lantern)
+```
+
+**State machines run in script; movement runs in the engine.**
+- Each creature's high-level state lives in a script `Map` keyed by entity id and is mirrored to the entity with
+  `triggerEvent` (component groups) and entity properties (for animation and render controllers).
+- Movement, pathfinding, targeting and melee are vanilla behavior components: `move_to_block`,
+  `move_towards_target`, `nearest_attackable_target`, `melee_attack`, `avoid_mob_type`, `leap_at_target`, `break_door`.
+- Script never moves a creature by teleporting it.
+
+## 3. Performance budget
+
+There are no per-tick full scans. Everything that recurs is listed here.
+
+| Job | Period | Work per run | Bound |
+|---|---|---|---|
+| director | 100 ticks **per player**, staggered | context probe + creature starters | 1 player per tick |
+| ambience | 120 ticks per player, staggered | chance roll, maybe 1 sound | 1 player per tick |
+| bedtime | 40 ticks per player | sleeping check | trivial |
+| sites.place | 1200 ticks per player | 30% roll → ≤4 candidate checks (`containsBlock` on footprint volumes) | rare |
+| sites.discover | 100 ticks per player | distance to ≤19 site records | ≤19 |
+| sites.validate | 6000 ticks | small-radius block search per **loaded** site | ≤19 sites |
+| watcher.update | 4 ticks | per active encounter: 1–2 raycasts per nearby player | ≤3 encounters |
+| borrowed.update | 10 ticks | per active Borrowed | ≤2 |
+| hollowed.update | 20 ticks | per active Hollowed and lure | ≤6 + lures |
+| hollowed.steps | 10 ticks per player | movement noise, **only for players near a Hollowed** | |
+| mirebound.update | 2 ticks | per active Mirebound (fast for the grab window) | ≤3 |
+| knocker.update | 10 ticks | the single visit | ≤1 |
+| heart.update | 5 ticks | only while the boss is active | 1 fight |
+| chimes | 40 ticks | registry of positions (no world scan), `getEntities` within 14 blocks of each loaded chime | ≤32 chimes |
+
+- **World scans:** none. Sites are found from stored records; chimes, wards and lanterns from capped registries in world
+  dynamic properties.
+- **Block queries are always small and bounded:**
+  - creature context probes are ≤ 21×9×21 (e.g. door search around one player);
+  - site placement checks are the site footprint plus a 4-block margin (largest: the shrine, 27×15×27, once per Heartseeker
+    attempt);
+  - everything else uses single-block raycasts.
+- **Entity counts:** Watcher ≤3, Borrowed ≤2, Hollowed ≤6 (≤2–3 per player), Mirebound ≤3, Knocker ≤1, boss
+  1 + ≤4 veins + ≤5 minions, plus short-lived lures and root spikes.
+- **No frame-rate claims.** Nothing has been measured on a device. The budget above is a design bound, not a measurement.
+
+## 4. Multiplayer, persistence and lifecycle
+
+| Event | Handling |
+|---|---|
+| **Join** (first time) | Journal given (`keepOnDeath`, `lockMode: inventory`). Intro, shelter, chime and ward entries unlocked. Newcomer grace starts (10 min of play). |
+| **Leave** | Per-player runtime, cooldown, prefs, journal and noise caches are forgotten. Watcher, Borrowed, Mirebound and Knocker encounters targeting the player end, and their entities are removed. A Hollowed with nobody within 64 blocks is removed after 30 s. |
+| **Death** | Encounters targeting the player end. 60 s of respawn mercy. The journal is kept, and re-given if missing. |
+| **Dimension change** | Encounters end and encounter fog is cleared. Creatures don't follow. |
+| **World reload** | Script state is rebuilt from dynamic properties. Any `hollow:` encounter entity without a live encounter is removed on load (`cleanup.ts`). The boss resumes from its saved state. |
+| **Persistence** | World: settings, start day, sites, chime/ward/lantern registries, boss, Knocker plan. Player: journal unlocks and read flags, prefs, play time, daily counters. All stored as small JSON dynamic properties. |
+| **Duplication** | A player has at most one major encounter. The Knocker plans **one visit per night for the world**. Site records are spaced apart (cabins 320, camps 256, other site types 96 blocks) and capped (8 cabins, 10 camps, 1 shrine). |
+| **Reward exploits** | Pale Resin from staring: once per encounter, max 1 per player per night (2 on Nightmare). Boss rewards: once per participant per kill, then the altar rests 3 days. The ward can't be refilled by breaking and re-placing it (a used ward breaks into salvage). Dormancy returns the Offering instead of consuming it. |
+| **Operators** | World rules need `PlayerPermissionLevel.Operator` (the Realm owner and promoted operators). Debug script events are operator-only. |
+
+## 5. Sites in new and existing worlds
+
+There is no world generation and no terrain scanning. Sites are placed with `world.structureManager.place`
+from `.mcstructure` files in the behavior pack:
+
+- **Cabins** (forest) and **campsites** (open ground or forest edge) are offered every 60 s per player.
+  - A 30% roll, and only on the surface.
+  - At least 96 blocks from world spawn.
+  - Placed 56–80 blocks away, **behind** the player.
+  - At least 64 blocks from their bed or spawn point.
+- **Every placement is checked first:**
+  - All corner chunks are loaded.
+  - The ground is flat within 2 blocks at five probes, with no liquid under it.
+  - **No player-built blocks** (planks, glass, doors, beds, chests, crafting blocks…) within 4 blocks of the footprint.
+  - No tree trunks or water or lava inside the footprint.
+- The structures have structure voids, so only their own blocks are written. Cabins and camps sink 1 block for a foundation.
+- **The shrine** is created only when a player first uses a Heartseeker: 32–48 blocks away, deep underground, never touching
+  water, lava or built blocks. It carves a 25×13×25 chamber, which is the largest terrain change the add-on makes, and it
+  only happens by player choice.
+- Operators can turn all sites off. Placed sites are ordinary blocks; nothing is ever removed or regenerated.
+
+## 6. Visuals
+
+**Resource pack (always on, every graphics mode):**
+- Creatures and blocks ship PBR **texture sets**: MERS and heightmap. They are used under Vibrant Visuals and ignored by
+  standard graphics.
+- The **glowing eyes** use a second render controller with an unlit eye texture (`entity_alphatest` with
+  `ignore_lighting`), so they read in standard graphics too.
+  - Night-only variants gate on `query.time_of_day`.
+- Encounter fog (`hollow:watched`, `hollow:heart`, `hollow:mire`) is pushed per player through `player.fogSettings`
+  and can be disabled per player.
+
+**Visuals pack (optional, Vibrant Visuals only):**
+- **Four looks:**
+  | Look | Character |
+  |---|---|
+  | wild | cool forest daylight, muted saturation 0.94 |
+  | cold | blue-white |
+  | swamp | olive and humid, sediment-rich water |
+  | cave | desaturated, cool shadows |
+- **Applied through 57 client-biome overrides.** Since 1.21.90, vanilla per-biome VV settings override the global files,
+  so per-biome overrides are required.
+- **Night is dark but never black:**
+  - moonlight 0.5 illuminance, cool [150,170,255];
+  - ambient keyframed from 0.02 by day to 0.045 at night;
+  - deep-blue night zenith [16,20,34];
+  - fog that starts at 70% of render distance.
+- **Colour grading:** warm highlights and cool shadows, so shelter light reads as warm and safe against a cool world.
+- **Local lights:** torch #FFB46B, lantern #E8873A, campfire #FF9A4A, Heartwood Lantern #FF6A3D, Rowan Ward #FF8A3A.
+- **Safety:** the add-on never shakes the camera, never flashes, and never forces darkness or blindness.
+  - Fades are short, soft, and can be switched off.
+
+**Minecraft controls (not the add-on):** Graphics Mode (Vibrant Visuals / Fancy / Simple), render distance, brightness,
+FOV, the camera shake toggle, and the per-category audio sliders.
+
+## 7. Audio
+
+- **70 sound events with 153 variants**, all synthesised procedurally by `tools/sounds/design.py` with no samples.
+  - Techniques: modal synthesis for knocks and the chime, stick-slip friction for creaks and scratches, granular crackle
+    for twigs and leaves, Minnaert bubbles for the Mirebound, formant voices for bleats and breaths, filtered noise beds for
+    wind and drones, and convolution reverb.
+  - Encoded as OGG Vorbis, mono, 44.1 kHz, so the engine positions them in 3D.
+- **Mixing rules in script:**
+  - ambient cues have a ≥9 s global gap per player plus per-cue gaps;
+  - encounter accents have a ≥45 s gap;
+  - world sounds play at the source position;
+  - nothing loops indefinitely.
+- **Settings:** ambience volume and encounter accents are separate per-player settings. Minecraft's own category sliders
+  (Hostile Creatures, Ambient/Environment, Blocks…) apply on top.
+- **Honest limitation:** I can't listen to audio. Every sound was checked by spectrogram, peak and RMS level, duration and
+  clipping, not by ear. Treat them as a solid, original first pass. They are **not** professionally mastered sound design,
+  and some may need tuning after a listening test (see the validation report).
+
+## 8. Build reproducibility
+
+- `python3 tools/build.py --assets` regenerates every model, texture, sound, structure and visuals file from code.
+  `python3 tools/build.py` regenerates content JSON, type-checks (`tsc --strict`), bundles the scripts (esbuild),
+  validates and packages.
+- Builds are byte-reproducible:
+  - OGG encodes use ffmpeg `+bitexact`;
+  - zip entries are sorted with fixed timestamps;
+  - UUIDs are deterministic `uuid5` values in `tools/pack_uuids.json`.
+- Scripts are bundled into one ES module (`packs/behavior/scripts/main.js`) because Bedrock's module loader doesn't resolve
+  extensionless relative imports.

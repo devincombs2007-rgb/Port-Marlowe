@@ -214,7 +214,11 @@ export function registerBlockComponents(ev: StartupEvent): void {
 
   ev.blockComponentRegistry.registerCustomComponent("hollow:ward", {
     onPlace(e) {
-      register(DP.wards, e.block, LIMITS[DP.wards]);
+      if (!register(DP.wards, e.block, LIMITS[DP.wards])) {
+        for (const p of e.dimension.getPlayers({ location: e.block.location, maxDistance: 8 })) {
+          notice(p, "§7This world already has 32 active wards. This one will stay cold.");
+        }
+      }
       worldSound(e.dimension, SND.wardPlace, e.block.center());
     },
     onPlayerBreak(e) {

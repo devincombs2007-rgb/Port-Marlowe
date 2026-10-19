@@ -61,13 +61,19 @@ def package():
     skip = {".DS_Store", "Thumbs.db"}
 
     def add_pack(z, src, top):
-        for base, _, files in os.walk(src):
+        # sorted walk + fixed timestamps: identical inputs give a byte-identical archive
+        for base, dirs, files in os.walk(src):
+            dirs.sort()
             for fn in sorted(files):
                 if fn in skip or fn.endswith((".pyc", ".ts", ".map")):
                     continue
                 full = os.path.join(base, fn)
-                arc = os.path.join(top, os.path.relpath(full, src)) if top else os.path.relpath(full, src)
-                z.write(full, arc)
+                arc = os.path.relpath(full, src).replace(os.sep, "/")
+                info = zipfile.ZipInfo(f"{top}/{arc}" if top else arc, date_time=(2026, 1, 1, 0, 0, 0))
+                info.compress_type = zipfile.ZIP_DEFLATED
+                info.external_attr = 0o644 << 16
+                with open(full, "rb") as f:
+                    z.writestr(info, f.read(), compresslevel=9)
 
     with zipfile.ZipFile(addon, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
         for folder, top in PACKS.items():
@@ -75,9 +81,12 @@ def package():
     for folder, top in PACKS.items():
         with zipfile.ZipFile(os.path.join(dist, f"{top}_v{version}.mcpack"), "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
             add_pack(z, os.path.join(ROOT, "packs", folder), "")
-    # integrity check: every pack in the addon has a manifest at its root
+    # integrity check: every pack in the addon has a manifest at its root, only shippable file types
     with zipfile.ZipFile(addon) as z:
         names = set(z.namelist())
+        shippable = (".json", ".png", ".ogg", ".lang", ".mcstructure", ".js")
+        stray = sorted(n for n in names if not n.endswith(shippable))
+        assert not stray, f"unexpected files in package: {stray}"
         for top in PACKS.values():
             assert f"{top}/manifest.json" in names, top
         bad = z.testzip()

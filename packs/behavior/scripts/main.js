@@ -1,5 +1,5 @@
 // ../../scripts_src/main.ts
-import { Player as Player18, system as system6, world as world16 } from "@minecraft/server";
+import { Player as Player18, system as system6, world as world17 } from "@minecraft/server";
 
 // ../../scripts_src/core/config.ts
 import { PlayerPermissionLevel } from "@minecraft/server";
@@ -870,22 +870,22 @@ function failureReport() {
 }
 
 // ../../scripts_src/creatures/borrowed.ts
-import { Player as Player14, world as world11 } from "@minecraft/server";
+import { Player as Player14, world as world12 } from "@minecraft/server";
 
 // ../../scripts_src/items/blocks.ts
 import {
   BlockPermutation as BlockPermutation2,
   EquipmentSlot as EquipmentSlot4,
   GameMode as GameMode4,
-  ItemStack as ItemStack4,
-  world as world10
+  ItemStack as ItemStack5,
+  world as world11
 } from "@minecraft/server";
 
 // ../../scripts_src/creatures/heart.ts
-import { EntityDamageCause, EquipmentSlot as EquipmentSlot3, GameMode as GameMode3, ItemStack as ItemStack3, Player as Player12, world as world9 } from "@minecraft/server";
+import { EntityDamageCause, EquipmentSlot as EquipmentSlot3, GameMode as GameMode3, ItemStack as ItemStack4, Player as Player12, world as world10 } from "@minecraft/server";
 
 // ../../scripts_src/items/components.ts
-import { EquipmentSlot as EquipmentSlot2, GameMode as GameMode2, system as system5 } from "@minecraft/server";
+import { EquipmentSlot as EquipmentSlot2, GameMode as GameMode2, Player as Player10, system as system5, world as world8 } from "@minecraft/server";
 
 // ../../scripts_src/systems/journal.ts
 import { ItemLockMode, ItemStack, system as system4 } from "@minecraft/server";
@@ -984,7 +984,7 @@ var ENTRIES = [
     chapter: "threats",
     title: "The Watcher: Turned Backs",
     icon: "textures/items/hollow/pale_resin",
-    body: "§lIt only moves while nobody is looking at it.§r" + P + "Ignore it and it creeps closer, tree by tree. In the dark it will close the last few steps and strike." + P + "§lCounterplay:§r turn and look at it; carry a torch or lantern in either hand; stay near placed lights. It will not approach a lit place, and it won't strike someone holding a light."
+    body: "§lIt only moves while nobody is looking at it.§r" + P + "Ignore it and it creeps closer, tree by tree. In the dark it will close the last few steps and strike." + P + "§lCounterplay:§r turn and look at it; hold a torch or lantern; stay near placed lights. It will not approach a lit place, and it won't strike someone holding a light."
   },
   {
     id: "borrowed1",
@@ -1104,7 +1104,7 @@ var ENTRIES = [
     chapter: "craft",
     title: "Offering of Silence",
     icon: "textures/items/hollow/offering_of_silence",
-    body: "§lBoss progression.§r A piece of each of them. Place it in the altar at the shrine to wake the Heart Below." + P + "§7Recipe:§r\n  [Hollow Fang] [Pale Resin] [Hollow Fang]\n  [Borrowed Hide] [Gold Ingot] [Knocker's Nail]\n  [   ] [Mire Pearl] [   ]" + P + "§7Torn pages and site chests sometimes hold components, so a creature you have switched off can't lock you out."
+    body: "§lBoss progression.§r A piece of each of them. Place it in the altar at the shrine to wake the Heart Below." + P + "§7Recipe:§r\n  [Hollow Fang] [Pale Resin] [Hollow Fang]\n  [Borrowed Hide] [Gold Ingot] [Knocker's Nail]\n  [   ] [Mire Pearl] [   ]" + P + "§7Cabin and campsite chests sometimes hold components. If a creature is switched off in World Rules, every new site chest holds its component instead."
   },
   {
     id: "craft_lantern",
@@ -1432,6 +1432,7 @@ function startNoiseEvents() {
 // ../../scripts_src/systems/sites.ts
 import {
   BlockVolume as BlockVolume2,
+  ItemStack as ItemStack2,
   LocationWaypoint,
   StructureRotation,
   WaypointTexture,
@@ -1511,6 +1512,13 @@ function place(dim, t, origin) {
   if (def.lootTable) later("sites.fill", 2, () => fill(dim, site));
   return site;
 }
+var DISABLED_SUPPLY = [
+  ["watcher", ITEM.paleResin, 1],
+  ["borrowed", ITEM.borrowedHide, 1],
+  ["hollowed", ITEM.hollowFang, 2],
+  ["knocker", ITEM.knockerNail, 1],
+  ["mirebound", ITEM.mirePearl, 1]
+];
 function fill(dim, s) {
   const def = DEFS[s.t];
   const c = { x: s.x + Math.floor(s.sx / 2), y: s.y + 2, z: s.z + Math.floor(s.sz / 2) };
@@ -1523,6 +1531,9 @@ function fill(dim, s) {
     const inv = b?.getComponent("minecraft:inventory")?.container;
     if (!inv) continue;
     const loot = table ? mgr.generateLootFromTable(table) ?? [] : [];
+    for (const [rule, id, n] of DISABLED_SUPPLY) {
+      if (!settings()[rule]) loot.push(new ItemStack2(id, n));
+    }
     for (const item of loot) {
       const slot = randInt(0, inv.size - 1);
       if (!inv.getItem(slot)) inv.setItem(slot, item);
@@ -1574,7 +1585,7 @@ function makeShrine(p) {
   const minY = dim.heightRange.min;
   for (let k = 0; k < 10; k++) {
     const dir = yawDir(rand(0, 360));
-    const r = rand(40, 60);
+    const r = rand(32, 48);
     const cx = Math.floor(p.location.x + dir.x * r);
     const cz = Math.floor(p.location.z + dir.z * r);
     const y = Math.max(minY + 8, Math.min(-12, Math.floor(p.location.y) - 40) - randInt(0, 12));
@@ -1801,7 +1812,7 @@ function registerItemComponents(ev) {
     }
   });
   ev.itemComponentRegistry.registerCustomComponent("hollow:material", {
-    // Crafting materials: picking one up the first time teaches the matching recipe page.
+    // Crafting materials: using one re-reads its hint (pickup teaches the recipe, see below).
     onUse(e) {
       const p = e.source;
       const id = e.itemStack?.typeId;
@@ -1824,6 +1835,16 @@ function describeMaterial(p, id) {
   unlock(p, h[0]);
   notice(p, h[1]);
 }
+function startMaterialPickups() {
+  world8.afterEvents.entityItemPickup.subscribe((ev) => {
+    const p = ev.entity;
+    if (!(p instanceof Player10)) return;
+    for (const stack of ev.items) {
+      const h = MATERIAL_HINTS[stack.typeId];
+      if (h && !hasEntry(p, h[0])) describeMaterial(p, stack.typeId);
+    }
+  }, { entityFilter: { type: "minecraft:player" }, itemFilter: { includeTypes: Object.keys(MATERIAL_HINTS) } });
+}
 function giveOrDrop(p, stack) {
   const inv = p.getComponent("minecraft:inventory");
   const left = inv?.container?.addItem(stack);
@@ -1831,7 +1852,7 @@ function giveOrDrop(p, stack) {
 }
 
 // ../../scripts_src/creatures/hollowed.ts
-import { Player as Player11, world as world8 } from "@minecraft/server";
+import { Player as Player11, world as world9 } from "@minecraft/server";
 var hs = /* @__PURE__ */ new Map();
 var lures = /* @__PURE__ */ new Map();
 var hollowedCount = () => hs.size;
@@ -1901,7 +1922,7 @@ function spawnJuvenile(dim, at) {
 function placeLure(dim, at) {
   for (const l of lures.values()) {
     if (l.dim === dim.id && distSq(l.at, at) < 16) {
-      const e = world8.getEntity(l.id);
+      const e = world9.getEntity(l.id);
       if (e?.isValid) {
         try {
           e.teleport(at);
@@ -1927,7 +1948,7 @@ function placeLure(dim, at) {
 }
 function removeLure(l) {
   lures.delete(l.id);
-  const e = world8.getEntity(l.id);
+  const e = world9.getEntity(l.id);
   if (e?.isValid) {
     try {
       e.remove();
@@ -1941,7 +1962,7 @@ function hear(n) {
     if (h.dim !== n.dim.id) continue;
     const d = dist(h.pos, n.at);
     if (d > n.radius) continue;
-    const e = world8.getEntity(h.id);
+    const e = world9.getEntity(h.id);
     if (!e?.isValid) continue;
     heard = true;
     if (now() - h.alertAt > 80) {
@@ -1976,7 +1997,7 @@ function update() {
   const t = now();
   for (const l of [...lures.values()]) if (t - l.born > 200) removeLure(l);
   for (const h of [...hs.values()]) {
-    const e = world8.getEntity(h.id);
+    const e = world9.getEntity(h.id);
     if (!e?.isValid) {
       hs.delete(h.id);
       continue;
@@ -2059,7 +2080,7 @@ function save2() {
 var isBossEntity = (id) => load().active && (id === boss.heartId || boss.veins.includes(id));
 function dimOf() {
   try {
-    return world9.getDimension(boss.dim);
+    return world10.getDimension(boss.dim);
   } catch {
     return void 0;
   }
@@ -2321,10 +2342,10 @@ function update2() {
     return;
   }
   if (!boss.heartId) return;
-  const heart = world9.getEntity(boss.heartId);
+  const heart = world10.getEntity(boss.heartId);
   if (!heart?.isValid) return;
   for (const p of players) pushFog(p, FOG.heart, "hollow_heart");
-  boss.veins = boss.veins.filter((id) => world9.getEntity(id)?.isValid);
+  boss.veins = boss.veins.filter((id) => world10.getEntity(id)?.isValid);
   if (boss.veins.length === 0 && boss.phase < 3 && heart.getProperty("hollow:shielded") === true) {
     try {
       heart.triggerEvent("hollow:expose");
@@ -2361,7 +2382,7 @@ function update2() {
 }
 function clearMinions() {
   for (const id of [...boss.veins, ...minions]) {
-    const e = world9.getEntity(id);
+    const e = world10.getEntity(id);
     if (e?.isValid) {
       try {
         e.remove();
@@ -2372,7 +2393,7 @@ function clearMinions() {
   minions.clear();
 }
 function dormant(dim) {
-  const heart = boss.heartId ? world9.getEntity(boss.heartId) : void 0;
+  const heart = boss.heartId ? world10.getEntity(boss.heartId) : void 0;
   if (heart?.isValid) {
     try {
       heart.remove();
@@ -2383,7 +2404,7 @@ function dormant(dim) {
   const altar = setAltar(dim, false);
   if (altar) {
     try {
-      dim.spawnItem(new ItemStack3(ITEM.offering, 1), add(altar.location, { x: 0.5, y: 1.2, z: 0.5 }));
+      dim.spawnItem(new ItemStack4(ITEM.offering, 1), add(altar.location, { x: 0.5, y: 1.2, z: 0.5 }));
     } catch {
     }
   }
@@ -2409,9 +2430,9 @@ function onHeartDied(id) {
   const winners = new Set(Object.keys(boss.participants));
   for (const p of arenaPlayers()) winners.add(p.id);
   for (const pid of winners) {
-    const p = world9.getEntity(pid);
+    const p = world10.getEntity(pid);
     if (!p?.isValid) continue;
-    giveOrDrop(p, new ItemStack3(ITEM.stilledHeart, 1));
+    giveOrDrop(p, new ItemStack4(ITEM.stilledHeart, 1));
     p.addExperience(150);
     unlock(p, "after");
     unlock(p, "craft_lantern");
@@ -2534,7 +2555,7 @@ function ringChimes() {
   for (const s of [...l]) {
     let dim;
     try {
-      dim = world10.getDimension(s.d);
+      dim = world11.getDimension(s.d);
     } catch {
       continue;
     }
@@ -2595,7 +2616,11 @@ function registerBlockComponents(ev) {
   });
   ev.blockComponentRegistry.registerCustomComponent("hollow:ward", {
     onPlace(e) {
-      register(DP.wards, e.block, LIMITS[DP.wards]);
+      if (!register(DP.wards, e.block, LIMITS[DP.wards])) {
+        for (const p of e.dimension.getPlayers({ location: e.block.location, maxDistance: 8 })) {
+          notice(p, "§7This world already has 32 active wards. This one will stay cold.");
+        }
+      }
       worldSound(e.dimension, SND.wardPlace, e.block.center());
     },
     onPlayerBreak(e) {
@@ -2604,7 +2629,7 @@ function registerBlockComponents(ev) {
       if (!p || !isSurvivalish(p)) return;
       const c = chargesOf(e.brokenBlockPermutation);
       const at = e.block.center();
-      const drops = c === 4 ? [new ItemStack4(ITEM.ward, 1)] : [new ItemStack4("minecraft:iron_nugget", 2), new ItemStack4("minecraft:string", 1)];
+      const drops = c === 4 ? [new ItemStack5(ITEM.ward, 1)] : [new ItemStack5("minecraft:iron_nugget", 2), new ItemStack5("minecraft:string", 1)];
       for (const d of drops) e.dimension.spawnItem(d, at);
     },
     onBreak(e) {
@@ -2743,7 +2768,7 @@ function update3() {
   if (encs.size === 0) return;
   const t = now();
   for (const enc of [...encs.values()]) {
-    const e = world11.getEntity(enc.id);
+    const e = world12.getEntity(enc.id);
     if (!e || !e.isValid) {
       encs.delete(enc.id);
       continue;
@@ -2825,7 +2850,7 @@ function onBorrowedDied(id, killer) {
 }
 function forgetBorrowedTarget(playerId) {
   for (const enc of [...encs.values()]) {
-    if (enc.target === playerId && enc.state === "disguised") vanish(world11.getEntity(enc.id), enc);
+    if (enc.target === playerId && enc.state === "disguised") vanish(world12.getEntity(enc.id), enc);
   }
 }
 function startBorrowed() {
@@ -2833,7 +2858,7 @@ function startBorrowed() {
 }
 
 // ../../scripts_src/creatures/knocker.ts
-import { Difficulty as Difficulty2, ItemStack as ItemStack5, Player as Player15, world as world12 } from "@minecraft/server";
+import { Difficulty as Difficulty2, ItemStack as ItemStack6, Player as Player15, world as world13 } from "@minecraft/server";
 var visit;
 var SAVE = DP.knocker;
 var knockerActive = () => !!visit;
@@ -2891,7 +2916,7 @@ function doorOpen(dim, door) {
 }
 function insidePlayers(v) {
   try {
-    return world12.getDimension(v.dim).getPlayers({ location: v.door, maxDistance: 18 });
+    return world13.getDimension(v.dim).getPlayers({ location: v.door, maxDistance: 18 });
   } catch {
     return [];
   }
@@ -2989,7 +3014,7 @@ function update4() {
     tryVisit();
     return;
   }
-  const e = world12.getEntity(v.id);
+  const e = world13.getEntity(v.id);
   if (!e?.isValid) {
     visit = void 0;
     return;
@@ -3035,7 +3060,7 @@ function update4() {
       return;
     }
     const cfg = settings();
-    if (!v.broke && cfg.destructive && world12.getDifficulty() === Difficulty2.Hard && inState >= 600 && chance(0.05)) {
+    if (!v.broke && cfg.destructive && world13.getDifficulty() === Difficulty2.Hard && inState >= 600 && chance(0.05)) {
       v.broke = true;
       try {
         e.triggerEvent("hollow:break_in");
@@ -3096,7 +3121,7 @@ function leaveWithNail(e, v, inside) {
     const step = add(add(v.door, { x: 0.5, y: 0.2, z: 0.5 }), scale(v.out, 1.2));
     later("knocker.nail", 60, () => {
       try {
-        dim.spawnItem(new ItemStack5(ITEM.knockerNail, 1), step);
+        dim.spawnItem(new ItemStack6(ITEM.knockerNail, 1), step);
       } catch {
       }
     });
@@ -3122,7 +3147,7 @@ function onKnockerDied(id, killer) {
 }
 function forgetKnockerTarget(playerId) {
   if (visit?.target === playerId && (visit.phase === "approach" || visit.phase === "knock")) {
-    const e = world12.getEntity(visit.id);
+    const e = world13.getEntity(visit.id);
     if (e) setPhase(e, visit, "leave");
   }
 }
@@ -3131,7 +3156,7 @@ function startKnocker() {
 }
 
 // ../../scripts_src/creatures/mirebound.ts
-import { EntityDamageCause as EntityDamageCause2, Player as Player16, world as world13 } from "@minecraft/server";
+import { EntityDamageCause as EntityDamageCause2, Player as Player16, world as world14 } from "@minecraft/server";
 var ms = /* @__PURE__ */ new Map();
 var mireboundCount = () => ms.size;
 var isMireboundTracked = (id) => ms.has(id);
@@ -3214,10 +3239,10 @@ function tryStartMirebound(p) {
 }
 function release(m) {
   ms.delete(m.id);
-  const p = world13.getEntity(m.target);
+  const p = world14.getEntity(m.target);
   if (p?.isValid && rt(p).encounter === "mirebound") rt(p).encounter = void 0;
   if (m.victim) {
-    const v = world13.getEntity(m.victim);
+    const v = world14.getEntity(m.victim);
     if (v?.isValid) popFog(v, "hollow_mire");
   }
 }
@@ -3239,7 +3264,7 @@ function riding(p, e) {
   }
 }
 function letGo(e, m, why) {
-  const v = m.victim ? world13.getEntity(m.victim) : void 0;
+  const v = m.victim ? world14.getEntity(m.victim) : void 0;
   try {
     e.getComponent("minecraft:rideable")?.ejectRiders();
   } catch {
@@ -3257,7 +3282,7 @@ function update5() {
   if (ms.size === 0) return;
   const t = now();
   for (const m of [...ms.values()]) {
-    const e = world13.getEntity(m.id);
+    const e = world14.getEntity(m.id);
     if (!e?.isValid) {
       release(m);
       continue;
@@ -3296,7 +3321,7 @@ function update5() {
     }
     if (m.state === "erupt") {
       if (inState < 12) continue;
-      const v = m.victim ? world13.getEntity(m.victim) : void 0;
+      const v = m.victim ? world14.getEntity(m.victim) : void 0;
       if (!v?.isValid || dist(v.location, e.location) > 3.2 || !huntable(v)) {
         m.victim = void 0;
         if (v?.isValid) notice(v, "§7It snaps at empty water. Get to dry land.");
@@ -3310,7 +3335,7 @@ function update5() {
       continue;
     }
     if (m.state === "grab") {
-      const v = m.victim ? world13.getEntity(m.victim) : void 0;
+      const v = m.victim ? world14.getEntity(m.victim) : void 0;
       if (!v?.isValid || v.getComponent("minecraft:health")?.currentValue === 0) {
         letGo(e, m, "death");
         continue;
@@ -3370,7 +3395,7 @@ function onMireboundDied(id, killer) {
 }
 function forgetMireboundTarget(playerId) {
   for (const m of [...ms.values()]) {
-    const e = world13.getEntity(m.id);
+    const e = world14.getEntity(m.id);
     if (m.victim === playerId && e?.isValid) letGo(e, m, "death");
     if (m.target === playerId && m.state === "lurk") vanish2(e, m);
   }
@@ -3380,7 +3405,7 @@ function startMirebound() {
 }
 
 // ../../scripts_src/creatures/watcher.ts
-import { EntityDamageCause as EntityDamageCause3, ItemStack as ItemStack6, Player as Player17, world as world14 } from "@minecraft/server";
+import { EntityDamageCause as EntityDamageCause3, ItemStack as ItemStack7, Player as Player17, world as world15 } from "@minecraft/server";
 
 // ../../scripts_src/systems/daily.ts
 function dailyCount(p, key) {
@@ -3505,7 +3530,7 @@ function tryStartWatcher(p) {
 }
 function release2(enc) {
   encounters.delete(enc.id);
-  const p = world14.getEntity(enc.target);
+  const p = world15.getEntity(enc.target);
   if (p && p.isValid) {
     if (rt(p).encounter === "watcher") rt(p).encounter = void 0;
     popFog(p, "hollow_watch");
@@ -3528,7 +3553,7 @@ function withdraw(e, enc, reason, by) {
   later("watcher.retreat", 12, () => {
     if (e.isValid) worldSound(dim, SND.watcherRetreat, e.location, 0.8);
   });
-  const target = world14.getEntity(enc.target);
+  const target = world15.getEntity(enc.target);
   if (target) popFog(target, "hollow_watch");
   if (reason === "stared" && by) {
     for (const p of dim.getPlayers({ location: e.location, maxDistance: 72 })) unlock(p, "watcher2");
@@ -3537,7 +3562,7 @@ function withdraw(e, enc, reason, by) {
       dailyAdd(by, "resin");
       const at = add(e.location, { x: 0, y: 0.3, z: 0 });
       try {
-        dim.spawnItem(new ItemStack6(ITEM.paleResin, 1), at);
+        dim.spawnItem(new ItemStack7(ITEM.paleResin, 1), at);
         particle(dim, PARTICLE.resinGlint, at);
         later("watcher.glint", 40, () => particle(dim, PARTICLE.resinGlint, at));
         later("watcher.glint2", 100, () => particle(dim, PARTICLE.resinGlint, at));
@@ -3551,12 +3576,12 @@ function update6() {
   if (encounters.size === 0) return;
   const t = now();
   for (const enc of [...encounters.values()]) {
-    const e = world14.getEntity(enc.id);
+    const e = world15.getEntity(enc.id);
     if (!e || !e.isValid) {
       release2(enc);
       continue;
     }
-    const p = world14.getEntity(enc.target);
+    const p = world15.getEntity(enc.target);
     if (!p || !p.isValid || p.dimension.id !== e.dimension.id) {
       vanish3(e, enc);
       continue;
@@ -3661,7 +3686,7 @@ function onWatcherDied(id, killer) {
 function forgetWatcherTarget(playerId) {
   for (const enc of [...encounters.values()]) {
     if (enc.target !== playerId) continue;
-    vanish3(world14.getEntity(enc.id), enc);
+    vanish3(world15.getEntity(enc.id), enc);
   }
 }
 function startWatcher() {
@@ -3722,7 +3747,7 @@ function startAmbience() {
 }
 
 // ../../scripts_src/systems/cleanup.ts
-import { world as world15 } from "@minecraft/server";
+import { world as world16 } from "@minecraft/server";
 var trackers = /* @__PURE__ */ new Map();
 function trackType(typeId, isTracked) {
   trackers.set(typeId, isTracked);
@@ -3750,14 +3775,14 @@ function cleanEntity(e) {
 function sweepLoaded() {
   for (const id of ["minecraft:overworld", "minecraft:nether", "minecraft:the_end"]) {
     try {
-      const dim = world15.getDimension(id);
+      const dim = world16.getDimension(id);
       for (const e of dim.getEntities({ families: [FAMILY.any] })) cleanEntity(e);
     } catch {
     }
   }
 }
 function startCleanup() {
-  world15.afterEvents.entityLoad.subscribe((ev) => {
+  world16.afterEvents.entityLoad.subscribe((ev) => {
     const e = ev.entity;
     if (e.typeId.startsWith("hollow:")) cleanEntity(e);
   });
@@ -3811,6 +3836,7 @@ function init() {
   startDirector();
   startAmbience();
   startBlockSystems();
+  startMaterialPickups();
   startSites();
   startWatcher();
   startBorrowed();
@@ -3821,8 +3847,8 @@ function init() {
   later("sweep", 40, sweepLoaded);
   console.warn(`[hollow] THE HOLLOW initialised (day ${hollowDay()}).`);
 }
-world16.afterEvents.worldLoad.subscribe(() => safe("init", init));
-world16.afterEvents.playerSpawn.subscribe((ev) => safe("playerSpawn", () => {
+world17.afterEvents.worldLoad.subscribe(() => safe("init", init));
+world17.afterEvents.playerSpawn.subscribe((ev) => safe("playerSpawn", () => {
   const p = ev.player;
   clearAllFog(p);
   if (ev.initialSpawn) {
@@ -3848,7 +3874,7 @@ function forgetEncounters(playerId) {
   forgetMireboundTarget(playerId);
   forgetKnockerTarget(playerId);
 }
-world16.beforeEvents.playerLeave.subscribe((ev) => {
+world17.beforeEvents.playerLeave.subscribe((ev) => {
   const id = ev.player.id;
   system6.run(() => safe("playerLeave", () => {
     forgetEncounters(id);
@@ -3860,12 +3886,12 @@ world16.beforeEvents.playerLeave.subscribe((ev) => {
     forgetSites(id);
   }));
 });
-world16.afterEvents.playerDimensionChange.subscribe((ev) => safe("dimChange", () => {
+world17.afterEvents.playerDimensionChange.subscribe((ev) => safe("dimChange", () => {
   forgetEncounters(ev.player.id);
   forgetBossPlayer(ev.player);
   clearAllFog(ev.player);
 }));
-world16.afterEvents.entityHurt.subscribe((ev) => safe("entityHurt", () => {
+world17.afterEvents.entityHurt.subscribe((ev) => safe("entityHurt", () => {
   const hurt2 = ev.hurtEntity;
   const by = ev.damageSource.damagingEntity;
   switch (hurt2.typeId) {
@@ -3885,7 +3911,7 @@ world16.afterEvents.entityHurt.subscribe((ev) => safe("entityHurt", () => {
   if (hurt2 instanceof Player18 && by?.typeId === ENT.watcher) onWatcherStruck(by, hurt2);
   if (hurt2.typeId === ENT.heart || hurt2.typeId === ENT.vein) onBossHurt(hurt2, ev.damage, by);
 }));
-world16.afterEvents.entityDie.subscribe((ev) => safe("entityDie", () => {
+world17.afterEvents.entityDie.subscribe((ev) => safe("entityDie", () => {
   const dead = ev.deadEntity;
   const killer = ev.damageSource.damagingEntity;
   switch (dead.typeId) {
@@ -3915,7 +3941,7 @@ world16.afterEvents.entityDie.subscribe((ev) => safe("entityDie", () => {
       break;
   }
 }));
-world16.afterEvents.dataDrivenEntityTrigger.subscribe((ev) => safe("ddTrigger", () => {
+world17.afterEvents.dataDrivenEntityTrigger.subscribe((ev) => safe("ddTrigger", () => {
   if (ev.eventId === "hollow:watcher_struck") onWatcherStruck(ev.entity, nearestPlayer(ev.entity, 5));
   else if (ev.eventId === "hollow:sheared") onBorrowedSheared(ev.entity, nearestPlayer(ev.entity, 6));
   else if (ev.eventId === "hollow:shield_hit") onShieldHit(ev.entity);

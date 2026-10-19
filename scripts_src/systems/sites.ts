@@ -1,10 +1,10 @@
 import {
-  BlockVolume, Dimension, LocationWaypoint, Player, StructureRotation, Vector3, WaypointTexture, world,
+  BlockVolume, Dimension, ItemStack, LocationWaypoint, Player, StructureRotation, Vector3, WaypointTexture, world,
 } from "@minecraft/server";
 import { ui, worldSound } from "../core/audio";
 import { settings } from "../core/config";
 import { notice, particle } from "../core/fx";
-import { DP, PARTICLE, SND } from "../core/ids";
+import { DP, ITEM, PARTICLE, SND } from "../core/ids";
 import { chance, compass, dist, distXZ, pick, rand, randInt, yawDir, yawOf } from "../core/math";
 import { ctx } from "../core/players";
 import { every, everyPlayer, later } from "../core/scheduler";
@@ -140,6 +140,16 @@ function place(dim: Dimension, t: SiteType, origin: Vector3): Site | undefined {
   return site;
 }
 
+// A creature switched off in World Rules can't drop its Offering component, so every site chest
+// carries that component instead. Boss progression never depends on a disabled creature.
+const DISABLED_SUPPLY: [keyof ReturnType<typeof settings>, string, number][] = [
+  ["watcher", ITEM.paleResin, 1],
+  ["borrowed", ITEM.borrowedHide, 1],
+  ["hollowed", ITEM.hollowFang, 2],
+  ["knocker", ITEM.knockerNail, 1],
+  ["mirebound", ITEM.mirePearl, 1],
+];
+
 /** Fill containers from the site's loot table and write the cabin's notice board. */
 function fill(dim: Dimension, s: Site): void {
   const def = DEFS[s.t];
@@ -153,6 +163,9 @@ function fill(dim: Dimension, s: Site): void {
     const inv = b?.getComponent("minecraft:inventory")?.container;
     if (!inv) continue;
     const loot = table ? mgr.generateLootFromTable(table) ?? [] : [];
+    for (const [rule, id, n] of DISABLED_SUPPLY) {
+      if (!settings()[rule]) loot.push(new ItemStack(id, n));
+    }
     for (const item of loot) {
       const slot = randInt(0, inv.size - 1);
       if (!inv.getItem(slot)) inv.setItem(slot, item);
@@ -209,7 +222,8 @@ function makeShrine(p: Player): Site | undefined {
   const minY = dim.heightRange.min;
   for (let k = 0; k < 10; k++) {
     const dir = yawDir(rand(0, 360));
-    const r = rand(40, 60);
+    // 32-48 blocks keeps the whole 25x25 footprint inside a 4-chunk simulation distance (Realms default)
+    const r = rand(32, 48);
     const cx = Math.floor(p.location.x + dir.x * r);
     const cz = Math.floor(p.location.z + dir.z * r);
     const y = Math.max(minY + 8, Math.min(-12, Math.floor(p.location.y) - 40) - randInt(0, 12));

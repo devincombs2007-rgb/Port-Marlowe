@@ -328,8 +328,10 @@ def write_ogg(x, path, quality=4, peak_db=-1.0, rms_db=None, fade_out=0.03):
         w.setsampwidth(2)
         w.setframerate(SR)
         w.writeframes(pcm.tobytes())
+    # bitexact: fixed Ogg stream serial and no encoder tag, so rebuilds are byte-identical
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", wav_path, "-c:a", "libvorbis",
-                    "-q:a", str(quality), "-ac", "1", "-ar", str(SR), path], check=True)
+                    "-q:a", str(quality), "-ac", "1", "-ar", str(SR),
+                    "-fflags", "+bitexact", "-flags:a", "+bitexact", "-map_metadata", "-1", path], check=True)
     os.unlink(wav_path)
     return len(x) / SR
 

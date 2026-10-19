@@ -128,7 +128,7 @@ export const ENTRIES: Entry[] = [
       "§lIt only moves while nobody is looking at it.§r" + P +
       "Ignore it and it creeps closer, tree by tree. In the dark it will close the last few " +
       "steps and strike." + P +
-      "§lCounterplay:§r turn and look at it; carry a torch or lantern in either hand; stay " +
+      "§lCounterplay:§r turn and look at it; hold a torch or lantern; stay " +
       "near placed lights. It will not approach a lit place, and it won't strike someone holding a light.",
   },
   {
@@ -281,8 +281,8 @@ export const ENTRIES: Entry[] = [
       "wake the Heart Below." + P +
       "§7Recipe:§r\n  [Hollow Fang] [Pale Resin] [Hollow Fang]\n" +
       "  [Borrowed Hide] [Gold Ingot] [Knocker's Nail]\n  [   ] [Mire Pearl] [   ]" + P +
-      "§7Torn pages and site chests sometimes hold components, so a creature you have " +
-      "switched off can't lock you out.",
+      "§7Cabin and campsite chests sometimes hold components. If a creature is switched off in " +
+      "World Rules, every new site chest holds its component instead.",
   },
   {
     id: "craft_lantern", chapter: "craft", title: "Heartwood Lantern", icon: "textures/items/hollow/heartwood_lantern",
