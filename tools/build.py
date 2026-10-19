@@ -103,6 +103,8 @@ def main():
         py(s)
     compile_scripts()
     run([sys.executable, os.path.join(HERE, "validate.py"), "--report", "docs/VALIDATION_REPORT.generated.md"])
+    # headless simulation of the real scripts against a fake Minecraft API (logic, reloads, caps)
+    run(["node", os.path.join(HERE, "simtest", "run.mjs"), "--report", "docs/SIMULATION_REPORT.generated.md"])
     package()
 
 

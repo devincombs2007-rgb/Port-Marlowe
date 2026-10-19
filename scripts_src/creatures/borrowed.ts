@@ -197,7 +197,8 @@ function update(): void {
     }
     // fleeing
     const seen = near.some((p) => dist(p.location, e.location) < 20 && clearLine(e.dimension, p.getHeadLocation(), add(e.location, { x: 0, y: 1, z: 0 })));
-    if ((inState > seconds(4) && !seen) || inState > seconds(14)) vanish(e, enc);
+    // a fair chase window: it only slips away once it has broken line of sight for a while
+    if ((inState > seconds(10) && !seen) || inState > seconds(30)) vanish(e, enc);
   }
 }
 

@@ -76,7 +76,7 @@ There are no per-tick full scans. Everything that recurs is listed here.
 | hollowed.update | 20 ticks | per active Hollowed and lure | ≤6 + lures |
 | hollowed.steps | 10 ticks per player | movement noise, **only for players near a Hollowed** | |
 | mirebound.update | 2 ticks | per active Mirebound (fast for the grab window) | ≤3 |
-| knocker.update | 10 ticks | the single visit | ≤1 |
+| knocker.update | 10 ticks | the single visit; the door search runs only every 5 s, and only on a planned night | ≤1 |
 | heart.update | 5 ticks | only while the boss is active | 1 fight |
 | chimes | 40 ticks | registry of positions (no world scan), `getEntities` within 14 blocks of each loaded chime | ≤32 chimes |
 
@@ -99,7 +99,7 @@ There are no per-tick full scans. Everything that recurs is listed here.
 | **Leave** | Per-player runtime, cooldown, prefs, journal and noise caches are forgotten. Watcher, Borrowed, Mirebound and Knocker encounters targeting the player end, and their entities are removed. A Hollowed with nobody within 64 blocks is removed after 30 s. |
 | **Death** | Encounters targeting the player end. 60 s of respawn mercy. The journal is kept, and re-given if missing. |
 | **Dimension change** | Encounters end and encounter fog is cleared. Creatures don't follow. |
-| **World reload** | Script state is rebuilt from dynamic properties. Any `hollow:` encounter entity without a live encounter is removed on load (`cleanup.ts`). The boss resumes from its saved state. |
+| **World reload** | Script state is rebuilt from dynamic properties. Any `hollow:` encounter entity without a live encounter is removed on load (`cleanup.ts`). The boss resumes from its saved state: its entities carry the fight's token and are re-bound by token, a restart during the rise re-runs the rise, and hearts or veins from other fights are removed. |
 | **Persistence** | World: settings, start day, sites, chime/ward/lantern registries, boss, Knocker plan. Player: journal unlocks and read flags, prefs, play time, daily counters. All stored as small JSON dynamic properties. |
 | **Duplication** | A player has at most one major encounter. The Knocker plans **one visit per night for the world**. Site records are spaced apart (cabins 320, camps 256, other site types 96 blocks) and capped (8 cabins, 10 camps, 1 shrine). |
 | **Reward exploits** | Pale Resin from staring: once per encounter, max 1 per player per night (2 on Nightmare). Boss rewards: once per participant per kill, then the altar rests 3 days. The ward can't be refilled by breaking and re-placing it (a used ward breaks into salvage). Dormancy returns the Offering instead of consuming it. |
@@ -178,7 +178,17 @@ FOV, the camera shake toggle, and the per-category audio sliders.
   clipping, not by ear. Treat them as a solid, original first pass. They are **not** professionally mastered sound design,
   and some may need tuning after a listening test (see the validation report).
 
-## 8. Build reproducibility
+## 8. Testing tiers
+
+1. **Static validation** (`tools/validate.py`): schemas, metadata and cross-references; checked by a mutation
+   self-test (`tools/selftest_validator.py`).
+2. **Headless simulation** (`tools/simtest/`): the real script bundle against a fake API that loads the real entity,
+   block, item, loot and structure data. It covers logic, persistence and restarts. It runs on every build, and a
+   failing scenario fails the build.
+3. **In-game testing** (`docs/VALIDATION_REPORT.md` §3): engine behaviour, feel, audio, visuals and performance.
+   **Not yet done.**
+
+## 9. Build reproducibility
 
 - `python3 tools/build.py --assets` regenerates every model, texture, sound, structure and visuals file from code.
   `python3 tools/build.py` regenerates content JSON, type-checks (`tsc --strict`), bundles the scripts (esbuild),

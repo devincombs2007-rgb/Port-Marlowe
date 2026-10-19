@@ -147,5 +147,6 @@ export const DP = {
   daily: "hollow:daily",
   // entity
   owner: "hollow:owner",
+  fight: "hollow:fight",
   born: "hollow:born",
 } as const;

@@ -24,6 +24,10 @@ import { spawnJuvenile } from "./hollowed";
 // Rewards: every participant (dealt damage or present at the end) gets one Stilled Heart and
 // XP, exactly once per kill; shared loot drops from the loot table. The altar then rests 3 days.
 // If everyone leaves the arena for 60 s it goes dormant and returns the Offering.
+// Persistence: the fight lives in a world dynamic property. Every boss entity carries the fight's
+// token, so after a reload the heart and veins are re-bound by token (not by entity id), and any
+// heart or vein from an older or abandoned fight is removed. A reload during the 6 s rise simply
+// re-runs the rise; dormancy waits until the arena chunk is loaded so nothing is left behind.
 
 interface Boss {
   active: boolean;
@@ -36,17 +40,25 @@ interface Boss {
   startedAt: number;
   restUntilDay: number;
   participants: Record<string, number>;
+  /** identifies this fight's entities (entity dynamic property hollow:fight) */
+  token: number;
+  /** players counted at awakening, for scaling */
+  scale: number;
 }
+
+const FIGHT = DP.fight;
 
 const EMPTY: Boss = {
   active: false, dim: "minecraft:overworld", center: { x: 0, y: 0, z: 0 }, heartId: "", veins: [], phase: 1, regrown: false,
-  startedAt: 0, restUntilDay: -1, participants: {},
+  startedAt: 0, restUntilDay: -1, participants: {}, token: 0, scale: 1,
 };
 
 let boss: Boss = EMPTY;
 let loaded = false;
 const minions = new Set<string>();
 let nextBurst = 0, nextPulse = 0, nextGaze = 0, nextBeat = 0, nextDrone = 0, lastPresence = 0;
+let rising = false;
+let missingSince = -1;
 const gazeHit = new Map<string, number>();
 
 function load(): Boss {
@@ -64,6 +76,24 @@ function save(): void {
 
 export const bossActive = (): boolean => load().active;
 export const isBossEntity = (id: string): boolean => load().active && (id === boss.heartId || boss.veins.includes(id));
+
+/** Cleanup rule for hearts and veins: keep only entities of the fight in progress. */
+export function isCurrentFightEntity(e: Entity): boolean {
+  if (!load().active || !boss.token) return false;
+  try {
+    return e.getDynamicProperty(FIGHT) === boss.token;
+  } catch {
+    return false;
+  }
+}
+
+function arenaLoaded(dim: Dimension): boolean {
+  try {
+    return dim.isChunkLoaded(boss.center);
+  } catch {
+    return false;
+  }
+}
 
 function dimOf(): Dimension | undefined {
   try {
@@ -147,9 +177,14 @@ export function useAltar(p: Player, altar: Block): void {
 }
 
 function awaken(dim: Dimension, center: Vector3, altar: Block): void {
-  boss = { ...EMPTY, active: true, dim: dim.id, center, startedAt: now(), restUntilDay: boss.restUntilDay, participants: {} };
+  boss = {
+    ...EMPTY, active: true, dim: dim.id, center, startedAt: now(), restUntilDay: boss.restUntilDay, participants: {},
+    token: 1 + Math.floor(Math.random() * 2_000_000_000), scale: 1,
+  };
   const players = arenaPlayers();
   const n = Math.max(1, players.length);
+  boss.scale = n;
+  save();
   worldSound(dim, SND.altar, altar.center());
   worldSound(dim, SND.heartAwaken, center, 1.0);
   try {
@@ -167,33 +202,40 @@ function awaken(dim: Dimension, center: Vector3, altar: Block): void {
       /* ignore */
     }
   }
-  later("heart.rise", 120, () => {
-    let heart: Entity;
+  rising = true;
+  later("heart.rise", 120, () => rise(dim));
+}
+
+/** The heart rises from the roots. Also re-run after a reload that interrupted the rise. */
+function rise(dim: Dimension): void {
+  rising = false;
+  if (!boss.active || boss.heartId) return;
+  const n = boss.scale;
+  let heart: Entity;
+  try {
+    heart = dim.spawnEntity(ENT.heart, boss.center);
+  } catch (e) {
+    console.warn(`[hollow] heart spawn failed: ${e}`);
+    dormant(dim);
+    return;
+  }
+  heart.setDynamicProperty(FIGHT, boss.token);
+  if (settings().bossScaling && n >= 2) {
     try {
-      heart = dim.spawnEntity(ENT.heart, center);
-    } catch (e) {
-      console.warn(`[hollow] heart spawn failed: ${e}`);
-      boss.active = false;
-      save();
-      return;
+      heart.triggerEvent(n >= 4 ? "hollow:scale_4" : n === 3 ? "hollow:scale_3" : "hollow:scale_2");
+    } catch {
+      /* ignore */
     }
-    if (settings().bossScaling && n >= 2) {
-      try {
-        heart.triggerEvent(n >= 4 ? "hollow:scale_4" : n === 3 ? "hollow:scale_3" : "hollow:scale_2");
-      } catch {
-        /* ignore */
-      }
-    }
-    boss.heartId = heart.id;
-    spawnVeins(dim, 4, n);
-    nextBurst = now() + 100;
-    nextPulse = now() + 240;
-    nextGaze = now() + 9999;
-    nextBeat = now();
-    nextDrone = now() + 40;
-    lastPresence = now();
-    save();
-  });
+  }
+  boss.heartId = heart.id;
+  spawnVeins(dim, 4, n);
+  nextBurst = now() + 100;
+  nextPulse = now() + 240;
+  nextGaze = now() + 9999;
+  nextBeat = now();
+  nextDrone = now() + 40;
+  lastPresence = now();
+  save();
 }
 
 function spawnVeins(dim: Dimension, count: number, players: number): void {
@@ -201,6 +243,7 @@ function spawnVeins(dim: Dimension, count: number, players: number): void {
   for (const at of spots) {
     try {
       const v = dim.spawnEntity(ENT.vein, at);
+      v.setDynamicProperty(FIGHT, boss.token);
       if (players >= 3) v.triggerEvent("hollow:tough");
       boss.veins.push(v.id);
       particle(dim, PARTICLE.veinMote, at);
@@ -358,19 +401,34 @@ function update(): void {
   const dim = dimOf();
   if (!dim) return;
   const t = now();
+  // Nothing can be checked, removed or returned while the arena is unloaded: wait for it.
+  if (!arenaLoaded(dim)) return;
   const players = arenaPlayers();
   if (players.length > 0) lastPresence = t;
   else if (t - lastPresence > 1200) {
     dormant(dim);
     return;
   }
-  if (!boss.heartId) return; // still rising
-  const heart = world.getEntity(boss.heartId);
-  if (!heart?.isValid) return; // chunk not loaded right now
+  if (!boss.heartId) {
+    if (!rising) rise(dim); // a reload interrupted the rise
+    return;
+  }
+  const heart = findHeart(dim);
+  if (!heart) {
+    // Entities load a moment after their chunk; only give up after 10 s of a loaded, empty arena.
+    if (missingSince < 0) missingSince = t;
+    else if (t - missingSince > 200) {
+      console.warn("[hollow] the Heart is gone without dying; returning the Offering");
+      dormant(dim);
+    }
+    return;
+  }
+  missingSince = -1;
   for (const p of players) pushFog(p, FOG.heart, "hollow_heart");
 
   // the veins
   boss.veins = boss.veins.filter((id) => world.getEntity(id)?.isValid);
+  if (boss.veins.length === 0 && heart.getProperty("hollow:shielded") === true) rebindVeins(dim);
   if (boss.veins.length === 0 && boss.phase < 3 && heart.getProperty("hollow:shielded") === true) {
     try {
       heart.triggerEvent("hollow:expose");
@@ -409,6 +467,39 @@ function update(): void {
   }
 }
 
+/** The heart by id, or re-bound by fight token if the id no longer resolves (e.g. after a reload). */
+function findHeart(dim: Dimension): Entity | undefined {
+  const byId = world.getEntity(boss.heartId);
+  if (byId?.isValid) return byId;
+  try {
+    for (const e of dim.getEntities({ type: ENT.heart, location: boss.center, maxDistance: 24 })) {
+      if (e.getDynamicProperty(FIGHT) === boss.token) {
+        boss.heartId = e.id;
+        rebindVeins(dim);
+        save();
+        return e;
+      }
+    }
+  } catch {
+    /* unloaded */
+  }
+  return undefined;
+}
+
+function rebindVeins(dim: Dimension): void {
+  try {
+    const found = dim.getEntities({ type: ENT.vein, location: boss.center, maxDistance: 24 })
+      .filter((e) => e.getDynamicProperty(FIGHT) === boss.token)
+      .map((e) => e.id);
+    if (found.length > 0) {
+      boss.veins = found;
+      save();
+    }
+  } catch {
+    /* unloaded */
+  }
+}
+
 function clearMinions(): void {
   for (const id of [...boss.veins, ...minions]) {
     const e = world.getEntity(id);
@@ -424,15 +515,19 @@ function clearMinions(): void {
 }
 
 function dormant(dim: Dimension): void {
-  const heart = boss.heartId ? world.getEntity(boss.heartId) : undefined;
-  if (heart?.isValid) {
-    try {
-      heart.remove();
-    } catch {
-      /* gone */
+  // Remove every entity of this fight (the arena is loaded: update() checks before calling us).
+  try {
+    for (const type of [ENT.heart, ENT.vein]) {
+      for (const e of dim.getEntities({ type, location: boss.center, maxDistance: 24 })) {
+        if (e.getDynamicProperty(FIGHT) === boss.token) e.remove();
+      }
     }
+  } catch {
+    /* unloaded */
   }
   clearMinions();
+  rising = false;
+  missingSince = -1;
   const altar = setAltar(dim, false);
   if (altar) {
     try {

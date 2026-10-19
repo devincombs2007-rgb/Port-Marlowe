@@ -1,6 +1,7 @@
 import { Entity, world } from "@minecraft/server";
 import { ENT, FAMILY } from "../core/ids";
 import { debug } from "../core/log";
+import { isCurrentFightEntity } from "../creatures/heart";
 
 // Temporary encounter entities only make sense while their script-side encounter exists. After a
 // reload (or when a chunk with a leftover creature loads again) we remove the orphans so nothing
@@ -13,11 +14,12 @@ export function trackType(typeId: string, isTracked: Tracker): void {
   trackers.set(typeId, isTracked);
 }
 
-const PERSISTENT = new Set<string>([ENT.heart, ENT.vein]);
+// The boss and its veins persist across saves; they belong to the fight whose token they carry.
+const BOSS_PARTS = new Set<string>([ENT.heart, ENT.vein]);
 
 function orphan(e: Entity): boolean {
   if (!e.isValid) return false;
-  if (PERSISTENT.has(e.typeId)) return false;
+  if (BOSS_PARTS.has(e.typeId)) return !isCurrentFightEntity(e);
   const t = trackers.get(e.typeId);
   if (t) return !t(e.id);
   // Untracked hollow temp entities (lures, telegraphs) never survive a reload.

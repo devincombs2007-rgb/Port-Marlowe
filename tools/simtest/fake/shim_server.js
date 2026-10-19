@@ -1,0 +1,21 @@
+// Bundled in place of @minecraft/server for headless simulation (see tools/simtest).
+const M = globalThis.__mc;
+export const world = M.world;
+export const system = M.system;
+export const ItemStack = M.ItemStack;
+export const BlockPermutation = M.BlockPermutation;
+export const BlockVolume = M.BlockVolume;
+export const Block = M.Block;
+export const Entity = M.Entity;
+export const Player = M.Player;
+export const Dimension = M.Dimension;
+export const GameMode = M.GameMode;
+export const Difficulty = M.Difficulty;
+export const EquipmentSlot = M.EquipmentSlot;
+export const ItemLockMode = M.ItemLockMode;
+export const PlayerPermissionLevel = M.PlayerPermissionLevel;
+export const StructureRotation = M.StructureRotation;
+export const EntityDamageCause = M.EntityDamageCause;
+export const WaypointTexture = M.WaypointTexture;
+export const MolangVariableMap = M.MolangVariableMap;
+export const LocationWaypoint = M.LocationWaypoint;

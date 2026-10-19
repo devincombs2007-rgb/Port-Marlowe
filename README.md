@@ -18,9 +18,13 @@ in it is patient, though. You are watched long before you are attacked.
   shelter light and unsettling caves. Standard graphics work fully without it.
 - Original models, textures, animations and 153 procedurally synthesised sounds.
 
-> **Status:** statically validated (0 errors, 0 warnings; see
-> [docs/VALIDATION_REPORT.md](docs/VALIDATION_REPORT.md)). **No in-game, Xbox or Realm testing
-> has been done yet.** Read the known limitations before you rely on it in a long-running world.
+> **Status:**
+> - Statically validated: 0 errors, 0 warnings.
+> - The real scripts pass 26/26 headless simulation scenarios, including server restarts mid-boss-fight.
+> - See [docs/VALIDATION_REPORT.md](docs/VALIDATION_REPORT.md).
+>
+> **No in-game, Xbox or Realm testing has been done yet.** Read the known limitations before you rely on it in a
+> long-running world.
 
 ## Download
 
@@ -64,12 +68,13 @@ Requirements: Python 3.11+ with `numpy`, `scipy`, `Pillow`, `jsonschema`; Node.j
 tools/fetch_reference.sh                     # Mojang bedrock-samples v1.26.50.4 (schemas, vanilla data) -> build/
 (cd tools/typecheck && npm ci)               # pinned @minecraft typings, TypeScript, esbuild
 python3 tools/build.py --assets              # regenerate models, textures, sounds, structures, visuals
-python3 tools/build.py                       # content JSON + compile scripts + validate + package -> dist/
+python3 tools/build.py                       # content JSON + compile scripts + validate + simulate + package -> dist/
 python3 tools/selftest_validator.py          # optional: proves the validator catches injected defects
+node tools/simtest/run.mjs [filter]          # optional: run the headless simulation scenarios on their own
 ```
 
 `build.py` without `--assets` reuses the committed art and audio. It still regenerates the content
-JSON, type-checks and bundles the TypeScript, runs the validator, and packages `dist/`.
+JSON, type-checks and bundles the TypeScript, runs the validator and the simulation, and packages `dist/`.
 
 ## Repository layout
 
@@ -88,6 +93,7 @@ tools/
   creatures/ blocks/ art/ sounds/ structures/ visuals/   asset generators (one script per asset family)
   packgen/           generates items, blocks, recipes, lang, sounds.json, animations
   validate.py        static validator; selftest_validator.py mutation self-test
+  simtest/           headless simulation: fake Minecraft API + scenarios run against the real script bundle
   build.py           build + package
 dist/                importable .mcaddon / .mcpack files
 docs/                guides and reports

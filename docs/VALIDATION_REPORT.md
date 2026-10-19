@@ -1,8 +1,11 @@
 # Validation report: THE HOLLOW v1.0.0
 
-**Bottom line:** every static check passes: **0 errors, 0 warnings**, and the validator catches **8/8** deliberately
-injected defects. **Nothing has been run inside Minecraft yet:** no Windows, iPhone, Xbox or Realm session. The
-in-game test plan in §3 is what remains, and §4 lists every known limitation and unverified assumption.
+**Bottom line:**
+- Every static check passes: **0 errors, 0 warnings**, and the validator catches **8/8** deliberately injected defects.
+- The real scripts pass **26/26 headless simulation scenarios** (§1b) against a fake Minecraft API, including server
+  restarts mid-fight.
+- **Nothing has been run inside Minecraft yet:** no Windows, iPhone, Xbox or Realm session. The in-game test plan in §3
+  is what remains, and §4 lists every known limitation and unverified assumption.
 
 Build date: 2026-10-19 · Target: Minecraft Bedrock 26.50 (1.26.50) · `@minecraft/server` 2.10.0 · `@minecraft/server-ui` 2.2.0
 
@@ -57,10 +60,56 @@ Each defect is injected into a real file, the validator is run, and the file is 
 - **Audio:** each file checked for duration, peak (no clipping) and RMS level, and by spectrogram sheets. Nothing was
   checked by ear (see §4).
 
+## 1b. Headless simulation (done, automated, part of every build)
+
+`node tools/simtest/run.mjs` builds the **real** `scripts_src` bundle against a fake `@minecraft/server` and
+`@minecraft/server-ui` (`tools/simtest/fake/mc.mjs`). It then plays scripted scenarios tick by tick.
+- The fake reads the real pack data:
+  - entity events and component groups (health and properties);
+  - block states and custom components;
+  - item durability;
+  - loot tables;
+  - the `.mcstructure` files, parsed from NBT and placed block by block.
+- **Restarts are simulated properly:** world data persists, while the scheduler, the tick counter and all script state
+  start fresh.
+- The latest results are in [SIMULATION_REPORT.generated.md](SIMULATION_REPORT.generated.md).
+
+| Area | Scenarios |
+|---|---|
+| Join and journal | journal given once, kept on death, locked, and restored on respawn; the journal UI navigates chapters and entries; non-operators don't see World rules; corrupt saved settings are clamped |
+| Pacing | **day 1 is safe**: a full first day and night, with only Watcher glimpses and nothing stalking; newcomers, Creative and Peaceful players are never targeted |
+| Watcher | spawns 34–50 blocks away and out of view; staring withdraws it with resin capped at 1 per night; stalks only when unwatched; twig warning before any strike; no lunge at a torch-holder; one strike, then it withdraws |
+| Knocker and ward | no visit before night 4; one visit per night; knocks and leaves exactly one Nail; a ward turns it away for one charge and no Nail; opening the door lets it in; ward charges, charcoal recharge, salvage on break |
+| Chime | rings for a creature within 14 blocks, respects its cooldown, and stays silent when silenced |
+| Mirebound | settles only in 1–2-deep water; bubble and gurgle clues; stepping away during the windup avoids the grab; released within 5 s with bounded damage; the forced-riding fallback bites |
+| Hollowed | emerges out of sight; hears sprinting but not sneaking or wool; projectile impacts create decoys |
+| Boss | full fight (shield, veins, phases, minions, rewards once, altar rest); 2-player scaling; **restart during the rise**; **restart mid-fight**; stale-heart cleanup; **dormancy with an unloaded arena**; a heart that vanishes without dying |
+| Sites and items | disabled creatures' materials in new chests; pickup teaches recipes; the lens reveals to its user only and wears |
+| Load | 8 players at Nightmare and 200% frequency for a full in-game day: every creature cap held |
+
+**Bugs found and fixed by this review and simulation pass** (each scenario fails against the previous code):
+1. **Server restart during the 6 s boss rise:** the Heart never spawned and the altar stayed "already awake" forever.
+   Fixed: the rise is re-run after a restart.
+2. **Everyone leaves while the arena chunk is unloaded:** dormancy couldn't remove the Heart or return the Offering,
+   which left an orphan boss and a lost Offering. Fixed: dormancy waits until the arena is loaded.
+3. **Boss entities from an abandoned fight or a spawn egg** were never cleaned up. Fixed: every boss entity carries its
+   fight's token, and cleanup removes the rest. The boss is re-bound by token after a restart, not by entity id.
+4. **Knocker door search** ran raycasts and a 21×9×21 block query per player every 0.5 s all night on a planned night
+   when nobody was indoors. Now every 5 s.
+5. **Recipe pages for boss materials** only unlocked when the item was "used". They now unlock on pickup.
+6. **A disabled creature could lock players out of the boss**, because its material only came from random chests.
+   It's now guaranteed in new site chests.
+7. **Shrine placement** could fall outside a Realm's default simulation distance. It now forms 32–48 blocks away.
+8. **The Borrowed's daytime escape window** (4–14 s) was too short to earn its Hide. It's now 10–30 s.
+
+**Script cost** (load scenario): about 0.05 ms per tick on average and under 1 ms at the 99th percentile. This is Node
+on a development machine against a fake world, so it is only a relative indicator, **not an Xbox measurement**.
+
 ## 2. What static validation cannot prove
 
 The validator proves the files are well-formed, consistent with Mojang's published schemas and metadata, and
-cross-referenced. It **can't** prove:
+cross-referenced. The simulation proves the script logic does what it should against a model of the API. Neither can
+prove:
 - that the game accepts every field combination;
 - that behaviors look and feel right;
 - performance on Xbox;
@@ -125,10 +174,12 @@ schemas, but hasn't been observed in game.
 | 6 | **Knocker pathing** to doors in unusual builds (doors in walls more than 2 thick, doors up stairs). | Low | It gives up after 70 s and leaves. No damage, and no stuck creature. |
 | 7 | **Sounds were never auditioned.** I can't listen to audio. All 153 files were checked by spectrogram, level, duration and clipping only. | Medium (quality, not function) | All sounds are generated from `tools/sounds/design.py`, so any cue is easy to retune and rebuild. Expect some to need adjusting after a listening pass. |
 | 8 | **Art is procedural, original, low-resolution "Minecraft-style".** It's consistent, but not hand-painted by an artist. | n/a | Generators are parameterised; every texture can be repainted or replaced. |
-| 9 | **Performance unmeasured.** The bounds in TECHNICAL.md §3 are design limits, not measurements. | Unknown | Operators can lower *Encounter frequency* or disable creatures. |
+| 9 | **Performance unmeasured on any device.** The bounds in TECHNICAL.md §3 are design limits. The simulation's per-tick script time is only a relative indicator from Node. | Unknown | Operators can lower *Encounter frequency* or disable creatures. |
 | 10 | **Realm upload UI wording** differs slightly between platforms and versions. | Low | The install guide describes both routes. |
 | 11 | **Boss rewards need participants online** when the Heart dies. | Low | By design: rewards are given to the player directly, once. |
 | 12 | **Sites off plus creatures off** can leave boss materials unobtainable. | Low | Only when both are disabled. Documented in the survival guide. |
+| 13 | **The simulation fake is a model, not the engine.** Where the real API differs (event timing, entity loading order, structure rotation direction, edge cases of raycasts and block queries), the simulation can't notice. | Medium | It's used for logic only. Every engine-facing behaviour stays on the in-game plan (§3). |
+| 14 | **Spawn-egg creatures are test props.** They have no encounter logic and are removed by the start-up sweep or the next chunk load. | Low | Documented in the survival guide's operator section. |
 
 ## 5. Explicit non-claims
 - No claim of Xbox, iPhone, Windows or Realm testing.

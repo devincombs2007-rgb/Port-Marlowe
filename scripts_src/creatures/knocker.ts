@@ -205,10 +205,14 @@ const SCRIPT: [number, string, number][] = [
   [760, SND.scratch, 0.9],
 ];
 const KNOCK_END = 900;
+let nextTry = 0;
 
 function update(): void {
   const v = visit;
   if (!v) {
+    // looking for a door costs a few block queries per player: every 5 s is plenty
+    if (now() < nextTry) return;
+    nextTry = now() + 100;
     tryVisit();
     return;
   }

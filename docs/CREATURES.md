@@ -248,5 +248,10 @@ altar rests (3 days after a kill). The heart spawns 6 s after the offering, with
 
 **Safety:**
 - Dormancy after 60 s with nobody in the arena: the Heart is removed and **the Offering is returned**.
+  - If the arena chunk is unloaded at that point, dormancy waits until it loads, so nothing is left behind.
+- If the Heart disappears without dying (e.g. removed by a command), the Offering is returned after 10 s.
 - Rewards are recorded per participant and paid once.
-- Boss state is persisted in a world dynamic property, so a reload mid-fight resumes it.
+- Boss state is persisted in a world dynamic property, and every boss entity carries the fight's token:
+  - after a restart the fight resumes;
+  - a restart during the rise re-runs the rise;
+  - hearts or veins from any other fight, or from spawn eggs, are removed on load.

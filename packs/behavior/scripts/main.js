@@ -141,6 +141,7 @@ var DP = {
   daily: "hollow:daily",
   // entity
   owner: "hollow:owner",
+  fight: "hollow:fight",
   born: "hollow:born"
 };
 
@@ -2044,6 +2045,7 @@ function startHollowed() {
 }
 
 // ../../scripts_src/creatures/heart.ts
+var FIGHT = DP.fight;
 var EMPTY = {
   active: false,
   dim: "minecraft:overworld",
@@ -2054,7 +2056,9 @@ var EMPTY = {
   regrown: false,
   startedAt: 0,
   restUntilDay: -1,
-  participants: {}
+  participants: {},
+  token: 0,
+  scale: 1
 };
 var boss = EMPTY;
 var loaded = false;
@@ -2065,6 +2069,8 @@ var nextGaze = 0;
 var nextBeat = 0;
 var nextDrone = 0;
 var lastPresence = 0;
+var rising = false;
+var missingSince = -1;
 var gazeHit = /* @__PURE__ */ new Map();
 function load() {
   if (!loaded) {
@@ -2078,6 +2084,21 @@ function save2() {
   writeWorld(DP.boss, boss);
 }
 var isBossEntity = (id) => load().active && (id === boss.heartId || boss.veins.includes(id));
+function isCurrentFightEntity(e) {
+  if (!load().active || !boss.token) return false;
+  try {
+    return e.getDynamicProperty(FIGHT) === boss.token;
+  } catch {
+    return false;
+  }
+}
+function arenaLoaded(dim) {
+  try {
+    return dim.isChunkLoaded(boss.center);
+  } catch {
+    return false;
+  }
+}
 function dimOf() {
   try {
     return world10.getDimension(boss.dim);
@@ -2148,9 +2169,21 @@ function useAltar(p, altar) {
   awaken(dim, center, altar);
 }
 function awaken(dim, center, altar) {
-  boss = { ...EMPTY, active: true, dim: dim.id, center, startedAt: now(), restUntilDay: boss.restUntilDay, participants: {} };
+  boss = {
+    ...EMPTY,
+    active: true,
+    dim: dim.id,
+    center,
+    startedAt: now(),
+    restUntilDay: boss.restUntilDay,
+    participants: {},
+    token: 1 + Math.floor(Math.random() * 2e9),
+    scale: 1
+  };
   const players = arenaPlayers();
   const n = Math.max(1, players.length);
+  boss.scale = n;
+  save2();
   worldSound(dim, SND.altar, altar.center());
   worldSound(dim, SND.heartAwaken, center, 1);
   try {
@@ -2166,38 +2199,44 @@ function awaken(dim, center, altar) {
     } catch {
     }
   }
-  later("heart.rise", 120, () => {
-    let heart;
+  rising = true;
+  later("heart.rise", 120, () => rise(dim));
+}
+function rise(dim) {
+  rising = false;
+  if (!boss.active || boss.heartId) return;
+  const n = boss.scale;
+  let heart;
+  try {
+    heart = dim.spawnEntity(ENT.heart, boss.center);
+  } catch (e) {
+    console.warn(`[hollow] heart spawn failed: ${e}`);
+    dormant(dim);
+    return;
+  }
+  heart.setDynamicProperty(FIGHT, boss.token);
+  if (settings().bossScaling && n >= 2) {
     try {
-      heart = dim.spawnEntity(ENT.heart, center);
-    } catch (e) {
-      console.warn(`[hollow] heart spawn failed: ${e}`);
-      boss.active = false;
-      save2();
-      return;
+      heart.triggerEvent(n >= 4 ? "hollow:scale_4" : n === 3 ? "hollow:scale_3" : "hollow:scale_2");
+    } catch {
     }
-    if (settings().bossScaling && n >= 2) {
-      try {
-        heart.triggerEvent(n >= 4 ? "hollow:scale_4" : n === 3 ? "hollow:scale_3" : "hollow:scale_2");
-      } catch {
-      }
-    }
-    boss.heartId = heart.id;
-    spawnVeins(dim, 4, n);
-    nextBurst = now() + 100;
-    nextPulse = now() + 240;
-    nextGaze = now() + 9999;
-    nextBeat = now();
-    nextDrone = now() + 40;
-    lastPresence = now();
-    save2();
-  });
+  }
+  boss.heartId = heart.id;
+  spawnVeins(dim, 4, n);
+  nextBurst = now() + 100;
+  nextPulse = now() + 240;
+  nextGaze = now() + 9999;
+  nextBeat = now();
+  nextDrone = now() + 40;
+  lastPresence = now();
+  save2();
 }
 function spawnVeins(dim, count, players) {
   const spots = veinSpots(boss.center).slice(0, count);
   for (const at of spots) {
     try {
       const v = dim.spawnEntity(ENT.vein, at);
+      v.setDynamicProperty(FIGHT, boss.token);
       if (players >= 3) v.triggerEvent("hollow:tough");
       boss.veins.push(v.id);
       particle(dim, PARTICLE.veinMote, at);
@@ -2335,17 +2374,30 @@ function update2() {
   const dim = dimOf();
   if (!dim) return;
   const t = now();
+  if (!arenaLoaded(dim)) return;
   const players = arenaPlayers();
   if (players.length > 0) lastPresence = t;
   else if (t - lastPresence > 1200) {
     dormant(dim);
     return;
   }
-  if (!boss.heartId) return;
-  const heart = world10.getEntity(boss.heartId);
-  if (!heart?.isValid) return;
+  if (!boss.heartId) {
+    if (!rising) rise(dim);
+    return;
+  }
+  const heart = findHeart(dim);
+  if (!heart) {
+    if (missingSince < 0) missingSince = t;
+    else if (t - missingSince > 200) {
+      console.warn("[hollow] the Heart is gone without dying; returning the Offering");
+      dormant(dim);
+    }
+    return;
+  }
+  missingSince = -1;
   for (const p of players) pushFog(p, FOG.heart, "hollow_heart");
   boss.veins = boss.veins.filter((id) => world10.getEntity(id)?.isValid);
+  if (boss.veins.length === 0 && heart.getProperty("hollow:shielded") === true) rebindVeins(dim);
   if (boss.veins.length === 0 && boss.phase < 3 && heart.getProperty("hollow:shielded") === true) {
     try {
       heart.triggerEvent("hollow:expose");
@@ -2380,6 +2432,32 @@ function update2() {
     gaze(dim, heart, players);
   }
 }
+function findHeart(dim) {
+  const byId = world10.getEntity(boss.heartId);
+  if (byId?.isValid) return byId;
+  try {
+    for (const e of dim.getEntities({ type: ENT.heart, location: boss.center, maxDistance: 24 })) {
+      if (e.getDynamicProperty(FIGHT) === boss.token) {
+        boss.heartId = e.id;
+        rebindVeins(dim);
+        save2();
+        return e;
+      }
+    }
+  } catch {
+  }
+  return void 0;
+}
+function rebindVeins(dim) {
+  try {
+    const found = dim.getEntities({ type: ENT.vein, location: boss.center, maxDistance: 24 }).filter((e) => e.getDynamicProperty(FIGHT) === boss.token).map((e) => e.id);
+    if (found.length > 0) {
+      boss.veins = found;
+      save2();
+    }
+  } catch {
+  }
+}
 function clearMinions() {
   for (const id of [...boss.veins, ...minions]) {
     const e = world10.getEntity(id);
@@ -2393,14 +2471,17 @@ function clearMinions() {
   minions.clear();
 }
 function dormant(dim) {
-  const heart = boss.heartId ? world10.getEntity(boss.heartId) : void 0;
-  if (heart?.isValid) {
-    try {
-      heart.remove();
-    } catch {
+  try {
+    for (const type of [ENT.heart, ENT.vein]) {
+      for (const e of dim.getEntities({ type, location: boss.center, maxDistance: 24 })) {
+        if (e.getDynamicProperty(FIGHT) === boss.token) e.remove();
+      }
     }
+  } catch {
   }
   clearMinions();
+  rising = false;
+  missingSince = -1;
   const altar = setAltar(dim, false);
   if (altar) {
     try {
@@ -2826,7 +2907,7 @@ function update3() {
       continue;
     }
     const seen = near.some((p) => dist(p.location, e.location) < 20 && clearLine(e.dimension, p.getHeadLocation(), add(e.location, { x: 0, y: 1, z: 0 })));
-    if (inState > seconds(4) && !seen || inState > seconds(14)) vanish(e, enc);
+    if (inState > seconds(10) && !seen || inState > seconds(30)) vanish(e, enc);
   }
 }
 function onBorrowedSheared(e, by) {
@@ -3008,9 +3089,12 @@ var SCRIPT = [
   [760, SND.scratch, 0.9]
 ];
 var KNOCK_END = 900;
+var nextTry = 0;
 function update4() {
   const v = visit;
   if (!v) {
+    if (now() < nextTry) return;
+    nextTry = now() + 100;
     tryVisit();
     return;
   }
@@ -3752,10 +3836,10 @@ var trackers = /* @__PURE__ */ new Map();
 function trackType(typeId, isTracked) {
   trackers.set(typeId, isTracked);
 }
-var PERSISTENT = /* @__PURE__ */ new Set([ENT.heart, ENT.vein]);
+var BOSS_PARTS = /* @__PURE__ */ new Set([ENT.heart, ENT.vein]);
 function orphan(e) {
   if (!e.isValid) return false;
-  if (PERSISTENT.has(e.typeId)) return false;
+  if (BOSS_PARTS.has(e.typeId)) return !isCurrentFightEntity(e);
   const t = trackers.get(e.typeId);
   if (t) return !t(e.id);
   try {
