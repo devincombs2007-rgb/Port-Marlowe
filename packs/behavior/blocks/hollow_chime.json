@@ -1,0 +1,77 @@
+{
+  "format_version": "1.26.20",
+  "minecraft:block": {
+    "description": {
+      "identifier": "hollow:hollow_chime",
+      "menu_category": {
+        "category": "items"
+      },
+      "states": {
+        "hollow:silenced": [
+          false,
+          true
+        ]
+      }
+    },
+    "components": {
+      "minecraft:geometry": "geometry.hollow.hollow_chime",
+      "minecraft:material_instances": {
+        "*": {
+          "texture": "hollow_hollow_chime",
+          "render_method": "alpha_test",
+          "ambient_occlusion": false,
+          "face_dimming": true
+        }
+      },
+      "minecraft:collision_box": false,
+      "minecraft:selection_box": {
+        "origin": [
+          -6,
+          2,
+          -2
+        ],
+        "size": [
+          12,
+          14,
+          4
+        ]
+      },
+      "minecraft:light_dampening": 0,
+      "minecraft:destructible_by_mining": {
+        "seconds_to_destroy": 0.4
+      },
+      "minecraft:destructible_by_explosion": {
+        "explosion_resistance": 1
+      },
+      "minecraft:placement_filter": {
+        "conditions": [
+          {
+            "allowed_faces": [
+              "down"
+            ]
+          }
+        ]
+      },
+      "minecraft:map_color": "#b4683f",
+      "minecraft:sound": {
+        "sound": "copper"
+      },
+      "hollow:chime": {}
+    },
+    "permutations": [
+      {
+        "condition": "query.block_state('hollow:silenced')",
+        "components": {
+          "minecraft:material_instances": {
+            "*": {
+              "texture": "hollow_hollow_chime_silenced",
+              "render_method": "alpha_test",
+              "ambient_occlusion": false,
+              "face_dimming": true
+            }
+          }
+        }
+      }
+    ]
+  }
+}

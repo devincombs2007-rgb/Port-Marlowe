@@ -1,0 +1,25 @@
+{
+  "format_version": "1.26.30",
+  "minecraft:item": {
+    "description": {
+      "identifier": "hollow:rowan_ward",
+      "menu_category": {
+        "category": "items"
+      }
+    },
+    "components": {
+      "minecraft:icon": {
+        "textures": {
+          "default": "hollow_rowan_ward"
+        }
+      },
+      "minecraft:display_name": {
+        "value": "tile.hollow:rowan_ward.name"
+      },
+      "minecraft:block_placer": {
+        "block": "hollow:rowan_ward",
+        "replace_block_item": true
+      }
+    }
+  }
+}

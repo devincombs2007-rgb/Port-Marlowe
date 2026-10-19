@@ -1,0 +1,24 @@
+{
+  "format_version": "1.26.30",
+  "minecraft:item": {
+    "description": {
+      "identifier": "hollow:torn_page",
+      "menu_category": {
+        "category": "items"
+      }
+    },
+    "components": {
+      "minecraft:icon": {
+        "textures": {
+          "default": "hollow_torn_page"
+        }
+      },
+      "minecraft:display_name": {
+        "value": "item.hollow:torn_page.name"
+      },
+      "minecraft:max_stack_size": 16,
+      "minecraft:interact_button": "Read",
+      "hollow:torn_page": {}
+    }
+  }
+}

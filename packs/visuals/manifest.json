@@ -1,0 +1,38 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "THE HOLLOW: Visuals (optional)",
+    "description": "§7Vibrant Visuals lighting, atmosphere, colour grading and fog. Optional; disable it if another visuals pack conflicts.",
+    "uuid": "0eefff6a-77f2-5024-aa5f-4ae021c10921",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      26,
+      50
+    ]
+  },
+  "modules": [
+    {
+      "type": "resources",
+      "uuid": "f1067fa6-d1f3-581b-8504-1733df4a0d40",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "capabilities": [
+    "pbr"
+  ],
+  "metadata": {
+    "authors": [
+      "THE HOLLOW project"
+    ],
+    "license": "CC0-1.0. See CREDITS.md"
+  }
+}

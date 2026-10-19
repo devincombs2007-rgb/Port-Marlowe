@@ -1,0 +1,32 @@
+{
+  "resource_pack_name": "hollow",
+  "texture_name": "atlas.terrain",
+  "padding": 8,
+  "num_mip_levels": 4,
+  "texture_data": {
+    "hollow_hollow_chime": {
+      "textures": "textures/blocks/hollow/hollow_chime"
+    },
+    "hollow_hollow_chime_silenced": {
+      "textures": "textures/blocks/hollow/hollow_chime_silenced"
+    },
+    "hollow_rowan_ward": {
+      "textures": "textures/blocks/hollow/rowan_ward"
+    },
+    "hollow_rowan_ward_spent": {
+      "textures": "textures/blocks/hollow/rowan_ward_spent"
+    },
+    "hollow_heartwood_lantern": {
+      "textures": "textures/blocks/hollow/heartwood_lantern"
+    },
+    "hollow_heart_altar": {
+      "textures": "textures/blocks/hollow/heart_altar"
+    },
+    "hollow_heart_altar_awake": {
+      "textures": "textures/blocks/hollow/heart_altar_awake"
+    },
+    "hollow_hollow_roots": {
+      "textures": "textures/blocks/hollow/hollow_roots"
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "hollow-typecheck",
+  "private": true,
+  "description": "Type-checks THE HOLLOW scripts against the exact stable Script API typings pinned in the behavior pack manifest.",
+  "devDependencies": {
+    "@minecraft/server": "2.10.0",
+    "@minecraft/server-ui": "2.2.0",
+    "@minecraft/vanilla-data": "1.26.52",
+    "esbuild": "0.24.0",
+    "typescript": "5.6.3"
+  }
+}

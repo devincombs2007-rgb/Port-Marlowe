@@ -1,0 +1,23 @@
+{
+  "format_version": "1.26.30",
+  "minecraft:item": {
+    "description": {
+      "identifier": "hollow:pale_resin",
+      "menu_category": {
+        "category": "items"
+      }
+    },
+    "components": {
+      "minecraft:icon": {
+        "textures": {
+          "default": "hollow_pale_resin"
+        }
+      },
+      "minecraft:display_name": {
+        "value": "item.hollow:pale_resin.name"
+      },
+      "hollow:material": {},
+      "minecraft:interact_button": "Inspect"
+    }
+  }
+}

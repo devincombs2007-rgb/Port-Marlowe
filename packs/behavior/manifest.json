@@ -1,0 +1,66 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "THE HOLLOW: Survival Horror",
+    "description": "§7Behavior pack · Requires the THE HOLLOW resource pack. Minecraft Bedrock 26.50+.",
+    "uuid": "606bf1f6-1826-5f00-9f40-3a22a6e51da6",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      26,
+      50
+    ]
+  },
+  "modules": [
+    {
+      "type": "data",
+      "uuid": "6c542fe0-f346-58f2-ba60-83ab0afc1df7",
+      "version": [
+        1,
+        0,
+        0
+      ],
+      "description": "Entities, items, blocks, recipes, loot and structures"
+    },
+    {
+      "type": "script",
+      "language": "javascript",
+      "uuid": "437a0868-f763-595f-9a2e-66f4d9241f0d",
+      "version": [
+        1,
+        0,
+        0
+      ],
+      "entry": "scripts/main.js",
+      "description": "Encounter director, journal, settings"
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "f9d97f90-991f-5d34-918e-fed51bbefd88",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "module_name": "@minecraft/server",
+      "version": "2.10.0"
+    },
+    {
+      "module_name": "@minecraft/server-ui",
+      "version": "2.2.0"
+    }
+  ],
+  "metadata": {
+    "authors": [
+      "THE HOLLOW project"
+    ],
+    "license": "Code: MIT. Original art and audio: CC0-1.0. See CREDITS.md"
+  }
+}

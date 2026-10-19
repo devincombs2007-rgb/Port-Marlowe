@@ -1,0 +1,38 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "THE HOLLOW: Survival Horror",
+    "description": "§7Resource pack · creatures, sounds, items. Works in Simple, Fancy and Vibrant Visuals.",
+    "uuid": "f9d97f90-991f-5d34-918e-fed51bbefd88",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      26,
+      50
+    ]
+  },
+  "modules": [
+    {
+      "type": "resources",
+      "uuid": "e9d651c2-9371-511d-8dd2-afb08381ae9d",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ],
+  "capabilities": [
+    "pbr"
+  ],
+  "metadata": {
+    "authors": [
+      "THE HOLLOW project"
+    ],
+    "license": "Original art and audio: CC0-1.0. See CREDITS.md"
+  }
+}

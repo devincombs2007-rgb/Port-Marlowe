@@ -1,0 +1,25 @@
+{
+  "format_version": "1.26.30",
+  "minecraft:item": {
+    "description": {
+      "identifier": "hollow:field_journal",
+      "menu_category": {
+        "category": "items"
+      }
+    },
+    "components": {
+      "minecraft:icon": {
+        "textures": {
+          "default": "hollow_field_journal"
+        }
+      },
+      "minecraft:display_name": {
+        "value": "item.hollow:field_journal.name"
+      },
+      "minecraft:max_stack_size": 1,
+      "minecraft:interact_button": "Read",
+      "hollow:journal": {},
+      "minecraft:hover_text_color": "gray"
+    }
+  }
+}

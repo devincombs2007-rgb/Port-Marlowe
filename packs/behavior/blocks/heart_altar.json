@@ -1,0 +1,77 @@
+{
+  "format_version": "1.26.20",
+  "minecraft:block": {
+    "description": {
+      "identifier": "hollow:heart_altar",
+      "menu_category": {
+        "category": "none"
+      },
+      "states": {
+        "hollow:awake": [
+          false,
+          true
+        ]
+      }
+    },
+    "components": {
+      "minecraft:geometry": "geometry.hollow.heart_altar",
+      "minecraft:material_instances": {
+        "*": {
+          "texture": "hollow_heart_altar",
+          "render_method": "opaque",
+          "ambient_occlusion": true,
+          "face_dimming": true
+        }
+      },
+      "minecraft:collision_box": {
+        "origin": [
+          -8,
+          0,
+          -8
+        ],
+        "size": [
+          16,
+          15,
+          16
+        ]
+      },
+      "minecraft:selection_box": {
+        "origin": [
+          -8,
+          0,
+          -8
+        ],
+        "size": [
+          16,
+          15,
+          16
+        ]
+      },
+      "minecraft:destructible_by_mining": false,
+      "minecraft:destructible_by_explosion": false,
+      "minecraft:light_emission": 3,
+      "minecraft:map_color": "#303036",
+      "minecraft:sound": {
+        "sound": "deepslate"
+      },
+      "minecraft:loot": "loot_tables/empty.json",
+      "hollow:altar": {}
+    },
+    "permutations": [
+      {
+        "condition": "query.block_state('hollow:awake')",
+        "components": {
+          "minecraft:material_instances": {
+            "*": {
+              "texture": "hollow_heart_altar_awake",
+              "render_method": "opaque",
+              "ambient_occlusion": true,
+              "face_dimming": true
+            }
+          },
+          "minecraft:light_emission": 9
+        }
+      }
+    ]
+  }
+}

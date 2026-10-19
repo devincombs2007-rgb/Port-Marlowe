@@ -1,0 +1,30 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shapeless": {
+    "description": {
+      "identifier": "hollow:heartwood_lantern"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "ingredients": [
+      {
+        "item": "hollow:stilled_heart",
+        "count": 1
+      },
+      {
+        "item": "minecraft:lantern",
+        "count": 1
+      }
+    ],
+    "unlock": [
+      {
+        "item": "hollow:stilled_heart"
+      }
+    ],
+    "result": {
+      "item": "hollow:heartwood_lantern",
+      "count": 1
+    }
+  }
+}

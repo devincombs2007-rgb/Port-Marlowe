@@ -1,0 +1,23 @@
+{
+  "format_version": "1.26.30",
+  "minecraft:item": {
+    "description": {
+      "identifier": "hollow:hollow_fang",
+      "menu_category": {
+        "category": "items"
+      }
+    },
+    "components": {
+      "minecraft:icon": {
+        "textures": {
+          "default": "hollow_hollow_fang"
+        }
+      },
+      "minecraft:display_name": {
+        "value": "item.hollow:hollow_fang.name"
+      },
+      "hollow:material": {},
+      "minecraft:interact_button": "Inspect"
+    }
+  }
+}

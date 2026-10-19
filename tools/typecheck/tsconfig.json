@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "Bundler",
+    "lib": [
+      "ES2022"
+    ],
+    "strict": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": false,
+    "skipLibCheck": false,
+    "typeRoots": [
+      "./node_modules/@types"
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "@minecraft/server": [
+        "./node_modules/@minecraft/server"
+      ],
+      "@minecraft/server-ui": [
+        "./node_modules/@minecraft/server-ui"
+      ]
+    },
+    "noEmit": true
+  },
+  "include": [
+    "../../scripts_src/**/*.ts"
+  ]
+}

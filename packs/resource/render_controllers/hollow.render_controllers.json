@@ -1,0 +1,29 @@
+{
+  "format_version": "1.8.0",
+  "render_controllers": {
+    "controller.render.hollow.default": {
+      "geometry": "Geometry.default",
+      "materials": [{ "*": "Material.default" }],
+      "textures": ["Texture.default"]
+    },
+    "controller.render.hollow.glow_head": {
+      "geometry": "Geometry.default",
+      "materials": [{ "*": "Material.eyes" }],
+      "textures": ["Texture.glow"],
+      "ignore_lighting": true,
+      "part_visibility": [
+        { "*": false },
+        { "head": "!query.is_invisible" }
+      ]
+    },
+    "controller.render.hollow.glow_all": {
+      "geometry": "Geometry.default",
+      "materials": [{ "*": "Material.eyes" }],
+      "textures": ["Texture.glow"],
+      "ignore_lighting": true,
+      "part_visibility": [
+        { "*": "!query.is_invisible" }
+      ]
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "format_version": "1.26.30",
+  "minecraft:item": {
+    "description": {
+      "identifier": "hollow:heartseeker",
+      "menu_category": {
+        "category": "equipment"
+      }
+    },
+    "components": {
+      "minecraft:icon": {
+        "textures": {
+          "default": "hollow_heartseeker"
+        }
+      },
+      "minecraft:display_name": {
+        "value": "item.hollow:heartseeker.name"
+      },
+      "minecraft:max_stack_size": 1,
+      "minecraft:interact_button": "Listen",
+      "hollow:heartseeker": {},
+      "minecraft:cooldown": {
+        "category": "hollow_heartseeker",
+        "duration": 2.0
+      },
+      "minecraft:rarity": {
+        "value": "uncommon"
+      }
+    }
+  }
+}
