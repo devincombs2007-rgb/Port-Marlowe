@@ -13,7 +13,7 @@
         "*": {
           "texture": "hollow_hollow_roots",
           "render_method": "opaque",
-          "ambient_occlusion": true,
+          "ambient_occlusion": 1.0,
           "face_dimming": true
         }
       },

@@ -81,7 +81,8 @@ def block_item_json(ident, name, icon):
 
 
 def mat(texture, render="alpha_test", ao=False):
-    return {"texture": texture, "render_method": render, "ambient_occlusion": ao, "face_dimming": True}
+    # 1.26.20 block format: ambient_occlusion is a number (AO exponent; 0 disables it).
+    return {"texture": texture, "render_method": render, "ambient_occlusion": 1.0 if ao else 0.0, "face_dimming": True}
 
 
 BLOCKS = {
@@ -91,7 +92,7 @@ BLOCKS = {
             "description": {
                 "identifier": "hollow:hollow_chime",
                 "menu_category": {"category": "items"},
-                "states": {"hollow:silenced": [False, True]},
+                "states": {"hollow:silenced": {"values": {"min": 0, "max": 1}}},
             },
             "components": {
                 "minecraft:geometry": "geometry.hollow.hollow_chime",
@@ -107,7 +108,7 @@ BLOCKS = {
                 "hollow:chime": {},
             },
             "permutations": [
-                {"condition": "query.block_state('hollow:silenced')",
+                {"condition": "query.block_state('hollow:silenced') == 1",
                  "components": {"minecraft:material_instances": {"*": mat("hollow_hollow_chime_silenced")}}},
             ],
         },
@@ -165,7 +166,7 @@ BLOCKS = {
             "description": {
                 "identifier": "hollow:heart_altar",
                 "menu_category": {"category": "none"},
-                "states": {"hollow:awake": [False, True]},
+                "states": {"hollow:awake": {"values": {"min": 0, "max": 1}}},
             },
             "components": {
                 "minecraft:geometry": "geometry.hollow.heart_altar",
@@ -181,7 +182,7 @@ BLOCKS = {
                 "hollow:altar": {},
             },
             "permutations": [
-                {"condition": "query.block_state('hollow:awake')",
+                {"condition": "query.block_state('hollow:awake') == 1",
                  "components": {"minecraft:material_instances": {"*": mat("hollow_heart_altar_awake", "opaque", True)},
                                 "minecraft:light_emission": 9}},
             ],

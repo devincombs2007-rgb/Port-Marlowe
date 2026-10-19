@@ -13,8 +13,14 @@ FACES = ("up", "down", "east", "north", "west", "south")
 
 
 def rot_matrix(rx, ry, rz):
-    """Bedrock euler (degrees) -> 3x3 matrix in our right-handed preview space."""
-    ax, ay, az = math.radians(-rx), math.radians(-ry), math.radians(rz)
+    """Bedrock euler (degrees) -> 3x3 rotation in geometry-file space.
+
+    Derived from Blockbench's Bedrock codec (x-mirrored file space, rotation written as
+    [-x, -y, z] of a ZYX three.js euler) and verified against vanilla data: the zombie's
+    arm pose rotation x = -90 points the arms forward (-Z) and the spider's leg0 (extending
+    to -X) with z = -45 points down. Net effect in file space: Rz(-z) * Ry(y) * Rx(-x).
+    """
+    ax, ay, az = math.radians(-rx), math.radians(ry), math.radians(-rz)
     cx, sx = math.cos(ax), math.sin(ax)
     cy, sy = math.cos(ay), math.sin(ay)
     cz, sz = math.cos(az), math.sin(az)
@@ -249,3 +255,20 @@ class Model:
     def write(self, path):
         with open(path, "w") as f:
             json.dump(self.to_json(), f, indent=1)
+
+
+def segment_rotation(p, q):
+    """Bedrock (x, y, z) rotation that aims a cube's +Y axis from p to q (see rot_matrix)."""
+    d = np.array(q, float) - np.array(p, float)
+    L = float(np.linalg.norm(d))
+    d /= L
+    fx = -math.degrees(math.asin(max(-1.0, min(1.0, d[2]))))
+    fz = math.degrees(math.atan2(d[0], d[1]))
+    return (round(fx, 3), 0.0, round(fz, 3)), L
+
+
+def add_segment(model, bone, p, q, thickness, material, inflate=0.0):
+    """A limb segment from p to q (model units) as one rotated cube pivoting at p."""
+    rot, L = segment_rotation(p, q)
+    t = thickness
+    return model.cube(bone, (p[0] - t / 2, p[1], p[2] - t / 2), (t, L, t), material, pivot=tuple(p), rotation=rot, inflate=inflate)

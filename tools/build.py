@@ -22,7 +22,7 @@ ASSET_STEPS = [
     "creatures/mirebound.py", "creatures/heart.py", "blocks/blocks.py", "art/icons.py", "art/particles.py",
     "art/pack_icon.py", "sounds/design.py", "structures/build_structures.py", "visuals/build_visuals.py",
 ]
-CONTENT_STEPS = ["packgen/content.py", "packgen/registry.py"]
+CONTENT_STEPS = ["packgen/content.py", "packgen/registry.py", "packgen/animations.py"]
 
 
 def run(cmd, cwd=ROOT):

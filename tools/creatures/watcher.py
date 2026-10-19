@@ -34,10 +34,10 @@ def build():
     m.cube("head", (-0.75, 39.8, -3.0), (1.5, 1.4, 0.6), "pale")  # chin point
     # crown of dead twigs
     m.bone("crown", "head", pivot=(0, 50, -0.6))
-    m.cube("crown", (-2.0, 49.5, -1.0), (1, 7, 1), "twig", pivot=(-1.5, 50, -0.5), rotation=(0, 0, 24))
-    m.cube("crown", (1.0, 49.5, -1.0), (1, 9, 1), "twig", pivot=(1.5, 50, -0.5), rotation=(-6, 0, -18))
-    m.cube("crown", (-4.6, 54.5, -1.0), (1, 4, 1), "twig", pivot=(-4.1, 55, -0.5), rotation=(0, 0, 62))
-    m.cube("crown", (3.6, 56.0, -1.0), (1, 4, 1), "twig", pivot=(4.1, 56.5, -0.5), rotation=(0, 0, -58))
+    m.cube("crown", (-2.0, 49.5, -1.0), (1, 7, 1), "twig", pivot=(-1.5, 50, -0.5), rotation=(0, 0, -24))
+    m.cube("crown", (1.0, 49.5, -1.0), (1, 9, 1), "twig", pivot=(1.5, 50, -0.5), rotation=(-6, 0, 18))
+    m.cube("crown", (-4.6, 54.5, -1.0), (1, 4, 1), "twig", pivot=(-4.1, 55, -0.5), rotation=(0, 0, -62))
+    m.cube("crown", (3.6, 56.0, -1.0), (1, 4, 1), "twig", pivot=(4.1, 56.5, -0.5), rotation=(0, 0, 58))
     m.cube("crown", (-0.5, 50.0, 0.4), (1, 5, 1), "twig", pivot=(0, 50, 0.9), rotation=(-28, 0, 4))
     # arms (over-long, with knuckled forearms and three finger-roots)
     for side, sx in (("right", -1), ("left", 1)):

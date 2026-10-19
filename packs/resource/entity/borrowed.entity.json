@@ -1,0 +1,55 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "hollow:borrowed",
+      "materials": {
+        "default": "entity_alphatest",
+        "eyes": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/hollow/borrowed",
+        "true": "textures/entity/hollow/borrowed_true",
+        "glow": "textures/entity/hollow/borrowed_glow"
+      },
+      "geometry": {
+        "default": "geometry.hollow.borrowed"
+      },
+      "animations": {
+        "disguise": "animation.hollow.borrowed.disguise",
+        "idle": "animation.hollow.borrowed.idle",
+        "walk": "animation.hollow.borrowed.walk",
+        "look_at_target": "animation.hollow.borrowed.look_at_target",
+        "reveal": "animation.hollow.borrowed.reveal",
+        "revealed": "animation.hollow.borrowed.revealed",
+        "attack": "animation.hollow.borrowed.attack",
+        "form": "controller.animation.hollow.borrowed.form",
+        "locomotion": "controller.animation.hollow.borrowed.locomotion",
+        "strike": "controller.animation.hollow.borrowed.strike"
+      },
+      "scripts": {
+        "pre_animation": [
+          "variable.night = query.time_of_day < 0.23 || query.time_of_day > 0.77;",
+          "variable.revealed = query.property('hollow:revealed');"
+        ],
+        "animate": [
+          "look_at_target",
+          "locomotion",
+          "form",
+          "strike"
+        ]
+      },
+      "render_controllers": [
+        "controller.render.hollow.borrowed",
+        "controller.render.hollow.glow_night_borrowed"
+      ],
+      "spawn_egg": {
+        "base_color": "#d8d4cb",
+        "overlay_color": "#8a6e5b"
+      },
+      "sound_effects": {
+        "reveal": "hollow.borrowed.reveal"
+      }
+    }
+  }
+}

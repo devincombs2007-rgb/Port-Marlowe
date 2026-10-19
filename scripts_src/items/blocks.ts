@@ -9,6 +9,7 @@ import { every } from "../core/scheduler";
 import { readWorldArray, writeWorld } from "../core/store";
 import { nightKey, now } from "../core/time";
 import { block, getCustomState, withCustomState } from "../core/world";
+import { useAltar } from "../creatures/heart";
 
 // Placed equipment registry. Positions are stored in world dynamic properties so the chime loop
 // never scans the world for blocks; each list is capped to keep the per-tick cost bounded.
@@ -165,7 +166,7 @@ function ringChimes(): void {
       unregister(DP.chimes, dim, s);
       continue;
     }
-    if (getCustomState(b.permutation, "hollow:silenced") === true) continue;
+    if (getCustomState(b.permutation, "hollow:silenced") === 1) continue;
     const near = dim.getEntities({ location: loc, maxDistance: 14, families: [FAMILY.creature] });
     if (near.length === 0) continue;
     chimeCooldown.set(key, t + 120);
@@ -198,9 +199,9 @@ export function registerBlockComponents(ev: StartupEvent): void {
     },
     onPlayerInteract(e) {
       const b = e.block;
-      const silenced = getCustomState(b.permutation, "hollow:silenced") === true;
+      const silenced = getCustomState(b.permutation, "hollow:silenced") === 1;
       try {
-        b.setPermutation(withCustomState(b.permutation, "hollow:silenced", !silenced));
+        b.setPermutation(withCustomState(b.permutation, "hollow:silenced", silenced ? 0 : 1));
       } catch {
         return;
       }
@@ -254,6 +255,13 @@ export function registerBlockComponents(ev: StartupEvent): void {
       } else {
         notice(p, c > 0 ? `§7Rowan Ward · charges §f${c}/4§7 · add charcoal to recharge` : "§7The ward is spent. Use charcoal on it to rekindle it.");
       }
+    },
+  });
+
+  ev.blockComponentRegistry.registerCustomComponent("hollow:altar", {
+    onPlayerInteract(e) {
+      const p = e.player;
+      if (p) useAltar(p, e.block);
     },
   });
 

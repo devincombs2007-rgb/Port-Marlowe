@@ -41,14 +41,15 @@ interface Def {
   sink: number;
   spacing: number;
   cap: number;
+  /** loot table for containers inside the structure (empty = none) */
   lootTable: string;
   journal: string;
 }
 
 const DEFS: Record<SiteType, Def> = {
-  cabin: { structure: "hollow:cabin", size: [11, 9, 11], sink: 2, spacing: 320, cap: 8, lootTable: "hollow/sites/cabin", journal: "place_cabin" },
+  cabin: { structure: "hollow:cabin", size: [11, 9, 11], sink: 1, spacing: 320, cap: 8, lootTable: "hollow/sites/cabin", journal: "place_cabin" },
   camp: { structure: "hollow:campsite", size: [13, 6, 13], sink: 1, spacing: 256, cap: 10, lootTable: "hollow/sites/campsite", journal: "place_camp" },
-  shrine: { structure: "hollow:shrine", size: [25, 13, 25], sink: 0, spacing: 0, cap: 1, lootTable: "hollow/sites/shrine", journal: "place_shrine" },
+  shrine: { structure: "hollow:shrine", size: [25, 13, 25], sink: 0, spacing: 0, cap: 1, lootTable: "", journal: "place_shrine" },
 };
 
 let sites: Site[] | undefined;
@@ -135,7 +136,7 @@ function place(dim: Dimension, t: SiteType, origin: Vector3): Site | undefined {
   const site: Site = { t, d: dim.id, x: o.x, y: o.y + def.sink, z: o.z, sx: def.size[0], sy: def.size[1], sz: def.size[2] };
   allSites().push(site);
   saveSites();
-  later("sites.fill", 2, () => fill(dim, site));
+  if (def.lootTable) later("sites.fill", 2, () => fill(dim, site));
   return site;
 }
 

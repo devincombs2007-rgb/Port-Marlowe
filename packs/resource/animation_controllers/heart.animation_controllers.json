@@ -1,0 +1,27 @@
+{
+  "format_version": "1.10.0",
+  "animation_controllers": {
+    "controller.animation.hollow.heart.mood": {
+      "initial_state": "closed",
+      "states": {
+        "closed": {
+          "transitions": [
+            {
+              "opened": "variable.phase == 3"
+            }
+          ]
+        },
+        "opened": {
+          "animations": [
+            "open"
+          ],
+          "transitions": [
+            {
+              "closed": "variable.phase != 3"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

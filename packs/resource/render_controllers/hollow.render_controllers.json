@@ -3,27 +3,150 @@
   "render_controllers": {
     "controller.render.hollow.default": {
       "geometry": "Geometry.default",
-      "materials": [{ "*": "Material.default" }],
-      "textures": ["Texture.default"]
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "textures": [
+        "Texture.default"
+      ]
     },
     "controller.render.hollow.glow_head": {
       "geometry": "Geometry.default",
-      "materials": [{ "*": "Material.eyes" }],
-      "textures": ["Texture.glow"],
+      "materials": [
+        {
+          "*": "Material.eyes"
+        }
+      ],
+      "textures": [
+        "Texture.glow"
+      ],
       "ignore_lighting": true,
       "part_visibility": [
-        { "*": false },
-        { "head": "!query.is_invisible" }
+        {
+          "*": false
+        },
+        {
+          "head": "!query.is_invisible"
+        }
       ]
     },
     "controller.render.hollow.glow_all": {
       "geometry": "Geometry.default",
-      "materials": [{ "*": "Material.eyes" }],
-      "textures": ["Texture.glow"],
+      "materials": [
+        {
+          "*": "Material.eyes"
+        }
+      ],
+      "textures": [
+        "Texture.glow"
+      ],
       "ignore_lighting": true,
       "part_visibility": [
-        { "*": "!query.is_invisible" }
+        {
+          "*": "!query.is_invisible"
+        }
       ]
+    },
+    "controller.render.hollow.borrowed": {
+      "arrays": {
+        "textures": {
+          "Array.skins": [
+            "Texture.default",
+            "Texture.true"
+          ]
+        }
+      },
+      "geometry": "Geometry.default",
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "textures": [
+        "Array.skins[query.property('hollow:revealed') ? 1 : 0]"
+      ]
+    },
+    "controller.render.hollow.glow_night_head": {
+      "geometry": "Geometry.default",
+      "materials": [
+        {
+          "*": "Material.eyes"
+        }
+      ],
+      "textures": [
+        "Texture.glow"
+      ],
+      "ignore_lighting": true,
+      "part_visibility": [
+        {
+          "*": false
+        },
+        {
+          "head": "variable.night && !query.is_invisible"
+        }
+      ]
+    },
+    "controller.render.hollow.glow_throat": {
+      "geometry": "Geometry.default",
+      "materials": [
+        {
+          "*": "Material.eyes"
+        }
+      ],
+      "textures": [
+        "Texture.glow"
+      ],
+      "ignore_lighting": true,
+      "part_visibility": [
+        {
+          "*": false
+        },
+        {
+          "throat": "!query.is_invisible"
+        }
+      ]
+    },
+    "controller.render.hollow.glow_night_borrowed": {
+      "geometry": "Geometry.default",
+      "materials": [
+        {
+          "*": "Material.eyes"
+        }
+      ],
+      "textures": [
+        "Texture.glow"
+      ],
+      "ignore_lighting": true,
+      "part_visibility": [
+        {
+          "*": false
+        },
+        {
+          "head_l": "variable.night && !query.is_invisible"
+        },
+        {
+          "head_r": "variable.night && !query.is_invisible"
+        }
+      ]
+    },
+    "controller.render.hollow.heart": {
+      "geometry": "Geometry.default",
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "textures": [
+        "Texture.default"
+      ],
+      "overlay_color": {
+        "r": 0.25,
+        "g": 0.02,
+        "b": 0.02,
+        "a": "variable.shielded ? 0.35 : 0.0"
+      }
     }
   }
 }

@@ -1,0 +1,181 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.hollow.heart.beat": {
+      "loop": true,
+      "animation_length": 1.2,
+      "anim_time_update": "query.anim_time + query.delta_time * variable.beat_rate",
+      "bones": {
+        "heart": {
+          "scale": {
+            "0.0": [
+              1,
+              1,
+              1
+            ],
+            "0.08": [
+              1.05,
+              1.06,
+              1.05
+            ],
+            "0.18": [
+              1,
+              1,
+              1
+            ],
+            "0.3": [
+              1.03,
+              1.04,
+              1.03
+            ],
+            "0.42": [
+              1,
+              1,
+              1
+            ],
+            "1.2": [
+              1,
+              1,
+              1
+            ]
+          }
+        }
+      }
+    },
+    "animation.hollow.heart.roots": {
+      "loop": true,
+      "bones": {
+        "roots": {
+          "rotation": [
+            0,
+            "math.sin(query.anim_time * 20) * 1.5",
+            0
+          ]
+        },
+        "bands": {
+          "scale": "1.0 + math.sin(query.anim_time * 160) * 0.01"
+        }
+      }
+    },
+    "animation.hollow.heart.open": {
+      "loop": "hold_on_last_frame",
+      "animation_length": 1.0,
+      "bones": {
+        "lid_l": {
+          "rotation": {
+            "0.0": [
+              0,
+              0,
+              0
+            ],
+            "0.3": [
+              0,
+              20,
+              0
+            ],
+            "0.5": [
+              0,
+              15,
+              0
+            ],
+            "1.0": [
+              0,
+              72,
+              0
+            ]
+          }
+        },
+        "lid_r": {
+          "rotation": {
+            "0.0": [
+              0,
+              0,
+              0
+            ],
+            "0.3": [
+              0,
+              -20,
+              0
+            ],
+            "0.5": [
+              0,
+              -15,
+              0
+            ],
+            "1.0": [
+              0,
+              -72,
+              0
+            ]
+          }
+        },
+        "core": {
+          "scale": {
+            "0.0": 0.6,
+            "1.0": 1.0
+          }
+        }
+      }
+    },
+    "animation.hollow.vein.pulse": {
+      "loop": true,
+      "bones": {
+        "sac": {
+          "scale": "1.0 + math.abs(math.sin(query.anim_time * 150)) * 0.08"
+        }
+      }
+    },
+    "animation.hollow.root_spike.rise": {
+      "loop": false,
+      "animation_length": 1.5,
+      "bones": {
+        "spikes": {
+          "position": {
+            "0.0": [
+              0,
+              -34,
+              0
+            ],
+            "0.18": [
+              0,
+              2,
+              0
+            ],
+            "0.3": [
+              0,
+              0,
+              0
+            ],
+            "0.9": [
+              0,
+              0,
+              0
+            ],
+            "1.4": [
+              0,
+              -34,
+              0
+            ]
+          },
+          "scale": {
+            "0.0": [
+              0.6,
+              1,
+              0.6
+            ],
+            "0.18": [
+              1.1,
+              1.1,
+              1.1
+            ],
+            "0.3": [
+              1,
+              1,
+              1
+            ]
+          }
+        }
+      }
+    }
+  }
+}

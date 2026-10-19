@@ -13,7 +13,7 @@
         "*": {
           "texture": "hollow_heartwood_lantern",
           "render_method": "alpha_test",
-          "ambient_occlusion": false,
+          "ambient_occlusion": 0.0,
           "face_dimming": true
         }
       },

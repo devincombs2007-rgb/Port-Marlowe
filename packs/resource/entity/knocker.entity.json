@@ -1,0 +1,47 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "hollow:knocker",
+      "materials": {
+        "default": "entity_alphatest",
+        "eyes": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/hollow/knocker"
+      },
+      "geometry": {
+        "default": "geometry.hollow.knocker"
+      },
+      "animations": {
+        "idle": "animation.hollow.knocker.idle",
+        "walk": "animation.hollow.knocker.walk",
+        "knock": "animation.hollow.knocker.knock",
+        "hunt": "animation.hollow.knocker.hunt",
+        "attack": "animation.hollow.knocker.attack",
+        "look_at_target": "animation.hollow.knocker.look_at_target",
+        "locomotion": "controller.animation.hollow.knocker.locomotion",
+        "mood": "controller.animation.hollow.knocker.mood",
+        "strike": "controller.animation.hollow.knocker.strike"
+      },
+      "scripts": {
+        "pre_animation": [
+          "variable.state = query.property('hollow:state');"
+        ],
+        "animate": [
+          "look_at_target",
+          "locomotion",
+          "mood",
+          "strike"
+        ]
+      },
+      "render_controllers": [
+        "controller.render.hollow.default"
+      ],
+      "spawn_egg": {
+        "base_color": "#2c241d",
+        "overlay_color": "#cbc6ba"
+      }
+    }
+  }
+}

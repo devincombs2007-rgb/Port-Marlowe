@@ -1,0 +1,36 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "hollow:heart_vein",
+      "materials": {
+        "default": "entity_alphatest",
+        "eyes": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/hollow/heart_vein",
+        "glow": "textures/entity/hollow/heart_vein_glow"
+      },
+      "geometry": {
+        "default": "geometry.hollow.heart_vein"
+      },
+      "animations": {
+        "pulse": "animation.hollow.vein.pulse"
+      },
+      "scripts": {
+        "pre_animation": [],
+        "animate": [
+          "pulse"
+        ]
+      },
+      "render_controllers": [
+        "controller.render.hollow.default",
+        "controller.render.hollow.glow_all"
+      ],
+      "spawn_egg": {
+        "base_color": "#b0322a",
+        "overlay_color": "#382b21"
+      }
+    }
+  }
+}

@@ -223,7 +223,7 @@ def check_bp_entities(c):
             warn(f"{rel(p)}: format_version {d.get('format_version')}")
         if SCH.available:
             for e in SCH.validate("entity", ent):
-                (warn if FILTER_NOISE.search(e) else err)(f"{rel(p)} schema: {e}")
+                err(f"{rel(p)} schema: {e}")
         comps = dict(ent.get("components", {}))
         groups = ent.get("component_groups", {})
         for g in groups.values():
@@ -368,6 +368,9 @@ def check_sounds(c):
 # ------------------------------------------------------------------------------ 7. particles
 def check_particles(c):
     for pid, (p, d) in c["particles"].items():
+        if SCH.available:
+            for e in SCH.validate("particle", d["particle_effect"]):
+                err(f"{rel(p)} schema: {e}")
         t = d["particle_effect"]["description"]["basic_render_parameters"]["texture"]
         if not tex_exists(RP, t):
             err(f"{rel(p)}: texture {t} missing")
@@ -405,6 +408,9 @@ def check_items_blocks(c):
             err(f"lang: missing {key}")
     for ident, (p, d) in c["blocks"].items():
         b = d["minecraft:block"]
+        if SCH.available:
+            for e in SCH.validate("block", b):
+                err(f"{rel(p)} schema: {e}")
         comps = b["components"]
         for k in comps:
             if not k.startswith("minecraft:") and k not in cc:
@@ -525,22 +531,24 @@ def check_script_ids(c):
     for k, v in ts_consts("FOG").items():
         if v not in c["fogs"]:
             err(f"scripts FOG.{k} = {v}: no fog definition")
-    # literal ids used directly in TS
+    # literal ids used directly in TS must be something the packs (or the script's own storage) define
+    known_ids = set(c["particles"]) | set(c["items"]) | set(c["blocks"]) | set(c["bp_entities"]) | set(c["fogs"]) | set(c["structures"])
+    for ident, (p_, d_) in c["bp_entities"].items():
+        ent = d_["minecraft:entity"]
+        known_ids |= set(ent.get("events", {})) | set(ent.get("description", {}).get("properties", {})) | set(ent.get("component_groups", {}))
+    for ident, (p_, d_) in c["blocks"].items():
+        known_ids |= set(d_["minecraft:block"]["description"].get("states", {}))
+    known_ids |= set(ts_consts("DP").values()) | set(ts_consts("PROP").values()) | registered_custom_components()
+    known_ids |= {"hollow:debug", "hollow:lanterns", "hollow:journal", "hollow:status", "hollow:site", "hollow:used"}
     for p in glob.glob(os.path.join(ROOT, "scripts_src", "**", "*.ts"), recursive=True):
         src = open(p).read()
         for sid in re.findall(r'"(hollow\.[a-z_]+\.[a-z_.]+)"', src):
             if sid not in c["sounds"]:
                 err(f"{rel(p)}: sound {sid} not defined")
         for pid in re.findall(r'"(hollow:[a-z_]+)"', src):
-            if pid in c["particles"] or pid in c["items"] or pid in c["blocks"] or pid in c["bp_entities"] or pid in c["fogs"] or pid in c["structures"]:
+            if pid in known_ids:
                 continue
-            known_other = pid.startswith(("hollow:to_", "hollow:state", "hollow:")) and pid.split(":")[1] in {
-                "journal", "torn_page", "lens", "heartseeker", "material", "chime", "ward", "lantern", "altar", "debug",
-                "settings", "start_day", "sites", "chimes", "wards", "boss", "knocker", "data_version", "prefs", "stats",
-                "first_join", "play_ticks", "daily", "owner", "born", "state", "revealed", "phase", "shielded", "variant",
-                "silenced", "used", "awake", "status", "site", "lanterns", "watcher_struck"}
-            if not known_other and not pid.startswith("hollow:to_"):
-                warn(f"{rel(p)}: string {pid} is not a known pack id (check if intended)")
+            warn(f"{rel(p)}: string {pid} is not a known pack id, event, property, state or storage key")
         for st in re.findall(r'structureManager\.place\(\s*"([^"]+)"', src):
             if st not in c["structures"]:
                 err(f"{rel(p)}: structure {st} missing")

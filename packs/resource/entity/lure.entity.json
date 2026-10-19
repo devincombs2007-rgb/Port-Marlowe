@@ -1,0 +1,20 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "hollow:lure",
+      "materials": {
+        "default": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/particle/hollow/mote"
+      },
+      "geometry": {
+        "default": "geometry.hollow.empty"
+      },
+      "render_controllers": [
+        "controller.render.hollow.default"
+      ]
+    }
+  }
+}

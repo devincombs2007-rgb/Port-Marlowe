@@ -1,0 +1,8 @@
+{
+  "format_version": "1.21.30",
+  "minecraft:texture_set": {
+    "color": "borrowed",
+    "metalness_emissive_roughness_subsurface": "borrowed_mers",
+    "heightmap": "borrowed_height"
+  }
+}

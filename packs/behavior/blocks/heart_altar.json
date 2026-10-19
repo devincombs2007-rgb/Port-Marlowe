@@ -7,10 +7,12 @@
         "category": "none"
       },
       "states": {
-        "hollow:awake": [
-          false,
-          true
-        ]
+        "hollow:awake": {
+          "values": {
+            "min": 0,
+            "max": 1
+          }
+        }
       }
     },
     "components": {
@@ -19,7 +21,7 @@
         "*": {
           "texture": "hollow_heart_altar",
           "render_method": "opaque",
-          "ambient_occlusion": true,
+          "ambient_occlusion": 1.0,
           "face_dimming": true
         }
       },
@@ -59,13 +61,13 @@
     },
     "permutations": [
       {
-        "condition": "query.block_state('hollow:awake')",
+        "condition": "query.block_state('hollow:awake') == 1",
         "components": {
           "minecraft:material_instances": {
             "*": {
               "texture": "hollow_heart_altar_awake",
               "render_method": "opaque",
-              "ambient_occlusion": true,
+              "ambient_occlusion": 1.0,
               "face_dimming": true
             }
           },

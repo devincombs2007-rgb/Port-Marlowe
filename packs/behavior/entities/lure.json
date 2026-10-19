@@ -1,0 +1,39 @@
+{
+  "format_version": "1.26.50",
+  "minecraft:entity": {
+    "description": {
+      "identifier": "hollow:lure",
+      "is_spawnable": false,
+      "is_summonable": true
+    },
+    "component_groups": {
+      "hollow:despawn": {
+        "minecraft:instant_despawn": {}
+      }
+    },
+    "components": {
+      "minecraft:type_family": {
+        "family": ["hollow", "hollow_lure", "hollow_temp", "inanimate"]
+      },
+      "minecraft:health": { "value": 1000, "max": 1000 },
+      "minecraft:damage_sensor": {
+        "triggers": [{ "cause": "all", "deals_damage": "no" }]
+      },
+      "minecraft:collision_box": { "width": 0.25, "height": 0.25 },
+      "minecraft:physics": { "has_gravity": false, "has_collision": false },
+      "minecraft:knockback_resistance": { "value": 1.0 },
+      "minecraft:fire_immune": {},
+      "minecraft:breathable": { "breathes_water": true, "breathes_air": true, "suffocate_time": 0, "total_supply": 9999 },
+      "minecraft:timer": {
+        "looping": false,
+        "time": 12,
+        "time_down_event": { "event": "hollow:despawn", "target": "self" }
+      }
+    },
+    "events": {
+      "hollow:despawn": {
+        "add": { "component_groups": ["hollow:despawn"] }
+      }
+    }
+  }
+}

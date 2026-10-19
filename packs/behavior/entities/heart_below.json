@@ -1,0 +1,251 @@
+{
+  "format_version": "1.26.50",
+  "minecraft:entity": {
+    "description": {
+      "identifier": "hollow:heart_below",
+      "is_spawnable": true,
+      "is_summonable": true,
+      "spawn_category": "monster",
+      "properties": {
+        "hollow:phase": {
+          "type": "int",
+          "range": [
+            1,
+            3
+          ],
+          "default": 1,
+          "client_sync": true
+        },
+        "hollow:shielded": {
+          "type": "bool",
+          "default": true,
+          "client_sync": true
+        }
+      }
+    },
+    "component_groups": {
+      "hollow:shielded": {
+        "minecraft:damage_sensor": {
+          "triggers": [
+            {
+              "on_damage": {
+                "filters": {
+                  "test": "is_family",
+                  "subject": "other",
+                  "value": "player"
+                },
+                "event": "hollow:shield_hit"
+              },
+              "cause": "all",
+              "deals_damage": "no"
+            },
+            {
+              "cause": "all",
+              "deals_damage": "no"
+            }
+          ]
+        }
+      },
+      "hollow:exposed": {
+        "minecraft:damage_sensor": {
+          "triggers": [
+            {
+              "cause": "fall",
+              "deals_damage": "no"
+            },
+            {
+              "cause": "suffocation",
+              "deals_damage": "no"
+            },
+            {
+              "cause": "drowning",
+              "deals_damage": "no"
+            },
+            {
+              "cause": "fire",
+              "deals_damage": "no"
+            },
+            {
+              "cause": "fire_tick",
+              "deals_damage": "no"
+            },
+            {
+              "cause": "lava",
+              "deals_damage": "no"
+            }
+          ]
+        }
+      },
+      "hollow:scale_2": {
+        "minecraft:health": {
+          "value": 480,
+          "max": 480
+        }
+      },
+      "hollow:scale_3": {
+        "minecraft:health": {
+          "value": 660,
+          "max": 660
+        }
+      },
+      "hollow:scale_4": {
+        "minecraft:health": {
+          "value": 840,
+          "max": 840
+        }
+      },
+      "hollow:despawn": {
+        "minecraft:instant_despawn": {}
+      }
+    },
+    "components": {
+      "minecraft:type_family": {
+        "family": [
+          "hollow",
+          "hollow_creature",
+          "hollow_boss",
+          "heart",
+          "monster",
+          "mob"
+        ]
+      },
+      "minecraft:health": {
+        "value": 300,
+        "max": 300
+      },
+      "minecraft:boss": {
+        "name": "The Heart Below",
+        "hud_range": 36,
+        "should_darken_sky": false
+      },
+      "minecraft:collision_box": {
+        "width": 3.2,
+        "height": 3.6
+      },
+      "minecraft:physics": {},
+      "minecraft:knockback_resistance": {
+        "value": 1.0
+      },
+      "minecraft:fire_immune": {},
+      "minecraft:breathable": {
+        "breathes_water": true,
+        "breathes_air": true,
+        "breathes_solids": true,
+        "suffocate_time": 0,
+        "total_supply": 9999
+      },
+      "minecraft:movement": {
+        "value": 0.0
+      },
+      "minecraft:persistent": {},
+      "minecraft:nameable": {
+        "always_show": false,
+        "allow_name_tag_renaming": false
+      },
+      "minecraft:loot": {
+        "table": "loot_tables/hollow/entities/heart_below.json"
+      },
+      "minecraft:experience_reward": {
+        "on_death": "query.last_hit_by_player ? 120 : 0"
+      },
+      "minecraft:conditional_bandwidth_optimization": {}
+    },
+    "events": {
+      "minecraft:entity_spawned": {
+        "add": {
+          "component_groups": [
+            "hollow:shielded"
+          ]
+        },
+        "set_property": {
+          "hollow:shielded": true,
+          "hollow:phase": 1
+        }
+      },
+      "hollow:shield": {
+        "remove": {
+          "component_groups": [
+            "hollow:exposed"
+          ]
+        },
+        "add": {
+          "component_groups": [
+            "hollow:shielded"
+          ]
+        },
+        "set_property": {
+          "hollow:shielded": true
+        }
+      },
+      "hollow:expose": {
+        "remove": {
+          "component_groups": [
+            "hollow:shielded"
+          ]
+        },
+        "add": {
+          "component_groups": [
+            "hollow:exposed"
+          ]
+        },
+        "set_property": {
+          "hollow:shielded": false
+        }
+      },
+      "hollow:phase_2": {
+        "set_property": {
+          "hollow:phase": 2
+        }
+      },
+      "hollow:phase_3": {
+        "remove": {
+          "component_groups": [
+            "hollow:shielded"
+          ]
+        },
+        "add": {
+          "component_groups": [
+            "hollow:exposed"
+          ]
+        },
+        "set_property": {
+          "hollow:phase": 3,
+          "hollow:shielded": false
+        }
+      },
+      "hollow:scale_2": {
+        "add": {
+          "component_groups": [
+            "hollow:scale_2"
+          ]
+        }
+      },
+      "hollow:scale_3": {
+        "add": {
+          "component_groups": [
+            "hollow:scale_3"
+          ]
+        }
+      },
+      "hollow:scale_4": {
+        "add": {
+          "component_groups": [
+            "hollow:scale_4"
+          ]
+        }
+      },
+      "hollow:shield_hit": {
+        "set_property": {
+          "hollow:shielded": true
+        }
+      },
+      "hollow:despawn": {
+        "add": {
+          "component_groups": [
+            "hollow:despawn"
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,218 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.hollow.mirebound.lurk": {
+      "loop": true,
+      "bones": {
+        "body": {
+          "position": [
+            0,
+            "math.sin(query.anim_time * 40) * 0.3",
+            0
+          ]
+        },
+        "hump": {
+          "rotation": [
+            0,
+            0,
+            "math.sin(query.anim_time * 25) * 1.5"
+          ]
+        },
+        "jaw": {
+          "rotation": [
+            "2 + math.sin(query.anim_time * 30) * 2",
+            0,
+            0
+          ]
+        },
+        "tail": {
+          "rotation": [
+            0,
+            "math.sin(query.anim_time * 30) * 6",
+            0
+          ]
+        }
+      }
+    },
+    "animation.hollow.mirebound.erupt": {
+      "loop": "hold_on_last_frame",
+      "bones": {
+        "body": {
+          "rotation": {
+            "0.0": [
+              0,
+              0,
+              0
+            ],
+            "0.3": [
+              -20,
+              0,
+              0
+            ]
+          },
+          "position": {
+            "0.0": [
+              0,
+              0,
+              0
+            ],
+            "0.3": [
+              0,
+              4,
+              0
+            ]
+          }
+        },
+        "head": {
+          "rotation": {
+            "0.0": [
+              0,
+              0,
+              0
+            ],
+            "0.3": [
+              -35,
+              0,
+              0
+            ]
+          }
+        },
+        "jaw": {
+          "rotation": {
+            "0.0": [
+              0,
+              0,
+              0
+            ],
+            "0.3": [
+              45,
+              0,
+              0
+            ]
+          }
+        },
+        "arm_l": {
+          "rotation": {
+            "0.0": [
+              0,
+              0,
+              0
+            ],
+            "0.3": [
+              -60,
+              0,
+              -20
+            ]
+          }
+        },
+        "arm_r": {
+          "rotation": {
+            "0.0": [
+              0,
+              0,
+              0
+            ],
+            "0.3": [
+              -60,
+              0,
+              20
+            ]
+          }
+        }
+      },
+      "animation_length": 0.5
+    },
+    "animation.hollow.mirebound.grab": {
+      "loop": true,
+      "bones": {
+        "body": {
+          "rotation": [
+            -10,
+            0,
+            "math.sin(query.anim_time * 900) * 2"
+          ],
+          "position": [
+            0,
+            2,
+            0
+          ]
+        },
+        "head": {
+          "rotation": [
+            -15,
+            0,
+            0
+          ]
+        },
+        "jaw": {
+          "rotation": [
+            "10 + math.sin(query.anim_time * 200) * 4",
+            0,
+            0
+          ]
+        },
+        "arm_l": {
+          "rotation": [
+            -35,
+            0,
+            35
+          ]
+        },
+        "arm_r": {
+          "rotation": [
+            -35,
+            0,
+            -35
+          ]
+        }
+      }
+    },
+    "animation.hollow.mirebound.swim": {
+      "loop": true,
+      "bones": {
+        "tail": {
+          "rotation": [
+            0,
+            "math.sin(query.anim_time * 180) * 20",
+            0
+          ]
+        },
+        "tail2": {
+          "rotation": [
+            0,
+            "math.sin(query.anim_time * 180 - 60) * 28",
+            0
+          ]
+        },
+        "arm_l": {
+          "rotation": [
+            30,
+            0,
+            0
+          ]
+        },
+        "arm_r": {
+          "rotation": [
+            30,
+            0,
+            0
+          ]
+        },
+        "leg_l": {
+          "rotation": [
+            0,
+            "math.sin(query.anim_time * 180) * 15",
+            0
+          ]
+        },
+        "leg_r": {
+          "rotation": [
+            0,
+            "-math.sin(query.anim_time * 180) * 15",
+            0
+          ]
+        }
+      }
+    }
+  }
+}

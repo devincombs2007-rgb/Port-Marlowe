@@ -1,0 +1,192 @@
+{
+  "format_version": "1.26.50",
+  "minecraft:entity": {
+    "description": {
+      "identifier": "hollow:knocker",
+      "is_spawnable": true,
+      "is_summonable": true,
+      "spawn_category": "monster",
+      "properties": {
+        "hollow:state": {
+          "type": "enum",
+          "values": ["approach", "knock", "hunt", "leave"],
+          "default": "approach",
+          "client_sync": true
+        }
+      }
+    },
+    "component_groups": {
+      "hollow:approach": {
+        "minecraft:behavior.move_to_block": {
+          "priority": 2,
+          "search_range": 28,
+          "search_height": 4,
+          "goal_radius": 1.6,
+          "speed_multiplier": 0.8,
+          "tick_interval": 10,
+          "target_selection_method": "nearest",
+          "target_blocks": [
+            "minecraft:wooden_door", "minecraft:spruce_door", "minecraft:birch_door", "minecraft:jungle_door",
+            "minecraft:acacia_door", "minecraft:dark_oak_door", "minecraft:mangrove_door", "minecraft:cherry_door",
+            "minecraft:bamboo_door", "minecraft:pale_oak_door", "minecraft:poplar_door", "minecraft:crimson_door",
+            "minecraft:warped_door", "minecraft:iron_door", "minecraft:copper_door", "minecraft:exposed_copper_door",
+            "minecraft:weathered_copper_door", "minecraft:oxidized_copper_door", "minecraft:waxed_copper_door",
+            "minecraft:waxed_exposed_copper_door", "minecraft:waxed_weathered_copper_door", "minecraft:waxed_oxidized_copper_door"
+          ],
+          "on_reach": [{ "event": "hollow:at_door", "target": "self" }]
+        }
+      },
+      "hollow:knock": {
+        "minecraft:behavior.look_at_player": {
+          "priority": 3,
+          "look_distance": 12,
+          "probability": 0.4,
+          "look_time": { "min": 3, "max": 6 }
+        }
+      },
+      "hollow:hunt": {
+        "minecraft:movement": { "value": 0.27 },
+        "minecraft:behavior.nearest_attackable_target": {
+          "priority": 1,
+          "must_see": true,
+          "must_see_forget_duration": 8,
+          "reselect_targets": true,
+          "within_radius": 32,
+          "entity_types": [
+            {
+              "filters": { "test": "is_family", "subject": "other", "value": "player" },
+              "max_dist": 24
+            }
+          ]
+        },
+        "minecraft:behavior.melee_attack": {
+          "priority": 2,
+          "speed_multiplier": 1.25,
+          "track_target": true,
+          "cooldown_time": 1.4,
+          "reach_multiplier": 2.2
+        }
+      },
+      "hollow:breaker": {
+        "minecraft:navigation.walk": {
+          "avoid_water": true,
+          "avoid_damage_blocks": true,
+          "can_open_doors": false,
+          "can_pass_doors": true,
+          "can_break_doors": true
+        },
+        "minecraft:annotation.break_door": {
+          "break_time": 14,
+          "min_difficulty": "hard"
+        },
+        "minecraft:behavior.break_door": { "priority": 1 },
+        "minecraft:behavior.nearest_attackable_target": {
+          "priority": 1,
+          "must_see": false,
+          "reselect_targets": true,
+          "within_radius": 20,
+          "entity_types": [
+            {
+              "filters": { "test": "is_family", "subject": "other", "value": "player" },
+              "max_dist": 16
+            }
+          ]
+        },
+        "minecraft:behavior.melee_attack": {
+          "priority": 2,
+          "speed_multiplier": 1.0,
+          "track_target": true,
+          "cooldown_time": 1.4,
+          "reach_multiplier": 2.2
+        }
+      },
+      "hollow:leave": {
+        "minecraft:behavior.avoid_mob_type": {
+          "priority": 1,
+          "max_dist": 40,
+          "max_flee": 48,
+          "sprint_distance": 4,
+          "walk_speed_multiplier": 1.0,
+          "sprint_speed_multiplier": 1.2,
+          "ignore_visibility": true,
+          "remove_target": true,
+          "entity_types": [
+            {
+              "filters": { "test": "is_family", "subject": "other", "value": "player" },
+              "max_dist": 40
+            }
+          ]
+        },
+        "minecraft:behavior.random_stroll": {
+          "priority": 4,
+          "speed_multiplier": 1.0,
+          "xz_dist": 16
+        }
+      },
+      "hollow:despawn": {
+        "minecraft:instant_despawn": {}
+      }
+    },
+    "components": {
+      "minecraft:type_family": {
+        "family": ["hollow", "hollow_creature", "knocker", "monster", "mob"]
+      },
+      "minecraft:health": { "value": 60, "max": 60 },
+      "minecraft:attack": { "damage": 7 },
+      "minecraft:movement": { "value": 0.22 },
+      "minecraft:movement.basic": {},
+      "minecraft:jump.static": {},
+      "minecraft:navigation.walk": {
+        "avoid_water": true,
+        "avoid_damage_blocks": true,
+        "can_open_doors": false,
+        "can_pass_doors": true,
+        "can_break_doors": false
+      },
+      "minecraft:collision_box": { "width": 0.8, "height": 2.4 },
+      "minecraft:physics": {},
+      "minecraft:pushable_by_block": {},
+      "minecraft:knockback_resistance": { "value": 0.8 },
+      "minecraft:breathable": { "total_supply": 15, "suffocate_time": 0 },
+      "minecraft:nameable": {},
+      "minecraft:follow_range": { "value": 32, "max": 32 },
+      "minecraft:behavior.float": { "priority": 0 },
+      "minecraft:behavior.hurt_by_target": { "priority": 1 },
+      "minecraft:loot": { "table": "loot_tables/hollow/entities/knocker.json" },
+      "minecraft:experience_reward": { "on_death": "query.last_hit_by_player ? 15 : 0" },
+      "minecraft:despawn": {
+        "despawn_from_distance": { "min_distance": 96, "max_distance": 128 }
+      },
+      "minecraft:conditional_bandwidth_optimization": {}
+    },
+    "events": {
+      "minecraft:entity_spawned": {
+        "add": { "component_groups": ["hollow:approach"] },
+        "set_property": { "hollow:state": "approach" }
+      },
+      "hollow:at_door": {
+        "remove": { "component_groups": ["hollow:approach"] },
+        "add": { "component_groups": ["hollow:knock"] },
+        "set_property": { "hollow:state": "knock" }
+      },
+      "hollow:hunt": {
+        "remove": { "component_groups": ["hollow:approach", "hollow:knock", "hollow:leave", "hollow:breaker"] },
+        "add": { "component_groups": ["hollow:hunt"] },
+        "set_property": { "hollow:state": "hunt" }
+      },
+      "hollow:break_in": {
+        "remove": { "component_groups": ["hollow:approach", "hollow:knock", "hollow:leave"] },
+        "add": { "component_groups": ["hollow:breaker"] },
+        "set_property": { "hollow:state": "hunt" }
+      },
+      "hollow:leave": {
+        "remove": { "component_groups": ["hollow:approach", "hollow:knock", "hollow:hunt", "hollow:breaker"] },
+        "add": { "component_groups": ["hollow:leave"] },
+        "set_property": { "hollow:state": "leave" }
+      },
+      "hollow:despawn": {
+        "add": { "component_groups": ["hollow:despawn"] }
+      }
+    }
+  }
+}
