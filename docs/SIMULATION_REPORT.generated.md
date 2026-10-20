@@ -4,7 +4,7 @@ The real bundled behavior-pack scripts run against a fake Minecraft API (`tools/
 This checks script logic: scheduling, events, persistence, reloads, state machines, caps, cooldowns and rewards.
 It is **not** an in-game test: there is no engine pathfinding, melee, physics, rendering or audio.
 
-Result: **26/26 scenarios passed**
+Result: **28/28 scenarios passed**
 
 | Scenario | Result |
 |---|---|
@@ -33,6 +33,9 @@ Result: **26/26 scenarios passed**
 | hollowed: thrown projectiles create a decoy away from the player | pass |
 | sites: a disabled creature's material is guaranteed in new site chests | pass |
 | items: material pickup teaches its recipe; lens reveals to its user only and wears | pass |
+| music: shrine and boss tracks loop in place; off switch; silence while hunted; one track per night | pass |
+| music: night tracks are rare (at most one per night) and fall silent while something hunts you | pass |
 | load: 8 players, all creatures, Nightmare 200% for a full day - caps hold | pass |
 
-- load: peak creature counts {"hollow:borrowed":2,"hollow:watcher":3}; script time per tick avg 0.050 ms, p99 0.759 ms, max 3.02 ms (Node on a dev machine against the fake world - not an Xbox measurement)
+- music: 2 night track(s) over 4 nights; 43 ticks of night music while a Watcher was stalking
+- load: peak creature counts {"hollow:borrowed":2,"hollow:watcher":3}; script time per tick avg 0.057 ms, p99 0.890 ms, max 8.89 ms (Node on a dev machine against the fake world - not an Xbox measurement)

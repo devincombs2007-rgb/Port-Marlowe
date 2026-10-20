@@ -75,6 +75,13 @@ function save(): void {
 }
 
 export const bossActive = (): boolean => load().active;
+
+/** True while a fight is on and this player is in its arena (used by the music director). */
+export function inBossArena(p: Player): boolean {
+  if (!load().active || p.dimension.id !== boss.dim) return false;
+  const c = boss.center;
+  return Math.hypot(p.location.x - c.x, p.location.z - c.z) <= 18 && Math.abs(p.location.y - c.y) < 9;
+}
 export const isBossEntity = (id: string): boolean => load().active && (id === boss.heartId || boss.veins.includes(id));
 
 /** Cleanup rule for hearts and veins: keep only entities of the fight in progress. */

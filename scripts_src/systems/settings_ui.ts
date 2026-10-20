@@ -18,8 +18,8 @@ export async function openSettings(p: Player, op: boolean): Promise<void> {
   const menu = new ActionFormData()
     .title("§lSettings")
     .body("§7Comfort settings are yours alone. World rules affect everyone and need operator permission.\n\n" +
-      "§8Brightness, render distance, graphics mode (Vibrant Visuals) and the sound sliders " +
-      "(Ambient/Environment, Hostile Creatures) are in Minecraft's own Settings menu.")
+      "§8Brightness, render distance, graphics mode (Vibrant Visuals), the sound sliders " +
+      "(Music, Ambient/Environment, Hostile Creatures) and Subtitles are in Minecraft's own Settings menu.")
     .button("My comfort settings", "textures/ui/hollow/settings");
   if (op) menu.button("World rules §8(operator)", "textures/ui/hollow/world");
   const r = await menu.show(p);
@@ -36,6 +36,7 @@ async function openPrefs(p: Player): Promise<void> {
     .dropdown("Encounter accents (short stingers)", ["Off", "Subtle", "Full"], { defaultValueIndex: cur.accents })
     .toggle("Visual effects (fog shifts, soft fades)", { defaultValue: cur.visualFx })
     .toggle("Action-bar hints", { defaultValue: cur.hints })
+    .toggle("Music (night, cave, shrine and boss tracks)", { defaultValue: cur.music })
     .submitButton("Save");
   const r = await showModal(p, f);
   if (!r || r.canceled || !r.formValues) return;
@@ -45,6 +46,7 @@ async function openPrefs(p: Player): Promise<void> {
     accents: Number(v[1]),
     visualFx: Boolean(v[2]),
     hints: Boolean(v[3]),
+    music: Boolean(v[4]),
   };
   savePrefs(p, next);
   if (!next.visualFx) clearAllFog(p);

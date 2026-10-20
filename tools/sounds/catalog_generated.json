@@ -1,0 +1,1689 @@
+{
+ "aliases": {
+  "imp": "kenney_impactsounds/Audio",
+  "rpg": "kenney_rpgaudio/Audio",
+  "cr1": "80-CC0-creature-SFX",
+  "cr2": "80-CC0-creature-sfx-2",
+  "orpg": "80-CC0-RPG-SFX",
+  "s1": "100-CC0-SFX",
+  "s2": "100-cc0-sfx-2",
+  "wm": "100-CC0-wood-metal-SFX",
+  "loop": "30-cc0-sfx-loops",
+  "weird": "30-cc0-weird-sfx",
+  "mud": "25-CC0-mud-sfx",
+  "wat": "40-cc0-water-splash-slime-sfx",
+  "brk": "75-cc0-breaking-falling-hit-sfx",
+  "book": "bb - Books, Paper, Writing (Jan 2021)",
+  "plop": "bb - Bottle Plops (Apr 2021)",
+  "fan": "bb - Fans and Drones (Jul 2021)",
+  "woosh": "Micro Pack - Organic Wooshes",
+  "pad": "BB_2HTC Samples Vol 4/Pads",
+  "bbw": "BB_2HTC Samples Vol 4/Weird",
+  "bbl": "BB_2HTC Samples Vol 4/Loops",
+  "add": "BB_2HTC Samples Vol 4 Addendum/Pads"
+ },
+ "events": {
+  "watcher.step": {
+   "subtitle": "Something steps in the leaves",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/watcher/step_1",
+     "seconds": 0.2,
+     "sources": [
+      "imp/footstep_grass_000.ogg",
+      "imp/impactWood_light_000.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/watcher/step_2",
+     "seconds": 0.22,
+     "sources": [
+      "imp/footstep_grass_001.ogg",
+      "imp/impactWood_light_001.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/watcher/step_3",
+     "seconds": 0.21,
+     "sources": [
+      "imp/footstep_grass_002.ogg",
+      "imp/impactWood_light_002.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/watcher/step_4",
+     "seconds": 0.2,
+     "sources": [
+      "imp/footstep_grass_003.ogg",
+      "imp/impactWood_light_003.ogg"
+     ]
+    }
+   ]
+  },
+  "watcher.creak": {
+   "subtitle": "Wood creaks",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/watcher/creak_1",
+     "seconds": 1.8,
+     "sources": [
+      "rpg/creak1.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/watcher/creak_2",
+     "seconds": 2.07,
+     "sources": [
+      "rpg/creak2.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/watcher/creak_3",
+     "seconds": 1.27,
+     "sources": [
+      "rpg/creak3.ogg"
+     ]
+    }
+   ]
+  },
+  "watcher.seen": {
+   "subtitle": "Bark cracks",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/watcher/seen_1",
+     "seconds": 2.4,
+     "sources": [
+      "rpg/creak2.ogg",
+      "wm/wood_cracking_01.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/watcher/seen_2",
+     "seconds": 2.32,
+     "sources": [
+      "rpg/creak1.ogg",
+      "wm/wood_cracking_03.ogg"
+     ]
+    }
+   ]
+  },
+  "watcher.retreat": {
+   "subtitle": "Something withdraws into the trees",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/watcher/retreat_1",
+     "seconds": 2.18,
+     "sources": [
+      "imp/footstep_grass_000.ogg",
+      "imp/footstep_grass_002.ogg",
+      "imp/footstep_grass_004.ogg",
+      "rpg/creak3.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/watcher/retreat_2",
+     "seconds": 2.3,
+     "sources": [
+      "imp/footstep_grass_000.ogg",
+      "imp/footstep_grass_001.ogg",
+      "imp/footstep_grass_003.ogg",
+      "wm/wood_cracking_02.ogg"
+     ]
+    }
+   ]
+  },
+  "watcher.lunge": {
+   "subtitle": "Something lunges",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/watcher/lunge_1",
+     "seconds": 1.46,
+     "sources": [
+      "cr2/roar_06.ogg",
+      "wm/wood_breaking_01.ogg",
+      "woosh/Swish 2.wav"
+     ]
+    },
+    {
+     "file": "sounds/hollow/watcher/lunge_2",
+     "seconds": 1.71,
+     "sources": [
+      "cr2/roar_05.ogg",
+      "wm/wood_breaking_02.ogg",
+      "woosh/Swish 4.wav"
+     ]
+    }
+   ]
+  },
+  "watcher.hurt": {
+   "subtitle": "Watcher hurts",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/watcher/hurt_1",
+     "seconds": 0.88,
+     "sources": [
+      "orpg/creature_hurt_01.ogg",
+      "wm/wood_hit_02.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/watcher/hurt_2",
+     "seconds": 0.96,
+     "sources": [
+      "orpg/creature_hurt_01.ogg",
+      "wm/wood_hit_05.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/watcher/hurt_3",
+     "seconds": 0.87,
+     "sources": [
+      "orpg/creature_hurt_01.ogg",
+      "wm/wood_hit_08.ogg"
+     ]
+    }
+   ]
+  },
+  "watcher.death": {
+   "subtitle": "Watcher splinters",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/watcher/death_1",
+     "seconds": 2.52,
+     "sources": [
+      "orpg/creature_die_01.ogg",
+      "wm/wood_breaking_01.ogg",
+      "wm/wood_falling_03.ogg"
+     ]
+    }
+   ]
+  },
+  "amb.forest.far_call": {
+   "subtitle": "A distant call",
+   "category": "ambient",
+   "variants": [
+    {
+     "file": "sounds/hollow/amb/forest_far_call_1",
+     "seconds": 2.86,
+     "sources": [
+      "cr1/howl.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/amb/forest_far_call_2",
+     "seconds": 2.82,
+     "sources": [
+      "cr1/howl.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/amb/forest_far_call_3",
+     "seconds": 2.8,
+     "sources": [
+      "cr1/ooh.ogg"
+     ]
+    }
+   ]
+  },
+  "amb.forest.branch_snap": {
+   "subtitle": "A branch snaps",
+   "category": "ambient",
+   "variants": [
+    {
+     "file": "sounds/hollow/amb/forest_branch_snap_1",
+     "seconds": 1.86,
+     "sources": [
+      "wm/wood_cracking_01.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/amb/forest_branch_snap_2",
+     "seconds": 1.82,
+     "sources": [
+      "wm/wood_cracking_02.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/amb/forest_branch_snap_3",
+     "seconds": 1.69,
+     "sources": [
+      "wm/wood_cracking_04.ogg"
+     ]
+    }
+   ]
+  },
+  "amb.forest.footsteps": {
+   "subtitle": "Distant footsteps",
+   "category": "ambient",
+   "variants": [
+    {
+     "file": "sounds/hollow/amb/forest_footsteps_1",
+     "seconds": 3.25,
+     "sources": [
+      "imp/footstep_grass_000.ogg",
+      "imp/footstep_grass_001.ogg",
+      "imp/footstep_grass_002.ogg",
+      "imp/footstep_grass_003.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/amb/forest_footsteps_2",
+     "seconds": 2.88,
+     "sources": [
+      "imp/footstep_snow_000.ogg",
+      "imp/footstep_snow_001.ogg",
+      "imp/footstep_snow_002.ogg"
+     ]
+    }
+   ]
+  },
+  "amb.forest.wind": {
+   "subtitle": "Wind in the trees",
+   "category": "ambient",
+   "variants": [
+    {
+     "file": "sounds/hollow/amb/forest_wind_1",
+     "seconds": 7.0,
+     "sources": [
+      "fan/Large Fan.wav"
+     ]
+    },
+    {
+     "file": "sounds/hollow/amb/forest_wind_2",
+     "seconds": 7.0,
+     "sources": [
+      "fan/Large Fan.wav"
+     ]
+    },
+    {
+     "file": "sounds/hollow/amb/forest_wind_3",
+     "seconds": 7.0,
+     "sources": [
+      "fan/Outside.wav"
+     ]
+    }
+   ]
+  },
+  "amb.forest.hush": {
+   "subtitle": "The forest goes quiet",
+   "category": "ambient",
+   "variants": [
+    {
+     "file": "sounds/hollow/amb/forest_hush_1",
+     "seconds": 5.39,
+     "sources": [
+      "bbw/2022-10-26 Fire in the Mist - Breath Riser.wav"
+     ]
+    },
+    {
+     "file": "sounds/hollow/amb/forest_hush_2",
+     "seconds": 3.44,
+     "sources": [
+      "bbw/2022-12-22 Snow Day - Windy.wav"
+     ]
+    }
+   ]
+  },
+  "amb.cave.drip": {
+   "subtitle": "Water drips",
+   "category": "ambient",
+   "variants": [
+    {
+     "file": "sounds/hollow/amb/cave_drip_1",
+     "seconds": 2.37,
+     "sources": [
+      "plop/Plop - Airy 1.wav"
+     ]
+    },
+    {
+     "file": "sounds/hollow/amb/cave_drip_2",
+     "seconds": 2.33,
+     "sources": [
+      "plop/Plop - Airy 2.wav"
+     ]
+    },
+    {
+     "file": "sounds/hollow/amb/cave_drip_3",
+     "seconds": 2.59,
+     "sources": [
+      "plop/Plop - Airy 3.wav"
+     ]
+    },
+    {
+     "file": "sounds/hollow/amb/cave_drip_4",
+     "seconds": 2.53,
+     "sources": [
+      "plop/Plop - Airy 4.wav"
+     ]
+    }
+   ]
+  },
+  "amb.cave.shift": {
+   "subtitle": "Stone shifts",
+   "category": "ambient",
+   "variants": [
+    {
+     "file": "sounds/hollow/amb/cave_shift_1",
+     "seconds": 2.83,
+     "sources": [
+      "brk/bfh1_rock_falling_03.ogg",
+      "orpg/stones_01.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/amb/cave_shift_2",
+     "seconds": 2.98,
+     "sources": [
+      "brk/bfh1_rock_falling_04.ogg",
+      "orpg/stones_02.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/amb/cave_shift_3",
+     "seconds": 3.03,
+     "sources": [
+      "brk/bfh1_rock_falling_05.ogg",
+      "orpg/stones_03.ogg"
+     ]
+    }
+   ]
+  },
+  "amb.cave.breath": {
+   "subtitle": "Breathing in the dark",
+   "category": "ambient",
+   "variants": [
+    {
+     "file": "sounds/hollow/amb/cave_breath_1",
+     "seconds": 3.2,
+     "sources": [
+      "bbw/2022-04-16 Triple-C THICCC - Heavy Breathing.wav"
+     ]
+    },
+    {
+     "file": "sounds/hollow/amb/cave_breath_2",
+     "seconds": 2.77,
+     "sources": [
+      "cr1/breath.ogg",
+      "cr2/breath_02.ogg"
+     ]
+    }
+   ]
+  },
+  "amb.swamp.gurgle": {
+   "subtitle": "Water gurgles",
+   "category": "ambient",
+   "variants": [
+    {
+     "file": "sounds/hollow/amb/swamp_gurgle_1",
+     "seconds": 1.27,
+     "sources": [
+      "mud/mud_03.ogg",
+      "wat/bubble_02.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/amb/swamp_gurgle_2",
+     "seconds": 1.4,
+     "sources": [
+      "mud/mud_14.ogg",
+      "wat/bubble_02.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/amb/swamp_gurgle_3",
+     "seconds": 1.34,
+     "sources": [
+      "mud/mud_19.ogg",
+      "wat/bubble_02.ogg"
+     ]
+    }
+   ]
+  },
+  "amb.swamp.creak": {
+   "subtitle": "Wood groans",
+   "category": "ambient",
+   "variants": [
+    {
+     "file": "sounds/hollow/amb/swamp_creak_1",
+     "seconds": 2.82,
+     "sources": [
+      "rpg/creak1.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/amb/swamp_creak_2",
+     "seconds": 5.15,
+     "sources": [
+      "pad/2022-10-29 Revered Waters - Creaky.wav"
+     ]
+    }
+   ]
+  },
+  "hollowed.click": {
+   "subtitle": "Clicking",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/hollowed/click_1",
+     "seconds": 1.59,
+     "sources": [
+      "imp/impactGeneric_light_000.ogg",
+      "imp/impactGeneric_light_001.ogg",
+      "imp/impactGeneric_light_002.ogg",
+      "imp/impactGeneric_light_003.ogg",
+      "imp/impactGeneric_light_004.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/hollowed/click_2",
+     "seconds": 1.49,
+     "sources": [
+      "imp/impactGeneric_light_000.ogg",
+      "imp/impactGeneric_light_001.ogg",
+      "imp/impactGeneric_light_002.ogg",
+      "imp/impactGeneric_light_003.ogg",
+      "imp/impactGeneric_light_004.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/hollowed/click_3",
+     "seconds": 1.59,
+     "sources": [
+      "imp/impactGeneric_light_000.ogg",
+      "imp/impactGeneric_light_001.ogg",
+      "imp/impactGeneric_light_002.ogg",
+      "imp/impactGeneric_light_003.ogg",
+      "imp/impactGeneric_light_004.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/hollowed/click_4",
+     "seconds": 1.52,
+     "sources": [
+      "imp/impactGeneric_light_000.ogg",
+      "imp/impactGeneric_light_001.ogg",
+      "imp/impactGeneric_light_002.ogg",
+      "imp/impactGeneric_light_003.ogg",
+      "imp/impactGeneric_light_004.ogg"
+     ]
+    }
+   ]
+  },
+  "hollowed.alert": {
+   "subtitle": "Hollowed shrieks",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/hollowed/alert_1",
+     "seconds": 1.38,
+     "sources": [
+      "cr2/monster_10.ogg",
+      "imp/impactGeneric_light_000.ogg",
+      "imp/impactGeneric_light_001.ogg",
+      "imp/impactGeneric_light_002.ogg",
+      "imp/impactGeneric_light_003.ogg",
+      "imp/impactGeneric_light_004.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/hollowed/alert_2",
+     "seconds": 1.42,
+     "sources": [
+      "cr2/monster_11.ogg",
+      "imp/impactGeneric_light_000.ogg",
+      "imp/impactGeneric_light_001.ogg",
+      "imp/impactGeneric_light_002.ogg",
+      "imp/impactGeneric_light_003.ogg",
+      "imp/impactGeneric_light_004.ogg"
+     ]
+    }
+   ]
+  },
+  "hollowed.sniff": {
+   "subtitle": "Sniffing",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/hollowed/sniff_1",
+     "seconds": 1.2,
+     "sources": [
+      "cr1/nose.ogg",
+      "cr2/breath_02.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/hollowed/sniff_2",
+     "seconds": 1.43,
+     "sources": [
+      "cr1/nose.ogg"
+     ]
+    }
+   ]
+  },
+  "hollowed.step": {
+   "subtitle": "Claws on stone",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/hollowed/step_1",
+     "seconds": 1.0,
+     "sources": [
+      "imp/footstep_concrete_000.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/hollowed/step_2",
+     "seconds": 1.01,
+     "sources": [
+      "imp/footstep_concrete_001.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/hollowed/step_3",
+     "seconds": 0.93,
+     "sources": [
+      "imp/footstep_concrete_002.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/hollowed/step_4",
+     "seconds": 0.97,
+     "sources": [
+      "imp/footstep_concrete_003.ogg"
+     ]
+    }
+   ]
+  },
+  "hollowed.attack": {
+   "subtitle": "Hollowed bites",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/hollowed/attack_1",
+     "seconds": 1.24,
+     "sources": [
+      "cr1/eat_01.ogg",
+      "cr2/attack_02.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/hollowed/attack_2",
+     "seconds": 1.22,
+     "sources": [
+      "cr1/eat_04.ogg",
+      "cr2/attack_03.ogg"
+     ]
+    }
+   ]
+  },
+  "hollowed.hurt": {
+   "subtitle": "Hollowed hurts",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/hollowed/hurt_1",
+     "seconds": 0.99,
+     "sources": [
+      "cr1/hurt_01.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/hollowed/hurt_2",
+     "seconds": 1.02,
+     "sources": [
+      "cr1/hurt_02.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/hollowed/hurt_3",
+     "seconds": 1.06,
+     "sources": [
+      "cr2/monster_16.ogg"
+     ]
+    }
+   ]
+  },
+  "hollowed.death": {
+   "subtitle": "Hollowed dies",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/hollowed/death_1",
+     "seconds": 1.9,
+     "sources": [
+      "cr2/die_02.ogg",
+      "cr2/die_04.ogg"
+     ]
+    }
+   ]
+  },
+  "borrowed.baa": {
+   "subtitle": "Sheep baahs",
+   "category": "neutral",
+   "variants": [],
+   "vanilla": [
+    "sounds/mob/sheep/say1",
+    "sounds/mob/sheep/say2",
+    "sounds/mob/sheep/say3"
+   ]
+  },
+  "borrowed.baa_wrong": {
+   "subtitle": "A sheep bleats, too low",
+   "category": "hostile",
+   "variants": [],
+   "vanilla": [
+    "sounds/mob/sheep/say1",
+    "sounds/mob/sheep/say2",
+    "sounds/mob/sheep/say3"
+   ]
+  },
+  "borrowed.reveal": {
+   "subtitle": "Something tears free",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/borrowed/reveal_1",
+     "seconds": 1.56,
+     "sources": [
+      "cr2/roar_04.ogg",
+      "cr2/slime_02.ogg",
+      "rpg/cloth3.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/borrowed/reveal_2",
+     "seconds": 1.62,
+     "sources": [
+      "cr2/roar_06.ogg",
+      "cr2/slime_08.ogg",
+      "rpg/cloth1.ogg"
+     ]
+    }
+   ]
+  },
+  "borrowed.attack": {
+   "subtitle": "Borrowed bites",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/borrowed/attack_1",
+     "seconds": 0.64,
+     "sources": [
+      "cr1/eat_02.ogg",
+      "cr1/grunt_04.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/borrowed/attack_2",
+     "seconds": 0.76,
+     "sources": [
+      "cr1/eat_01.ogg",
+      "cr1/grunt_05.ogg"
+     ]
+    }
+   ]
+  },
+  "borrowed.hurt": {
+   "subtitle": "Borrowed hurts",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/borrowed/hurt_1",
+     "seconds": 0.74,
+     "sources": [
+      "cr1/hurt_03.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/borrowed/hurt_2",
+     "seconds": 0.78,
+     "sources": [
+      "cr1/hurt_04.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/borrowed/hurt_3",
+     "seconds": 0.83,
+     "sources": [
+      "cr1/hurt_05.ogg"
+     ]
+    }
+   ]
+  },
+  "borrowed.death": {
+   "subtitle": "Borrowed dies",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/borrowed/death_1",
+     "seconds": 1.64,
+     "sources": [
+      "cr2/die_03.ogg",
+      "cr2/slime_04.ogg"
+     ]
+    }
+   ]
+  },
+  "borrowed.step": {
+   "subtitle": "Footsteps",
+   "category": "neutral",
+   "variants": [],
+   "vanilla": [
+    "sounds/mob/sheep/step1",
+    "sounds/mob/sheep/step2",
+    "sounds/mob/sheep/step3",
+    "sounds/mob/sheep/step4",
+    "sounds/mob/sheep/step5"
+   ]
+  },
+  "knocker.knock": {
+   "subtitle": "Knocking at the door",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/knocker/knock_1",
+     "seconds": 1.67,
+     "sources": [
+      "imp/impactWood_heavy_000.ogg",
+      "imp/impactWood_heavy_001.ogg",
+      "imp/impactWood_heavy_002.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/knocker/knock_2",
+     "seconds": 1.76,
+     "sources": [
+      "imp/impactWood_heavy_001.ogg",
+      "imp/impactWood_heavy_002.ogg",
+      "imp/impactWood_heavy_003.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/knocker/knock_3",
+     "seconds": 1.58,
+     "sources": [
+      "imp/impactWood_heavy_002.ogg",
+      "imp/impactWood_heavy_003.ogg",
+      "imp/impactWood_heavy_004.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/knocker/knock_4",
+     "seconds": 2.05,
+     "sources": [
+      "imp/impactWood_heavy_000.ogg",
+      "imp/impactWood_heavy_003.ogg",
+      "imp/impactWood_heavy_004.ogg"
+     ]
+    }
+   ]
+  },
+  "knocker.scratch": {
+   "subtitle": "Scratching at the door",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/knocker/scratch_1",
+     "seconds": 1.39,
+     "sources": [
+      "rpg/drawKnife1.ogg",
+      "rpg/drawKnife2.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/knocker/scratch_2",
+     "seconds": 1.37,
+     "sources": [
+      "rpg/drawKnife2.ogg",
+      "rpg/drawKnife3.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/knocker/scratch_3",
+     "seconds": 1.18,
+     "sources": [
+      "rpg/drawKnife1.ogg",
+      "rpg/drawKnife3.ogg"
+     ]
+    }
+   ]
+  },
+  "knocker.breath": {
+   "subtitle": "Breathing at the door",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/knocker/breath_1",
+     "seconds": 1.13,
+     "sources": [
+      "bbw/2022-04-16 Triple-C THICCC - Heavy Breathing.wav"
+     ]
+    },
+    {
+     "file": "sounds/hollow/knocker/breath_2",
+     "seconds": 1.68,
+     "sources": [
+      "cr1/breath.ogg",
+      "cr2/breath_02.ogg"
+     ]
+    }
+   ]
+  },
+  "knocker.step": {
+   "subtitle": "Heavy footsteps",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/knocker/step_1",
+     "seconds": 0.38,
+     "sources": [
+      "imp/footstep_wood_001.ogg",
+      "rpg/footstep01.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/knocker/step_2",
+     "seconds": 0.41,
+     "sources": [
+      "imp/footstep_wood_004.ogg",
+      "rpg/footstep04.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/knocker/step_3",
+     "seconds": 0.35,
+     "sources": [
+      "imp/footstep_wood_002.ogg",
+      "rpg/footstep07.ogg"
+     ]
+    }
+   ]
+  },
+  "knocker.lunge": {
+   "subtitle": "Knocker lunges",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/knocker/lunge_1",
+     "seconds": 1.19,
+     "sources": [
+      "cr2/roar_04.ogg",
+      "s1/slam_02.ogg"
+     ]
+    }
+   ]
+  },
+  "knocker.hurt": {
+   "subtitle": "Knocker hurts",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/knocker/hurt_1",
+     "seconds": 1.34,
+     "sources": [
+      "cr2/grunt_07.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/knocker/hurt_2",
+     "seconds": 1.08,
+     "sources": [
+      "cr2/grunt_08.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/knocker/hurt_3",
+     "seconds": 0.88,
+     "sources": [
+      "cr2/grunt_09.ogg"
+     ]
+    }
+   ]
+  },
+  "knocker.death": {
+   "subtitle": "Knocker dies",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/knocker/death_1",
+     "seconds": 2.65,
+     "sources": [
+      "cr2/roar_05.ogg",
+      "orpg/creature_die_01.ogg"
+     ]
+    }
+   ]
+  },
+  "knocker.leave": {
+   "subtitle": "Footsteps drag away",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/knocker/leave_1",
+     "seconds": 3.94,
+     "sources": [
+      "imp/footstep_grass_000.ogg",
+      "imp/footstep_grass_001.ogg",
+      "imp/footstep_grass_002.ogg",
+      "imp/footstep_grass_003.ogg",
+      "imp/footstep_grass_004.ogg"
+     ]
+    }
+   ]
+  },
+  "amb.bedtime_knock": {
+   "subtitle": "Distant knocking",
+   "category": "ambient",
+   "variants": [
+    {
+     "file": "sounds/hollow/amb/bedtime_knock_1",
+     "seconds": 2.2,
+     "sources": [
+      "imp/impactWood_heavy_000.ogg",
+      "imp/impactWood_heavy_001.ogg",
+      "imp/impactWood_heavy_002.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/amb/bedtime_knock_2",
+     "seconds": 2.53,
+     "sources": [
+      "imp/impactWood_heavy_002.ogg",
+      "imp/impactWood_heavy_003.ogg",
+      "imp/impactWood_heavy_004.ogg"
+     ]
+    }
+   ]
+  },
+  "mirebound.bubble": {
+   "subtitle": "Bubbles rise",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/mirebound/bubble_1",
+     "seconds": 0.71,
+     "sources": [
+      "wat/bubble_01.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/mirebound/bubble_2",
+     "seconds": 0.4,
+     "sources": [
+      "wat/bubble_02.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/mirebound/bubble_3",
+     "seconds": 0.64,
+     "sources": [
+      "wat/bubble_03.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/mirebound/bubble_4",
+     "seconds": 1.4,
+     "sources": [
+      "wat/loop_bubbles_1.ogg"
+     ]
+    }
+   ]
+  },
+  "mirebound.gurgle": {
+   "subtitle": "Something gurgles underwater",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/mirebound/gurgle_1",
+     "seconds": 1.76,
+     "sources": [
+      "cr1/burble_01.ogg",
+      "mud/mud_04.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/mirebound/gurgle_2",
+     "seconds": 1.39,
+     "sources": [
+      "cr1/burble_02.ogg",
+      "mud/mud_17.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/mirebound/gurgle_3",
+     "seconds": 5.72,
+     "sources": [
+      "cr2/slime_08.ogg",
+      "plop/Plop - Viscous 2.wav"
+     ]
+    }
+   ]
+  },
+  "mirebound.erupt": {
+   "subtitle": "Something bursts from the water",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/mirebound/erupt_1",
+     "seconds": 1.86,
+     "sources": [
+      "cr2/roar_05.ogg",
+      "wat/splash_09.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/mirebound/erupt_2",
+     "seconds": 1.66,
+     "sources": [
+      "cr2/roar_06.ogg",
+      "wat/splash_12.ogg"
+     ]
+    }
+   ]
+  },
+  "mirebound.grab": {
+   "subtitle": "Mirebound grabs",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/mirebound/grab_1",
+     "seconds": 1.32,
+     "sources": [
+      "cr2/slime_02.ogg",
+      "wat/splash_04.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/mirebound/grab_2",
+     "seconds": 0.94,
+     "sources": [
+      "mud/mud_18.ogg",
+      "wat/splash_06.ogg"
+     ]
+    }
+   ]
+  },
+  "mirebound.release": {
+   "subtitle": "Mirebound lets go",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/mirebound/release_1",
+     "seconds": 0.7,
+     "sources": [
+      "mud/mud_08.ogg",
+      "wat/splash_02.ogg"
+     ]
+    }
+   ]
+  },
+  "mirebound.hurt": {
+   "subtitle": "Mirebound hurts",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/mirebound/hurt_1",
+     "seconds": 0.93,
+     "sources": [
+      "cr2/monster_09.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/mirebound/hurt_2",
+     "seconds": 0.94,
+     "sources": [
+      "cr2/monster_12.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/mirebound/hurt_3",
+     "seconds": 0.93,
+     "sources": [
+      "cr2/monster_15.ogg"
+     ]
+    }
+   ]
+  },
+  "mirebound.death": {
+   "subtitle": "Mirebound dies",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/mirebound/death_1",
+     "seconds": 3.16,
+     "sources": [
+      "cr2/roar_06.ogg",
+      "wat/loop_bubbles_02.ogg"
+     ]
+    }
+   ]
+  },
+  "heart.beat": {
+   "subtitle": "A heart beats",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/heart/beat_1",
+     "seconds": 1.69,
+     "sources": [
+      "imp/impactSoft_heavy_000.ogg",
+      "imp/impactSoft_heavy_001.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/heart/beat_2",
+     "seconds": 1.71,
+     "sources": [
+      "imp/impactSoft_heavy_002.ogg",
+      "imp/impactSoft_heavy_003.ogg"
+     ]
+    }
+   ]
+  },
+  "heart.beat_fast": {
+   "subtitle": "A heart races",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/heart/beat_fast_1",
+     "seconds": 1.41,
+     "sources": [
+      "imp/impactSoft_heavy_001.ogg",
+      "imp/impactSoft_heavy_004.ogg"
+     ]
+    }
+   ]
+  },
+  "heart.awaken": {
+   "subtitle": "The Heart wakes",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/heart/awaken_1",
+     "seconds": 8.46,
+     "sources": [
+      "brk/bfh1_rock_breaking_01.ogg",
+      "orpg/creature_roar_03.ogg",
+      "pad/2022-05-11 4am Doom Scrolling - Deep Pad.wav"
+     ]
+    }
+   ]
+  },
+  "heart.drone": {
+   "subtitle": "A low drone",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/heart/drone_1",
+     "seconds": 9.0,
+     "sources": [
+      "pad/2023-08-02 What Will Remain - Deep Pads.wav"
+     ]
+    }
+   ]
+  },
+  "heart.root_warn": {
+   "subtitle": "The ground rumbles",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/heart/root_warn_1",
+     "seconds": 1.73,
+     "sources": [
+      "mud/mud_02.ogg",
+      "orpg/stones_03.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/heart/root_warn_2",
+     "seconds": 2.04,
+     "sources": [
+      "mud/mud_09.ogg",
+      "orpg/stones_02.ogg"
+     ]
+    }
+   ]
+  },
+  "heart.root_strike": {
+   "subtitle": "Roots burst",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/heart/root_strike_1",
+     "seconds": 1.4,
+     "sources": [
+      "imp/impactMining_001.ogg",
+      "wm/wood_breaking_01.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/heart/root_strike_2",
+     "seconds": 1.36,
+     "sources": [
+      "imp/impactMining_002.ogg",
+      "wm/wood_breaking_02.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/heart/root_strike_3",
+     "seconds": 1.38,
+     "sources": [
+      "brk/bfh1_wood_breaking_02.ogg",
+      "imp/impactMining_003.ogg"
+     ]
+    }
+   ]
+  },
+  "heart.pulse": {
+   "subtitle": "A pulse rolls out",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/heart/pulse_1",
+     "seconds": 2.28,
+     "sources": [
+      "imp/impactSoft_heavy_000.ogg",
+      "woosh/Classic Swish 1.wav"
+     ]
+    },
+    {
+     "file": "sounds/hollow/heart/pulse_2",
+     "seconds": 2.29,
+     "sources": [
+      "imp/impactSoft_heavy_003.ogg",
+      "woosh/Classic Swish 1.wav"
+     ]
+    }
+   ]
+  },
+  "heart.phase": {
+   "subtitle": "The Heart roars",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/heart/phase_1",
+     "seconds": 5.95,
+     "sources": [
+      "orpg/creature_roar_02.ogg",
+      "pad/2022-10-29 Revered Waters - Infinite Void.wav"
+     ]
+    }
+   ]
+  },
+  "heart.hurt": {
+   "subtitle": "Heart hurts",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/heart/hurt_1",
+     "seconds": 1.85,
+     "sources": [
+      "cr2/monster_09.ogg",
+      "imp/impactSoft_medium_004.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/heart/hurt_2",
+     "seconds": 1.59,
+     "sources": [
+      "cr2/monster_12.ogg",
+      "imp/impactSoft_medium_002.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/heart/hurt_3",
+     "seconds": 2.41,
+     "sources": [
+      "cr2/monster_20.ogg",
+      "imp/impactSoft_medium_000.ogg"
+     ]
+    }
+   ]
+  },
+  "heart.death": {
+   "subtitle": "The Heart stills",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/heart/death_1",
+     "seconds": 8.95,
+     "sources": [
+      "brk/bfh1_wood_breaking_03.ogg",
+      "cr2/roar_05.ogg",
+      "pad/2023-04-12 The Drowned Forest - Murky Waters.wav"
+     ]
+    }
+   ]
+  },
+  "heart.vein_break": {
+   "subtitle": "A vein bursts",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/heart/vein_break_1",
+     "seconds": 1.1,
+     "sources": [
+      "cr2/slime_07.ogg",
+      "wm/wood_cracking_02.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/heart/vein_break_2",
+     "seconds": 1.08,
+     "sources": [
+      "cr2/slime_03.ogg",
+      "wm/wood_cracking_04.ogg"
+     ]
+    }
+   ]
+  },
+  "heart.spawn": {
+   "subtitle": "Something crawls from the roots",
+   "category": "hostile",
+   "variants": [
+    {
+     "file": "sounds/hollow/heart/spawn_1",
+     "seconds": 1.5,
+     "sources": [
+      "cr2/slime_04.ogg",
+      "mud/mud_04.ogg"
+     ]
+    }
+   ]
+  },
+  "chime.ring": {
+   "subtitle": "Chime rings",
+   "category": "block",
+   "variants": [
+    {
+     "file": "sounds/hollow/chime/ring_1",
+     "seconds": 2.33,
+     "sources": [
+      "imp/impactBell_heavy_000.ogg",
+      "imp/impactBell_heavy_002.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/chime/ring_2",
+     "seconds": 2.31,
+     "sources": [
+      "imp/impactBell_heavy_001.ogg",
+      "imp/impactBell_heavy_003.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/chime/ring_3",
+     "seconds": 2.3,
+     "sources": [
+      "imp/impactBell_heavy_000.ogg",
+      "imp/impactBell_heavy_003.ogg"
+     ]
+    }
+   ]
+  },
+  "ward.repel": {
+   "subtitle": "Ward flares",
+   "category": "block",
+   "variants": [
+    {
+     "file": "sounds/hollow/ward/repel_1",
+     "seconds": 2.23,
+     "sources": [
+      "orpg/spell_fire_03.ogg",
+      "woosh/Gentle Swish.wav"
+     ]
+    },
+    {
+     "file": "sounds/hollow/ward/repel_2",
+     "seconds": 1.79,
+     "sources": [
+      "orpg/spell_fire_04.ogg",
+      "woosh/Swish 6.wav"
+     ]
+    }
+   ]
+  },
+  "ward.place": {
+   "subtitle": "Ward smoulders",
+   "category": "block",
+   "variants": [
+    {
+     "file": "sounds/hollow/ward/place_1",
+     "seconds": 0.62,
+     "sources": [
+      "orpg/item_wood_01.ogg",
+      "orpg/spell_fire_07.ogg"
+     ]
+    }
+   ]
+  },
+  "ward.spent": {
+   "subtitle": "Ward burns out",
+   "category": "block",
+   "variants": [
+    {
+     "file": "sounds/hollow/ward/spent_1",
+     "seconds": 1.03,
+     "sources": [
+      "orpg/item_stone_02.ogg",
+      "orpg/spell_fire_06.ogg"
+     ]
+    }
+   ]
+  },
+  "lens.use": {
+   "subtitle": "Lens clouds",
+   "category": "player",
+   "variants": [
+    {
+     "file": "sounds/hollow/lens/use_1",
+     "seconds": 0.81,
+     "sources": [
+      "imp/impactGlass_light_001.ogg",
+      "orpg/item_gem_01.ogg"
+     ]
+    }
+   ]
+  },
+  "journal.open": {
+   "subtitle": "Pages turn",
+   "category": "ui",
+   "variants": [
+    {
+     "file": "sounds/hollow/journal/open_1",
+     "seconds": 0.15,
+     "sources": [
+      "rpg/bookOpen.ogg"
+     ]
+    },
+    {
+     "file": "sounds/hollow/journal/open_2",
+     "seconds": 0.43,
+     "sources": [
+      "rpg/bookFlip2.ogg"
+     ]
+    }
+   ]
+  },
+  "journal.entry": {
+   "subtitle": "Journal updated",
+   "category": "ui",
+   "variants": [
+    {
+     "file": "sounds/hollow/journal/entry_1",
+     "seconds": 1.74,
+     "sources": [
+      "book/Pen Writing 3.wav",
+      "rpg/bookFlip1.ogg"
+     ]
+    }
+   ]
+  },
+  "heartseeker.pulse": {
+   "subtitle": "Heartseeker beats",
+   "category": "player",
+   "variants": [
+    {
+     "file": "sounds/hollow/heartseeker/pulse_1",
+     "seconds": 1.08,
+     "sources": [
+      "imp/impactSoft_medium_002.ogg",
+      "imp/impactSoft_medium_003.ogg"
+     ]
+    }
+   ]
+  },
+  "altar.insert": {
+   "subtitle": "Offering placed",
+   "category": "block",
+   "variants": [
+    {
+     "file": "sounds/hollow/altar/insert_1",
+     "seconds": 2.36,
+     "sources": [
+      "orpg/item_stone_01.ogg",
+      "orpg/stones_01.ogg"
+     ]
+    }
+   ]
+  },
+  "stinger.low": {
+   "subtitle": "Dread",
+   "category": "ambient",
+   "variants": [
+    {
+     "file": "sounds/hollow/stinger/low_1",
+     "seconds": 4.5,
+     "sources": [
+      "pad/2022-05-11 4am Doom Scrolling - Deep Pad.wav"
+     ]
+    },
+    {
+     "file": "sounds/hollow/stinger/low_2",
+     "seconds": 4.5,
+     "sources": [
+      "add/2023-12-13 A Call From the Other Side - Tension Pad.wav"
+     ]
+    }
+   ]
+  },
+  "stinger.distant": {
+   "subtitle": "Unease",
+   "category": "ambient",
+   "variants": [
+    {
+     "file": "sounds/hollow/stinger/distant_1",
+     "seconds": 6.78,
+     "sources": [
+      "pad/2022-10-29 Revered Waters - Infinite Void.wav"
+     ]
+    },
+    {
+     "file": "sounds/hollow/stinger/distant_2",
+     "seconds": 6.05,
+     "sources": [
+      "add/2023-10-11 Labradorescence - Ancient Signal.wav"
+     ]
+    }
+   ]
+  },
+  "music.night_1": {
+   "subtitle": "Ludum Dare 32 05 - Abstraction (Ben Burnes)",
+   "category": "music",
+   "variants": [
+    {
+     "file": "sounds/hollow/music/night_1",
+     "seconds": null,
+     "sources": [
+      "cc0-music/music/unspecified/ambient/abstraction-9e5c350d3e66baa56b4b806d.ogg"
+     ]
+    }
+   ]
+  },
+  "music.night_2": {
+   "subtitle": "Patreon Challenge 04 - Abstraction (Ben Burnes)",
+   "category": "music",
+   "variants": [
+    {
+     "file": "sounds/hollow/music/night_2",
+     "seconds": null,
+     "sources": [
+      "cc0-music/music/unspecified/spooky/abstraction-455c33af6610997b97b690d0.ogg"
+     ]
+    }
+   ]
+  },
+  "music.night_3": {
+   "subtitle": "Unsolved Investigation - isaiah658",
+   "category": "music",
+   "variants": [
+    {
+     "file": "sounds/hollow/music/night_3",
+     "seconds": null,
+     "sources": [
+      "cc0-music/music/suspense/ambient/unsolved-investigation.ogg"
+     ]
+    }
+   ]
+  },
+  "music.cave": {
+   "subtitle": "Patreon Challenge 05 - Abstraction (Ben Burnes)",
+   "category": "music",
+   "variants": [
+    {
+     "file": "sounds/hollow/music/cave",
+     "seconds": null,
+     "sources": [
+      "cc0-music/music/unspecified/ambient/abstraction-9858b87007c41a4dfe66b437.ogg"
+     ]
+    }
+   ]
+  },
+  "music.shrine": {
+   "subtitle": "Shrine - yd",
+   "category": "music",
+   "variants": [
+    {
+     "file": "sounds/hollow/music/shrine",
+     "seconds": null,
+     "sources": [
+      "cc0-music/music/mysterious/synth/shrine.ogg"
+     ]
+    }
+   ]
+  },
+  "music.boss": {
+   "subtitle": "Ludum Dare 30 03 - Abstraction (Ben Burnes)",
+   "category": "music",
+   "variants": [
+    {
+     "file": "sounds/hollow/music/boss",
+     "seconds": null,
+     "sources": [
+      "cc0-music/music/unspecified/spooky/abstraction-8c2b64234b241112c8d54382.ogg"
+     ]
+    }
+   ]
+  },
+  "music.dawn": {
+   "subtitle": "Sketchbook 2024-10-16 - Abstraction (Ben Burnes)",
+   "category": "music",
+   "variants": [
+    {
+     "file": "sounds/hollow/music/dawn",
+     "seconds": null,
+     "sources": [
+      "cc0-music/music/unspecified/ambient/abstraction-4818ca6a5b5c7b602fbf9eb7.ogg"
+     ]
+    }
+   ]
+  }
+ }
+}

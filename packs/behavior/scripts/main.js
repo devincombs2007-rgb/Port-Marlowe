@@ -67,6 +67,11 @@ var SND = {
   swampCreak: "hollow.amb.swamp.creak",
   bedtimeKnock: "hollow.amb.bedtime_knock",
   stingerLow: "hollow.stinger.low",
+  musicNight: ["hollow.music.night_1", "hollow.music.night_2", "hollow.music.night_3"],
+  musicCave: "hollow.music.cave",
+  musicShrine: "hollow.music.shrine",
+  musicBoss: "hollow.music.boss",
+  musicDawn: "hollow.music.dawn",
   stingerDistant: "hollow.stinger.distant",
   journalOpen: "hollow.journal.open",
   journalEntry: "hollow.journal.entry",
@@ -227,7 +232,7 @@ var WORLD_DEFAULTS = {
   sites: true,
   bossScaling: true
 };
-var PREF_DEFAULTS = { ambience: 80, accents: 1, visualFx: true, hints: true };
+var PREF_DEFAULTS = { ambience: 80, accents: 1, visualFx: true, hints: true, music: true };
 var worldCache;
 var prefCache = /* @__PURE__ */ new Map();
 function settings() {
@@ -261,7 +266,8 @@ function savePrefs(player, p) {
     ambience: Math.max(0, Math.min(100, Math.round(p.ambience))),
     accents: Math.max(0, Math.min(2, Math.round(p.accents))),
     visualFx: !!p.visualFx,
-    hints: !!p.hints
+    hints: !!p.hints,
+    music: p.music !== false
   };
   prefCache.set(player.id, clean);
   writeEntity(player, DP.prefs, clean);
@@ -290,6 +296,10 @@ function cooldownScale() {
 // ../../scripts_src/core/time.ts
 import { system, world as world2 } from "@minecraft/server";
 var tod = () => world2.getTimeOfDay();
+var isNight = () => {
+  const t = tod();
+  return t >= 13e3 && t < 23200;
+};
 var isDarkHours = () => {
   const t = tod();
   return t >= 12400 && t < 23400;
@@ -1158,7 +1168,7 @@ function showModal(p, f, retries = 6) {
   });
 }
 async function openSettings(p, op) {
-  const menu = new ActionFormData().title("§lSettings").body("§7Comfort settings are yours alone. World rules affect everyone and need operator permission.\n\n§8Brightness, render distance, graphics mode (Vibrant Visuals) and the sound sliders (Ambient/Environment, Hostile Creatures) are in Minecraft's own Settings menu.").button("My comfort settings", "textures/ui/hollow/settings");
+  const menu = new ActionFormData().title("§lSettings").body("§7Comfort settings are yours alone. World rules affect everyone and need operator permission.\n\n§8Brightness, render distance, graphics mode (Vibrant Visuals), the sound sliders (Music, Ambient/Environment, Hostile Creatures) and Subtitles are in Minecraft's own Settings menu.").button("My comfort settings", "textures/ui/hollow/settings");
   if (op) menu.button("World rules §8(operator)", "textures/ui/hollow/world");
   const r = await menu.show(p);
   if (r.canceled || r.selection === void 0) return;
@@ -1167,7 +1177,7 @@ async function openSettings(p, op) {
 }
 async function openPrefs(p) {
   const cur = prefs(p);
-  const f = new ModalFormData().title("§lMy comfort settings").slider("Ambience volume (script cues)", 0, 100, { defaultValue: cur.ambience, valueStep: 10 }).dropdown("Encounter accents (short stingers)", ["Off", "Subtle", "Full"], { defaultValueIndex: cur.accents }).toggle("Visual effects (fog shifts, soft fades)", { defaultValue: cur.visualFx }).toggle("Action-bar hints", { defaultValue: cur.hints }).submitButton("Save");
+  const f = new ModalFormData().title("§lMy comfort settings").slider("Ambience volume (script cues)", 0, 100, { defaultValue: cur.ambience, valueStep: 10 }).dropdown("Encounter accents (short stingers)", ["Off", "Subtle", "Full"], { defaultValueIndex: cur.accents }).toggle("Visual effects (fog shifts, soft fades)", { defaultValue: cur.visualFx }).toggle("Action-bar hints", { defaultValue: cur.hints }).toggle("Music (night, cave, shrine and boss tracks)", { defaultValue: cur.music }).submitButton("Save");
   const r = await showModal(p, f);
   if (!r || r.canceled || !r.formValues) return;
   const v = r.formValues;
@@ -1175,7 +1185,8 @@ async function openPrefs(p) {
     ambience: Number(v[0]),
     accents: Number(v[1]),
     visualFx: Boolean(v[2]),
-    hints: Boolean(v[3])
+    hints: Boolean(v[3]),
+    music: Boolean(v[4])
   };
   savePrefs(p, next);
   if (!next.visualFx) clearAllFog(p);
@@ -1375,15 +1386,15 @@ function movementNoise(p) {
   if (p.isSneaking) return { radius: 0, kind: "move" };
   const v = p.getVelocity();
   const speed = Math.hypot(v.x, v.z);
-  const st2 = moveState.get(p.id) ?? { airborne: false, lastLand: -999 };
-  const wasAir = st2.airborne;
-  st2.airborne = !p.isOnGround;
+  const st3 = moveState.get(p.id) ?? { airborne: false, lastLand: -999 };
+  const wasAir = st3.airborne;
+  st3.airborne = !p.isOnGround;
   let landed = false;
-  if (wasAir && p.isOnGround && now() - st2.lastLand > 10) {
+  if (wasAir && p.isOnGround && now() - st3.lastLand > 10) {
     landed = true;
-    st2.lastLand = now();
+    st3.lastLand = now();
   }
-  moveState.set(p.id, st2);
+  moveState.set(p.id, st3);
   if (quietFloor(p)) return { radius: 0, kind: "move" };
   if (p.isSprinting && speed > 0.05) return { radius: 16, kind: "sprint" };
   if (landed || p.isJumping) return { radius: 8, kind: "jump" };
@@ -1455,6 +1466,10 @@ function saveSites() {
 var siteCenter = (s) => ({ x: s.x + s.sx / 2, y: s.y + 1, z: s.z + s.sz / 2 });
 function shrine() {
   return allSites().find((s) => s.t === "shrine");
+}
+function shrineCenter() {
+  const s = shrine();
+  return s ? siteCenter(s) : void 0;
 }
 function loadedBox(dim, o, size) {
   try {
@@ -2082,6 +2097,11 @@ function load() {
 }
 function save2() {
   writeWorld(DP.boss, boss);
+}
+function inBossArena(p) {
+  if (!load().active || p.dimension.id !== boss.dim) return false;
+  const c = boss.center;
+  return Math.hypot(p.location.x - c.x, p.location.z - c.z) <= 18 && Math.abs(p.location.y - c.y) < 9;
 }
 var isBossEntity = (id) => load().active && (id === boss.heartId || boss.veins.includes(id));
 function isCurrentFightEntity(e) {
@@ -3777,13 +3797,107 @@ function startWatcher() {
   every("watcher.update", 4, update6, 1);
 }
 
+// ../../scripts_src/systems/music.ts
+var LOOPING = ["boss", "shrine"];
+var state2 = /* @__PURE__ */ new Map();
+function st2(p) {
+  let s = state2.get(p.id);
+  if (!s) {
+    s = { startedAt: -1, lastAny: -99999, lastCave: -99999, nightPlayed: -1, nightHadEncounter: -1, dawnPlayed: -1, nextNight: 0 };
+    state2.set(p.id, s);
+  }
+  return s;
+}
+function forgetMusic(playerId) {
+  state2.delete(playerId);
+}
+function play(p, s, cue, track2) {
+  try {
+    p.playMusic(track2, { fade: cue === "boss" ? 1 : 3, loop: LOOPING.includes(cue), volume: 0.8 });
+  } catch {
+    return;
+  }
+  s.cue = cue;
+  s.startedAt = now();
+  s.lastAny = now();
+}
+function stop(p, s) {
+  if (!s.cue) return;
+  try {
+    p.stopMusic();
+  } catch {
+  }
+  s.cue = void 0;
+}
+function nearShrine(p) {
+  const c = shrineCenter();
+  return !!c && p.dimension.id === "minecraft:overworld" && distXZ(p.location, c) < 28 && Math.abs(p.location.y - c.y) < 16;
+}
+function tick(p) {
+  const fresh = !state2.has(p.id);
+  const s = st2(p);
+  if (fresh) {
+    try {
+      p.stopMusic();
+    } catch {
+    }
+  }
+  if (!prefs(p).music) {
+    stop(p, s);
+    return;
+  }
+  const t = now();
+  const night = isNight();
+  const key = nightKey();
+  if (night && rt(p).encounter) s.nightHadEncounter = key;
+  if (inBossArena(p)) {
+    if (s.cue !== "boss") play(p, s, "boss", SND.musicBoss);
+    return;
+  }
+  if (s.cue === "boss") stop(p, s);
+  if (nearShrine(p)) {
+    if (s.cue !== "shrine") play(p, s, "shrine", SND.musicShrine);
+    return;
+  }
+  if (s.cue === "shrine") stop(p, s);
+  if (rt(p).encounter && (s.cue === "night" || s.cue === "cave")) {
+    stop(p, s);
+    return;
+  }
+  if (s.cue && !LOOPING.includes(s.cue) && t - s.startedAt > 2400) s.cue = void 0;
+  if (s.cue) return;
+  if (t - s.lastAny < 6e3) return;
+  const c = ctx(p);
+  if (!c.overworld) return;
+  const tm = tod();
+  if (!night && tm < 2500 && s.nightHadEncounter === key - 1 && s.dawnPlayed !== key) {
+    s.dawnPlayed = key;
+    play(p, s, "dawn", SND.musicDawn);
+    return;
+  }
+  if (night && !c.underground && !c.roofed && !rt(p).encounter && s.nightPlayed !== key && tm > 13500) {
+    if (t >= s.nextNight && chance(0.25)) {
+      s.nightPlayed = key;
+      play(p, s, "night", SND.musicNight[(key >> 1) % SND.musicNight.length]);
+    } else s.nextNight = t + 600;
+    return;
+  }
+  if (c.underground && t - s.lastCave > 24e3 && !rt(p).encounter && chance(0.15)) {
+    s.lastCave = t;
+    play(p, s, "cave", SND.musicCave);
+  }
+}
+function startMusic() {
+  everyPlayer("music", 200, tick);
+}
+
 // ../../scripts_src/systems/ambience.ts
 function far(p, lo = 18, hi = 40) {
   const d = yawDir(rand(0, 360));
   const r = rand(lo, hi);
   return add(p.location, { x: d.x * r, y: rand(0, 4), z: d.z * r });
 }
-function tick(p) {
+function tick2(p) {
   const c = ctx(p);
   if (!c.overworld) return;
   const night = isDarkHours();
@@ -3826,7 +3940,7 @@ function bedtime(p) {
   ambient(p, SND.bedtimeKnock, { volume: 0.9, minGap: 0, cueGap: 0 });
 }
 function startAmbience() {
-  everyPlayer("ambience", 120, tick);
+  everyPlayer("ambience", 120, tick2);
   everyPlayer("bedtime", 40, bedtime);
 }
 
@@ -3921,6 +4035,7 @@ function init() {
   startAmbience();
   startBlockSystems();
   startMaterialPickups();
+  startMusic();
   startSites();
   startWatcher();
   startBorrowed();
@@ -3968,6 +4083,7 @@ world17.beforeEvents.playerLeave.subscribe((ev) => {
     forgetJournal(id);
     forgetNoise(id);
     forgetSites(id);
+    forgetMusic(id);
   }));
 });
 world17.afterEvents.playerDimensionChange.subscribe((ev) => safe("dimChange", () => {

@@ -366,19 +366,34 @@ def check_geometry(c):
 # ------------------------------------------------------------------------------ 6. sounds
 def check_sounds(c):
     n_files = 0
+    vanilla_files = set()
+    vsd = os.path.join(SAMPLES, "resource_pack", "sounds", "sound_definitions.json")
+    if os.path.isfile(vsd):
+        for d in load_json(vsd)["sound_definitions"].values():
+            for s in d.get("sounds", []):
+                vanilla_files.add(s["name"] if isinstance(s, dict) else s)
+    n_vanilla = 0
     for ev, d in c["sounds"].items():
+        sub = d.get("subtitle")
+        if sub and sub not in c["lang"]:
+            err(f"sound {ev}: subtitle key {sub} missing from lang")
         for s in d["sounds"]:
             name = s["name"] if isinstance(s, dict) else s
             n_files += 1
-            if not os.path.isfile(os.path.join(RP, name + ".ogg")):
-                err(f"sound {ev}: file {name}.ogg missing")
+            if name.startswith("sounds/hollow/"):
+                if not os.path.isfile(os.path.join(RP, name + ".ogg")):
+                    err(f"sound {ev}: file {name}.ogg missing")
+            elif name in vanilla_files:
+                n_vanilla += 1  # a vanilla game sound, referenced (not shipped)
+            else:
+                err(f"sound {ev}: {name} is neither a pack file nor a vanilla sound")
     sj = load_json(os.path.join(RP, "sounds.json"))
     for ent, d in sj["entity_sounds"]["entities"].items():
         for evname, v in d["events"].items():
             sid = v if isinstance(v, str) else v["sound"]
             if sid and sid not in c["sounds"]:
                 err(f"sounds.json {ent}.{evname}: {sid} not defined")
-    info(f"sounds: {len(c['sounds'])} events, {n_files} files")
+    info(f"sounds: {len(c['sounds'])} events, {n_files} files ({n_vanilla} vanilla references); subtitles checked against lang")
 
 
 # ------------------------------------------------------------------------------ 7. particles

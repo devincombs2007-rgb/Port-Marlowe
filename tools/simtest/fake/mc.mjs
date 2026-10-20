@@ -7,6 +7,7 @@
 // a fresh System (tick counter restarts at 0, like a real server restart) and fresh event
 // subscriptions, so reload bugs show up.
 
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -28,6 +29,25 @@ const ITEM_DEFS = new Map();
 for (const f of fs.readdirSync(path.join(BP, "items"))) {
   const d = JSON.parse(fs.readFileSync(path.join(BP, "items", f), "utf8"))["minecraft:item"];
   ITEM_DEFS.set(d.description.identifier, d);
+}
+
+// music track lengths, from the built OGG files (sound_definitions -> file -> ffprobe duration)
+const RP = path.join(ROOT, "packs", "resource");
+const trackLen = new Map();
+function trackTicks(track) {
+  if (!trackLen.has(track)) {
+    let ticks = 1200;
+    try {
+      const sd = JSON.parse(fs.readFileSync(path.join(RP, "sounds", "sound_definitions.json"), "utf8")).sound_definitions[track];
+      const file = path.join(RP, `${sd.sounds[0].name ?? sd.sounds[0]}.ogg`);
+      const out = execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", file]).toString();
+      ticks = Math.round(parseFloat(out) * 20);
+    } catch {
+      /* unknown track: assume a minute */
+    }
+    trackLen.set(track, ticks);
+  }
+  return trackLen.get(track);
 }
 
 // ----------------------------------------------------------------------------- enums
@@ -462,6 +482,26 @@ export class Player extends Entity {
   }
   playSound(id, o) {
     this._sounds.push(id);
+  }
+  playMusic(track, opts) {
+    this._musicRaw = { track, ...opts, at: this._sim.absTime, len: trackTicks(track) };
+    (this._musicLog ??= []).push(track);
+  }
+  /** What the client is playing now: one-shot tracks end after their real length. */
+  get _music() {
+    const m = this._musicRaw;
+    if (!m) return undefined;
+    if (!m.loop && this._sim.absTime - m.at > m.len) return undefined;
+    return m;
+  }
+  set _music(v) {
+    this._musicRaw = v;
+  }
+  queueMusic(track, opts) {
+    this.playMusic(track, opts);
+  }
+  stopMusic() {
+    this._musicRaw = undefined;
   }
   sendMessage(m) {
     this._log.push(`[chat] ${m}`);

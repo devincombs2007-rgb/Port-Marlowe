@@ -28,6 +28,7 @@ import {
 } from "./creatures/watcher";
 import { registerBlockComponents, startBlockSystems } from "./items/blocks";
 import { registerItemComponents, startMaterialPickups } from "./items/components";
+import { forgetMusic, startMusic } from "./systems/music";
 import { startAmbience } from "./systems/ambience";
 import { startCleanup, sweepLoaded, trackType } from "./systems/cleanup";
 import { addStarter, startDirector } from "./systems/director";
@@ -65,6 +66,7 @@ function init(): void {
   startAmbience();
   startBlockSystems();
   startMaterialPickups();
+  startMusic();
   startSites();
   startWatcher();
   startBorrowed();
@@ -118,6 +120,7 @@ world.beforeEvents.playerLeave.subscribe((ev) => {
     forgetJournal(id);
     forgetNoise(id);
     forgetSites(id);
+    forgetMusic(id);
   }));
 });
 

@@ -656,6 +656,55 @@ await test("items: material pickup teaches its recipe; lens reveals to its user 
   noErrors(sim);
 });
 
+// =============================================================================== music
+await test("music: shrine and boss tracks loop in place; off switch; silence while hunted; one track per night", () => {
+  const { sim, p, awaken, center, site } = bossWorld(1, 71);
+  sim.tick(250);
+  eq(p._music?.track, "hollow.music.shrine", "shrine track near the shrine");
+  eq(p._music?.loop, true, "shrine track loops");
+  awaken();
+  sim.tick(250);
+  eq(p._music?.track, "hollow.music.boss", "boss track in the arena");
+  p.teleport({ x: center.x + 200, y: 64, z: center.z });
+  sim.tick(250);
+  assert(!p._music || !["hollow.music.boss", "hollow.music.shrine"].includes(p._music.track), "looping tracks stop when leaving");
+  // switch music off in comfort settings
+  p.teleport({ x: site.x + 12, y: site.y + 1, z: site.z + 12 });
+  sim.tick(250);
+  assert(p._music, "playing again near the shrine");
+  const prefs = JSON.parse(p.getDynamicProperty("hollow:prefs") ?? "{}");
+  p.setDynamicProperty("hollow:prefs", JSON.stringify({ ...prefs, music: false }));
+  boot(sim, 71); // prefs are cached per session; a restart reloads them
+  sim.tick(250);
+  eq(p._music, undefined, "music off means silence");
+  noErrors(sim);
+});
+
+await test("music: night tracks are rare (at most one per night) and fall silent while something hunts you", () => {
+  const sim = newWorld(72);
+  sim.world.setDynamicProperty("hollow:settings", JSON.stringify({ frequency: 200, borrowed: false, hollowed: false, mirebound: false, knocker: false }));
+  boot(sim, 72);
+  const p = sim.addPlayer("Alex", { x: 0.5, y: 64, z: 0.5 }, veteran);
+  let overlap = 0, nightTracks = 0, last;
+  for (let night = 1; night <= 4; night++) {
+    goTo(sim, night, 12000);
+    for (let t = 0; t < 12000; t++) {
+      sim.tick(1);
+      const m = p._music?.track;
+      if (m !== last && m?.startsWith("hollow.music.night")) nightTracks++;
+      last = m;
+      const state = (w) => [...w._events].reverse().find((e) => e.startsWith("hollow:to_"));
+      const hunted = sim.overworld.getEntities({ type: "hollow:watcher" }).some((w) => ["hollow:to_stalk", "hollow:to_lunge"].includes(state(w)));
+      if (hunted && m?.startsWith("hollow.music.night")) overlap++;
+    }
+  }
+  assert(nightTracks >= 1, "night music played at least once in 4 nights");
+  assert(nightTracks <= 4, `at most one night track per night (${nightTracks} in 4 nights)`);
+  notes.push(`music: ${nightTracks} night track(s) over 4 nights; ${overlap} ticks of night music while a Watcher was stalking`);
+  assert(overlap <= 220, `night music stops within one music check of a hunt (${overlap} overlapping ticks)`);
+  noErrors(sim);
+});
+
 // =============================================================================== load + caps
 await test("load: 8 players, all creatures, Nightmare 200% for a full day - caps hold", () => {
   const sim = newWorld(61);

@@ -84,6 +84,9 @@ def main():
     write(os.path.join(RP, "sounds.json"), {"entity_sounds": {"entities": ENTITY_SOUNDS}})
     gen = json.load(open(os.path.join(os.path.dirname(__file__), "lang_generated.json")))
     gen.update(LANG_EXTRA)
+    subs = os.path.join(os.path.dirname(__file__), "..", "sounds", "subtitles_generated.json")
+    if os.path.isfile(subs):
+        gen.update(json.load(open(subs)))  # Minecraft subtitles for every HOLLOW sound
     lines = [f"{k}={v}" for k, v in sorted(gen.items())]
     for pack in (BP, RP):
         ensure(os.path.join(pack, "texts"))

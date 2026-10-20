@@ -1,5 +1,5 @@
 {
-  "format_version": "1.20.20",
+  "format_version": "1.26.50",
   "sound_definitions": {
     "hollow.watcher.step": {
       "category": "hostile",
@@ -21,6 +21,7 @@
           "volume": 0.55
         }
       ],
+      "subtitle": "subtitles.hollow.watcher.step",
       "min_distance": 2.0,
       "max_distance": 20.0
     },
@@ -40,6 +41,7 @@
           "volume": 0.8
         }
       ],
+      "subtitle": "subtitles.hollow.watcher.creak",
       "min_distance": 4.0,
       "max_distance": 40.0
     },
@@ -55,6 +57,7 @@
           "volume": 0.7
         }
       ],
+      "subtitle": "subtitles.hollow.watcher.seen",
       "min_distance": 4.0,
       "max_distance": 48.0
     },
@@ -70,6 +73,7 @@
           "volume": 0.8
         }
       ],
+      "subtitle": "subtitles.hollow.watcher.retreat",
       "min_distance": 4.0,
       "max_distance": 48.0
     },
@@ -85,6 +89,7 @@
           "volume": 1.0
         }
       ],
+      "subtitle": "subtitles.hollow.watcher.lunge",
       "min_distance": 2.0,
       "max_distance": 32.0
     },
@@ -104,6 +109,7 @@
           "volume": 0.9
         }
       ],
+      "subtitle": "subtitles.hollow.watcher.hurt",
       "min_distance": 2.0,
       "max_distance": 24.0
     },
@@ -115,6 +121,7 @@
           "volume": 1.0
         }
       ],
+      "subtitle": "subtitles.hollow.watcher.death",
       "min_distance": 2.0,
       "max_distance": 40.0
     },
@@ -134,6 +141,7 @@
           "volume": 0.55
         }
       ],
+      "subtitle": "subtitles.hollow.amb.forest.far_call",
       "min_distance": 8.0,
       "max_distance": 96.0
     },
@@ -153,6 +161,7 @@
           "volume": 0.7
         }
       ],
+      "subtitle": "subtitles.hollow.amb.forest.branch_snap",
       "min_distance": 8.0,
       "max_distance": 96.0
     },
@@ -168,6 +177,7 @@
           "volume": 0.6
         }
       ],
+      "subtitle": "subtitles.hollow.amb.forest.footsteps",
       "min_distance": 8.0,
       "max_distance": 80.0
     },
@@ -189,7 +199,8 @@
           "volume": 0.45,
           "is3D": false
         }
-      ]
+      ],
+      "subtitle": "subtitles.hollow.amb.forest.wind"
     },
     "hollow.amb.forest.hush": {
       "category": "ambient",
@@ -204,7 +215,8 @@
           "volume": 0.5,
           "is3D": false
         }
-      ]
+      ],
+      "subtitle": "subtitles.hollow.amb.forest.hush"
     },
     "hollow.amb.cave.drip": {
       "category": "ambient",
@@ -226,6 +238,7 @@
           "volume": 0.5
         }
       ],
+      "subtitle": "subtitles.hollow.amb.cave.drip",
       "min_distance": 4.0,
       "max_distance": 40.0
     },
@@ -245,6 +258,7 @@
           "volume": 0.65
         }
       ],
+      "subtitle": "subtitles.hollow.amb.cave.shift",
       "min_distance": 6.0,
       "max_distance": 64.0
     },
@@ -260,6 +274,7 @@
           "volume": 0.55
         }
       ],
+      "subtitle": "subtitles.hollow.amb.cave.breath",
       "min_distance": 6.0,
       "max_distance": 48.0
     },
@@ -279,6 +294,7 @@
           "volume": 0.55
         }
       ],
+      "subtitle": "subtitles.hollow.amb.swamp.gurgle",
       "min_distance": 4.0,
       "max_distance": 40.0
     },
@@ -294,6 +310,7 @@
           "volume": 0.5
         }
       ],
+      "subtitle": "subtitles.hollow.amb.swamp.creak",
       "min_distance": 6.0,
       "max_distance": 48.0
     },
@@ -317,6 +334,7 @@
           "volume": 0.9
         }
       ],
+      "subtitle": "subtitles.hollow.hollowed.click",
       "min_distance": 3.0,
       "max_distance": 40.0
     },
@@ -332,6 +350,7 @@
           "volume": 1.0
         }
       ],
+      "subtitle": "subtitles.hollow.hollowed.alert",
       "min_distance": 3.0,
       "max_distance": 48.0
     },
@@ -347,6 +366,7 @@
           "volume": 0.7
         }
       ],
+      "subtitle": "subtitles.hollow.hollowed.sniff",
       "min_distance": 2.0,
       "max_distance": 20.0
     },
@@ -370,6 +390,7 @@
           "volume": 0.45
         }
       ],
+      "subtitle": "subtitles.hollow.hollowed.step",
       "min_distance": 1.0,
       "max_distance": 16.0
     },
@@ -385,6 +406,7 @@
           "volume": 1.0
         }
       ],
+      "subtitle": "subtitles.hollow.hollowed.attack",
       "min_distance": 2.0,
       "max_distance": 24.0
     },
@@ -404,6 +426,7 @@
           "volume": 0.9
         }
       ],
+      "subtitle": "subtitles.hollow.hollowed.hurt",
       "min_distance": 2.0,
       "max_distance": 24.0
     },
@@ -415,6 +438,7 @@
           "volume": 1.0
         }
       ],
+      "subtitle": "subtitles.hollow.hollowed.death",
       "min_distance": 2.0,
       "max_distance": 32.0
     },
@@ -422,22 +446,19 @@
       "category": "neutral",
       "sounds": [
         {
-          "name": "sounds/hollow/borrowed/baa_1",
+          "name": "sounds/mob/sheep/say1",
           "volume": 0.9
         },
         {
-          "name": "sounds/hollow/borrowed/baa_2",
+          "name": "sounds/mob/sheep/say2",
           "volume": 0.9
         },
         {
-          "name": "sounds/hollow/borrowed/baa_3",
-          "volume": 0.9
-        },
-        {
-          "name": "sounds/hollow/borrowed/baa_4",
+          "name": "sounds/mob/sheep/say3",
           "volume": 0.9
         }
       ],
+      "subtitle": "subtitles.hollow.borrowed.baa",
       "min_distance": 2.0,
       "max_distance": 24.0
     },
@@ -445,18 +466,22 @@
       "category": "hostile",
       "sounds": [
         {
-          "name": "sounds/hollow/borrowed/baa_wrong_1",
+          "name": "sounds/mob/sheep/say1",
+          "pitch": 0.74,
           "volume": 0.9
         },
         {
-          "name": "sounds/hollow/borrowed/baa_wrong_2",
+          "name": "sounds/mob/sheep/say2",
+          "pitch": 0.74,
           "volume": 0.9
         },
         {
-          "name": "sounds/hollow/borrowed/baa_wrong_3",
+          "name": "sounds/mob/sheep/say3",
+          "pitch": 0.74,
           "volume": 0.9
         }
       ],
+      "subtitle": "subtitles.hollow.borrowed.baa_wrong",
       "min_distance": 2.0,
       "max_distance": 28.0
     },
@@ -472,6 +497,7 @@
           "volume": 1.0
         }
       ],
+      "subtitle": "subtitles.hollow.borrowed.reveal",
       "min_distance": 2.0,
       "max_distance": 32.0
     },
@@ -487,6 +513,7 @@
           "volume": 1.0
         }
       ],
+      "subtitle": "subtitles.hollow.borrowed.attack",
       "min_distance": 2.0,
       "max_distance": 24.0
     },
@@ -506,6 +533,7 @@
           "volume": 0.9
         }
       ],
+      "subtitle": "subtitles.hollow.borrowed.hurt",
       "min_distance": 2.0,
       "max_distance": 24.0
     },
@@ -517,6 +545,7 @@
           "volume": 1.0
         }
       ],
+      "subtitle": "subtitles.hollow.borrowed.death",
       "min_distance": 2.0,
       "max_distance": 32.0
     },
@@ -524,18 +553,27 @@
       "category": "neutral",
       "sounds": [
         {
-          "name": "sounds/hollow/borrowed/step_1",
+          "name": "sounds/mob/sheep/step1",
           "volume": 0.35
         },
         {
-          "name": "sounds/hollow/borrowed/step_2",
+          "name": "sounds/mob/sheep/step2",
           "volume": 0.35
         },
         {
-          "name": "sounds/hollow/borrowed/step_3",
+          "name": "sounds/mob/sheep/step3",
+          "volume": 0.35
+        },
+        {
+          "name": "sounds/mob/sheep/step4",
+          "volume": 0.35
+        },
+        {
+          "name": "sounds/mob/sheep/step5",
           "volume": 0.35
         }
       ],
+      "subtitle": "subtitles.hollow.borrowed.step",
       "min_distance": 1.0,
       "max_distance": 12.0
     },
@@ -559,6 +597,7 @@
           "volume": 1.0
         }
       ],
+      "subtitle": "subtitles.hollow.knocker.knock",
       "min_distance": 3.0,
       "max_distance": 40.0
     },
@@ -578,6 +617,7 @@
           "volume": 0.9
         }
       ],
+      "subtitle": "subtitles.hollow.knocker.scratch",
       "min_distance": 2.0,
       "max_distance": 24.0
     },
@@ -593,6 +633,7 @@
           "volume": 0.8
         }
       ],
+      "subtitle": "subtitles.hollow.knocker.breath",
       "min_distance": 2.0,
       "max_distance": 16.0
     },
@@ -612,6 +653,7 @@
           "volume": 0.6
         }
       ],
+      "subtitle": "subtitles.hollow.knocker.step",
       "min_distance": 2.0,
       "max_distance": 20.0
     },
@@ -623,6 +665,7 @@
           "volume": 1.0
         }
       ],
+      "subtitle": "subtitles.hollow.knocker.lunge",
       "min_distance": 2.0,
       "max_distance": 32.0
     },
@@ -642,6 +685,7 @@
           "volume": 0.9
         }
       ],
+      "subtitle": "subtitles.hollow.knocker.hurt",
       "min_distance": 2.0,
       "max_distance": 24.0
     },
@@ -653,6 +697,7 @@
           "volume": 1.0
         }
       ],
+      "subtitle": "subtitles.hollow.knocker.death",
       "min_distance": 2.0,
       "max_distance": 32.0
     },
@@ -664,6 +709,7 @@
           "volume": 0.7
         }
       ],
+      "subtitle": "subtitles.hollow.knocker.leave",
       "min_distance": 4.0,
       "max_distance": 40.0
     },
@@ -680,7 +726,8 @@
           "volume": 0.45,
           "is3D": false
         }
-      ]
+      ],
+      "subtitle": "subtitles.hollow.amb.bedtime_knock"
     },
     "hollow.mirebound.bubble": {
       "category": "hostile",
@@ -702,6 +749,7 @@
           "volume": 0.6
         }
       ],
+      "subtitle": "subtitles.hollow.mirebound.bubble",
       "min_distance": 2.0,
       "max_distance": 24.0
     },
@@ -721,6 +769,7 @@
           "volume": 0.8
         }
       ],
+      "subtitle": "subtitles.hollow.mirebound.gurgle",
       "min_distance": 2.0,
       "max_distance": 28.0
     },
@@ -736,6 +785,7 @@
           "volume": 1.0
         }
       ],
+      "subtitle": "subtitles.hollow.mirebound.erupt",
       "min_distance": 2.0,
       "max_distance": 32.0
     },
@@ -751,6 +801,7 @@
           "volume": 1.0
         }
       ],
+      "subtitle": "subtitles.hollow.mirebound.grab",
       "min_distance": 2.0,
       "max_distance": 24.0
     },
@@ -762,6 +813,7 @@
           "volume": 0.9
         }
       ],
+      "subtitle": "subtitles.hollow.mirebound.release",
       "min_distance": 2.0,
       "max_distance": 24.0
     },
@@ -781,6 +833,7 @@
           "volume": 0.9
         }
       ],
+      "subtitle": "subtitles.hollow.mirebound.hurt",
       "min_distance": 2.0,
       "max_distance": 24.0
     },
@@ -792,6 +845,7 @@
           "volume": 1.0
         }
       ],
+      "subtitle": "subtitles.hollow.mirebound.death",
       "min_distance": 2.0,
       "max_distance": 32.0
     },
@@ -807,6 +861,7 @@
           "volume": 1.0
         }
       ],
+      "subtitle": "subtitles.hollow.heart.beat",
       "min_distance": 6.0,
       "max_distance": 64.0
     },
@@ -818,6 +873,7 @@
           "volume": 1.0
         }
       ],
+      "subtitle": "subtitles.hollow.heart.beat_fast",
       "min_distance": 6.0,
       "max_distance": 64.0
     },
@@ -829,6 +885,7 @@
           "volume": 1.0
         }
       ],
+      "subtitle": "subtitles.hollow.heart.awaken",
       "min_distance": 8.0,
       "max_distance": 96.0
     },
@@ -840,6 +897,7 @@
           "volume": 0.6
         }
       ],
+      "subtitle": "subtitles.hollow.heart.drone",
       "min_distance": 8.0,
       "max_distance": 48.0
     },
@@ -855,6 +913,7 @@
           "volume": 1.0
         }
       ],
+      "subtitle": "subtitles.hollow.heart.root_warn",
       "min_distance": 2.0,
       "max_distance": 32.0
     },
@@ -874,6 +933,7 @@
           "volume": 1.0
         }
       ],
+      "subtitle": "subtitles.hollow.heart.root_strike",
       "min_distance": 2.0,
       "max_distance": 32.0
     },
@@ -889,6 +949,7 @@
           "volume": 1.0
         }
       ],
+      "subtitle": "subtitles.hollow.heart.pulse",
       "min_distance": 4.0,
       "max_distance": 48.0
     },
@@ -900,6 +961,7 @@
           "volume": 1.0
         }
       ],
+      "subtitle": "subtitles.hollow.heart.phase",
       "min_distance": 8.0,
       "max_distance": 96.0
     },
@@ -919,6 +981,7 @@
           "volume": 0.9
         }
       ],
+      "subtitle": "subtitles.hollow.heart.hurt",
       "min_distance": 4.0,
       "max_distance": 40.0
     },
@@ -930,6 +993,7 @@
           "volume": 1.0
         }
       ],
+      "subtitle": "subtitles.hollow.heart.death",
       "min_distance": 8.0,
       "max_distance": 128.0
     },
@@ -945,6 +1009,7 @@
           "volume": 1.0
         }
       ],
+      "subtitle": "subtitles.hollow.heart.vein_break",
       "min_distance": 4.0,
       "max_distance": 40.0
     },
@@ -956,6 +1021,7 @@
           "volume": 0.9
         }
       ],
+      "subtitle": "subtitles.hollow.heart.spawn",
       "min_distance": 4.0,
       "max_distance": 32.0
     },
@@ -975,6 +1041,7 @@
           "volume": 0.8
         }
       ],
+      "subtitle": "subtitles.hollow.chime.ring",
       "min_distance": 4.0,
       "max_distance": 32.0
     },
@@ -990,6 +1057,7 @@
           "volume": 0.9
         }
       ],
+      "subtitle": "subtitles.hollow.ward.repel",
       "min_distance": 4.0,
       "max_distance": 32.0
     },
@@ -1001,6 +1069,7 @@
           "volume": 0.8
         }
       ],
+      "subtitle": "subtitles.hollow.ward.place",
       "min_distance": 2.0,
       "max_distance": 16.0
     },
@@ -1012,6 +1081,7 @@
           "volume": 0.8
         }
       ],
+      "subtitle": "subtitles.hollow.ward.spent",
       "min_distance": 2.0,
       "max_distance": 16.0
     },
@@ -1023,6 +1093,7 @@
           "volume": 0.7
         }
       ],
+      "subtitle": "subtitles.hollow.lens.use",
       "min_distance": 1.0,
       "max_distance": 8.0
     },
@@ -1039,7 +1110,8 @@
           "volume": 0.8,
           "is3D": false
         }
-      ]
+      ],
+      "subtitle": "subtitles.hollow.journal.open"
     },
     "hollow.journal.entry": {
       "category": "ui",
@@ -1049,7 +1121,8 @@
           "volume": 0.8,
           "is3D": false
         }
-      ]
+      ],
+      "subtitle": "subtitles.hollow.journal.entry"
     },
     "hollow.heartseeker.pulse": {
       "category": "player",
@@ -1059,6 +1132,7 @@
           "volume": 0.8
         }
       ],
+      "subtitle": "subtitles.hollow.heartseeker.pulse",
       "min_distance": 1.0,
       "max_distance": 8.0
     },
@@ -1070,6 +1144,7 @@
           "volume": 1.0
         }
       ],
+      "subtitle": "subtitles.hollow.altar.insert",
       "min_distance": 4.0,
       "max_distance": 48.0
     },
@@ -1086,7 +1161,8 @@
           "volume": 0.8,
           "is3D": false
         }
-      ]
+      ],
+      "subtitle": "subtitles.hollow.stinger.low"
     },
     "hollow.stinger.distant": {
       "category": "ambient",
@@ -1100,6 +1176,77 @@
           "name": "sounds/hollow/stinger/distant_2",
           "volume": 0.6,
           "is3D": false
+        }
+      ],
+      "subtitle": "subtitles.hollow.stinger.distant"
+    },
+    "hollow.music.night_1": {
+      "category": "music",
+      "sounds": [
+        {
+          "name": "sounds/hollow/music/night_1",
+          "stream": true,
+          "volume": 0.7
+        }
+      ]
+    },
+    "hollow.music.night_2": {
+      "category": "music",
+      "sounds": [
+        {
+          "name": "sounds/hollow/music/night_2",
+          "stream": true,
+          "volume": 0.7
+        }
+      ]
+    },
+    "hollow.music.night_3": {
+      "category": "music",
+      "sounds": [
+        {
+          "name": "sounds/hollow/music/night_3",
+          "stream": true,
+          "volume": 0.7
+        }
+      ]
+    },
+    "hollow.music.cave": {
+      "category": "music",
+      "sounds": [
+        {
+          "name": "sounds/hollow/music/cave",
+          "stream": true,
+          "volume": 0.7
+        }
+      ]
+    },
+    "hollow.music.shrine": {
+      "category": "music",
+      "sounds": [
+        {
+          "name": "sounds/hollow/music/shrine",
+          "stream": true,
+          "volume": 0.7
+        }
+      ]
+    },
+    "hollow.music.boss": {
+      "category": "music",
+      "sounds": [
+        {
+          "name": "sounds/hollow/music/boss",
+          "stream": true,
+          "volume": 0.7
+        }
+      ]
+    },
+    "hollow.music.dawn": {
+      "category": "music",
+      "sounds": [
+        {
+          "name": "sounds/hollow/music/dawn",
+          "stream": true,
+          "volume": 0.7
         }
       ]
     }

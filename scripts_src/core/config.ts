@@ -53,9 +53,11 @@ export interface PlayerPrefs {
   visualFx: boolean;
   /** Action-bar hints that explain what just happened. */
   hints: boolean;
+  /** THE HOLLOW's own music cues (night, cave, shrine, boss, dawn). */
+  music: boolean;
 }
 
-export const PREF_DEFAULTS: PlayerPrefs = { ambience: 80, accents: 1, visualFx: true, hints: true };
+export const PREF_DEFAULTS: PlayerPrefs = { ambience: 80, accents: 1, visualFx: true, hints: true, music: true };
 
 let worldCache: WorldSettings | undefined;
 const prefCache = new Map<string, PlayerPrefs>();
@@ -96,6 +98,7 @@ export function savePrefs(player: Player, p: PlayerPrefs): void {
     accents: Math.max(0, Math.min(2, Math.round(p.accents))),
     visualFx: !!p.visualFx,
     hints: !!p.hints,
+    music: p.music !== false,
   };
   prefCache.set(player.id, clean);
   writeEntity(player, DP.prefs, clean);

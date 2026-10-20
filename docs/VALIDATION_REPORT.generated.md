@@ -14,7 +14,7 @@ Errors: **0** · Warnings: **0**
 - JSON syntax: 252 files parsed
 - script module @minecraft/server 2.10.0: present in Minecraft 1.26.50 metadata (stable, no -beta suffix)
 - script module @minecraft/server-ui 2.2.0: present in Minecraft 1.26.50 metadata (stable, no -beta suffix)
-- sounds: 70 events, 153 files
+- sounds: 77 events, 161 files (11 vanilla references); subtitles checked against lang
 - recipes: 7
 - texture sets: 17
 - structure hollow:shrine: 25x13x25, 14 palette entries
