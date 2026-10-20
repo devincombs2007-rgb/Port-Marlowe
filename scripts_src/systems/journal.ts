@@ -9,6 +9,7 @@ import { DP, ITEM, SND } from "../core/ids";
 import { readEntity, writeEntity } from "../core/store";
 import { hollowDay, hollowNight } from "../core/time";
 import { openSettings } from "./settings_ui";
+import { fieldNotes } from "./field_notes";
 
 interface JournalData {
   /** unlocked entry ids */
@@ -18,12 +19,15 @@ interface JournalData {
 }
 
 const cache = new Map<string, JournalData>();
+const discoveries = new Map<string, { run: number; ids: Set<string> }>();
 
 function data(p: Player): JournalData {
   let d = cache.get(p.id);
   if (!d) {
     const raw = readEntity<JournalData>(p, DP.journal, { u: [], r: [] });
-    d = { u: Array.isArray(raw.u) ? raw.u : [], r: Array.isArray(raw.r) ? raw.r : [] };
+    const valid = (v: unknown): v is string => typeof v === "string" && ENTRY_BY_ID.has(v);
+    const u = [...new Set(Array.isArray(raw.u) ? raw.u.filter(valid) : [])];
+    d = { u, r: [...new Set(Array.isArray(raw.r) ? raw.r.filter((id) => valid(id) && u.includes(id)) : [])] };
     cache.set(p.id, d);
   }
   return d;
@@ -34,7 +38,14 @@ function save(p: Player, d: JournalData): void {
 }
 
 export function forgetJournal(playerId: string): void {
+  cancelJournalNotices(playerId);
   cache.delete(playerId);
+}
+
+export function cancelJournalNotices(playerId: string): void {
+  const pending = discoveries.get(playerId);
+  if (pending) system.clearRun(pending.run);
+  discoveries.delete(playerId);
 }
 
 export function hasEntry(p: Player, id: string): boolean {
@@ -49,12 +60,22 @@ export function unlock(p: Player, id: string, quiet = false): boolean {
   d.u.push(id);
   save(p, d);
   if (!quiet) {
-    const e = ENTRY_BY_ID.get(id)!;
-    system.runTimeout(() => {
-      if (!p.isValid) return;
-      notice(p, `§7New journal entry: §f${e.title}`);
-      ui(p, SND.journalEntry, 0.8);
-    }, 30);
+    const pending = discoveries.get(p.id);
+    if (pending) pending.ids.add(id);
+    else {
+      const ids = new Set([id]);
+      const run = system.runTimeout(() => {
+        discoveries.delete(p.id);
+        if (!p.isValid) return;
+        const unread = [...ids].filter((entry) => !data(p).r.includes(entry));
+        if (unread.length === 0) return;
+        notice(p, unread.length === 1
+          ? `§7New journal entry: §f${ENTRY_BY_ID.get(unread[0])!.title}`
+          : `§7${unread.length} new journal entries. §fOpen your Field Journal to read them.`);
+        ui(p, SND.journalEntry, 0.8);
+      }, 30);
+      discoveries.set(p.id, { run, ids });
+    }
   }
   return true;
 }
@@ -116,10 +137,10 @@ function threatsAwake(): string {
   const hunting = day >= s.graceDays;
   const lines: string[] = [];
   if (s.watcher) lines.push(hunting ? "§7• In the woods after dusk, something watches." : "§7• The woods feel watched, but nothing hunts yet.");
-  if (s.borrowed && day >= 1) lines.push("§7• Count the flocks.");
+  if (s.borrowed && hunting && day >= 1) lines.push("§7• Count the flocks.");
   if (s.hollowed && hunting) lines.push("§7• Deep tunnels click.");
-  if (s.mirebound && day >= 2) lines.push("§7• The shallows are not empty.");
-  if (s.knocker) lines.push(night >= s.knockerNight ? "§7• Keep your door closed at night." : "§7• Nights are quiet at the door, for now.");
+  if (s.mirebound && hunting && day >= 2) lines.push("§7• The shallows are not empty.");
+  if (s.knocker) lines.push(hunting && night >= s.knockerNight ? "§7• Keep your door closed at night." : "§7• Nights are quiet at the door, for now.");
   return lines.join("\n");
 }
 
@@ -142,10 +163,27 @@ async function openJournalMenu(p: Player): Promise<void> {
     form.button(`${ch.title}${unreadIn(ch.id) ? " §6(new)" : ""}\n§8${count} entries`, ch.icon);
   }
   form.button("Settings\n§8comfort & world rules", "textures/ui/hollow/settings");
+  form.button("Field conditions & next steps\n§8local checks and a suggested recipe", "textures/items/hollow/field_journal");
   const r = await showForm(p, form);
   if (!r || r.canceled || r.selection === undefined) return;
   if (r.selection < CHAPTERS.length) await openChapter(p, CHAPTERS[r.selection].id);
-  else await openSettings(p, isOperator(p));
+  else if (r.selection === CHAPTERS.length) await openSettings(p, isOperator(p));
+  else if (r.selection === CHAPTERS.length + 1) await openFieldNotes(p);
+}
+
+async function openFieldNotes(p: Player): Promise<void> {
+  while (p.isValid) {
+    const report = fieldNotes(p, (id) => hasEntry(p, id));
+    const form = new ActionFormData().title("§lField Conditions").body(report.body);
+    form.button("Refresh", "textures/items/hollow/field_journal");
+    if (report.recipe) form.button("Read suggested recipe", ENTRY_BY_ID.get(report.recipe)!.icon);
+    form.button("§8Back", "textures/ui/hollow/back");
+    const r = await showForm(p, form);
+    if (!r || r.canceled || r.selection === undefined) return;
+    if (r.selection === 0) continue;
+    if (report.recipe && r.selection === 1) return openEntry(p, report.recipe, "craft");
+    return openJournalMenu(p);
+  }
 }
 
 async function openChapter(p: Player, ch: Chapter): Promise<void> {

@@ -1,5 +1,5 @@
 // ../../scripts_src/main.ts
-import { ItemStack as ItemStack9, Player as Player20, system as system6, world as world18 } from "@minecraft/server";
+import { ItemStack as ItemStack9, Player as Player21, system as system6, world as world19 } from "@minecraft/server";
 
 // ../../scripts_src/core/config.ts
 import { PlayerPermissionLevel } from "@minecraft/server";
@@ -522,9 +522,6 @@ function debug(msg) {
 // ../../scripts_src/core/players.ts
 import { Difficulty, GameMode, world as world4 } from "@minecraft/server";
 
-// ../../scripts_src/core/world.ts
-import { BlockVolume, EquipmentSlot } from "@minecraft/server";
-
 // ../../scripts_src/core/math.ts
 var add = (a, b) => ({ x: a.x + b.x, y: a.y + b.y, z: a.z + b.z });
 var sub = (a, b) => ({ x: a.x - b.x, y: a.y - b.y, z: a.z - b.z });
@@ -574,6 +571,7 @@ function compass(from, to) {
 }
 
 // ../../scripts_src/core/world.ts
+import { BlockVolume, EquipmentSlot } from "@minecraft/server";
 var DOORS = [
   "minecraft:wooden_door",
   "minecraft:spruce_door",
@@ -878,7 +876,7 @@ function forgetRuntime(playerId) {
 }
 function ctx(p, maxAge = 40) {
   const r = rt(p);
-  if (r.ctx && now() - r.ctxAt <= maxAge) return r.ctx;
+  if (r.ctx && r.ctxDim === p.dimension.id && r.ctxPos && distSq(r.ctxPos, p.location) < 64 && r.ctx.inWater === p.isInWater && now() - r.ctxAt <= maxAge) return r.ctx;
   const dim = p.dimension;
   const ow = isOverworld(dim);
   const c = {
@@ -890,6 +888,8 @@ function ctx(p, maxAge = 40) {
     y: p.location.y
   };
   r.ctx = c;
+  r.ctxDim = dim.id;
+  r.ctxPos = { ...p.location };
   r.ctxAt = now();
   return c;
 }
@@ -963,22 +963,22 @@ function failureReport() {
 }
 
 // ../../scripts_src/creatures/borrowed.ts
-import { Player as Player15, world as world13 } from "@minecraft/server";
+import { Player as Player16, world as world14 } from "@minecraft/server";
 
 // ../../scripts_src/items/blocks.ts
 import {
   BlockPermutation as BlockPermutation3,
   EquipmentSlot as EquipmentSlot4,
-  GameMode as GameMode4,
+  GameMode as GameMode5,
   ItemStack as ItemStack5,
-  world as world12
+  world as world13
 } from "@minecraft/server";
 
 // ../../scripts_src/creatures/heart.ts
-import { EntityDamageCause, EquipmentSlot as EquipmentSlot3, GameMode as GameMode3, ItemStack as ItemStack4, Player as Player13, world as world11 } from "@minecraft/server";
+import { EntityDamageCause, EquipmentSlot as EquipmentSlot3, GameMode as GameMode4, ItemStack as ItemStack4, Player as Player14, world as world12 } from "@minecraft/server";
 
 // ../../scripts_src/items/components.ts
-import { EquipmentSlot as EquipmentSlot2, GameMode as GameMode2, Player as Player11, system as system5, world as world9 } from "@minecraft/server";
+import { EquipmentSlot as EquipmentSlot2, GameMode as GameMode3, Player as Player12, system as system5, world as world10 } from "@minecraft/server";
 
 // ../../scripts_src/systems/journal.ts
 import { ItemLockMode, ItemStack, system as system4 } from "@minecraft/server";
@@ -1357,13 +1357,157 @@ async function openWorld(p) {
   notice(p, "§7World rules saved.");
 }
 
+// ../../scripts_src/systems/field_notes.ts
+import { Difficulty as Difficulty2, GameMode as GameMode2, world as world7 } from "@minecraft/server";
+
+// ../../scripts_src/systems/noise.ts
+import { Player as Player7, world as world6 } from "@minecraft/server";
+var listeners = [];
+var activeCheck = () => false;
+function onNoise(fn) {
+  listeners.push(fn);
+}
+function setListenerCheck(fn) {
+  activeCheck = fn;
+}
+function emitNoise(n) {
+  if (!activeCheck(n.dim, n.at, n.radius)) return;
+  for (const l of listeners) safe("noise.listener", () => l(n));
+}
+var INTERACT_LOUD = ["door", "trapdoor", "fence_gate", "chest", "barrel", "shulker_box", "lever", "button"];
+function quietFloor(p) {
+  const below = block(p.dimension, { x: p.location.x, y: p.location.y - 0.2, z: p.location.z });
+  if (!below) return false;
+  const id = below.typeId;
+  return id.endsWith("_wool") || id.endsWith("_carpet") || id === "minecraft:moss_carpet";
+}
+var moveState = /* @__PURE__ */ new Map();
+function movementNoise(p, observeOnly = false) {
+  if (p.isSneaking) return { radius: 0, kind: "move" };
+  const v = p.getVelocity();
+  const speed = Math.hypot(v.x, v.z);
+  const st3 = { ...moveState.get(p.id) ?? { airborne: false, lastLand: -999 } };
+  const wasAir = st3.airborne;
+  st3.airborne = !p.isOnGround;
+  let landed = false;
+  if (wasAir && p.isOnGround && now() - st3.lastLand > 10) {
+    landed = true;
+    st3.lastLand = now();
+  }
+  if (!observeOnly) moveState.set(p.id, st3);
+  if (quietFloor(p)) return { radius: 0, kind: "move" };
+  if (p.isSprinting && speed > 0.05) return { radius: 16, kind: "sprint" };
+  if (landed || p.isJumping) return { radius: 8, kind: "jump" };
+  if (speed > 0.04) return { radius: 6, kind: "move" };
+  return { radius: 0, kind: "move" };
+}
+function noiseDescription(p) {
+  const { radius, kind } = movementNoise(p, true);
+  if (radius === 0) return p.isSneaking ? "silent (sneaking)" : "silent";
+  const word = radius >= 16 ? "loud" : radius >= 8 ? "noticeable" : "soft";
+  return `${word} (${kind === "sprint" ? "sprinting" : kind === "jump" ? "jumping" : "walking"}, ${radius} blocks)`;
+}
+function forgetNoise(playerId) {
+  moveState.delete(playerId);
+}
+function startNoiseEvents() {
+  const ev = world6.afterEvents;
+  ev.playerBreakBlock.subscribe((e) => emitNoise({ dim: e.dimension, at: e.block.location, radius: 12, kind: "break", source: e.player }));
+  ev.playerPlaceBlock.subscribe((e) => emitNoise({ dim: e.dimension, at: e.block.location, radius: 8, kind: "place", source: e.player }));
+  ev.playerInteractWithBlock.subscribe((e) => {
+    const id = e.block.typeId;
+    if (INTERACT_LOUD.some((k) => id.includes(k))) {
+      emitNoise({ dim: e.block.dimension, at: e.block.location, radius: 10, kind: "use", source: e.player });
+    }
+  });
+  ev.leverAction.subscribe((e) => emitNoise({ dim: e.dimension, at: e.block.location, radius: 10, kind: "redstone", source: e.player }));
+  ev.buttonPush.subscribe((e) => emitNoise({ dim: e.dimension, at: e.block.location, radius: 10, kind: "redstone" }));
+  ev.pressurePlatePush.subscribe((e) => emitNoise({ dim: e.dimension, at: e.block.location, radius: 10, kind: "redstone" }));
+  ev.tripWireTrip.subscribe((e) => emitNoise({ dim: e.dimension, at: e.block.location, radius: 10, kind: "redstone" }));
+  ev.pistonActivate.subscribe((e) => emitNoise({ dim: e.dimension, at: e.block.location, radius: 10, kind: "redstone" }));
+  ev.explosion.subscribe((e) => {
+    const src = e.source;
+    const at = src?.isValid ? src.location : e.getImpactedBlocks()[0]?.location;
+    if (at) emitNoise({ dim: e.dimension, at, radius: 40, kind: "explosion" });
+  });
+  ev.projectileHitBlock.subscribe((e) => emitNoise({ dim: e.dimension, at: e.location, radius: 12, kind: "impact" }));
+  ev.projectileHitEntity.subscribe((e) => emitNoise({ dim: e.dimension, at: e.location, radius: 12, kind: "impact" }));
+  ev.entityHurt.subscribe((e) => {
+    const hurt2 = e.hurtEntity;
+    const by = e.damageSource.damagingEntity;
+    const player = hurt2 instanceof Player7 ? hurt2 : by instanceof Player7 ? by : void 0;
+    if (!player || !hurt2.isValid) return;
+    emitNoise({ dim: hurt2.dimension, at: hurt2.location, radius: 14, kind: "combat", source: player });
+  });
+}
+
+// ../../scripts_src/systems/field_notes.ts
+function fieldNotes(p, has) {
+  const c = ctx(p, 0);
+  const s = settings();
+  const t = tod();
+  const phase = t < 12e3 ? "daylight" : t < 13e3 ? "dusk" : t < 23200 ? "night" : "dawn";
+  const carried = /* @__PURE__ */ new Set();
+  const inv = p.getComponent("minecraft:inventory")?.container;
+  if (inv) for (let i = 0; i < inv.size; i++) {
+    const item = inv.getItem(i);
+    if (item) carried.add(item.typeId);
+  }
+  const w = wardNear(p.dimension, p.location);
+  const used = w ? getCustomState(w.permutation, "hollow:used") : void 0;
+  const charges = typeof used === "number" ? Math.max(0, Math.min(4, 4 - used)) : 0;
+  const grace = Math.max(0, s.graceDays - hollowDay());
+  const gm = p.getGameMode();
+  const pacing = world7.getDifficulty() === Difficulty2.Peaceful ? "Peaceful: regular hunts paused" : gm === GameMode2.Creative || gm === GameMode2.Spectator ? "Regular hunts paused in this game mode" : now() - rt(p).diedAt <= 1200 ? "Brief recovery period after respawn" : isNewcomer(p) && !isTestMode() ? "New arrival: settling-in period still active" : grace > 0 ? `World grace: regular hunts start on day ${s.graceDays + 1}` : "Regular encounter rules active";
+  const terrain = !c.overworld ? "beyond the Overworld" : c.underground ? "underground" : c.inWater ? "in water" : c.roofed ? "roof overhead" : "open sky";
+  const light = holdingLight(p) ? "carrying a light" : inLitArea(p) ? "placed light nearby" : "no shelter light detected";
+  const ward = w ? `charged ward within 10 blocks (${charges}/4)` : "no charged ward detected";
+  const protection = lanternNear(p.dimension, p.location) ? "Heartwood Lantern protection nearby" : ward;
+  let recipe = "craft_chime";
+  let next = "Build a roof and closed door. Carry a torch after dusk; a chime warns you of visitors.";
+  if (has("after")) {
+    recipe = "craft_lantern";
+    next = carried.has(ITEM.lantern) ? "Place your Heartwood Lantern at home. Its registered protection reaches 24 blocks." : "Turn the Stilled Heart into a Heartwood Lantern for your home.";
+  } else if (has("heart1") && has("craft_offering")) {
+    recipe = "craft_offering";
+    next = "Prepare the offering, food and equipment. Read your shrine notes before deciding to wake it.";
+  } else if (has("craft_heartseeker")) {
+    recipe = "craft_heartseeker";
+    next = carried.has(ITEM.heartseeker) ? "Use your Heartseeker in the Overworld and follow its bearings." : "Craft a Heartseeker when you are ready to investigate farther.";
+    if (!s.sites) next += " New shrine placement is disabled in World rules.";
+  } else if (has("craft_lens")) {
+    recipe = "craft_lens";
+    next = carried.has(ITEM.lens) ? "Use your Hollow Lens to investigate fresh tracks and suspicious animals. Each scan wears the lens." : "You have learned the Hollow Lens recipe. Craft it to investigate tracks and suspicious animals.";
+  } else if (has("watcher1")) {
+    recipe = "craft_ward";
+    next = "Read your discovered Watcher notes. Improve the shelter and learn its warnings before venturing out.";
+  }
+  if (!has(recipe)) recipe = "";
+  return {
+    body: `§7Day ${hollowDay() + 1} · ${phase} · ${terrain}
+§7Light: ${light}
+§7Equipment: ${protection}
+§7Movement: ${noiseDescription(p)}
+§7Pacing: ${pacing}
+
+§lNext step§r
+${next}
+
+§8Local checks are not a guarantee of safety. Refresh after moving.`,
+    recipe
+  };
+}
+
 // ../../scripts_src/systems/journal.ts
 var cache = /* @__PURE__ */ new Map();
+var discoveries = /* @__PURE__ */ new Map();
 function data(p) {
   let d = cache.get(p.id);
   if (!d) {
     const raw = readEntity(p, DP.journal, { u: [], r: [] });
-    d = { u: Array.isArray(raw.u) ? raw.u : [], r: Array.isArray(raw.r) ? raw.r : [] };
+    const valid = (v) => typeof v === "string" && ENTRY_BY_ID.has(v);
+    const u = [...new Set(Array.isArray(raw.u) ? raw.u.filter(valid) : [])];
+    d = { u, r: [...new Set(Array.isArray(raw.r) ? raw.r.filter((id) => valid(id) && u.includes(id)) : [])] };
     cache.set(p.id, d);
   }
   return d;
@@ -1372,7 +1516,13 @@ function save(p, d) {
   writeEntity(p, DP.journal, d);
 }
 function forgetJournal(playerId) {
+  cancelJournalNotices(playerId);
   cache.delete(playerId);
+}
+function cancelJournalNotices(playerId) {
+  const pending = discoveries.get(playerId);
+  if (pending) system4.clearRun(pending.run);
+  discoveries.delete(playerId);
 }
 function hasEntry(p, id) {
   return data(p).u.includes(id);
@@ -1384,12 +1534,20 @@ function unlock(p, id, quiet = false) {
   d.u.push(id);
   save(p, d);
   if (!quiet) {
-    const e = ENTRY_BY_ID.get(id);
-    system4.runTimeout(() => {
-      if (!p.isValid) return;
-      notice(p, `§7New journal entry: §f${e.title}`);
-      ui(p, SND.journalEntry, 0.8);
-    }, 30);
+    const pending = discoveries.get(p.id);
+    if (pending) pending.ids.add(id);
+    else {
+      const ids = /* @__PURE__ */ new Set([id]);
+      const run = system4.runTimeout(() => {
+        discoveries.delete(p.id);
+        if (!p.isValid) return;
+        const unread = [...ids].filter((entry) => !data(p).r.includes(entry));
+        if (unread.length === 0) return;
+        notice(p, unread.length === 1 ? `§7New journal entry: §f${ENTRY_BY_ID.get(unread[0]).title}` : `§7${unread.length} new journal entries. §fOpen your Field Journal to read them.`);
+        ui(p, SND.journalEntry, 0.8);
+      }, 30);
+      discoveries.set(p.id, { run, ids });
+    }
   }
   return true;
 }
@@ -1435,10 +1593,10 @@ function threatsAwake() {
   const hunting = day >= s.graceDays;
   const lines = [];
   if (s.watcher) lines.push(hunting ? "§7• In the woods after dusk, something watches." : "§7• The woods feel watched, but nothing hunts yet.");
-  if (s.borrowed && day >= 1) lines.push("§7• Count the flocks.");
+  if (s.borrowed && hunting && day >= 1) lines.push("§7• Count the flocks.");
   if (s.hollowed && hunting) lines.push("§7• Deep tunnels click.");
-  if (s.mirebound && day >= 2) lines.push("§7• The shallows are not empty.");
-  if (s.knocker) lines.push(night >= s.knockerNight ? "§7• Keep your door closed at night." : "§7• Nights are quiet at the door, for now.");
+  if (s.mirebound && hunting && day >= 2) lines.push("§7• The shallows are not empty.");
+  if (s.knocker) lines.push(hunting && night >= s.knockerNight ? "§7• Keep your door closed at night." : "§7• Nights are quiet at the door, for now.");
   return lines.join("\n");
 }
 async function openJournal(p) {
@@ -1460,10 +1618,26 @@ async function openJournalMenu(p) {
 §8${count} entries`, ch.icon);
   }
   form.button("Settings\n§8comfort & world rules", "textures/ui/hollow/settings");
+  form.button("Field conditions & next steps\n§8local checks and a suggested recipe", "textures/items/hollow/field_journal");
   const r = await showForm(p, form);
   if (!r || r.canceled || r.selection === void 0) return;
   if (r.selection < CHAPTERS.length) await openChapter(p, CHAPTERS[r.selection].id);
-  else await openSettings(p, isOperator(p));
+  else if (r.selection === CHAPTERS.length) await openSettings(p, isOperator(p));
+  else if (r.selection === CHAPTERS.length + 1) await openFieldNotes(p);
+}
+async function openFieldNotes(p) {
+  while (p.isValid) {
+    const report = fieldNotes(p, (id) => hasEntry(p, id));
+    const form = new ActionFormData2().title("§lField Conditions").body(report.body);
+    form.button("Refresh", "textures/items/hollow/field_journal");
+    if (report.recipe) form.button("Read suggested recipe", ENTRY_BY_ID.get(report.recipe).icon);
+    form.button("§8Back", "textures/ui/hollow/back");
+    const r = await showForm(p, form);
+    if (!r || r.canceled || r.selection === void 0) return;
+    if (r.selection === 0) continue;
+    if (report.recipe && r.selection === 1) return openEntry(p, report.recipe, "craft");
+    return openJournalMenu(p);
+  }
 }
 async function openChapter(p, ch) {
   const d = data(p);
@@ -1498,87 +1672,6 @@ async function openEntry(p, id, back) {
   await openChapter(p, back);
 }
 
-// ../../scripts_src/systems/noise.ts
-import { Player as Player8, world as world6 } from "@minecraft/server";
-var listeners = [];
-var activeCheck = () => false;
-function onNoise(fn) {
-  listeners.push(fn);
-}
-function setListenerCheck(fn) {
-  activeCheck = fn;
-}
-function emitNoise(n) {
-  if (!activeCheck(n.dim, n.at, n.radius)) return;
-  for (const l of listeners) safe("noise.listener", () => l(n));
-}
-var INTERACT_LOUD = ["door", "trapdoor", "fence_gate", "chest", "barrel", "shulker_box", "lever", "button"];
-function quietFloor(p) {
-  const below = block(p.dimension, { x: p.location.x, y: p.location.y - 0.2, z: p.location.z });
-  if (!below) return false;
-  const id = below.typeId;
-  return id.endsWith("_wool") || id.endsWith("_carpet") || id === "minecraft:moss_carpet";
-}
-var moveState = /* @__PURE__ */ new Map();
-function movementNoise(p) {
-  if (p.isSneaking) return { radius: 0, kind: "move" };
-  const v = p.getVelocity();
-  const speed = Math.hypot(v.x, v.z);
-  const st3 = moveState.get(p.id) ?? { airborne: false, lastLand: -999 };
-  const wasAir = st3.airborne;
-  st3.airborne = !p.isOnGround;
-  let landed = false;
-  if (wasAir && p.isOnGround && now() - st3.lastLand > 10) {
-    landed = true;
-    st3.lastLand = now();
-  }
-  moveState.set(p.id, st3);
-  if (quietFloor(p)) return { radius: 0, kind: "move" };
-  if (p.isSprinting && speed > 0.05) return { radius: 16, kind: "sprint" };
-  if (landed || p.isJumping) return { radius: 8, kind: "jump" };
-  if (speed > 0.04) return { radius: 6, kind: "move" };
-  return { radius: 0, kind: "move" };
-}
-function noiseDescription(p) {
-  const { radius, kind } = movementNoise(p);
-  if (radius === 0) return p.isSneaking ? "silent (sneaking)" : "silent";
-  const word = radius >= 16 ? "loud" : radius >= 8 ? "noticeable" : "soft";
-  return `${word} (${kind === "sprint" ? "sprinting" : kind === "jump" ? "jumping" : "walking"}, ${radius} blocks)`;
-}
-function forgetNoise(playerId) {
-  moveState.delete(playerId);
-}
-function startNoiseEvents() {
-  const ev = world6.afterEvents;
-  ev.playerBreakBlock.subscribe((e) => emitNoise({ dim: e.dimension, at: e.block.location, radius: 12, kind: "break", source: e.player }));
-  ev.playerPlaceBlock.subscribe((e) => emitNoise({ dim: e.dimension, at: e.block.location, radius: 8, kind: "place", source: e.player }));
-  ev.playerInteractWithBlock.subscribe((e) => {
-    const id = e.block.typeId;
-    if (INTERACT_LOUD.some((k) => id.includes(k))) {
-      emitNoise({ dim: e.block.dimension, at: e.block.location, radius: 10, kind: "use", source: e.player });
-    }
-  });
-  ev.leverAction.subscribe((e) => emitNoise({ dim: e.dimension, at: e.block.location, radius: 10, kind: "redstone", source: e.player }));
-  ev.buttonPush.subscribe((e) => emitNoise({ dim: e.dimension, at: e.block.location, radius: 10, kind: "redstone" }));
-  ev.pressurePlatePush.subscribe((e) => emitNoise({ dim: e.dimension, at: e.block.location, radius: 10, kind: "redstone" }));
-  ev.tripWireTrip.subscribe((e) => emitNoise({ dim: e.dimension, at: e.block.location, radius: 10, kind: "redstone" }));
-  ev.pistonActivate.subscribe((e) => emitNoise({ dim: e.dimension, at: e.block.location, radius: 10, kind: "redstone" }));
-  ev.explosion.subscribe((e) => {
-    const src = e.source;
-    const at = src?.isValid ? src.location : e.getImpactedBlocks()[0]?.location;
-    if (at) emitNoise({ dim: e.dimension, at, radius: 40, kind: "explosion" });
-  });
-  ev.projectileHitBlock.subscribe((e) => emitNoise({ dim: e.dimension, at: e.location, radius: 12, kind: "impact" }));
-  ev.projectileHitEntity.subscribe((e) => emitNoise({ dim: e.dimension, at: e.location, radius: 12, kind: "impact" }));
-  ev.entityHurt.subscribe((e) => {
-    const hurt2 = e.hurtEntity;
-    const by = e.damageSource.damagingEntity;
-    const player = hurt2 instanceof Player8 ? hurt2 : by instanceof Player8 ? by : void 0;
-    if (!player || !hurt2.isValid) return;
-    emitNoise({ dim: hurt2.dimension, at: hurt2.location, radius: 14, kind: "combat", source: player });
-  });
-}
-
 // ../../scripts_src/systems/sites.ts
 import {
   BlockVolume as BlockVolume2,
@@ -1586,7 +1679,7 @@ import {
   LocationWaypoint,
   StructureRotation,
   WaypointTexture,
-  world as world7
+  world as world8
 } from "@minecraft/server";
 var DEFS = {
   cabin: { structures: ["hollow:cabin", "hollow:cabin_collapsed"], size: [11, 9, 11], sink: 1, spacing: 320, cap: 8, lootTable: "hollow/sites/cabin", journal: "place_cabin" },
@@ -1657,7 +1750,7 @@ function place(dim, t, origin) {
   const rot = pick([StructureRotation.None, StructureRotation.Rotate90, StructureRotation.Rotate180, StructureRotation.Rotate270]);
   const o = { x: Math.floor(origin.x), y: Math.floor(origin.y) - def.sink, z: Math.floor(origin.z) };
   try {
-    world7.structureManager.place(pick(def.structures), dim, o, { rotation: rot, includeEntities: false, waterlogged: false });
+    world8.structureManager.place(pick(def.structures), dim, o, { rotation: rot, includeEntities: false, waterlogged: false });
   } catch (e) {
     console.warn(`[hollow] could not place ${def.structures[0]}: ${e}`);
     return void 0;
@@ -1686,7 +1779,7 @@ function fill(dim, s) {
   const c = { x: s.x + Math.floor(s.sx / 2), y: s.y + 2, z: s.z + Math.floor(s.sz / 2) };
   const r = Math.max(s.sx, s.sz);
   const containers = findBlocks(dim, c, ["minecraft:chest", "minecraft:barrel"], Math.ceil(r / 2), s.sy, Math.ceil(r / 2), 4);
-  const mgr = world7.getLootTableManager();
+  const mgr = world8.getLootTableManager();
   const table = mgr.getLootTable(def.lootTable);
   for (const loc of containers) {
     const b = block(dim, loc);
@@ -1718,7 +1811,7 @@ function trySurfaceSite(p) {
   if (!c.overworld || c.underground || c.inWater || c.roofed) return;
   if (!chance(0.3)) return;
   const dim = p.dimension;
-  const spawn = world7.getDefaultSpawnLocation();
+  const spawn = world8.getDefaultSpawnLocation();
   if (distXZ(p.location, spawn) < 96) return;
   const bed = p.getSpawnPoint();
   if (c.biome !== "forest" && c.biome !== "open") return;
@@ -1796,18 +1889,23 @@ function useHeartseeker(p) {
   unlock(p, "heart1");
   try {
     const old = waypoints.get(p.id);
-    if (old?.isValid) p.locatorBar.removeWaypoint(old);
+    if (old?.point.isValid) p.locatorBar.removeWaypoint(old.point);
     const wp = new LocationWaypoint(
       { dimension: p.dimension, x: c.x, y: c.y, z: c.z },
       { textureBoundsList: [{ lowerBound: 0, texture: WaypointTexture.SmallStar }] },
       { red: 0.85, green: 0.25, blue: 0.2 }
     );
     p.locatorBar.addWaypoint(wp);
-    waypoints.set(p.id, wp);
+    waypoints.set(p.id, { player: p, point: wp });
   } catch {
   }
 }
 function forgetSites(playerId) {
+  const old = waypoints.get(playerId);
+  try {
+    if (old?.player.isValid && old.point.isValid) old.player.locatorBar.removeWaypoint(old.point);
+  } catch {
+  }
   waypoints.delete(playerId);
 }
 function discover(p) {
@@ -1825,7 +1923,7 @@ function startSites() {
     for (const s of [...allSites()]) {
       let dim;
       try {
-        dim = world7.getDimension(s.d);
+        dim = world8.getDimension(s.d);
       } catch {
         continue;
       }
@@ -1858,7 +1956,7 @@ function forceSite(p, t) {
 }
 
 // ../../scripts_src/systems/tracks.ts
-import { BlockPermutation as BlockPermutation2, world as world8 } from "@minecraft/server";
+import { BlockPermutation as BlockPermutation2, world as world9 } from "@minecraft/server";
 var CAP = 96;
 var LIFETIME = 24e3;
 var GROUND = /* @__PURE__ */ new Set([
@@ -1903,7 +2001,7 @@ function pressTrack(dim, at, kind, facing) {
   } catch {
     return false;
   }
-  l.push({ d: dim.id, x: cell.x, y: cell.y, z: cell.z, t: world8.getAbsoluteTime() });
+  l.push({ d: dim.id, x: cell.x, y: cell.y, z: cell.z, t: world9.getAbsoluteTime() });
   persist();
   return true;
 }
@@ -1927,7 +2025,7 @@ function standingPrints(e, kind) {
 function removeAt(t) {
   let dim;
   try {
-    dim = world8.getDimension(t.d);
+    dim = world9.getDimension(t.d);
     if (!dim.isChunkLoaded(t)) return false;
   } catch {
     return false;
@@ -1953,7 +2051,7 @@ function removeOldest() {
 function expire() {
   const l = list();
   if (l.length === 0) return;
-  const now2 = world8.getAbsoluteTime();
+  const now2 = world9.getAbsoluteTime();
   let changed = false;
   for (let i = l.length - 1; i >= 0; i--) {
     if (now2 - l[i].t < LIFETIME) continue;
@@ -2001,7 +2099,7 @@ var CREATURE_NAMES = {
 };
 function survivalish(p) {
   const gm = p.getGameMode();
-  return gm === GameMode2.Survival || gm === GameMode2.Adventure;
+  return gm === GameMode3.Survival || gm === GameMode3.Adventure;
 }
 function wearHeld(p, typeId) {
   if (!survivalish(p)) return;
@@ -2030,6 +2128,35 @@ function consumeHeld(p, typeId) {
   } else eq.setEquipment(EquipmentSlot2.Mainhand, void 0);
 }
 var revealTimers = /* @__PURE__ */ new Map();
+var itemSessions = /* @__PURE__ */ new Map();
+function forgetItemEffects(playerId) {
+  itemSessions.delete(playerId);
+  for (const [key, reveal2] of revealTimers) {
+    if (reveal2.player.id !== playerId) continue;
+    system5.clearRun(reveal2.run);
+    revealTimers.delete(key);
+    try {
+      if (reveal2.player.isValid && reveal2.entity.isValid) {
+        reveal2.player.removePropertyOverrideForEntity(reveal2.entity, PROP.revealed);
+      }
+    } catch {
+    }
+  }
+}
+function queueUse(p, typeId, action) {
+  let token = itemSessions.get(p.id);
+  if (!token) {
+    token = {};
+    itemSessions.set(p.id, token);
+  }
+  const dim = p.dimension.id;
+  system5.run(() => {
+    if (!p.isValid || itemSessions.get(p.id) !== token || p.dimension.id !== dim || heldItem(p) !== typeId) return;
+    const hp = p.getComponent("minecraft:health");
+    if (hp && hp.currentValue <= 0) return;
+    action();
+  });
+}
 function useLens(p) {
   if (!p.isValid || heldItem(p) !== ITEM.lens) return;
   ui(p, SND.lens, 1);
@@ -2043,14 +2170,15 @@ function useLens(p) {
       p.spawnParticle("hollow:lens_reveal", { x: b.location.x, y: b.location.y + 1.2, z: b.location.z });
       const key = `${p.id}|${b.id}`;
       const old = revealTimers.get(key);
-      if (old !== void 0) system5.clearRun(old);
-      revealTimers.set(key, system5.runTimeout(() => {
+      if (old) system5.clearRun(old.run);
+      const run = system5.runTimeout(() => {
         revealTimers.delete(key);
         try {
           if (p.isValid && b.isValid) p.removePropertyOverrideForEntity(b, PROP.revealed);
         } catch {
         }
-      }, 200));
+      }, 200);
+      revealTimers.set(key, { run, player: p, entity: b });
     } catch {
     }
   }
@@ -2084,13 +2212,13 @@ function registerItemComponents(ev) {
   ev.itemComponentRegistry.registerCustomComponent("hollow:journal", {
     onUse(e) {
       const p = e.source;
-      system5.run(() => void openJournal(p));
+      queueUse(p, ITEM.journal, () => void openJournal(p));
     }
   });
   ev.itemComponentRegistry.registerCustomComponent("hollow:torn_page", {
     onUse(e) {
       const p = e.source;
-      system5.run(() => {
+      queueUse(p, ITEM.page, () => {
         if (!p.isValid || heldItem(p) !== ITEM.page) return;
         const title = unlockNextLore(p);
         if (title) {
@@ -2105,13 +2233,13 @@ function registerItemComponents(ev) {
   ev.itemComponentRegistry.registerCustomComponent("hollow:lens", {
     onUse(e) {
       const p = e.source;
-      system5.run(() => useLens(p));
+      queueUse(p, ITEM.lens, () => useLens(p));
     }
   });
   ev.itemComponentRegistry.registerCustomComponent("hollow:heartseeker", {
     onUse(e) {
       const p = e.source;
-      system5.run(() => useHeartseeker(p));
+      queueUse(p, ITEM.heartseeker, () => useHeartseeker(p));
     }
   });
   ev.itemComponentRegistry.registerCustomComponent("hollow:material", {
@@ -2119,7 +2247,7 @@ function registerItemComponents(ev) {
     onUse(e) {
       const p = e.source;
       const id = e.itemStack?.typeId;
-      system5.run(() => describeMaterial(p, id));
+      if (id) queueUse(p, id, () => describeMaterial(p, id));
     }
   });
 }
@@ -2139,9 +2267,9 @@ function describeMaterial(p, id) {
   notice(p, h[1]);
 }
 function startMaterialPickups() {
-  world9.afterEvents.entityItemPickup.subscribe((ev) => {
+  world10.afterEvents.entityItemPickup.subscribe((ev) => {
     const p = ev.entity;
-    if (!(p instanceof Player11)) return;
+    if (!(p instanceof Player12)) return;
     for (const stack of ev.items) {
       const h = MATERIAL_HINTS[stack.typeId];
       if (h && !hasEntry(p, h[0])) describeMaterial(p, stack.typeId);
@@ -2150,12 +2278,12 @@ function startMaterialPickups() {
 }
 function giveOrDrop(p, stack) {
   const inv = p.getComponent("minecraft:inventory");
-  const left = inv?.container?.addItem(stack);
+  const left = inv?.container ? inv.container.addItem(stack) : stack;
   if (left) p.dimension.spawnItem(left, p.location);
 }
 
 // ../../scripts_src/creatures/hollowed.ts
-import { Player as Player12, world as world10 } from "@minecraft/server";
+import { Player as Player13, world as world11 } from "@minecraft/server";
 var hs = /* @__PURE__ */ new Map();
 var lures = /* @__PURE__ */ new Map();
 var hollowedCount = () => hs.size;
@@ -2226,7 +2354,7 @@ function spawnJuvenile(dim, at) {
 function placeLure(dim, at) {
   for (const l of lures.values()) {
     if (l.dim === dim.id && distSq(l.at, at) < 16) {
-      const e = world10.getEntity(l.id);
+      const e = world11.getEntity(l.id);
       if (e?.isValid) {
         try {
           e.teleport(at);
@@ -2252,7 +2380,7 @@ function placeLure(dim, at) {
 }
 function removeLure(l) {
   lures.delete(l.id);
-  const e = world10.getEntity(l.id);
+  const e = world11.getEntity(l.id);
   if (e?.isValid) {
     try {
       e.remove();
@@ -2267,7 +2395,7 @@ function hear(n) {
     if (h.dim !== n.dim.id) continue;
     const d = dist(h.pos, n.at);
     if (d > n.radius) continue;
-    const e = world10.getEntity(h.id);
+    const e = world11.getEntity(h.id);
     if (!e?.isValid) continue;
     heard = true;
     if (now() - h.alertAt > 80) {
@@ -2302,7 +2430,7 @@ function update() {
   const t = now();
   for (const l of [...lures.values()]) if (t - l.born > 200) removeLure(l);
   for (const h of [...hs.values()]) {
-    const e = world10.getEntity(h.id);
+    const e = world11.getEntity(h.id);
     if (!e?.isValid) {
       hs.delete(h.id);
       continue;
@@ -2344,7 +2472,7 @@ function update() {
 }
 function onHollowedDied(id, killer) {
   hs.delete(id);
-  if (killer instanceof Player12) unlock(killer, "hollowed3");
+  if (killer instanceof Player13) unlock(killer, "hollowed3");
 }
 function startHollowed() {
   setListenerCheck(listenersNear);
@@ -2415,7 +2543,7 @@ function arenaLoaded(dim) {
 }
 function dimOf() {
   try {
-    return world11.getDimension(boss.dim);
+    return world12.getDimension(boss.dim);
   } catch {
     return void 0;
   }
@@ -2431,7 +2559,7 @@ function arenaPlayers() {
 }
 function survival(p) {
   const gm = p.getGameMode();
-  return gm === GameMode3.Survival || gm === GameMode3.Adventure;
+  return gm === GameMode4.Survival || gm === GameMode4.Adventure;
 }
 function veinSpots(c) {
   const out = [];
@@ -2710,7 +2838,7 @@ function update2() {
   }
   missingSince = -1;
   for (const p of players) pushFog(p, FOG.heart, "hollow_heart");
-  boss.veins = boss.veins.filter((id) => world11.getEntity(id)?.isValid);
+  boss.veins = boss.veins.filter((id) => world12.getEntity(id)?.isValid);
   if (boss.veins.length === 0 && heart.getProperty("hollow:shielded") === true) rebindVeins(dim);
   if (boss.veins.length === 0 && boss.phase < 3 && heart.getProperty("hollow:shielded") === true) {
     try {
@@ -2747,7 +2875,7 @@ function update2() {
   }
 }
 function findHeart(dim) {
-  const byId = world11.getEntity(boss.heartId);
+  const byId = world12.getEntity(boss.heartId);
   if (byId?.isValid) return byId;
   try {
     for (const e of dim.getEntities({ type: ENT.heart, location: boss.center, maxDistance: 24 })) {
@@ -2774,7 +2902,7 @@ function rebindVeins(dim) {
 }
 function clearMinions() {
   for (const id of [...boss.veins, ...minions]) {
-    const e = world11.getEntity(id);
+    const e = world12.getEntity(id);
     if (e?.isValid) {
       try {
         e.remove();
@@ -2807,7 +2935,7 @@ function dormant(dim) {
   save2();
 }
 function onBossHurt(hurtEntity, amount, by) {
-  if (!isBossEntity(hurtEntity.id) || !(by instanceof Player13)) return;
+  if (!isBossEntity(hurtEntity.id) || !(by instanceof Player14)) return;
   boss.participants[by.id] = (boss.participants[by.id] ?? 0) + amount;
 }
 function onShieldHit(heart) {
@@ -2825,7 +2953,7 @@ function onHeartDied(id) {
   const winners = new Set(Object.keys(boss.participants));
   for (const p of arenaPlayers()) winners.add(p.id);
   for (const pid of winners) {
-    const p = world11.getEntity(pid);
+    const p = world12.getEntity(pid);
     if (!p?.isValid) continue;
     giveOrDrop(p, new ItemStack4(ITEM.stilledHeart, 1));
     p.addExperience(150);
@@ -2847,7 +2975,7 @@ function forgetBossPlayer(p) {
 }
 function forceBossPhase(phase) {
   if (!load().active || !boss.heartId) return "no Heart is awake (use the altar first)";
-  const heart = world11.getEntity(boss.heartId);
+  const heart = world12.getEntity(boss.heartId);
   const h = heart?.getComponent("minecraft:health");
   if (!heart || !h) return "the Heart is not loaded; stand in the arena";
   const set = (f) => h.setCurrentValue(Math.max(1, Math.floor(h.effectiveMax * f)));
@@ -2892,7 +3020,7 @@ function register(key, b, limit) {
   for (const s of [...l]) {
     let dim;
     try {
-      dim = world12.getDimension(s.d);
+      dim = world13.getDimension(s.d);
     } catch {
       continue;
     }
@@ -2994,7 +3122,7 @@ function ringChimes() {
   for (const s of [...l]) {
     let dim;
     try {
-      dim = world12.getDimension(s.d);
+      dim = world13.getDimension(s.d);
     } catch {
       continue;
     }
@@ -3022,7 +3150,7 @@ function ringChimes() {
 }
 function isSurvivalish(p) {
   const gm = p.getGameMode();
-  return gm === GameMode4.Survival || gm === GameMode4.Adventure;
+  return gm === GameMode5.Survival || gm === GameMode5.Adventure;
 }
 function registerBlockComponents(ev) {
   ev.blockComponentRegistry.registerCustomComponent("hollow:chime", {
@@ -3079,17 +3207,23 @@ function registerBlockComponents(ev) {
       if (!p) return;
       const b = e.block;
       const c = wardCharges(b);
+      if (!register(DP.wards, b, LIMITS[DP.wards])) {
+        notice(p, "§7This ward is inactive: 32 wards are already registered. Remove another ward, then use this one again. No charcoal spent.");
+        return;
+      }
       const eq = p.getComponent("minecraft:equippable");
       const held = eq?.getEquipment(EquipmentSlot4.Mainhand);
       if (held?.typeId === "minecraft:charcoal" && c < 4) {
-        setWardCharges(b, c + 1);
+        if (!setWardCharges(b, c + 1)) {
+          notice(p, "§7The ward could not be recharged. No charcoal spent; try again when the area is loaded.");
+          return;
+        }
         if (isSurvivalish(p)) {
           if (held.amount > 1) {
             held.amount -= 1;
             eq.setEquipment(EquipmentSlot4.Mainhand, held);
           } else eq.setEquipment(EquipmentSlot4.Mainhand, void 0);
         }
-        register(DP.wards, b, LIMITS[DP.wards]);
         worldSound(e.dimension, SND.wardPlace, b.center(), 0.8, 1.2);
         particle(e.dimension, PARTICLE.wardGlow, b.center());
         notice(p, `§7The ward smoulders. Charges: §f${c + 1}/4`);
@@ -3211,7 +3345,7 @@ function update3() {
   if (encs.size === 0) return;
   const t = now();
   for (const enc of [...encs.values()]) {
-    const e = world13.getEntity(enc.id);
+    const e = world14.getEntity(enc.id);
     if (!e || !e.isValid) {
       encs.delete(enc.id);
       continue;
@@ -3282,19 +3416,19 @@ function onBorrowedSheared(e, by) {
 function onBorrowedHurt(e, by) {
   const enc = encs.get(e.id);
   if (!enc) return;
-  if (enc.state === "disguised") reveal(e, enc, "hurt", by instanceof Player15 ? by : void 0);
+  if (enc.state === "disguised") reveal(e, enc, "hurt", by instanceof Player16 ? by : void 0);
   else if (enc.state === "revealed" && hpFraction2(e) < 0.4) setState(e, enc, "fleeing");
 }
 function onBorrowedDied(id, killer) {
   encs.delete(id);
-  if (killer instanceof Player15) {
+  if (killer instanceof Player16) {
     unlock(killer, "borrowed1");
     unlock(killer, "borrowed2");
   }
 }
 function forgetBorrowedTarget(playerId) {
   for (const enc of [...encs.values()]) {
-    if (enc.target === playerId && enc.state === "disguised") vanish(world13.getEntity(enc.id), enc);
+    if (enc.target === playerId && enc.state === "disguised") vanish(world14.getEntity(enc.id), enc);
   }
 }
 function startBorrowed() {
@@ -3302,7 +3436,7 @@ function startBorrowed() {
 }
 
 // ../../scripts_src/creatures/knocker.ts
-import { Difficulty as Difficulty2, ItemStack as ItemStack6, Player as Player16, world as world14 } from "@minecraft/server";
+import { Difficulty as Difficulty3, ItemStack as ItemStack6, Player as Player17, world as world15 } from "@minecraft/server";
 var visit;
 var SAVE = DP.knocker;
 var knockerActive = () => !!visit;
@@ -3360,7 +3494,7 @@ function doorOpen(dim, door) {
 }
 function insidePlayers(v) {
   try {
-    return world14.getDimension(v.dim).getPlayers({ location: v.door, maxDistance: 18 });
+    return world15.getDimension(v.dim).getPlayers({ location: v.door, maxDistance: 18 });
   } catch {
     return [];
   }
@@ -3461,7 +3595,7 @@ function update4() {
     tryVisit();
     return;
   }
-  const e = world14.getEntity(v.id);
+  const e = world15.getEntity(v.id);
   if (!e?.isValid) {
     visit = void 0;
     return;
@@ -3510,7 +3644,7 @@ function update4() {
       return;
     }
     const cfg = settings();
-    if (!v.broke && cfg.destructive && world14.getDifficulty() === Difficulty2.Hard && inState >= 600 && chance(0.05)) {
+    if (!v.broke && cfg.destructive && world15.getDifficulty() === Difficulty3.Hard && inState >= 600 && chance(0.05)) {
       v.broke = true;
       try {
         e.triggerEvent("hollow:break_in");
@@ -3585,19 +3719,19 @@ function onKnockerHurt(e, by) {
   const v = visit;
   if (!v || v.id !== e.id) return;
   if (v.phase === "knock" || v.phase === "approach") {
-    if (by instanceof Player16) answered(e, v);
+    if (by instanceof Player17) answered(e, v);
   }
 }
 function onKnockerDied(id, killer) {
   if (visit?.id === id) visit = void 0;
-  if (killer instanceof Player16) {
+  if (killer instanceof Player17) {
     unlock(killer, "knocker1");
     unlock(killer, "knocker3");
   }
 }
 function forgetKnockerTarget(playerId) {
   if (visit?.target === playerId && (visit.phase === "approach" || visit.phase === "knock")) {
-    const e = world14.getEntity(visit.id);
+    const e = world15.getEntity(visit.id);
     if (e) setPhase(e, visit, "leave");
   }
 }
@@ -3613,7 +3747,7 @@ function startKnocker() {
 }
 
 // ../../scripts_src/creatures/mirebound.ts
-import { EntityDamageCause as EntityDamageCause2, Player as Player17, world as world15 } from "@minecraft/server";
+import { EntityDamageCause as EntityDamageCause2, Player as Player18, world as world16 } from "@minecraft/server";
 var ms = /* @__PURE__ */ new Map();
 var mireboundCount = () => ms.size;
 var isMireboundTracked = (id) => ms.has(id);
@@ -3696,10 +3830,10 @@ function tryStartMirebound(p) {
 }
 function release(m) {
   ms.delete(m.id);
-  const p = world15.getEntity(m.target);
+  const p = world16.getEntity(m.target);
   if (p?.isValid && rt(p).encounter === "mirebound") rt(p).encounter = void 0;
   if (m.victim) {
-    const v = world15.getEntity(m.victim);
+    const v = world16.getEntity(m.victim);
     if (v?.isValid) popFog(v, "hollow_mire");
   }
 }
@@ -3721,7 +3855,7 @@ function riding(p, e) {
   }
 }
 function letGo(e, m, why) {
-  const v = m.victim ? world15.getEntity(m.victim) : void 0;
+  const v = m.victim ? world16.getEntity(m.victim) : void 0;
   try {
     e.getComponent("minecraft:rideable")?.ejectRiders();
   } catch {
@@ -3739,7 +3873,7 @@ function update5() {
   if (ms.size === 0) return;
   const t = now();
   for (const m of [...ms.values()]) {
-    const e = world15.getEntity(m.id);
+    const e = world16.getEntity(m.id);
     if (!e?.isValid) {
       release(m);
       continue;
@@ -3778,7 +3912,7 @@ function update5() {
     }
     if (m.state === "erupt") {
       if (inState < 12) continue;
-      const v = m.victim ? world15.getEntity(m.victim) : void 0;
+      const v = m.victim ? world16.getEntity(m.victim) : void 0;
       if (!v?.isValid || dist(v.location, e.location) > 3.2 || !huntable(v) || protectedSpot(dim, v.location)) {
         m.victim = void 0;
         if (v?.isValid) notice(v, "§7It snaps at empty water. Get to dry land.");
@@ -3797,7 +3931,7 @@ function update5() {
       continue;
     }
     if (m.state === "grab") {
-      const v = m.victim ? world15.getEntity(m.victim) : void 0;
+      const v = m.victim ? world16.getEntity(m.victim) : void 0;
       if (!v?.isValid || v.getComponent("minecraft:health")?.currentValue === 0) {
         letGo(e, m, "death");
         continue;
@@ -3844,20 +3978,20 @@ function update5() {
 function onMireboundHurt(e, by) {
   const m = ms.get(e.id);
   if (!m) return;
-  if (m.state === "grab" && by instanceof Player17) letGo(e, m, "hit");
+  if (m.state === "grab" && by instanceof Player18) letGo(e, m, "hit");
   else if (m.state === "lurk") setState2(e, m, "retreat");
 }
 function onMireboundDied(id, killer) {
   const m = ms.get(id);
   if (m) release(m);
-  if (killer instanceof Player17) {
+  if (killer instanceof Player18) {
     unlock(killer, "mirebound1");
     unlock(killer, "mirebound2");
   }
 }
 function forgetMireboundTarget(playerId) {
   for (const m of [...ms.values()]) {
-    const e = world15.getEntity(m.id);
+    const e = world16.getEntity(m.id);
     if (m.victim === playerId && e?.isValid) letGo(e, m, "death");
     if (m.target === playerId && m.state === "lurk") vanish2(e, m);
   }
@@ -3867,7 +4001,7 @@ function startMirebound() {
 }
 
 // ../../scripts_src/creatures/watcher.ts
-import { EntityDamageCause as EntityDamageCause3, ItemStack as ItemStack7, Player as Player18, world as world16 } from "@minecraft/server";
+import { EntityDamageCause as EntityDamageCause3, ItemStack as ItemStack7, Player as Player19, world as world17 } from "@minecraft/server";
 
 // ../../scripts_src/systems/daily.ts
 function dailyCount(p, key) {
@@ -3992,7 +4126,7 @@ function tryStartWatcher(p) {
 }
 function release2(enc) {
   encounters.delete(enc.id);
-  const p = world16.getEntity(enc.target);
+  const p = world17.getEntity(enc.target);
   if (p && p.isValid) {
     if (rt(p).encounter === "watcher") rt(p).encounter = void 0;
     popFog(p, "hollow_watch");
@@ -4016,7 +4150,7 @@ function withdraw(e, enc, reason, by) {
   later("watcher.retreat", 12, () => {
     if (e.isValid) worldSound(dim, SND.watcherRetreat, e.location, 0.8);
   });
-  const target = world16.getEntity(enc.target);
+  const target = world17.getEntity(enc.target);
   if (target) popFog(target, "hollow_watch");
   if (reason === "stared" && by) {
     for (const p of dim.getPlayers({ location: e.location, maxDistance: 72 })) unlock(p, "watcher2");
@@ -4039,12 +4173,12 @@ function update6() {
   if (encounters.size === 0) return;
   const t = now();
   for (const enc of [...encounters.values()]) {
-    const e = world16.getEntity(enc.id);
+    const e = world17.getEntity(enc.id);
     if (!e || !e.isValid) {
       release2(enc);
       continue;
     }
-    const p = world16.getEntity(enc.target);
+    const p = world17.getEntity(enc.target);
     if (!p || !p.isValid || p.dimension.id !== e.dimension.id) {
       vanish3(e, enc);
       continue;
@@ -4124,7 +4258,7 @@ function onWatcherHurt(hurt2, cause, by) {
   const enc = encounters.get(hurt2.id);
   if (!enc) return;
   if (cause === EntityDamageCause3.fall) return;
-  withdraw(hurt2, enc, "hurt", by instanceof Player18 ? by : void 0);
+  withdraw(hurt2, enc, "hurt", by instanceof Player19 ? by : void 0);
 }
 function onWatcherStruck(watcher, victim) {
   const enc = encounters.get(watcher.id);
@@ -4142,7 +4276,7 @@ function onWatcherStruck(watcher, victim) {
 function onWatcherDied(id, killer) {
   const enc = encounters.get(id);
   if (enc) release2(enc);
-  if (killer instanceof Player18) {
+  if (killer instanceof Player19) {
     unlock(killer, "watcher1");
     unlock(killer, "watcher2");
   }
@@ -4150,7 +4284,7 @@ function onWatcherDied(id, killer) {
 function forgetWatcherTarget(playerId) {
   for (const enc of [...encounters.values()]) {
     if (enc.target !== playerId) continue;
-    vanish3(world16.getEntity(enc.id), enc);
+    vanish3(world17.getEntity(enc.id), enc);
   }
 }
 function startWatcher() {
@@ -4491,7 +4625,7 @@ function startAmbience() {
 }
 
 // ../../scripts_src/systems/cleanup.ts
-import { world as world17 } from "@minecraft/server";
+import { world as world18 } from "@minecraft/server";
 var trackers = /* @__PURE__ */ new Map();
 function trackType(typeId, isTracked) {
   trackers.set(typeId, isTracked);
@@ -4519,14 +4653,14 @@ function cleanEntity(e) {
 function sweepLoaded() {
   for (const id of ["minecraft:overworld", "minecraft:nether", "minecraft:the_end"]) {
     try {
-      const dim = world17.getDimension(id);
+      const dim = world18.getDimension(id);
       for (const e of dim.getEntities({ families: [FAMILY.any] })) cleanEntity(e);
     } catch {
     }
   }
 }
 function startCleanup() {
-  world17.afterEvents.entityLoad.subscribe((ev) => {
+  world18.afterEvents.entityLoad.subscribe((ev) => {
     const e = ev.entity;
     if (e.typeId.startsWith("hollow:")) cleanEntity(e);
   });
@@ -4594,8 +4728,8 @@ function init() {
   later("sweep", 40, sweepLoaded);
   console.warn(`[hollow] THE HOLLOW initialised (day ${hollowDay()}).`);
 }
-world18.afterEvents.worldLoad.subscribe(() => safe("init", init));
-world18.afterEvents.playerSpawn.subscribe((ev) => safe("playerSpawn", () => {
+world19.afterEvents.worldLoad.subscribe(() => safe("init", init));
+world19.afterEvents.playerSpawn.subscribe((ev) => safe("playerSpawn", () => {
   const p = ev.player;
   clearAllFog(p);
   if (ev.initialSpawn) {
@@ -4611,11 +4745,15 @@ world18.afterEvents.playerSpawn.subscribe((ev) => safe("playerSpawn", () => {
     });
   } else {
     rt(p).diedAt = now();
+    rt(p).ctx = void 0;
     forgetEncounters(p.id);
     later("journalBack", 20, () => p.isValid && ensureJournal(p));
   }
 }));
 function forgetEncounters(playerId) {
+  forgetSites(playerId);
+  cancelJournalNotices(playerId);
+  forgetItemEffects(playerId);
   forgetForms(playerId);
   forgetEventTarget(playerId);
   forgetWatcherTarget(playerId);
@@ -4623,7 +4761,7 @@ function forgetEncounters(playerId) {
   forgetMireboundTarget(playerId);
   forgetKnockerTarget(playerId);
 }
-world18.beforeEvents.playerLeave.subscribe((ev) => {
+world19.beforeEvents.playerLeave.subscribe((ev) => {
   const id = ev.player.id;
   system6.run(() => safe("playerLeave", () => {
     forgetEncounters(id);
@@ -4632,16 +4770,16 @@ world18.beforeEvents.playerLeave.subscribe((ev) => {
     forgetPrefs(id);
     forgetJournal(id);
     forgetNoise(id);
-    forgetSites(id);
     forgetMusic(id);
   }));
 });
-world18.afterEvents.playerDimensionChange.subscribe((ev) => safe("dimChange", () => {
+world19.afterEvents.playerDimensionChange.subscribe((ev) => safe("dimChange", () => {
+  rt(ev.player).ctx = void 0;
   forgetEncounters(ev.player.id);
   forgetBossPlayer(ev.player);
   clearAllFog(ev.player);
 }));
-world18.afterEvents.entityHurt.subscribe((ev) => safe("entityHurt", () => {
+world19.afterEvents.entityHurt.subscribe((ev) => safe("entityHurt", () => {
   const hurt2 = ev.hurtEntity;
   const by = ev.damageSource.damagingEntity;
   switch (hurt2.typeId) {
@@ -4658,10 +4796,10 @@ world18.afterEvents.entityHurt.subscribe((ev) => safe("entityHurt", () => {
       onMireboundHurt(hurt2, by);
       break;
   }
-  if (hurt2 instanceof Player20 && by?.typeId === ENT.watcher) onWatcherStruck(by, hurt2);
+  if (hurt2 instanceof Player21 && by?.typeId === ENT.watcher) onWatcherStruck(by, hurt2);
   if (hurt2.typeId === ENT.heart || hurt2.typeId === ENT.vein) onBossHurt(hurt2, ev.damage, by);
 }));
-world18.afterEvents.entityDie.subscribe((ev) => safe("entityDie", () => {
+world19.afterEvents.entityDie.subscribe((ev) => safe("entityDie", () => {
   const dead = ev.deadEntity;
   const killer = ev.damageSource.damagingEntity;
   switch (dead.typeId) {
@@ -4691,7 +4829,7 @@ world18.afterEvents.entityDie.subscribe((ev) => safe("entityDie", () => {
       break;
   }
 }));
-world18.afterEvents.dataDrivenEntityTrigger.subscribe((ev) => safe("ddTrigger", () => {
+world19.afterEvents.dataDrivenEntityTrigger.subscribe((ev) => safe("ddTrigger", () => {
   if (ev.eventId === "hollow:watcher_struck") onWatcherStruck(ev.entity, nearestPlayer(ev.entity, 5));
   else if (ev.eventId === "hollow:sheared") onBorrowedSheared(ev.entity, nearestPlayer(ev.entity, 6));
   else if (ev.eventId === "hollow:shield_hit") onShieldHit(ev.entity);
@@ -4705,13 +4843,13 @@ function testCommand(p, arg) {
       setTestMode(false);
       return "test mode off: normal rules";
     case "night":
-      world18.setTimeOfDay(13e3);
+      world19.setTimeOfDay(13e3);
       return "dusk (13000)";
     case "midnight":
-      world18.setTimeOfDay(18e3);
+      world19.setTimeOfDay(18e3);
       return "midnight (18000)";
     case "day":
-      world18.setTimeOfDay(1e3);
+      world19.setTimeOfDay(1e3);
       return "morning (1000)";
     case "kit": {
       const kit = [
@@ -4761,7 +4899,7 @@ function nearestPlayer(e, r) {
 }
 system6.afterEvents.scriptEventReceive.subscribe((ev) => safe("scriptevent", () => {
   const p = ev.sourceEntity;
-  if (!(p instanceof Player20)) return;
+  if (!(p instanceof Player21)) return;
   switch (ev.id) {
     case "hollow:journal":
       void openJournal(p);

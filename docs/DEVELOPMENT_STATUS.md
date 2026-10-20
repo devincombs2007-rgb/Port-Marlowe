@@ -1,6 +1,29 @@
-# THE HOLLOW development checkpoint — 1.0.3
+# THE HOLLOW development checkpoint — 1.0.4
 
-## Latest continuation: 1.0.3 — darker Visuals
+## Latest continuation: 1.0.4 — field guidance and survival reliability
+
+- Add Journal → Field conditions & next steps: local roof/light, registered lantern or charged
+  ward, movement noise, encounter pacing, progression hints and a discovered-recipe shortcut.
+  Refresh runs the checks again. It does not scan for creatures or reveal undiscovered recipes.
+- Explain newcomer, world-grace, post-respawn and Peaceful/Creative/Spectator quiet periods.
+- Merge simultaneous journal discoveries into one summary/cue. Cancel pending notices on
+  death, travel or departure, and discard unknown/duplicate saved journal IDs.
+- Failed ward block updates no longer consume charcoal. Inactive overflow wards explain the
+  cap and can be activated by interacting after another ward is removed.
+- Invalidate queued item actions across death, departure and dimension changes; require the
+  matching held item for journal, page, lens, Heartseeker and material uses.
+- Clear player-local lens reveals and Heartseeker waypoints on death/dimension travel.
+- Recompute cached environment context after dimension changes, larger moves or entering water.
+- Noise readouts no longer mutate the actual hearing/landing state. Reading the journal/lens
+  cannot swallow a landing sound before a Hollowed hears it.
+- Drop a granted item at the player's feet if their inventory component is unavailable.
+- Preserve the 1.0.3 darker lighting. Pack UUIDs remain stable; all versions advance to 1.0.4.
+
+Verification: 78/78 simulations, including 18 new field-guide, equipment, lifecycle, discovery,
+hearing and full-inventory reward scenarios. Strict compilation, static validation and archive
+checks are part of the release build. Engine/UI layout/performance checks remain outstanding.
+
+## Previous continuation: 1.0.3 — darker Visuals
 
 Responds to the report that the Visuals pack is too bright. Preserves all 1.0.2 gameplay fixes.
 
@@ -98,8 +121,8 @@ The original 1.0.1 pass changed only swamp density; the later 1.0.3 lighting/gra
 
 - Strict TypeScript compilation against the pinned stable Script API typings.
 - Static schema and reference validation: zero errors, zero warnings.
-- 60/60 headless scenarios, including event, shelter protection, saved-setting and journal regressions.
-- Importable archives rebuilt from the current source with version `1.0.3` manifests.
+- 78/78 headless scenarios, including field guidance, lifecycle, equipment, event and journal regressions.
+- Importable archives rebuilt from the current source with version `1.0.4` manifests.
 
 ## Still requires Minecraft
 

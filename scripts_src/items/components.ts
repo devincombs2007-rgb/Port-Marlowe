@@ -1,4 +1,4 @@
-import { EquipmentSlot, GameMode, ItemStack, Player, StartupEvent, system, world } from "@minecraft/server";
+import { Entity, EquipmentSlot, GameMode, ItemStack, Player, StartupEvent, system, world } from "@minecraft/server";
 import { ui } from "../core/audio";
 import { notice } from "../core/fx";
 import { ENT, FAMILY, ITEM, PROP, SND } from "../core/ids";
@@ -54,7 +54,36 @@ function consumeHeld(p: Player, typeId: string): void {
   } else eq.setEquipment(EquipmentSlot.Mainhand, undefined);
 }
 
-const revealTimers = new Map<string, number>();
+interface Reveal { run: number; player: Player; entity: Entity }
+const revealTimers = new Map<string, Reveal>();
+const itemSessions = new Map<string, object>();
+
+/** Invalidate queued uses and clear player-local lens reveals after death, travel or leaving. */
+export function forgetItemEffects(playerId: string): void {
+  itemSessions.delete(playerId);
+  for (const [key, reveal] of revealTimers) {
+    if (reveal.player.id !== playerId) continue;
+    system.clearRun(reveal.run);
+    revealTimers.delete(key);
+    try {
+      if (reveal.player.isValid && reveal.entity.isValid) {
+        reveal.player.removePropertyOverrideForEntity(reveal.entity, PROP.revealed);
+      }
+    } catch { /* entity or player unloaded */ }
+  }
+}
+
+function queueUse(p: Player, typeId: string, action: () => void): void {
+  let token = itemSessions.get(p.id);
+  if (!token) { token = {}; itemSessions.set(p.id, token); }
+  const dim = p.dimension.id;
+  system.run(() => {
+    if (!p.isValid || itemSessions.get(p.id) !== token || p.dimension.id !== dim || heldItem(p) !== typeId) return;
+    const hp = p.getComponent("minecraft:health");
+    if (hp && hp.currentValue <= 0) return;
+    action();
+  });
+}
 
 function useLens(p: Player): void {
   if (!p.isValid || heldItem(p) !== ITEM.lens) return;
@@ -71,15 +100,16 @@ function useLens(p: Player): void {
       p.spawnParticle("hollow:lens_reveal", { x: b.location.x, y: b.location.y + 1.2, z: b.location.z });
       const key = `${p.id}|${b.id}`;
       const old = revealTimers.get(key);
-      if (old !== undefined) system.clearRun(old);
-      revealTimers.set(key, system.runTimeout(() => {
+      if (old) system.clearRun(old.run);
+      const run = system.runTimeout(() => {
         revealTimers.delete(key);
         try {
           if (p.isValid && b.isValid) p.removePropertyOverrideForEntity(b, PROP.revealed);
         } catch {
           /* gone */
         }
-      }, 200));
+      }, 200);
+      revealTimers.set(key, { run, player: p, entity: b });
     } catch {
       /* entity unloaded */
     }
@@ -121,14 +151,14 @@ export function registerItemComponents(ev: StartupEvent): void {
   ev.itemComponentRegistry.registerCustomComponent("hollow:journal", {
     onUse(e) {
       const p = e.source;
-      system.run(() => void openJournal(p));
+      queueUse(p, ITEM.journal, () => void openJournal(p));
     },
   });
 
   ev.itemComponentRegistry.registerCustomComponent("hollow:torn_page", {
     onUse(e) {
       const p = e.source;
-      system.run(() => {
+      queueUse(p, ITEM.page, () => {
         if (!p.isValid || heldItem(p) !== ITEM.page) return;
         const title = unlockNextLore(p);
         if (title) {
@@ -144,14 +174,14 @@ export function registerItemComponents(ev: StartupEvent): void {
   ev.itemComponentRegistry.registerCustomComponent("hollow:lens", {
     onUse(e) {
       const p = e.source;
-      system.run(() => useLens(p));
+      queueUse(p, ITEM.lens, () => useLens(p));
     },
   });
 
   ev.itemComponentRegistry.registerCustomComponent("hollow:heartseeker", {
     onUse(e) {
       const p = e.source;
-      system.run(() => useHeartseeker(p));
+      queueUse(p, ITEM.heartseeker, () => useHeartseeker(p));
     },
   });
 
@@ -160,7 +190,7 @@ export function registerItemComponents(ev: StartupEvent): void {
     onUse(e) {
       const p = e.source;
       const id = e.itemStack?.typeId;
-      system.run(() => describeMaterial(p, id));
+      if (id) queueUse(p, id, () => describeMaterial(p, id));
     },
   });
 }
@@ -196,6 +226,6 @@ export function startMaterialPickups(): void {
 
 export function giveOrDrop(p: Player, stack: ItemStack): void {
   const inv = p.getComponent("minecraft:inventory");
-  const left = inv?.container?.addItem(stack);
+  const left = inv?.container ? inv.container.addItem(stack) : stack;
   if (left) p.dimension.spawnItem(left, p.location);
 }

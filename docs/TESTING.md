@@ -3,7 +3,7 @@
 A fast first pass on **Windows** (best for reading errors). Repeat the short Realm and Xbox section at the end.
 
 ## Setup (2 min)
-1. Import `THE_HOLLOW_v1.0.3.mcaddon`. Create a **new world**: Survival, cheats **on**, the behavior pack plus the Visuals pack, all experiments off.
+1. Import `THE_HOLLOW_v1.0.4.mcaddon`. Create a **new world**: Survival, cheats **on**, the behavior pack plus the Visuals pack, all experiments off.
 2. Settings → Creator → turn on **Content Log GUI**. Settings → Accessibility → turn on **Subtitles**.
 3. In the world, run:
    ```
@@ -35,6 +35,14 @@ includes a `failures:` count, which should stay `none`.
 8. Use `/scriptevent hollow:site cabin` and `camp`: structures place cleanly (no floating blocks, chests filled).
 
 ## Comfort and visuals (3 min)
+
+**1.0.4 field-guide checks:** With a controller or touch, open Journal → Field conditions & next
+steps. Check the page at spawn, beneath a roof, holding a torch, near a charged ward and near a
+registered Heartwood Lantern. Refresh after moving. Open the suggested recipe and return through
+Equipment to the journal. Check text wrapping on iPhone/Xbox. Verify that unseen creatures are
+not named, discovered recipes advance the goal, and a novice sees the settling-in explanation.
+Test a charcoal recharge and an overflow ward after freeing a slot. Use the lens/Heartseeker,
+then die or change dimension: the reveal/marker should clear and a fresh use should work.
 9. Journal → Settings → My comfort settings: turn **Music** off, and the shrine music stops. Turn off **Visual effects**: no fog shift with the Watcher.
 10. Video → **Vibrant Visuals** on and off, at noon, dusk and midnight in a forest, a taiga, a swamp and a cave. Check that
     nights are dark but walkable, torchlight reads warm, fog never hides the near ground, and nothing is pitch black.

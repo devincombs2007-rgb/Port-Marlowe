@@ -9,8 +9,9 @@ in it is patient, though. You are watched long before you are attacked.
 - **A boss you choose to wake:** the Heart Below, in an underground shrine.
 - **Six structure layouts:** an intact or collapsed ranger cabin, a ruined campsite, a watchtower, a lean-to and the shrine. They appear near
   exploring players in **new and existing worlds**.
-- **A Field Journal** that fills in as you play. It works with a controller, stays with you
-  through death, and holds the settings.
+- **A Field Journal** that fills in as you play. Its Field Conditions page checks local equipment,
+  explains quiet encounter pacing and suggests a discovered recipe. It works with a controller,
+  stays with you through death, and holds the settings.
 - **Survival equipment:** Hollow Chime (warning), Rowan Ward (limited protection), Hollow Lens
   (investigation), Heartseeker and Offering of Silence (boss progression), and the Heartwood
   Lantern (reward).
@@ -20,7 +21,7 @@ in it is patient, though. You are watched long before you are attacked.
 
 > **Status:**
 > - Statically validated: 0 errors, 0 warnings.
-> - The real scripts pass 60/60 headless simulation scenarios, including server restarts mid-boss-fight.
+> - The real scripts pass 78/78 headless simulation scenarios, including server restarts mid-boss-fight.
 > - See [docs/VALIDATION_REPORT.md](docs/VALIDATION_REPORT.md).
 >
 > **No in-game, Xbox or Realm testing has been done yet.** Read the known limitations before you rely on it in a
@@ -32,10 +33,10 @@ Current development checkpoint and unfinished device checks: **[docs/DEVELOPMENT
 
 | File | What it is |
 |---|---|
-| [`dist/THE_HOLLOW_v1.0.3.mcaddon`](dist/THE_HOLLOW_v1.0.3.mcaddon) | Everything: behavior pack, resource pack and the optional Visuals pack. Open it to import. |
-| `dist/THE_HOLLOW_BP_v1.0.3.mcpack` | Behavior pack only |
-| `dist/THE_HOLLOW_RP_v1.0.3.mcpack` | Resource pack only (required) |
-| `dist/THE_HOLLOW_Visuals_v1.0.3.mcpack` | Optional Vibrant Visuals pack |
+| [`dist/THE_HOLLOW_v1.0.4.mcaddon`](dist/THE_HOLLOW_v1.0.4.mcaddon) | Everything: behavior pack, resource pack and the optional Visuals pack. Open it to import. |
+| `dist/THE_HOLLOW_BP_v1.0.4.mcpack` | Behavior pack only |
+| `dist/THE_HOLLOW_RP_v1.0.4.mcpack` | Resource pack only (required) |
+| `dist/THE_HOLLOW_Visuals_v1.0.4.mcpack` | Optional Vibrant Visuals pack |
 
 Darker lighting update and comparison steps: **[docs/VISUAL_TUNING.md](docs/VISUAL_TUNING.md)**.
 

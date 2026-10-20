@@ -2,6 +2,7 @@ import { Difficulty, GameMode, Player, world } from "@minecraft/server";
 import { DP } from "./ids";
 import { getNum, setNum } from "./store";
 import { now } from "./time";
+import { distSq } from "./math";
 import { BiomeGroup, biomeGroup, isOverworld, roofed, underground } from "./world";
 
 // Runtime (non-persistent) bookkeeping for each online player.
@@ -13,6 +14,8 @@ export interface Runtime {
   /** The single major encounter currently focused on this player, if any. */
   encounter?: string;
   ctx?: Ctx;
+  ctxDim?: string;
+  ctxPos?: { x: number; y: number; z: number };
   ctxAt: number;
   diedAt: number;
 }
@@ -43,7 +46,8 @@ export function forgetRuntime(playerId: string): void {
 
 export function ctx(p: Player, maxAge = 40): Ctx {
   const r = rt(p);
-  if (r.ctx && now() - r.ctxAt <= maxAge) return r.ctx;
+  if (r.ctx && r.ctxDim === p.dimension.id && r.ctxPos && distSq(r.ctxPos, p.location) < 64 &&
+      r.ctx.inWater === p.isInWater && now() - r.ctxAt <= maxAge) return r.ctx;
   const dim = p.dimension;
   const ow = isOverworld(dim);
   const c: Ctx = {
@@ -55,6 +59,8 @@ export function ctx(p: Player, maxAge = 40): Ctx {
     y: p.location.y,
   };
   r.ctx = c;
+  r.ctxDim = dim.id;
+  r.ctxPos = { ...p.location };
   r.ctxAt = now();
   return c;
 }

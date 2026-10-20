@@ -272,17 +272,23 @@ export function registerBlockComponents(ev: StartupEvent): void {
       if (!p) return;
       const b = e.block;
       const c = wardCharges(b);
+      if (!register(DP.wards, b, LIMITS[DP.wards])) {
+        notice(p, "§7This ward is inactive: 32 wards are already registered. Remove another ward, then use this one again. No charcoal spent.");
+        return;
+      }
       const eq = p.getComponent("minecraft:equippable");
       const held = eq?.getEquipment(EquipmentSlot.Mainhand);
       if (held?.typeId === "minecraft:charcoal" && c < 4) {
-        setWardCharges(b, c + 1);
+        if (!setWardCharges(b, c + 1)) {
+          notice(p, "§7The ward could not be recharged. No charcoal spent; try again when the area is loaded.");
+          return;
+        }
         if (isSurvivalish(p)) {
           if (held.amount > 1) {
             held.amount -= 1;
             eq!.setEquipment(EquipmentSlot.Mainhand, held);
           } else eq!.setEquipment(EquipmentSlot.Mainhand, undefined);
         }
-        register(DP.wards, b, LIMITS[DP.wards]);
         worldSound(e.dimension, SND.wardPlace, b.center(), 0.8, 1.2);
         particle(e.dimension, PARTICLE.wardGlow, b.center());
         notice(p, `§7The ward smoulders. Charges: §f${c + 1}/4`);

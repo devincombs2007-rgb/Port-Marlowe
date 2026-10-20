@@ -1,8 +1,8 @@
-# Validation report: THE HOLLOW v1.0.3
+# Validation report: THE HOLLOW v1.0.4
 
 **Current validation:**
 - Every static check passes: **0 errors, 0 warnings**, and the validator catches **8/8** deliberately injected defects.
-- The real scripts pass **60/60 headless simulation scenarios** (§1b) against a fake Minecraft API, including server
+- The real scripts pass **78/78 headless simulation scenarios** (§1b) against a fake Minecraft API, including server
   restarts mid-fight.
 - **Nothing has been run inside Minecraft yet:** no Windows, iPhone, Xbox or Realm session. The in-game test plan in §3
   is what remains, and §4 lists every known limitation and unverified assumption.

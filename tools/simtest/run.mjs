@@ -262,6 +262,138 @@ await test("settings: opening and saving world rules preserves supported grace a
   noErrors(sim);
 });
 
+// =============================================================================== field reports & discovery
+async function readField(sim, p, onReport) {
+  p._ui.push({ canceled: false, selection: 5 }, (f) => {
+    onReport?.(f);
+    return { canceled: true, cancelationReason: "UserClosed" };
+  });
+  openBook(sim, p);
+  await advanceForms(sim, 3);
+  return p._shownForms.filter((f) => f._title.includes("Field Conditions")).at(-1);
+}
+
+await test("field: newcomers get a useful first goal without undiscovered creature spoilers", async () => {
+  const sim = newWorld(201), p = sim.addPlayer("Alex");
+  sim.tick(100);
+  const f = await readField(sim, p);
+  assert(f._body.includes("settling-in"), "explains newcomer pacing");
+  assert(f._body.includes("roof and closed door"), "first survival objective");
+  assert(!/Borrowed|Mirebound|Heart Below|Offering/.test(f._body), "no future creature or boss spoilers");
+  assert(f.controls.some((c) => c.text === "Read suggested recipe"), "starter recipe shortcut");
+  noErrors(sim);
+});
+
+await test("field: reports charged equipment, carried light, shelter and quiet movement", async () => {
+  const { sim, p } = houseWorld(202);
+  sim.tick(100);
+  const w = sim.placeBlock(p, { x: 1, y: 64, z: 1 }, "hollow:rowan_ward");
+  w.setPermutation(w.permutation.withState("hollow:used", 2));
+  p.hold("minecraft:torch");
+  p.isSneaking = true;
+  const f = await readField(sim, p);
+  for (const text of ["roof overhead", "carrying a light", "2/4", "silent (sneaking)"]) assert(f._body.includes(text), text);
+  sim.placeBlock(p, { x: 2, y: 64, z: 1 }, "hollow:heartwood_lantern");
+  assert((await readField(sim, p))._body.includes("Heartwood Lantern protection"), "registered lantern checked");
+  noErrors(sim);
+});
+
+await test("field: refresh reads the new location and Back returns to the journal", async () => {
+  const { sim, p } = houseWorld(203);
+  sim.tick(100);
+  const bodies = [];
+  p._ui.push({ canceled: false, selection: 5 }, (f) => {
+    bodies.push(f._body);
+    p.teleport({ x: 100, y: 64, z: 100 });
+    return { canceled: false, selection: 0 };
+  }, (f) => { bodies.push(f._body); return { canceled: false, selection: f.controls.length - 1 }; });
+  openBook(sim, p);
+  await advanceForms(sim);
+  assert(bodies[0].includes("roof overhead"), "original shelter");
+  assert(bodies[1].includes("open sky"), "refresh uses current position");
+  assert(p._shownForms.at(-1)._title.includes("Field Journal"), "Back reaches root");
+  noErrors(sim);
+});
+
+await test("field: suggested recipe opens only a discovered equipment entry", async () => {
+  const sim = newWorld(204), p = sim.addPlayer("Alex");
+  sim.tick(100);
+  p._ui.push({ canceled: false, selection: 5 }, { canceled: false, selection: 1 });
+  openBook(sim, p);
+  await advanceForms(sim);
+  assert(p._shownForms.at(-1)._title.includes("Chime"), "first recipe is the known chime");
+  const { ItemStack } = sim.exports();
+  sim.fire("entityItemPickup", { entity: p, items: [new ItemStack("hollow:pale_resin")] });
+  assert((await readField(sim, p))._body.includes("Craft it to investigate"), "discovery advances objective to lens");
+  p.hold("hollow:hollow_lens");
+  assert((await readField(sim, p))._body.includes("Each scan wears"), "carried lens advances objective to investigation");
+  noErrors(sim);
+});
+
+await test("field: explains Peaceful, configured grace and recovery without changing rules", async () => {
+  const sim = newWorld(205);
+  sim.world.setDynamicProperty("hollow:settings", JSON.stringify({ graceDays: 5 }));
+  boot(sim, 205);
+  const p = sim.addPlayer("Alex", undefined, veteran);
+  sim.tick(100);
+  assert((await readField(sim, p))._body.includes("start on day 6"), "configured grace explained");
+  sim.difficulty = sim.exports().Difficulty.Peaceful;
+  assert((await readField(sim, p))._body.includes("Peaceful"), "Peaceful explained");
+  sim.difficulty = sim.exports().Difficulty.Normal;
+  sim.fire("playerSpawn", { player: p, initialSpawn: false });
+  assert((await readField(sim, p))._body.includes("recovery period"), "respawn protection explained");
+  noErrors(sim);
+});
+
+await test("field: completed progression offers the known lantern recipe and ignores inactive overflow wards", async () => {
+  const sim = newWorld(216), p = sim.addPlayer("Alex");
+  p.setDynamicProperty("hollow:journal", JSON.stringify({ u: ["intro", "after", "craft_lantern"], r: [] }));
+  sim.tick(100);
+  for (let i = 0; i < 32; i++) sim.placeBlock(p, { x: 100 + i, y: 64, z: 100 }, "hollow:rowan_ward");
+  sim.placeBlock(p, { x: 1, y: 64, z: 1 }, "hollow:rowan_ward");
+  const f = await readField(sim, p);
+  assert(f._body.includes("Turn the Stilled Heart"), "completed progression points to the lantern");
+  assert(f._body.includes("no charged ward detected"), "unregistered ward does not falsely promise protection");
+  p.hold("hollow:heartwood_lantern");
+  assert((await readField(sim, p))._body.includes("Place your Heartwood Lantern"), "carried reward updates next step");
+  noErrors(sim);
+});
+
+await test("journal: malformed discovery data cannot inflate counts or mark locked entries read", async () => {
+  const sim = newWorld(206), p = sim.addPlayer("Alex");
+  p.setDynamicProperty("hollow:journal", JSON.stringify({ u: ["intro", "intro", "fake", null], r: ["intro", "craft_lens", 42, "intro"] }));
+  sim.tick(100);
+  const saved = JSON.parse(p.getDynamicProperty("hollow:journal"));
+  eq(saved.u.length, 4, "exactly the four valid starter entries");
+  eq(saved.r.length, 1, "only an unlocked entry is read");
+  eq(saved.r[0], "intro", "valid read flag preserved");
+  noErrors(sim);
+});
+
+await test("journal: simultaneous discoveries produce one summary and one cue", () => {
+  const sim = newWorld(207), p = sim.addPlayer("Alex");
+  sim.tick(100);
+  const { ItemStack } = sim.exports();
+  const cues = p._sounds.filter((s) => s === "hollow.journal.entry").length;
+  sim.fire("entityItemPickup", { entity: p, items: [new ItemStack("hollow:pale_resin"), new ItemStack("hollow:hollow_fang")] });
+  sim.tick(40);
+  eq(p._sounds.filter((s) => s === "hollow.journal.entry").length - cues, 1, "one discovery cue");
+  assert(p._log.some((l) => l.includes("2 new journal entries")), "combined readable summary");
+  noErrors(sim);
+});
+
+await test("journal: death cancels pending discovery popups but preserves discovered pages", () => {
+  const sim = newWorld(208), p = sim.addPlayer("Alex");
+  sim.tick(100);
+  sim.fire("entityItemPickup", { entity: p, items: [new (sim.exports().ItemStack)("hollow:pale_resin")] });
+  sim.damage(p, 100);
+  const before = p._sounds.length;
+  sim.tick(40);
+  eq(p._sounds.length, before, "no post-death discovery cue");
+  assert(journal(p).includes("craft_lens"), "discovery remains saved");
+  noErrors(sim);
+});
+
 // =============================================================================== pacing
 await test("day 1 is safe: nothing hunts; the Watcher can only be glimpsed", () => {
   const sim = newWorld(7);
@@ -468,6 +600,22 @@ await test("boss: scales with players in the arena; every participant rewarded o
   noErrors(sim);
 });
 
+await test("boss: a full inventory drops the Stilled Heart once and preserves completion", () => {
+  const { sim, p, awaken } = bossWorld(1, 217);
+  awaken(); sim.tick(125);
+  const heart = hearts(sim)[0];
+  for (const v of veins(sim)) sim.damage(v, 999, p);
+  sim.tick(10);
+  const { ItemStack } = sim.exports();
+  for (let i = 0; i < p._inv.size; i++) p._inv.setItem(i, new ItemStack("minecraft:cobblestone", 64));
+  sim.damage(heart, 9999, p);
+  eq(sim.overworld.items("hollow:stilled_heart").length, 1, "reward dropped beside the player");
+  assert(journal(p).includes("after"), "completion saved despite full inventory");
+  sim.fire("entityDie", { deadEntity: heart, damageSource: { damagingEntity: p } });
+  eq(sim.overworld.items("hollow:stilled_heart").length, 1, "no duplicate reward");
+  noErrors(sim);
+});
+
 await test("boss: a server restart during the rise still raises exactly one heart", () => {
   const { sim, awaken } = bossWorld();
   awaken();
@@ -614,6 +762,43 @@ await test("ward: 4 charges, one per creature per night, charcoal recharges, sal
   const w2 = sim.placeBlock(p, { x: 1, y: 64, z: -1 }, "hollow:rowan_ward");
   sim.breakBlock(p, w2);
   eq(sim.overworld.items("hollow:rowan_ward").length, 1, "full ward returns whole");
+  noErrors(sim);
+});
+
+await test("ward: a failed block update keeps charcoal and the previous charge count", () => {
+  const { sim, p } = houseWorld(209);
+  const w = sim.placeBlock(p, { x: 1, y: 64, z: 1 }, "hollow:rowan_ward");
+  w.setPermutation(w.permutation.withState("hollow:used", 3));
+  const set = w.setPermutation;
+  w.setPermutation = () => { throw new Error("chunk became unavailable"); };
+  p.hold("minecraft:charcoal", 2);
+  sim.interactBlock(p, w);
+  eq(p._inv.count("minecraft:charcoal"), 2, "nothing consumed on failure");
+  eq(w.permutation.getState("hollow:used"), 3, "charge unchanged");
+  assert(p._log.at(-1).includes("No charcoal spent"), "honest failure feedback");
+  w.setPermutation = set;
+  sim.interactBlock(p, w);
+  eq(p._inv.count("minecraft:charcoal"), 1, "retry consumes one charcoal");
+  eq(w.permutation.getState("hollow:used"), 2, "retry adds one charge");
+  noErrors(sim);
+});
+
+await test("ward: overflow stays inactive without consuming charcoal and can reclaim a freed slot", () => {
+  const { sim, p } = houseWorld(210);
+  const ws = [];
+  for (let i = 0; i < 33; i++) ws.push(sim.placeBlock(p, { x: i, y: 64, z: 10 }, "hollow:rowan_ward"));
+  const extra = ws.at(-1);
+  extra.setPermutation(extra.permutation.withState("hollow:used", 2));
+  p.hold("minecraft:charcoal", 3);
+  sim.interactBlock(p, extra);
+  eq(p._inv.count("minecraft:charcoal"), 3, "inactive ward takes no charcoal");
+  assert(p._log.at(-1).includes("inactive"), "cap explained");
+  sim.breakBlock(p, ws[0]);
+  sim.interactBlock(p, extra);
+  eq(p._inv.count("minecraft:charcoal"), 2, "reactivated ward takes one charcoal");
+  const saved = JSON.parse(sim.world.getDynamicProperty("hollow:wards"));
+  eq(saved.length, 32, "cap still holds");
+  assert(saved.some((s) => s.x === 32), "overflow ward is now registered");
   noErrors(sim);
 });
 
@@ -833,6 +1018,25 @@ await test("hollowed: spawns out of sight in the dark; hears sprinting, not snea
   noErrors(sim);
 });
 
+await test("hollowed: reading movement noise in the journal cannot swallow a landing sound", async () => {
+  const { sim, p, ow } = caveWorld(218);
+  let h;
+  for (let i = 0; i < 6000 && !h; i++) { sim.tick(1); h = ow.getEntities({ type: "hollow:hollowed" })[0]; }
+  assert(h, "tracked listener spawned");
+  h.teleport({ x: 7.5, y: -12, z: 0.5 });
+  p.isOnGround = false;
+  sim.tick(20); // the actual hearing poll observes the airborne state
+  p.isOnGround = true;
+  p._ui.push({ canceled: false, selection: 5 }, { canceled: true });
+  openBook(sim, p);
+  await flush(); // open the report before advancing the next hearing poll
+  assert(p._shownForms.at(-1)._body.includes("jumping"), "report observes the pending landing");
+  const before = h._events.length;
+  sim.tick(10);
+  assert(h._events.slice(before).includes("hollow:investigate"), "landing still reaches the listener");
+  noErrors(sim);
+});
+
 await test("hollowed: thrown projectiles create a decoy away from the player", () => {
   const { sim, ow } = caveWorld(42);
   const h = ow.spawnEntity("hollow:hollowed", { x: 8.5, y: -12, z: 0.5 });
@@ -955,6 +1159,85 @@ await test("items: queued page/lens uses cannot bypass consumption by switching 
   eq(p._overrides.size, 0, "swapping away from the lens cancels the reveal");
   eq(p._sounds.length, sounds, "cancelled scan makes no lens cue");
   noErrors(sim);
+});
+
+await test("items: lens reveals clear immediately on death and dimension travel, without clearing another player's view", () => {
+  for (const reason of ["death", "dimension"]) {
+    const sim = newWorld(211), p = sim.addPlayer("Alex"), q = sim.addPlayer("Sam");
+    sim.tick(100);
+    sim.overworld.spawnEntity("hollow:borrowed", { x: 8, y: 64, z: 0 });
+    for (const player of [p, q]) { player.hold("hollow:hollow_lens"); sim.useItem(player); }
+    sim.tick(2);
+    eq(p._overrides.size, 1, "first player's reveal");
+    eq(q._overrides.size, 1, "second player's reveal");
+    if (reason === "death") sim.damage(p, 100);
+    else {
+      p.dimension = sim.world.getDimension("minecraft:nether");
+      sim.fire("playerDimensionChange", { player: p });
+    }
+    eq(p._overrides.size, 0, `${reason} clears first player's reveal immediately`);
+    eq(q._overrides.size, 1, "other player's reveal remains");
+    sim.tick(210);
+    eq(q._overrides.size, 0, "other player's reveal expires normally");
+    noErrors(sim);
+  }
+});
+
+await test("items: queued uses cannot unlock lore or create a shrine after death or dimension travel", () => {
+  for (const reason of ["death", "dimension"]) {
+    const sim = newWorld(212), p = sim.addPlayer("Alex");
+    sim.tick(100);
+    p.hold("hollow:torn_page"); sim.useItem(p);
+    if (reason === "death") sim.damage(p, 100);
+    else { p.dimension = sim.world.getDimension("minecraft:nether"); sim.fire("playerDimensionChange", { player: p }); }
+    sim.tick(2);
+    assert(!journal(p).includes("lore1"), `${reason} cancels page use`);
+    eq(p._inv.count("hollow:torn_page"), 1, "cancelled page retained");
+  }
+  const sim = newWorld(213), p = sim.addPlayer("Alex");
+  sim.tick(100);
+  p.hold("hollow:heartseeker"); sim.useItem(p); p.hold("minecraft:stick"); sim.tick(2);
+  assert(!sim.world.getDynamicProperty("hollow:sites"), "hotbar swap cannot trigger shrine creation");
+  noErrors(sim);
+});
+
+await test("items: leaving invalidates a queued use even after a fast rejoin", () => {
+  const sim = newWorld(214), p = sim.addPlayer("Alex");
+  sim.tick(100);
+  sim.removePlayer(p); // queues cleanup for the next tick
+  sim.addPlayer("Alex");
+  p.hold("hollow:torn_page"); sim.useItem(p);
+  sim.tick(2);
+  assert(!journal(p).includes("lore1"), "departure cleanup invalidates the old-lifetime use");
+  eq(p._inv.count("hollow:torn_page"), 1, "page not consumed");
+  sim.useItem(p); sim.tick(2);
+  assert(journal(p).includes("lore1"), "fresh use works in the new lifetime");
+  noErrors(sim);
+});
+
+await test("items: reward helper drops items when the inventory component is unavailable", () => {
+  const sim = newWorld(215), p = sim.addPlayer("Op");
+  sim.tick(100);
+  const get = p.getComponent.bind(p);
+  p.getComponent = (name) => name === "minecraft:inventory" ? undefined : get(name);
+  sim.fire("scriptEventReceive", { id: "hollow:test", message: "kit", sourceEntity: p });
+  eq(sim.overworld.items("hollow:offering_of_silence").length, 1, "offering dropped instead of lost");
+  eq(sim.overworld.items("hollow:rowan_ward").length, 1, "ward dropped instead of lost");
+  noErrors(sim);
+});
+
+await test("items: Heartseeker replaces its marker and clears it on death or dimension travel", () => {
+  for (const reason of ["death", "dimension"]) {
+    const { sim, p } = bossWorld(1, 219);
+    p.hold("hollow:heartseeker"); sim.useItem(p); sim.tick(2);
+    eq(p._waypoints.length, 1, "one shrine marker");
+    sim.useItem(p); sim.tick(2);
+    eq(p._waypoints.length, 1, "repeat use replaces the old marker");
+    if (reason === "death") sim.damage(p, 100);
+    else { p.dimension = sim.world.getDimension("minecraft:nether"); sim.fire("playerDimensionChange", { player: p }); }
+    eq(p._waypoints.length, 0, "lifecycle cleanup removes the marker");
+    noErrors(sim);
+  }
 });
 
 // =============================================================================== music

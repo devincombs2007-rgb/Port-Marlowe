@@ -28,14 +28,14 @@ import {
   forgetWatcherTarget, isWatcherTracked, onWatcherDied, onWatcherHurt, onWatcherStruck, startWatcher, tryStartWatcher, watcherCount,
 } from "./creatures/watcher";
 import { registerBlockComponents, startBlockSystems } from "./items/blocks";
-import { giveOrDrop, registerItemComponents, startMaterialPickups } from "./items/components";
+import { forgetItemEffects, giveOrDrop, registerItemComponents, startMaterialPickups } from "./items/components";
 import { forgetMusic, startMusic } from "./systems/music";
 import { startTracks } from "./systems/tracks";
 import { forceEvent, forgetEventTarget, startEvents } from "./systems/events";
 import { startAmbience } from "./systems/ambience";
 import { startCleanup, sweepLoaded, trackType } from "./systems/cleanup";
 import { addStarter, startDirector } from "./systems/director";
-import { ensureJournal, forgetJournal, openJournal, unlock, unlockAll } from "./systems/journal";
+import { cancelJournalNotices, ensureJournal, forgetJournal, openJournal, unlock, unlockAll } from "./systems/journal";
 import { forgetNoise, startNoiseEvents } from "./systems/noise";
 import { forceSite, forgetSites, startSites } from "./systems/sites";
 
@@ -103,12 +103,16 @@ world.afterEvents.playerSpawn.subscribe((ev) => safe("playerSpawn", () => {
     });
   } else {
     rt(p).diedAt = now();
+    rt(p).ctx = undefined;
     forgetEncounters(p.id);
     later("journalBack", 20, () => p.isValid && ensureJournal(p));
   }
 }));
 
 function forgetEncounters(playerId: string): void {
+  forgetSites(playerId);
+  cancelJournalNotices(playerId);
+  forgetItemEffects(playerId);
   forgetForms(playerId);
   forgetEventTarget(playerId);
   forgetWatcherTarget(playerId);
@@ -126,12 +130,12 @@ world.beforeEvents.playerLeave.subscribe((ev) => {
     forgetPrefs(id);
     forgetJournal(id);
     forgetNoise(id);
-    forgetSites(id);
     forgetMusic(id);
   }));
 });
 
 world.afterEvents.playerDimensionChange.subscribe((ev) => safe("dimChange", () => {
+  rt(ev.player).ctx = undefined;
   forgetEncounters(ev.player.id);
   forgetBossPlayer(ev.player);
   clearAllFog(ev.player);

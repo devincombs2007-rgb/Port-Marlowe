@@ -254,7 +254,7 @@ function makeShrine(p: Player): Site | undefined {
   return undefined;
 }
 
-const waypoints = new Map<string, LocationWaypoint>();
+const waypoints = new Map<string, { player: Player; point: LocationWaypoint }>();
 
 export function useHeartseeker(p: Player): void {
   if (!isOverworld(p.dimension)) {
@@ -286,20 +286,24 @@ export function useHeartseeker(p: Player): void {
   unlock(p, "heart1");
   try {
     const old = waypoints.get(p.id);
-    if (old?.isValid) p.locatorBar.removeWaypoint(old);
+    if (old?.point.isValid) p.locatorBar.removeWaypoint(old.point);
     const wp = new LocationWaypoint(
       { dimension: p.dimension, x: c.x, y: c.y, z: c.z },
       { textureBoundsList: [{ lowerBound: 0, texture: WaypointTexture.SmallStar }] },
       { red: 0.85, green: 0.25, blue: 0.2 },
     );
     p.locatorBar.addWaypoint(wp);
-    waypoints.set(p.id, wp);
+    waypoints.set(p.id, { player: p, point: wp });
   } catch {
     /* locator bar disabled by game rule */
   }
 }
 
 export function forgetSites(playerId: string): void {
+  const old = waypoints.get(playerId);
+  try {
+    if (old?.player.isValid && old.point.isValid) old.player.locatorBar.removeWaypoint(old.point);
+  } catch { /* player left or locator bar unavailable */ }
   waypoints.delete(playerId);
 }
 

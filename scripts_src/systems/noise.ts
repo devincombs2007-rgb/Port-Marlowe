@@ -64,11 +64,11 @@ interface MoveState {
 const moveState = new Map<string, MoveState>();
 
 /** Current movement noise radius for a player (0 = silent). */
-export function movementNoise(p: Player): { radius: number; kind: NoiseKind } {
+export function movementNoise(p: Player, observeOnly = false): { radius: number; kind: NoiseKind } {
   if (p.isSneaking) return { radius: 0, kind: "move" };
   const v = p.getVelocity();
   const speed = Math.hypot(v.x, v.z);
-  const st = moveState.get(p.id) ?? { airborne: false, lastLand: -999 };
+  const st = { ...(moveState.get(p.id) ?? { airborne: false, lastLand: -999 }) };
   const wasAir = st.airborne;
   st.airborne = !p.isOnGround;
   let landed = false;
@@ -76,7 +76,7 @@ export function movementNoise(p: Player): { radius: number; kind: NoiseKind } {
     landed = true;
     st.lastLand = now();
   }
-  moveState.set(p.id, st);
+  if (!observeOnly) moveState.set(p.id, st);
   if (quietFloor(p)) return { radius: 0, kind: "move" };
   if (p.isSprinting && speed > 0.05) return { radius: 16, kind: "sprint" };
   if (landed || p.isJumping) return { radius: 8, kind: "jump" };
@@ -85,7 +85,7 @@ export function movementNoise(p: Player): { radius: number; kind: NoiseKind } {
 }
 
 export function noiseDescription(p: Player): string {
-  const { radius, kind } = movementNoise(p);
+  const { radius, kind } = movementNoise(p, true);
   if (radius === 0) return p.isSneaking ? "silent (sneaking)" : "silent";
   const word = radius >= 16 ? "loud" : radius >= 8 ? "noticeable" : "soft";
   return `${word} (${kind === "sprint" ? "sprinting" : kind === "jump" ? "jumping" : "walking"}, ${radius} blocks)`;

@@ -19,6 +19,24 @@ which unlocks each entry as you discover it. This guide spoils all of it.
 6. **Nothing destroys your base** unless an operator deliberately turns on *Destructive Knocker*,
    and even then it can only try wooden doors, on Hard.
 
+## Field conditions and next steps
+
+Hold the **Field Journal**, press **Use**, and choose **Field conditions & next steps**.
+The page checks your roof, held/nearby light, movement noise and registered protective equipment.
+It also explains quiet pacing such as a new arrival's settling-in period or Peaceful mode.
+These local checks do not guarantee safety or reveal nearby creatures. Choose **Refresh** after
+moving or changing equipment; the page is a snapshot rather than a live background scanner.
+
+The suggested next step follows your discoveries and carried equipment. **Read suggested recipe**
+opens a recipe you already unlocked; undiscovered creature/boss recipes stay hidden. The existing
+Settings button remains in the same place. Multiple discoveries close together produce one
+notification and one sound, and the individual unread pages remain marked in their chapters.
+
+An overflow Rowan Ward is inactive at the world's 32-ward cap. Remove a registered ward, then
+use the inactive ward to register it. Inactive wards and failed recharge attempts spend no charcoal.
+Death and dimension travel cancel queued item uses and clear lens reveals/Heartseeker markers;
+use the tool again when you are ready. Inventory-full rewards drop beside the player.
+
 ## How the dread ramps up
 
 Days are counted from when the add-on was first enabled in the world, so an old world gets

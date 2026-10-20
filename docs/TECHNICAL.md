@@ -126,6 +126,20 @@ from `.mcstructure` files in the behavior pack:
   only happens by player choice.
 - Operators can turn all sites off. Placed sites are ordinary blocks; nothing is ever removed or regenerated.
 
+## 5a. Journal and player lifecycle (1.0.4)
+
+`systems/field_notes.ts` computes the Field Conditions form only on open/refresh, using the
+existing bounded environment and registered-equipment queries plus one inventory pass. It does
+not query creature entities. The form shares the journal's session token and busy-retry logic.
+Recipe suggestions require an unlocked entry; refreshing never changes settings or discoveries.
+Noise descriptions use a read-only copy of movement state, preserving real landing detection.
+
+Discovery notifications share one delayed summary per player. Lifecycle cleanup cancels the
+summary, queued-use tokens, lens timers/overrides and locator markers. Environment cache reuse
+requires the same dimension, less than eight blocks of displacement and unchanged water state.
+Gameplay regression coverage now contains 78 scenarios; Minecraft rendering/UI/physics checks
+remain separate.
+
 ## 6. Visuals
 
 **Resource pack (always on, every graphics mode):**
