@@ -7,7 +7,7 @@ in it is patient, though. You are watched long before you are attacked.
 - **Five creatures**, each with readable warnings, fixed rules and counterplay: the Watcher,
   the Borrowed, the Hollowed, the Knocker and the Mirebound.
 - **A boss you choose to wake:** the Heart Below, in an underground shrine.
-- **Three places:** a ranger cabin, a ruined campsite and the shrine. They appear near
+- **Six structure layouts:** an intact or collapsed ranger cabin, a ruined campsite, a watchtower, a lean-to and the shrine. They appear near
   exploring players in **new and existing worlds**.
 - **A Field Journal** that fills in as you play. It works with a controller, stays with you
   through death, and holds the settings.
@@ -20,20 +20,22 @@ in it is patient, though. You are watched long before you are attacked.
 
 > **Status:**
 > - Statically validated: 0 errors, 0 warnings.
-> - The real scripts pass 26/26 headless simulation scenarios, including server restarts mid-boss-fight.
+> - The real scripts pass 45/45 headless simulation scenarios, including server restarts mid-boss-fight.
 > - See [docs/VALIDATION_REPORT.md](docs/VALIDATION_REPORT.md).
 >
 > **No in-game, Xbox or Realm testing has been done yet.** Read the known limitations before you rely on it in a
 > long-running world.
 
+Current development checkpoint and unfinished device checks: **[docs/DEVELOPMENT_STATUS.md](docs/DEVELOPMENT_STATUS.md)**.
+
 ## Download
 
 | File | What it is |
 |---|---|
-| [`dist/THE_HOLLOW_v1.0.0.mcaddon`](dist/THE_HOLLOW_v1.0.0.mcaddon) | Everything: behavior pack, resource pack and the optional Visuals pack. Open it to import. |
-| `dist/THE_HOLLOW_BP_v1.0.0.mcpack` | Behavior pack only |
-| `dist/THE_HOLLOW_RP_v1.0.0.mcpack` | Resource pack only (required) |
-| `dist/THE_HOLLOW_Visuals_v1.0.0.mcpack` | Optional Vibrant Visuals pack |
+| [`dist/THE_HOLLOW_v1.0.1.mcaddon`](dist/THE_HOLLOW_v1.0.1.mcaddon) | Everything: behavior pack, resource pack and the optional Visuals pack. Open it to import. |
+| `dist/THE_HOLLOW_BP_v1.0.1.mcpack` | Behavior pack only |
+| `dist/THE_HOLLOW_RP_v1.0.1.mcpack` | Resource pack only (required) |
+| `dist/THE_HOLLOW_Visuals_v1.0.1.mcpack` | Optional Vibrant Visuals pack |
 
 Install guide (iPhone or Windows → world → Realm → Xbox): **[docs/INSTALL.md](docs/INSTALL.md)**
 

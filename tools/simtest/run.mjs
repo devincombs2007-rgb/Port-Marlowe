@@ -850,6 +850,137 @@ await test("events: footsteps cross the roof of your shelter; nothing comes in",
   noErrors(sim);
 });
 
+await test("events: disconnect releases Every Eye; old callbacks cannot cancel a new event", () => {
+  const { sim, p } = farmWorld(95);
+  for (let i = 0; i < 6; i++) sim.overworld.spawnEntity("minecraft:sheep", { x: 6 + i, y: 64, z: 2 });
+  const force = (player) => sim.fire("scriptEventReceive", { id: "hollow:test", message: "eye", sourceEntity: player });
+  force(p);
+  sim.tick(100);
+  sim.removePlayer(p);
+  sim.tick(2);
+  const q = sim.addPlayer("Sam", { x: 0.5, y: 64, z: 0.5 }, veteran);
+  force(q);
+  assert(q._log.some((l) => l.includes("event eye started")), "another player can immediately start an event");
+  sim.tick(170); // includes the old event's final callback while the new event is active
+  assert(journal(q).includes("event_eye"), "old callbacks leave the replacement event running to completion");
+  assert(!journal(p).includes("event_eye"), "departed player gets no completion entry");
+  noErrors(sim);
+});
+
+await test("events: death, dimension changes and leaving the area stop herd control", () => {
+  for (const reason of ["death", "dimension", "distance"]) {
+    const { sim, p } = farmWorld(96);
+    const herd = [];
+    for (let i = 0; i < 6; i++) herd.push(sim.overworld.spawnEntity("minecraft:sheep", { x: 6 + i, y: 64, z: 2 }));
+    sim.fire("scriptEventReceive", { id: "hollow:test", message: "eye", sourceEntity: p });
+    sim.tick(20);
+    const before = herd.map((a) => a._effects.length);
+    if (reason === "death") {
+      p._health.currentValue = 0;
+      sim.fire("entityDie", { deadEntity: p, damageSource: {} });
+    } else if (reason === "dimension") {
+      p.dimension = sim.world.getDimension("minecraft:nether");
+      sim.fire("playerDimensionChange", { player: p });
+    } else p.teleport({ x: 100, y: 64, z: 0 });
+    sim.tick(180);
+    herd.forEach((a, i) => eq(a._effects.length, before[i], `${reason}: herd released`));
+    assert(!journal(p).includes("event_eye"), `${reason}: no completion for an interrupted event`);
+    noErrors(sim);
+  }
+});
+
+await test("events: animals moved to another dimension are no longer controlled", () => {
+  const { sim, p } = farmWorld(97);
+  const herd = [];
+  for (let i = 0; i < 6; i++) herd.push(sim.overworld.spawnEntity("minecraft:sheep", { x: 6 + i, y: 64, z: 2 }));
+  sim.fire("scriptEventReceive", { id: "hollow:test", message: "eye", sourceEntity: p });
+  sim.tick(20);
+  const moved = herd[0];
+  const before = moved._effects.length;
+  moved.dimension = sim.world.getDimension("minecraft:nether");
+  sim.tick(160);
+  eq(moved._effects.length, before, "portal animal released");
+  assert(journal(p).includes("event_eye"), "remaining herd completes the scene");
+  noErrors(sim);
+});
+
+await test("events: roof footsteps stay at the original shelter when the player moves", () => {
+  const { sim, p, ow } = houseWorld(98, { knocker: false });
+  const origin = { ...p.location };
+  const steps = [];
+  const play = ow.playSound.bind(ow);
+  ow.playSound = (id, at, opts) => {
+    if (id === "hollow.knocker.step") steps.push({ ...at });
+    play(id, at, opts);
+  };
+  sim.fire("scriptEventReceive", { id: "hollow:test", message: "roof", sourceEntity: p });
+  sim.tick(25);
+  p.teleport({ x: origin.x + 12, y: origin.y, z: origin.z });
+  sim.tick(230);
+  eq(steps.length, 7, "all seven steps play");
+  assert(steps.every((at) => Math.hypot(at.x - origin.x, at.z - origin.z) < 4), "sound path remains on the original roof");
+  assert(journal(p).includes("event_roof"), "nearby listener completes the event");
+  noErrors(sim);
+});
+
+await test("events: roof callbacks never read a disconnected player's position", () => {
+  const { sim, p } = houseWorld(99, { knocker: false });
+  sim.fire("scriptEventReceive", { id: "hollow:test", message: "roof", sourceEntity: p });
+  sim.tick(25);
+  sim.removePlayer(p);
+  const steps = sim.worldSounds.filter((s) => s === "hollow.knocker.step").length;
+  Object.defineProperty(p, "location", { get() { throw new Error("invalid player location"); } });
+  sim.tick(250);
+  eq(sim.worldSounds.filter((s) => s === "hollow.knocker.step").length, steps, "no footsteps after disconnect");
+  noErrors(sim);
+});
+
+function savedLanternWorld(seed) {
+  const { sim, p } = farmWorld(seed);
+  const at = { x: 0, y: 64, z: 0 };
+  sim.overworld.setBlock(at, "minecraft:spruce_log");
+  sim.overworld.setBlock({ x: 0, y: 65, z: 0 }, "minecraft:lantern");
+  sim.world.setDynamicProperty("hollow:event_lantern", JSON.stringify({ dim: "minecraft:overworld", at }));
+  return { sim, p, ow: sim.overworld };
+}
+
+await test("events: an unloaded lantern waits for its chunk and rewards once after reload", () => {
+  const { sim, ow } = savedLanternWorld(100);
+  ow.loaded = (at) => at.y !== 65;
+  sim.tick(450);
+  assert(JSON.parse(sim.world.getDynamicProperty("hollow:event_lantern")).dim, "pending scene preserved");
+  eq(ow.items("hollow:torn_page").length, 0, "no reward before the lantern loads");
+  boot(sim, 100);
+  ow.loaded = () => true;
+  sim.tick(850);
+  eq(ow.getBlock({ x: 0, y: 65, z: 0 }).typeId, "minecraft:air", "lantern goes out");
+  eq(ow.items("hollow:torn_page").length, 1, "one reward across both later visits");
+  noErrors(sim);
+});
+
+await test("events: failed lantern item spawn retries without losing or duplicating its page", () => {
+  const { sim, ow } = savedLanternWorld(101);
+  const spawn = ow.spawnItem.bind(ow);
+  ow.spawnItem = () => { throw new Error("temporarily unloaded"); };
+  sim.tick(450);
+  assert(JSON.parse(sim.world.getDynamicProperty("hollow:event_lantern")).dim, "failed reward stays pending");
+  eq(ow.getBlock({ x: 0, y: 65, z: 0 }).typeId, "minecraft:lantern", "lantern stays lit until reward succeeds");
+  ow.spawnItem = spawn;
+  sim.tick(850);
+  eq(ow.items("hollow:torn_page").length, 1, "one reward after retry");
+  noErrors(sim);
+});
+
+await test("events: a replacement block at the lantern scene is preserved without a reward", () => {
+  const { sim, ow } = savedLanternWorld(102);
+  ow.setBlock({ x: 0, y: 65, z: 0 }, "minecraft:gold_block");
+  sim.tick(850);
+  eq(ow.getBlock({ x: 0, y: 65, z: 0 }).typeId, "minecraft:gold_block", "player block preserved");
+  eq(ow.items("hollow:torn_page").length, 0, "no phantom page");
+  eq(JSON.parse(sim.world.getDynamicProperty("hollow:event_lantern")).dim, "", "stale scene cleared");
+  noErrors(sim);
+});
+
 // =============================================================================== test kit
 await test("test kit: operator-only; test mode removes waiting; never persists; boss/knocker shortcuts", async () => {
   const sim = newWorld(81);

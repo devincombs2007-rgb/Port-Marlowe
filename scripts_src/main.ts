@@ -30,7 +30,7 @@ import { registerBlockComponents, startBlockSystems } from "./items/blocks";
 import { giveOrDrop, registerItemComponents, startMaterialPickups } from "./items/components";
 import { forgetMusic, startMusic } from "./systems/music";
 import { startTracks } from "./systems/tracks";
-import { forceEvent, startEvents } from "./systems/events";
+import { forceEvent, forgetEventTarget, startEvents } from "./systems/events";
 import { startAmbience } from "./systems/ambience";
 import { startCleanup, sweepLoaded, trackType } from "./systems/cleanup";
 import { addStarter, startDirector } from "./systems/director";
@@ -108,6 +108,7 @@ world.afterEvents.playerSpawn.subscribe((ev) => safe("playerSpawn", () => {
 }));
 
 function forgetEncounters(playerId: string): void {
+  forgetEventTarget(playerId);
   forgetWatcherTarget(playerId);
   forgetBorrowedTarget(playerId);
   forgetMireboundTarget(playerId);

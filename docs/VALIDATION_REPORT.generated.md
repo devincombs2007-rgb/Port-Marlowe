@@ -17,12 +17,12 @@ Errors: **0** · Warnings: **0**
 - sounds: 77 events, 161 files (11 vanilla references); subtitles checked against lang
 - recipes: 7
 - texture sets: 21
-- structure hollow:shrine: 25x13x25, 14 palette entries
-- structure hollow:leanto: 7x5x7, 11 palette entries
-- structure hollow:cabin: 11x9x11, 31 palette entries
-- structure hollow:cabin_collapsed: 11x9x11, 29 palette entries
 - structure hollow:campsite: 13x6x13, 17 palette entries
+- structure hollow:leanto: 7x5x7, 11 palette entries
+- structure hollow:cabin_collapsed: 11x9x11, 29 palette entries
 - structure hollow:watchtower: 7x15x7, 13 palette entries
+- structure hollow:shrine: 25x13x25, 14 palette entries
+- structure hollow:cabin: 11x9x11, 31 palette entries
 - visuals: 57 client biome overrides, 16 VV definitions
 - behavior entities: 9 (schema-validated + component names, events, component groups, properties, loot paths, lang)
 - client entities: 9 (textures, geometry, animations, controllers, render controllers, bones, Molang properties)

@@ -3,7 +3,7 @@
 A fast first pass on **Windows** (best for reading errors). Repeat the short Realm and Xbox section at the end.
 
 ## Setup (2 min)
-1. Import `THE_HOLLOW_v1.0.0.mcaddon`. Create a **new world**: Survival, cheats **on**, the behavior pack plus the Visuals pack, all experiments off.
+1. Import `THE_HOLLOW_v1.0.1.mcaddon`. Create a **new world**: Survival, cheats **on**, the behavior pack plus the Visuals pack, all experiments off.
 2. Settings → Creator → turn on **Content Log GUI**. Settings → Accessibility → turn on **Subtitles**.
 3. In the world, run:
    ```
@@ -43,6 +43,19 @@ includes a `failures:` count, which should stay `none`.
 ## Realm and Xbox (after the Windows pass)
 12. Upload the world to a Realm (see INSTALL.md). Join from **Xbox**: accept the pack download, get the journal on join, turn on Subtitles, and repeat steps 1 and 5.
 13. Note any stutter during night encounters. That's the performance data the project doesn't have yet.
+
+## Rare event regression checks (two players help)
+
+- With at least five animals nearby, run `/scriptevent hollow:test eye`, then leave while they
+  stare. A second player should be able to force another event immediately. Rejoining must not
+  restart the old stare. Repeat by dying, entering a portal, or moving more than 32 blocks away.
+- Under a shelter roof, run `/scriptevent hollow:test roof`. Walk a few blocks away: the sound
+  should remain over the original shelter. Leave the world during the footsteps and check
+  that the content log reports no invalid-player errors.
+- In trees, run `/scriptevent hollow:test lantern`, save/restart before approaching, then find
+  it. One page should drop when the lantern goes out; revisiting must not drop a second page.
+  In a separate test, replace the lantern with another block before approaching: the replacement
+  must stay intact and no page should appear.
 
 ## Reporting back
 For each failed step, note **step number, what you expected, what happened**, and any red content-log line.

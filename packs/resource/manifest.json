@@ -2,12 +2,12 @@
   "format_version": 2,
   "header": {
     "name": "THE HOLLOW: Survival Horror",
-    "description": "§7Resource pack · creatures, sounds, items. Works in Simple, Fancy and Vibrant Visuals.",
+    "description": "\u00a77Resource pack \u00b7 creatures, sounds, items. Works in Simple, Fancy and Vibrant Visuals.",
     "uuid": "f9d97f90-991f-5d34-918e-fed51bbefd88",
     "version": [
       1,
       0,
-      0
+      1
     ],
     "min_engine_version": [
       1,
@@ -22,7 +22,7 @@
       "version": [
         1,
         0,
-        0
+        1
       ]
     }
   ],

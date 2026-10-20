@@ -25,7 +25,34 @@ const ANIMALS = [
 ];
 
 let done: string[] | undefined;
-let running = false;
+interface ActiveEvent {
+  playerId: string;
+  dim: string;
+  origin: Vector3;
+}
+
+let running: ActiveEvent | undefined;
+
+function beginEvent(p: Player): ActiveEvent {
+  const event = { playerId: p.id, dim: p.dimension.id, origin: { ...p.location } };
+  running = event;
+  return event;
+}
+
+/** Queued callbacks must never resume an old event after the player leaves or a new one starts. */
+function stillPresent(p: Player, event: ActiveEvent): boolean {
+  if (running !== event) return false;
+  if (!p.isValid || p.dimension.id !== event.dim || dist(p.location, event.origin) > 32 ||
+      (p.getComponent("minecraft:health")?.currentValue ?? 0) <= 0) {
+    running = undefined;
+    return false;
+  }
+  return true;
+}
+
+export function forgetEventTarget(playerId: string): void {
+  if (running?.playerId === playerId) running = undefined;
+}
 
 function isDone(id: EventId): boolean {
   done ??= readWorldArray<string>(DP.events);
@@ -55,15 +82,15 @@ function animalsAround(p: Player): ReturnType<Dimension["getEntities"]> {
 function everyEye(p: Player): boolean {
   const herd = animalsAround(p).slice(0, 24);
   if (herd.length < 5) return false;
-  running = true;
+  const event = beginEvent(p);
   ambient(p, SND.hush, { volume: 0.9, minGap: 0, cueGap: 0 });
   accent(p, SND.stingerDistant, 1, true);
   const steps = 32; // 8 s
   for (let k = 0; k <= steps; k++) {
     later("event.eye", k * 5, () => {
-      if (!p.isValid) return;
+      if (!stillPresent(p, event)) return;
       for (const a of herd) {
-        if (!a.isValid) continue;
+        if (!a.isValid || a.dimension.id !== event.dim || dist(a.location, event.origin) > 32) continue;
         try {
           a.setRotation({ x: 0, y: yawOf(norm(sub(p.location, a.location))) });
           a.addEffect("slowness", 10, { amplifier: 255, showParticles: false });
@@ -72,7 +99,7 @@ function everyEye(p: Player): boolean {
         }
       }
       if (k === steps) {
-        running = false;
+        running = undefined;
         unlock(p, "event_eye");
       }
     });
@@ -129,20 +156,28 @@ function watchLantern(p: Player): void {
   if (dist(p.location, lantern.at) > 6) return;
   const dim = p.dimension;
   const top = block(dim, add(lantern.at, { x: 0, y: 1, z: 0 }));
-  try {
-    if (top?.typeId === "minecraft:lantern") top.setPermutation(BlockPermutation.resolve("minecraft:air"));
-  } catch {
-    /* ignore */
+  // A chunk boundary is not a vanished lantern. Keep the saved scene until it can be read.
+  if (!top) return;
+  // Someone has already altered the scene: never erase a replacement block or pay a phantom reward.
+  if (top.typeId !== "minecraft:lantern") {
+    setLantern(undefined);
+    return;
   }
-  worldSound(dim, SND.windGust, lantern.at, 0.8);
   try {
-    // the page lies where the light was (dropped now, so it can't despawn before anyone arrives)
+    // Spawn first: if the chunk refuses an item, leave the scene pending for the next visit.
     dim.spawnItem(new ItemStack(ITEM.page, 1), add(lantern.at, { x: 0.8, y: 0.2, z: 0.4 }));
   } catch {
-    /* ignore */
+    return;
   }
-  for (const q of dim.getPlayers({ location: lantern.at, maxDistance: 16 })) unlock(q, "event_lantern");
+  // Commit the one-time reward before optional visual/audio work.
   setLantern(undefined);
+  try {
+    top.setPermutation(BlockPermutation.resolve("minecraft:air"));
+  } catch {
+    /* reward is already committed; do not duplicate it if the block unloads */
+  }
+  worldSound(dim, SND.windGust, lantern.at, 0.8);
+  for (const q of dim.getPlayers({ location: lantern.at, maxDistance: 16 })) unlock(q, "event_lantern");
 }
 
 // ------------------------------------------------------------------------------ On the Roof
@@ -158,16 +193,18 @@ function onTheRoof(p: Player): boolean {
   }
   if (roofY === undefined) return false;
   const along = yawDir(yawOf(p.getViewDirection()) + 90);
-  running = true;
+  const event = beginEvent(p);
   for (let k = 0; k < 7; k++) {
     later("event.roof", 20 + k * 17, () => {
-      const at = { x: p.location.x + along.x * (k - 3) * 1.2, y: roofY!, z: p.location.z + along.z * (k - 3) * 1.2 };
+      if (!stillPresent(p, event)) return;
+      const at = { x: event.origin.x + along.x * (k - 3) * 1.2, y: roofY!, z: event.origin.z + along.z * (k - 3) * 1.2 };
       worldSound(dim, "hollow.knocker.step", at, 1.0, 0.85);
     });
   }
   later("event.roof.end", 20 + 7 * 17 + 60, () => {
-    running = false;
-    if (p.isValid) unlock(p, "event_roof");
+    if (!stillPresent(p, event)) return;
+    running = undefined;
+    unlock(p, "event_roof");
   });
   return true;
 }

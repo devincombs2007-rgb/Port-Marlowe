@@ -3,7 +3,7 @@
 **You need:** Minecraft Bedrock **26.50 or newer** on every device that will play (iPhone,
 Windows and Xbox all update through their stores). An older client won't load the packs.
 
-**What's in the download:** `THE_HOLLOW_v1.0.0.mcaddon` holds three packs.
+**What's in the download:** `THE_HOLLOW_v1.0.1.mcaddon` holds three packs.
 
 | Pack | Required? | What it does |
 |---|---|---|
@@ -17,7 +17,7 @@ You do **not** need "Beta APIs" or any other experimental toggle. Leave them off
 
 ## 1. Import on iPhone (or iPad)
 
-1. Download `THE_HOLLOW_v1.0.0.mcaddon` in Safari. When Safari asks, tap **Download**. The file goes to **Files → Downloads**.
+1. Download `THE_HOLLOW_v1.0.1.mcaddon` in Safari. When Safari asks, tap **Download**. The file goes to **Files → Downloads**.
 2. Open the **Files** app and go to **Downloads**.
 3. Tap the `.mcaddon` file. If it opens a preview instead, tap the **Share** button and choose **Minecraft**.
 4. Minecraft opens and shows **"Import started…"** and then **"Successfully imported"** once for each pack.
@@ -27,7 +27,7 @@ You do **not** need "Beta APIs" or any other experimental toggle. Leave them off
 ## 2. Import on Windows
 
 1. Install **Minecraft for Windows** (Bedrock) from the Microsoft Store or the Xbox app, and update it to 26.50 or newer.
-2. Download `THE_HOLLOW_v1.0.0.mcaddon` and **double-click** it. Minecraft starts and imports all three packs.
+2. Download `THE_HOLLOW_v1.0.1.mcaddon` and **double-click** it. Minecraft starts and imports all three packs.
    - If Windows asks what to open it with, choose **Minecraft**.
    - Alternatively, double-click the separate `.mcpack` files one at a time.
 3. Go on to **step 3: Activate in a world**.

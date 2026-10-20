@@ -138,7 +138,9 @@ FOG = {
     # (air start, air end, colour), (weather start, end, colour), volumetric (density, zero_h, max_h, scattering)
     "wild": ((0.7, 1.0, "#A6B6C2"), (0.25, 0.75, "#6A7178"), (0.055, 100.0, 62.0, [0.05, 0.055, 0.062])),
     "cold": ((0.7, 1.0, "#B8C6D4"), (0.2, 0.7, "#7A848E"), (0.05, 110.0, 64.0, [0.055, 0.06, 0.07])),
-    "swamp": ((0.55, 1.0, "#8F9A86"), (0.2, 0.65, "#5F665A"), (0.085, 82.0, 60.0, [0.05, 0.058, 0.048])),
+    # Match the pale garden's 0.07 peak density in the pinned Mojang reference. Our height
+    # falloff still clears by Y82; numerical parity alone does not prove in-game visibility.
+    "swamp": ((0.55, 1.0, "#8F9A86"), (0.2, 0.65, "#5F665A"), (0.07, 82.0, 60.0, [0.05, 0.058, 0.048])),
     "cave": ((0.75, 1.0, "#3A3E44"), (0.75, 1.0, "#3A3E44"), (0.03, 64.0, -64.0, [0.03, 0.032, 0.036])),
 }
 

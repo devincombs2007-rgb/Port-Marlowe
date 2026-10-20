@@ -4177,7 +4177,23 @@ var ANIMALS = [
   "minecraft:mooshroom"
 ];
 var done;
-var running = false;
+var running;
+function beginEvent(p) {
+  const event = { playerId: p.id, dim: p.dimension.id, origin: { ...p.location } };
+  running = event;
+  return event;
+}
+function stillPresent(p, event) {
+  if (running !== event) return false;
+  if (!p.isValid || p.dimension.id !== event.dim || dist(p.location, event.origin) > 32 || (p.getComponent("minecraft:health")?.currentValue ?? 0) <= 0) {
+    running = void 0;
+    return false;
+  }
+  return true;
+}
+function forgetEventTarget(playerId) {
+  if (running?.playerId === playerId) running = void 0;
+}
 function isDone(id) {
   done ??= readWorldArray(DP.events);
   return done.includes(id);
@@ -4200,15 +4216,15 @@ function animalsAround(p) {
 function everyEye(p) {
   const herd = animalsAround(p).slice(0, 24);
   if (herd.length < 5) return false;
-  running = true;
+  const event = beginEvent(p);
   ambient(p, SND.hush, { volume: 0.9, minGap: 0, cueGap: 0 });
   accent(p, SND.stingerDistant, 1, true);
   const steps = 32;
   for (let k = 0; k <= steps; k++) {
     later("event.eye", k * 5, () => {
-      if (!p.isValid) return;
+      if (!stillPresent(p, event)) return;
       for (const a of herd) {
-        if (!a.isValid) continue;
+        if (!a.isValid || a.dimension.id !== event.dim || dist(a.location, event.origin) > 32) continue;
         try {
           a.setRotation({ x: 0, y: yawOf(norm(sub(p.location, a.location))) });
           a.addEffect("slowness", 10, { amplifier: 255, showParticles: false });
@@ -4216,7 +4232,7 @@ function everyEye(p) {
         }
       }
       if (k === steps) {
-        running = false;
+        running = void 0;
         unlock(p, "event_eye");
       }
     });
@@ -4261,17 +4277,23 @@ function watchLantern(p) {
   if (dist(p.location, lantern.at) > 6) return;
   const dim = p.dimension;
   const top = block(dim, add(lantern.at, { x: 0, y: 1, z: 0 }));
-  try {
-    if (top?.typeId === "minecraft:lantern") top.setPermutation(BlockPermutation4.resolve("minecraft:air"));
-  } catch {
+  if (!top) return;
+  if (top.typeId !== "minecraft:lantern") {
+    setLantern(void 0);
+    return;
   }
-  worldSound(dim, SND.windGust, lantern.at, 0.8);
   try {
     dim.spawnItem(new ItemStack8(ITEM.page, 1), add(lantern.at, { x: 0.8, y: 0.2, z: 0.4 }));
   } catch {
+    return;
   }
-  for (const q of dim.getPlayers({ location: lantern.at, maxDistance: 16 })) unlock(q, "event_lantern");
   setLantern(void 0);
+  try {
+    top.setPermutation(BlockPermutation4.resolve("minecraft:air"));
+  } catch {
+  }
+  worldSound(dim, SND.windGust, lantern.at, 0.8);
+  for (const q of dim.getPlayers({ location: lantern.at, maxDistance: 16 })) unlock(q, "event_lantern");
 }
 function onTheRoof(p) {
   const dim = p.dimension;
@@ -4284,16 +4306,18 @@ function onTheRoof(p) {
   }
   if (roofY === void 0) return false;
   const along = yawDir(yawOf(p.getViewDirection()) + 90);
-  running = true;
+  const event = beginEvent(p);
   for (let k = 0; k < 7; k++) {
     later("event.roof", 20 + k * 17, () => {
-      const at = { x: p.location.x + along.x * (k - 3) * 1.2, y: roofY, z: p.location.z + along.z * (k - 3) * 1.2 };
+      if (!stillPresent(p, event)) return;
+      const at = { x: event.origin.x + along.x * (k - 3) * 1.2, y: roofY, z: event.origin.z + along.z * (k - 3) * 1.2 };
       worldSound(dim, "hollow.knocker.step", at, 1, 0.85);
     });
   }
   later("event.roof.end", 20 + 7 * 17 + 60, () => {
-    running = false;
-    if (p.isValid) unlock(p, "event_roof");
+    if (!stillPresent(p, event)) return;
+    running = void 0;
+    unlock(p, "event_roof");
   });
   return true;
 }
@@ -4503,6 +4527,7 @@ world18.afterEvents.playerSpawn.subscribe((ev) => safe("playerSpawn", () => {
   }
 }));
 function forgetEncounters(playerId) {
+  forgetEventTarget(playerId);
   forgetWatcherTarget(playerId);
   forgetBorrowedTarget(playerId);
   forgetMireboundTarget(playerId);

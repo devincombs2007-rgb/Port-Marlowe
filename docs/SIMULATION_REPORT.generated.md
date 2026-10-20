@@ -4,7 +4,7 @@ The real bundled behavior-pack scripts run against a fake Minecraft API (`tools/
 This checks script logic: scheduling, events, persistence, reloads, state machines, caps, cooldowns and rewards.
 It is **not** an in-game test: there is no engine pathfinding, melee, physics, rendering or audio.
 
-Result: **37/37 scenarios passed**
+Result: **45/45 scenarios passed**
 
 | Scenario | Result |
 |---|---|
@@ -42,9 +42,17 @@ Result: **37/37 scenarios passed**
 | events: Every Eye turns the herd to face you, harmlessly, at most once per world | pass |
 | events: The Lantern goes out as you arrive, leaves its page, and survives a restart | pass |
 | events: footsteps cross the roof of your shelter; nothing comes in | pass |
+| events: disconnect releases Every Eye; old callbacks cannot cancel a new event | pass |
+| events: death, dimension changes and leaving the area stop herd control | pass |
+| events: animals moved to another dimension are no longer controlled | pass |
+| events: roof footsteps stay at the original shelter when the player moves | pass |
+| events: roof callbacks never read a disconnected player's position | pass |
+| events: an unloaded lantern waits for its chunk and rewards once after reload | pass |
+| events: failed lantern item spawn retries without losing or duplicating its page | pass |
+| events: a replacement block at the lantern scene is preserved without a reward | pass |
 | test kit: operator-only; test mode removes waiting; never persists; boss/knocker shortcuts | pass |
 | test kit: kit, journal, boss2/boss3 and knocker shortcuts work | pass |
 | load: 8 players, all creatures, Nightmare 200% for a full day - caps hold | pass |
 
 - music: 1 night track(s) over 4 nights; 0 ticks of night music while a Watcher was stalking
-- load: peak creature counts {"hollow:borrowed":2,"hollow:watcher":3}; script time per tick avg 0.080 ms, p99 1.081 ms, max 9.08 ms (Node on a dev machine against the fake world - not an Xbox measurement)
+- load: peak creature counts {"hollow:borrowed":2,"hollow:watcher":3}; script time per tick avg 0.040 ms, p99 0.536 ms, max 5.31 ms (Node on a dev machine against the fake world - not an Xbox measurement)
