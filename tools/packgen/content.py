@@ -202,11 +202,46 @@ BLOCKS = {
             },
         },
     },
+    "tracks": {
+        "format_version": BLOCK_FMT,
+        "minecraft:block": {
+            "description": {
+                "identifier": "hollow:tracks",
+                "menu_category": {"category": "none"},
+                # kind: 0 Watcher, 1 Knocker, 2 Mirebound drag, 3 Borrowed; dir: 0 N, 1 E, 2 S, 3 W
+                "states": {"hollow:kind": {"values": {"min": 0, "max": 3}}, "hollow:dir": {"values": {"min": 0, "max": 3}}},
+            },
+            "components": {
+                "minecraft:geometry": "geometry.hollow.tracks",
+                "minecraft:material_instances": {"*": mat("hollow_tracks_watcher")},
+                "minecraft:collision_box": False,
+                "minecraft:selection_box": {"origin": [-8, 0, -8], "size": [16, 1, 16]},
+                "minecraft:light_dampening": 0,
+                "minecraft:destructible_by_mining": {"seconds_to_destroy": 0},
+                "minecraft:destructible_by_explosion": {"explosion_resistance": 0},
+                "minecraft:replaceable": {},
+                "minecraft:loot": "loot_tables/empty.json",
+                "minecraft:map_color": "#3a2f25",
+                "minecraft:sound": {"sound": "gravel"},
+            },
+            "permutations": [
+                {"condition": "query.block_state('hollow:kind') == 1",
+                 "components": {"minecraft:material_instances": {"*": mat("hollow_tracks_knocker")}}},
+                {"condition": "query.block_state('hollow:kind') == 2",
+                 "components": {"minecraft:material_instances": {"*": mat("hollow_tracks_drag")}}},
+                {"condition": "query.block_state('hollow:kind') == 3",
+                 "components": {"minecraft:material_instances": {"*": mat("hollow_tracks_borrowed")}}},
+                {"condition": "query.block_state('hollow:dir') == 1", "components": {"minecraft:transformation": {"rotation": [0, 270, 0]}}},
+                {"condition": "query.block_state('hollow:dir') == 2", "components": {"minecraft:transformation": {"rotation": [0, 180, 0]}}},
+                {"condition": "query.block_state('hollow:dir') == 3", "components": {"minecraft:transformation": {"rotation": [0, 90, 0]}}},
+            ],
+        },
+    },
 }
 
 BLOCK_NAMES = {
     "hollow_chime": "Hollow Chime", "rowan_ward": "Rowan Ward", "heartwood_lantern": "Heartwood Lantern",
-    "heart_altar": "Heart Altar", "hollow_roots": "Hollow Roots",
+    "heart_altar": "Heart Altar", "hollow_roots": "Hollow Roots", "tracks": "Tracks",
 }
 
 # terrain_texture short names -> texture paths
@@ -219,6 +254,10 @@ TERRAIN = {
     "hollow_heart_altar": "textures/blocks/hollow/heart_altar",
     "hollow_heart_altar_awake": "textures/blocks/hollow/heart_altar_awake",
     "hollow_hollow_roots": "textures/blocks/hollow/hollow_roots",
+    "hollow_tracks_watcher": "textures/blocks/hollow/tracks_watcher",
+    "hollow_tracks_knocker": "textures/blocks/hollow/tracks_knocker",
+    "hollow_tracks_drag": "textures/blocks/hollow/tracks_drag",
+    "hollow_tracks_borrowed": "textures/blocks/hollow/tracks_borrowed",
 }
 
 

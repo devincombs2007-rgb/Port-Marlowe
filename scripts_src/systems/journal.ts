@@ -58,6 +58,13 @@ export function unlock(p: Player, id: string, quiet = false): boolean {
   return true;
 }
 
+/** Test kit: unlock every entry quietly. */
+export function unlockAll(p: Player): number {
+  let n = 0;
+  for (const e of ENTRIES) if (unlock(p, e.id, true)) n++;
+  return n;
+}
+
 /** Unlock for every player within range (shared discoveries in multiplayer). */
 export function unlockNear(players: Player[], id: string): void {
   for (const p of players) unlock(p, id);

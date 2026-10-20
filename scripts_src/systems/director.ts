@@ -1,4 +1,5 @@
 import { Player } from "@minecraft/server";
+import { isTestMode } from "../core/config";
 import { addPlayTime, huntable, isNewcomer } from "../core/players";
 import { everyPlayer } from "../core/scheduler";
 
@@ -25,7 +26,7 @@ const PERIOD = 100;
 
 function evaluate(p: Player): void {
   addPlayTime(p, PERIOD);
-  if (!huntable(p) || isNewcomer(p)) return;
+  if (!huntable(p) || (isNewcomer(p) && !isTestMode())) return;
   let major = false;
   for (const s of starters) {
     if (s.independent) {

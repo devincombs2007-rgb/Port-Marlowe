@@ -11,6 +11,7 @@ import { LIGHT_BLOCKS, biomeGroup, clearLine, groundNear, hasBlockNear, holdingL
 import { lanternNear, protectedSpot, useWard, wardNear } from "../items/blocks";
 import { dailyAdd, dailyCount } from "../systems/daily";
 import { unlock } from "../systems/journal";
+import { TrackKind, standingPrints, trail } from "../systems/tracks";
 
 // THE WATCHER
 // Rules (all discoverable, all documented in the journal):
@@ -175,6 +176,7 @@ function vanish(e: Entity | undefined, enc: Enc): void {
 function withdraw(e: Entity, enc: Enc, reason: "stared" | "hurt" | "struck" | "ward" | "dawn" | "timeout", by?: Player): void {
   if (enc.state === "withdraw") return;
   setState(e, enc, "withdraw");
+  if (reason !== "dawn") standingPrints(e, TrackKind.Watcher); // it stood here, watching
   const dim = e.dimension;
   worldSound(dim, SND.watcherSeen, headOf(e), 0.9);
   later("watcher.retreat", 12, () => {
@@ -273,6 +275,7 @@ function update(): void {
     }
 
     if (enc.state === "stalk") {
+      trail(e, TrackKind.Watcher, 2.8);
       if (targetSafe(p, enc)) {
         setState(e, enc, "lurk");
         continue;

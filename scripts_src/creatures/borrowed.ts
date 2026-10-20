@@ -1,6 +1,6 @@
 import { Entity, Player, world } from "@minecraft/server";
 import { accent, worldSound } from "../core/audio";
-import { chanceScale, cooldownScale, settings } from "../core/config";
+import { chanceScale, cooldownScale, dayReached, settings } from "../core/config";
 import { hint } from "../core/fx";
 import { DP, ENT, SND } from "../core/ids";
 import { add, angleTo, chance, dist, pick, rand } from "../core/math";
@@ -10,6 +10,7 @@ import { hollowDay, isDarkHours, isDay, now, seconds } from "../core/time";
 import { clearLine, groundNear, holdingLight, inLitArea } from "../core/world";
 import { lanternNear, useWard, wardNear } from "../items/blocks";
 import { unlock } from "../systems/journal";
+import { TrackKind, trail } from "../systems/tracks";
 
 // THE BORROWED
 // Rules:
@@ -78,7 +79,7 @@ function reveal(e: Entity, enc: Enc, why: string, by?: Player): void {
 
 export function tryStartBorrowed(p: Player): boolean {
   const s = settings();
-  if (!s.borrowed || hollowDay() < 1) return false;
+  if (!s.borrowed || !dayReached(hollowDay(), 1)) return false;
   const c = ctx(p);
   if (!c.overworld || c.underground || c.inWater) return false;
   if (!huntable(p) || !cooldownReady(p, "borrowed")) return false;
@@ -187,6 +188,7 @@ function update(): void {
       if (enc.close >= 40) reveal(e, enc, "close", close[0]);
       continue;
     }
+    trail(e, TrackKind.Borrowed, 1.8); // revealed or fleeing: hooves turning into claws
     if (enc.state === "revealed") {
       if (hpFraction(e) < 0.4 || isDay()) {
         setState(e, enc, "fleeing");

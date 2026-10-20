@@ -38,6 +38,7 @@ export const BLOCK = {
   lantern: "hollow:heartwood_lantern",
   altar: "hollow:heart_altar",
   roots: "hollow:hollow_roots",
+  tracks: "hollow:tracks",
 } as const;
 
 export const FAMILY = {
@@ -150,6 +151,7 @@ export const DP = {
   firstJoin: "hollow:first_join",
   playTicks: "hollow:play_ticks",
   daily: "hollow:daily",
+  tracks: "hollow:track_list",
   // entity
   owner: "hollow:owner",
   fight: "hollow:fight",

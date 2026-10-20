@@ -705,6 +705,113 @@ await test("music: night tracks are rare (at most one per night) and fall silent
   noErrors(sim);
 });
 
+// =============================================================================== tracks
+const trackBlocks = (sim) => [...sim.overworld._blocks.entries()].filter(([, c]) => c.perm.type.id === "hollow:tracks")
+  .map(([k, c]) => ({ at: k.split(",").map(Number), kind: c.perm.states["hollow:kind"], dir: c.perm.states["hollow:dir"] }));
+
+await test("tracks: the Knocker leaves bare-foot prints to the door that fade after a day; nothing is replaced", () => {
+  const { sim, ow, door } = houseWorld(25);
+  ow.setBlock({ x: 12, y: 64, z: 0 }, "minecraft:poppy"); // a flower in its path must survive
+  goTo(sim, 3, 12000);
+  const k = waitKnocker(sim);
+  assert(k, "visit");
+  // walk it to the door in steps, as the engine would
+  const from = { ...k.location };
+  for (let i = 1; i <= 20; i++) {
+    k.teleport({ x: from.x + (door.x + 1.5 - from.x) * i / 20, y: 64, z: from.z + (door.z + 0.5 - from.z) * i / 20 });
+    sim.tick(10);
+  }
+  const prints = trackBlocks(sim).filter((t) => t.kind === 1);
+  assert(prints.length >= 5, `bare-foot prints along its path (${prints.length})`);
+  assert(prints.some((t) => Math.hypot(t.at[0] - door.x, t.at[2] - door.z) < 3), "prints reach the door");
+  assert(prints.every((t) => t.at[1] === 64), "prints sit on the ground surface");
+  eq(ow.getBlock({ x: 12, y: 64, z: 0 }).typeId, "minecraft:poppy", "the flower was not replaced");
+  sim.tick(26000);
+  eq(trackBlocks(sim).length, 0, "prints faded after a day");
+  noErrors(sim);
+});
+
+await test("tracks: a world-wide cap of 96 prints holds under a long walk", () => {
+  const { sim, door } = houseWorld(26);
+  goTo(sim, 3, 12000);
+  const k = waitKnocker(sim);
+  assert(k, "visit");
+  // a spiral walk around the house, one step per Knocker update (every 10 ticks)
+  let ang = 0, rad = 6;
+  for (let i = 0; i < 200 && k.isValid; i++) {
+    ang += 1.6 / rad;
+    rad += 0.12;
+    k.teleport({ x: door.x + Math.cos(ang) * rad, y: 64, z: door.z + Math.sin(ang) * rad });
+    sim.tick(10);
+  }
+  const n = trackBlocks(sim).length;
+  assert(n > 60 && n <= 96, `capped at 96 (${n})`);
+  noErrors(sim);
+});
+
+await test("tracks: watcher prints where it stood; journal entry on discovery", () => {
+  const { sim, p, w } = watcherNight();
+  p.lookAt({ x: w.location.x, y: w.location.y + 2.6, z: w.location.z });
+  sim.tick(60);
+  const prints = trackBlocks(sim).filter((t) => t.kind === 0);
+  assert(prints.length >= 1, "it left prints where it stood");
+  p.teleport({ x: prints[0].at[0] + 0.5, y: 64, z: prints[0].at[2] + 1.5 });
+  sim.tick(120);
+  assert(journal(p).includes("tracks"), "finding prints explains them in the journal");
+  noErrors(sim);
+});
+
+// =============================================================================== test kit
+await test("test kit: operator-only; test mode removes waiting; never persists; boss/knocker shortcuts", async () => {
+  const sim = newWorld(81);
+  const guest = sim.addPlayer("Guest", { x: 0.5, y: 64, z: 0.5 });
+  guest.playerPermissionLevel = 1;
+  sim.fire("scriptEventReceive", { id: "hollow:test", message: "on", sourceEntity: guest });
+  sim.tick(2);
+  assert(!guest._log.some((l) => l.includes("TEST MODE ON")), "non-operators cannot enable test mode");
+  const op = sim.addPlayer("Op", { x: 3.5, y: 64, z: 0.5 }); // a brand-new player on day 1
+  sim.fire("scriptEventReceive", { id: "hollow:test", message: "on", sourceEntity: op });
+  sim.fire("scriptEventReceive", { id: "hollow:test", message: "night", sourceEntity: op });
+  sim.tick(1200);
+  assert(sim.spawnLog.includes("hollow:watcher"), "a Watcher within a minute of dusk on day 1, for a newcomer, in test mode");
+  // the World rules form must save the real rules, not the test overrides
+  op._ui.push({ canceled: false, selection: 4 }, { canceled: false, selection: 1 }, (form) => ({
+    canceled: false, formValues: form.controls.map((c) => (c.type === "toggle" ? c.o.defaultValue : c.type === "dropdown" ? c.o.defaultValueIndex : c.o.defaultValue)),
+  }));
+  op.hold("hollow:field_journal");
+  sim.useItem(op);
+  for (let i = 0; i < 6; i++) {
+    sim.tick(1);
+    await flush();
+  }
+  const saved = JSON.parse(sim.world.getDynamicProperty("hollow:settings"));
+  eq(saved.graceDays, 1, "graceDays saved as the real value");
+  eq(saved.knockerNight, 4, "knockerNight saved as the real value");
+  boot(sim, 81);
+  sim.tick(2);
+  const before = sim.spawnLog.length;
+  const fresh = sim.addPlayer("Fresh", { x: 200.5, y: 64, z: 0.5 });
+  sim.tick(1200);
+  eq(sim.spawnLog.slice(before).filter((t) => t.startsWith("hollow:") && t !== "hollow:lure").length, 0, "after a restart test mode is off again (newcomer safe)");
+  noErrors(sim);
+});
+
+await test("test kit: kit, journal, boss2/boss3 and knocker shortcuts work", () => {
+  const { sim, p, awaken } = bossWorld(1, 82);
+  sim.fire("scriptEventReceive", { id: "hollow:test", message: "kit", sourceEntity: p });
+  assert(p._inv.count("hollow:offering_of_silence") === 2 && p._inv.count("hollow:rowan_ward") === 2, "kit given");
+  sim.fire("scriptEventReceive", { id: "hollow:test", message: "journal", sourceEntity: p });
+  assert(journal(p).length >= 33, `every journal entry unlocked (${journal(p).length})`);
+  awaken();
+  sim.tick(125);
+  sim.fire("scriptEventReceive", { id: "hollow:test", message: "boss3", sourceEntity: p });
+  sim.tick(60);
+  eq(bossState(sim).phase, 3, "boss3 jumps to phase 3");
+  sim.fire("scriptEventReceive", { id: "hollow:test", message: "knocker", sourceEntity: p });
+  assert(p._log.some((l) => l.includes("planned")), "knocker visit planned");
+  noErrors(sim);
+});
+
 // =============================================================================== load + caps
 await test("load: 8 players, all creatures, Nightmare 200% for a full day - caps hold", () => {
   const sim = newWorld(61);

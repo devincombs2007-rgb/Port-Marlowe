@@ -1,6 +1,6 @@
 import { Dimension, Entity, Player, Vector3, world } from "@minecraft/server";
 import { worldSound } from "../core/audio";
-import { chanceScale, cooldownScale, settings } from "../core/config";
+import { chanceScale, cooldownScale, dayReached, settings } from "../core/config";
 import { DP, ENT, SND } from "../core/ids";
 import { add, chance, dist, distSq, rand, yawDir } from "../core/math";
 import { cooldownReady, ctx, huntable, setCooldown } from "../core/players";
@@ -56,7 +56,7 @@ export function tryStartHollowed(p: Player): boolean {
   if (!s.hollowed || hollowDay() < s.graceDays) return false;
   const c = ctx(p);
   if (!c.overworld || !c.underground || !huntable(p) || !cooldownReady(p, "hollowed")) return false;
-  const maxY = hollowDay() < 3 ? 0 : 40; // deeper is dangerous first; shallower caves later
+  const maxY = dayReached(hollowDay(), 3) ? 40 : 0; // deeper is dangerous first; shallower caves later
   if (p.location.y > maxY) return false;
   let nearCount = 0;
   for (const h of hs.values()) if (h.dim === p.dimension.id && distSq(h.pos, p.location) < 48 * 48) nearCount++;

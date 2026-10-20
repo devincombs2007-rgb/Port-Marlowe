@@ -1,9 +1,9 @@
 // THE HOLLOW: Survival Horror - behavior pack entry point.
 // Target: Minecraft Bedrock 26.50+ (1.26.50), @minecraft/server 2.10.0, @minecraft/server-ui 2.2.0.
 
-import { Entity, Player, system, world } from "@minecraft/server";
+import { Entity, ItemStack, Player, system, world } from "@minecraft/server";
 import { forgetAudio } from "./core/audio";
-import { forgetPrefs, isOperator } from "./core/config";
+import { forgetPrefs, isOperator, setTestMode } from "./core/config";
 import { clearAllFog } from "./core/fx";
 import { ENT } from "./core/ids";
 import { debug, setDebug, debugEnabled } from "./core/log";
@@ -17,9 +17,9 @@ import {
   hollowedCount, isHollowedTracked, isLureTracked, onHollowedDied, startHollowed, tryStartHollowed,
 } from "./creatures/hollowed";
 import {
-  bossSummary, forgetBossPlayer, onBossHurt, onHeartDied, onShieldHit, onVeinDied, startHeart,
+  bossSummary, forceBossPhase, forgetBossPlayer, onBossHurt, onHeartDied, onShieldHit, onVeinDied, startHeart,
 } from "./creatures/heart";
-import { forgetKnockerTarget, isKnockerTracked, knockerActive, onKnockerDied, onKnockerHurt, startKnocker } from "./creatures/knocker";
+import { forceKnockerTonight, forgetKnockerTarget, isKnockerTracked, knockerActive, onKnockerDied, onKnockerHurt, startKnocker } from "./creatures/knocker";
 import {
   forgetMireboundTarget, isMireboundTracked, mireboundCount, onMireboundDied, onMireboundHurt, startMirebound, tryStartMirebound,
 } from "./creatures/mirebound";
@@ -27,12 +27,13 @@ import {
   forgetWatcherTarget, isWatcherTracked, onWatcherDied, onWatcherHurt, onWatcherStruck, startWatcher, tryStartWatcher, watcherCount,
 } from "./creatures/watcher";
 import { registerBlockComponents, startBlockSystems } from "./items/blocks";
-import { registerItemComponents, startMaterialPickups } from "./items/components";
+import { giveOrDrop, registerItemComponents, startMaterialPickups } from "./items/components";
 import { forgetMusic, startMusic } from "./systems/music";
+import { startTracks } from "./systems/tracks";
 import { startAmbience } from "./systems/ambience";
 import { startCleanup, sweepLoaded, trackType } from "./systems/cleanup";
 import { addStarter, startDirector } from "./systems/director";
-import { ensureJournal, forgetJournal, openJournal, unlock } from "./systems/journal";
+import { ensureJournal, forgetJournal, openJournal, unlock, unlockAll } from "./systems/journal";
 import { forgetNoise, startNoiseEvents } from "./systems/noise";
 import { forceSite, forgetSites, startSites } from "./systems/sites";
 
@@ -67,6 +68,7 @@ function init(): void {
   startBlockSystems();
   startMaterialPickups();
   startMusic();
+  startTracks();
   startSites();
   startWatcher();
   startBorrowed();
@@ -166,6 +168,50 @@ world.afterEvents.dataDrivenEntityTrigger.subscribe((ev) => safe("ddTrigger", ()
   else if (ev.eventId === "hollow:shield_hit") onShieldHit(ev.entity);
 }), { entityTypes: [ENT.watcher, ENT.borrowed, ENT.heart] });
 
+// ------------------------------------------------------------------------------- test kit
+// /scriptevent hollow:test on|off|night|day|kit|journal|knocker|boss2|boss3   (operators)
+// See docs/TESTING.md for the 30-minute in-game checklist that uses these.
+function testCommand(p: Player, arg: string): string {
+  switch (arg) {
+    case "on":
+      setTestMode(true);
+      return "TEST MODE ON: no grace days, no cooldowns, encounters ~25x likelier, every day-gate open. Resets on restart.";
+    case "off":
+      setTestMode(false);
+      return "test mode off: normal rules";
+    case "night":
+      world.setTimeOfDay(13000);
+      return "dusk (13000)";
+    case "midnight":
+      world.setTimeOfDay(18000);
+      return "midnight (18000)";
+    case "day":
+      world.setTimeOfDay(1000);
+      return "morning (1000)";
+    case "kit": {
+      const kit: [string, number][] = [
+        ["hollow:hollow_chime", 2], ["hollow:rowan_ward", 2], ["minecraft:charcoal", 8], ["hollow:hollow_lens", 1],
+        ["hollow:heartseeker", 1], ["hollow:offering_of_silence", 2], ["hollow:pale_resin", 2], ["hollow:hollow_fang", 2],
+        ["hollow:borrowed_hide", 2], ["hollow:knocker_nail", 2], ["hollow:mire_pearl", 2], ["hollow:stilled_heart", 1],
+        ["minecraft:torch", 16], ["minecraft:shears", 1], ["minecraft:wheat", 8], ["minecraft:snowball", 16],
+      ];
+      for (const [id, n] of kit) giveOrDrop(p, new ItemStack(id, n));
+      ensureJournal(p);
+      return "test kit given";
+    }
+    case "journal":
+      return `${unlockAll(p)} journal entries unlocked`;
+    case "knocker":
+      return forceKnockerTonight();
+    case "boss2":
+      return forceBossPhase(2);
+    case "boss3":
+      return forceBossPhase(3);
+    default:
+      return "usage: /scriptevent hollow:test on|off|night|midnight|day|kit|journal|knocker|boss2|boss3";
+  }
+}
+
 function nearestPlayer(e: Entity, r: number): Player | undefined {
   try {
     return e.dimension.getPlayers({ location: e.location, maxDistance: r, closest: 1 })[0];
@@ -201,6 +247,11 @@ system.afterEvents.scriptEventReceive.subscribe((ev) => safe("scriptevent", () =
       else p.removeTag("hollow_debug");
       p.sendMessage(`§7[hollow] debug ${debugEnabled() ? "on" : "off"}`);
       return;
+    case "hollow:test": {
+      if (!isOperator(p)) return;
+      p.sendMessage(`§7[hollow test] ${testCommand(p, ev.message.trim())}`);
+      return;
+    }
     case "hollow:site": {
       if (!isOperator(p)) return;
       const t = ev.message.trim() as "cabin" | "camp" | "shrine";

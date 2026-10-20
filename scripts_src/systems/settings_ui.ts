@@ -1,6 +1,6 @@
 import { Player, system } from "@minecraft/server";
 import { ActionFormData, FormCancelationReason, ModalFormData, ModalFormResponse } from "@minecraft/server-ui";
-import { PlayerPrefs, WorldSettings, isOperator, prefs, savePrefs, saveSettings, settings } from "../core/config";
+import { PlayerPrefs, WorldSettings, isOperator, prefs, rawSettings, savePrefs, saveSettings } from "../core/config";
 import { clearAllFog, notice } from "../core/fx";
 
 // Controller-friendly settings: every option is a toggle, dropdown or slider in a server form.
@@ -54,7 +54,7 @@ async function openPrefs(p: Player): Promise<void> {
 }
 
 async function openWorld(p: Player): Promise<void> {
-  const s = settings();
+  const s = rawSettings();
   const f = new ModalFormData()
     .title("§lWorld rules")
     .dropdown("Horror intensity", ["Calm: rarer, no ambush strikes", "Standard", "Nightmare: frequent, bolder"], { defaultValueIndex: s.intensity })

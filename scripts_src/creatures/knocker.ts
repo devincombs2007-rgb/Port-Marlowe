@@ -1,6 +1,6 @@
 import { Difficulty, Entity, ItemStack, Player, Vector3, world } from "@minecraft/server";
 import { accent, worldSound } from "../core/audio";
-import { chanceScale, settings } from "../core/config";
+import { chanceScale, isTestMode, settings } from "../core/config";
 import { hint, notice } from "../core/fx";
 import { DP, ENT, ITEM, SND } from "../core/ids";
 import { add, chance, dist, pick, rand, scale } from "../core/math";
@@ -11,6 +11,7 @@ import { hollowNight, isDay, nightKey, now, seconds, tod } from "../core/time";
 import { DOORS, block, clearLine, findBlocks, getCustomState, groundNear } from "../core/world";
 import { lanternNear, useWard, wardNear } from "../items/blocks";
 import { unlock } from "../systems/journal";
+import { TrackKind, standingPrints, trail } from "../systems/tracks";
 
 // THE KNOCKER
 // A rare night visitor (never before the configured night, default 4; at most one visit per night
@@ -129,7 +130,7 @@ function tryVisit(): void {
   if (!s.planned || t < s.planTick) return;
   const candidates: { p: Player; doors: Vector3[] }[] = [];
   for (const p of onlinePlayers()) {
-    if (!huntable(p) || isNewcomer(p)) continue;
+    if (!huntable(p) || (isNewcomer(p) && !isTestMode())) continue;
     const c = ctx(p, 0);
     if (!c.overworld || c.underground || !c.roofed) continue;
     if (lanternNear(p.dimension, p.location)) continue;
@@ -226,6 +227,7 @@ function update(): void {
   const inside = insidePlayers(v);
   const daybreak = isDay();
 
+  if (v.phase === "approach" || v.phase === "leave") trail(e, TrackKind.Knocker, 1.4); // bare feet to the door and away
   if (v.phase === "approach") {
     const d = dist(e.location, add(v.door, { x: 0.5, y: 0, z: 0.5 }));
     if (!v.wardChecked && d < 12) {
@@ -241,7 +243,10 @@ function update(): void {
         return;
       }
     }
-    if (d <= 2.4) setPhase(e, v, "knock");
+    if (d <= 2.4) {
+      setPhase(e, v, "knock");
+      standingPrints(e, TrackKind.Knocker);
+    }
     else if (inState > seconds(70) || daybreak) setPhase(e, v, "leave");
     confront(e, v);
     return;
@@ -368,6 +373,15 @@ export function forgetKnockerTarget(playerId: string): void {
     const e = world.getEntity(visit.id);
     if (e) setPhase(e, visit, "leave");
   }
+}
+
+/** Test kit: make the Knocker come tonight, as soon as a player is inside with a door. */
+export function forceKnockerTonight(): string {
+  if (visit) return "a visit is already under way";
+  const t = tod();
+  save({ ...saved(), plannedKey: nightKey(), planned: true, lastNight: -99, planTick: Math.max(13300, Math.min(21000, t)) });
+  nextTry = 0;
+  return t < 13300 || t > 21500 ? "planned: it comes after dusk (time 13300-21500) to a player indoors with a door" : "planned: stay indoors near a door";
 }
 
 export function startKnocker(): void {

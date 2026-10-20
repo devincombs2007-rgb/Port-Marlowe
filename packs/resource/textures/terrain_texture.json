@@ -27,6 +27,18 @@
     },
     "hollow_hollow_roots": {
       "textures": "textures/blocks/hollow/hollow_roots"
+    },
+    "hollow_tracks_watcher": {
+      "textures": "textures/blocks/hollow/tracks_watcher"
+    },
+    "hollow_tracks_knocker": {
+      "textures": "textures/blocks/hollow/tracks_knocker"
+    },
+    "hollow_tracks_drag": {
+      "textures": "textures/blocks/hollow/tracks_drag"
+    },
+    "hollow_tracks_borrowed": {
+      "textures": "textures/blocks/hollow/tracks_borrowed"
     }
   }
 }

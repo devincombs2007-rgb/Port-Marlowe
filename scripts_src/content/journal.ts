@@ -94,6 +94,20 @@ export const ENTRIES: Entry[] = [
       "do not go alone. Bring light, bring friends, and §lbreak the veins first§r.",
   },
   {
+    id: "tracks",
+    chapter: "notes",
+    title: "Reading Tracks",
+    icon: "textures/items/hollow/hollow_lens",
+    body:
+      "The ground keeps what the night won't tell you. Prints fade within a day." + P +
+      "§lThin, root-toed prints§r, far apart: the Watcher. Where there are two side by side, it stood still " +
+      "there a long time, looking at something." + P +
+      "§lLong bare feet§r with a dragging heel: the Knocker. They come out of the trees and stop at a door." + P +
+      "§lA wet smear§r from the bank into the shallows: something was dragged. Walk the banks." + P +
+      "§lSheep hooves that turn into claws§r halfway along: a Borrowed stopped pretending." + P +
+      "§7A Hollow Lens names fresh tracks within 8 blocks.",
+  },
+  {
     id: "after",
     chapter: "notes",
     title: "Afterward",

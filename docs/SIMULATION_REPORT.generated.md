@@ -4,7 +4,7 @@ The real bundled behavior-pack scripts run against a fake Minecraft API (`tools/
 This checks script logic: scheduling, events, persistence, reloads, state machines, caps, cooldowns and rewards.
 It is **not** an in-game test: there is no engine pathfinding, melee, physics, rendering or audio.
 
-Result: **28/28 scenarios passed**
+Result: **33/33 scenarios passed**
 
 | Scenario | Result |
 |---|---|
@@ -35,7 +35,12 @@ Result: **28/28 scenarios passed**
 | items: material pickup teaches its recipe; lens reveals to its user only and wears | pass |
 | music: shrine and boss tracks loop in place; off switch; silence while hunted; one track per night | pass |
 | music: night tracks are rare (at most one per night) and fall silent while something hunts you | pass |
+| tracks: the Knocker leaves bare-foot prints to the door that fade after a day; nothing is replaced | pass |
+| tracks: a world-wide cap of 96 prints holds under a long walk | pass |
+| tracks: watcher prints where it stood; journal entry on discovery | pass |
+| test kit: operator-only; test mode removes waiting; never persists; boss/knocker shortcuts | pass |
+| test kit: kit, journal, boss2/boss3 and knocker shortcuts work | pass |
 | load: 8 players, all creatures, Nightmare 200% for a full day - caps hold | pass |
 
 - music: 2 night track(s) over 4 nights; 43 ticks of night music while a Watcher was stalking
-- load: peak creature counts {"hollow:borrowed":2,"hollow:watcher":3}; script time per tick avg 0.057 ms, p99 0.890 ms, max 8.89 ms (Node on a dev machine against the fake world - not an Xbox measurement)
+- load: peak creature counts {"hollow:borrowed":2,"hollow:watcher":3}; script time per tick avg 0.057 ms, p99 0.809 ms, max 3.21 ms (Node on a dev machine against the fake world - not an Xbox measurement)

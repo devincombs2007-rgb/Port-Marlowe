@@ -394,6 +394,9 @@ export class Entity {
   getVelocity() {
     return this._velocity ?? v3(0, 0, 0);
   }
+  getViewDirection() {
+    return this._view ?? v3(0, 0, 1);
+  }
   applyDamage(amount, opts = {}) {
     return this._sim.damage(this, amount, opts.damagingEntity, opts.cause ?? "entityAttack");
   }
@@ -793,6 +796,9 @@ class World {
   }
   getDay() {
     return Math.floor(this.sim.absTime / 24000);
+  }
+  setTimeOfDay(t) {
+    this.sim.absTime = this.getDay() * 24000 + (t % 24000);
   }
   getAbsoluteTime() {
     return this.sim.absTime;

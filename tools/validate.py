@@ -570,7 +570,7 @@ def check_script_ids(c):
     for ident, (p_, d_) in c["blocks"].items():
         known_ids |= set(d_["minecraft:block"]["description"].get("states", {}))
     known_ids |= set(ts_consts("DP").values()) | set(ts_consts("PROP").values()) | registered_custom_components()
-    known_ids |= {"hollow:debug", "hollow:lanterns", "hollow:journal", "hollow:status", "hollow:site", "hollow:used"}
+    known_ids |= {"hollow:debug", "hollow:lanterns", "hollow:journal", "hollow:status", "hollow:site", "hollow:test", "hollow:used"}
     for p in glob.glob(os.path.join(ROOT, "scripts_src", "**", "*.ts"), recursive=True):
         src = open(p).read()
         for sid in re.findall(r'"(hollow\.[a-z_]+\.[a-z_.]+)"', src):

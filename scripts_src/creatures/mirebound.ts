@@ -1,6 +1,6 @@
 import { Entity, EntityDamageCause, Player, Vector3, world } from "@minecraft/server";
 import { accent, worldSound } from "../core/audio";
-import { chanceScale, cooldownScale, settings } from "../core/config";
+import { chanceScale, cooldownScale, dayReached, settings } from "../core/config";
 import { notice, particle, popFog, pushFog } from "../core/fx";
 import { DP, ENT, FOG, PARTICLE, SND } from "../core/ids";
 import { add, chance, dist, distXZ, norm, rand, sub, yawDir, yawOf } from "../core/math";
@@ -10,6 +10,7 @@ import { hollowDay, isDarkHours, now, seconds } from "../core/time";
 import { block, clearLine } from "../core/world";
 import { protectedSpot } from "../items/blocks";
 import { unlock } from "../systems/journal";
+import { TrackKind, pressTrack } from "../systems/tracks";
 
 // THE MIREBOUND
 // Lurks in 1-2 deep water in swamps, mangroves, rivers and beaches. Clues: a mossy hump with
@@ -96,7 +97,7 @@ function nearWater(p: Player): boolean {
 
 export function tryStartMirebound(p: Player): boolean {
   const s = settings();
-  if (!s.mirebound || hollowDay() < 2) return false;
+  if (!s.mirebound || !dayReached(hollowDay(), 2)) return false;
   const c = ctx(p);
   if (!c.overworld || c.underground || (c.biome !== "swamp" && c.biome !== "shore")) return false;
   if (!huntable(p) || rt(p).encounter || !cooldownReady(p, "mirebound")) return false;
@@ -230,6 +231,12 @@ function update(): void {
         continue;
       }
       setState(e, m, "grab");
+      // the drag: wet marks from where the victim stood toward the water
+      for (let k = 0; k <= 2; k++) {
+        const f = k / 2;
+        const at = { x: v.location.x + (e.location.x - v.location.x) * f, y: v.location.y, z: v.location.z + (e.location.z - v.location.z) * f };
+        pressTrack(dim, at, TrackKind.Drag, { x: e.location.x - v.location.x, y: 0, z: e.location.z - v.location.z });
+      }
       m.grabs++;
       m.dmgAt = t;
       m.seatTries = 0;

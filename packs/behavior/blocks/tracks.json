@@ -1,0 +1,139 @@
+{
+  "format_version": "1.26.20",
+  "minecraft:block": {
+    "description": {
+      "identifier": "hollow:tracks",
+      "menu_category": {
+        "category": "none"
+      },
+      "states": {
+        "hollow:kind": {
+          "values": {
+            "min": 0,
+            "max": 3
+          }
+        },
+        "hollow:dir": {
+          "values": {
+            "min": 0,
+            "max": 3
+          }
+        }
+      }
+    },
+    "components": {
+      "minecraft:geometry": "geometry.hollow.tracks",
+      "minecraft:material_instances": {
+        "*": {
+          "texture": "hollow_tracks_watcher",
+          "render_method": "alpha_test",
+          "ambient_occlusion": 0.0,
+          "face_dimming": true
+        }
+      },
+      "minecraft:collision_box": false,
+      "minecraft:selection_box": {
+        "origin": [
+          -8,
+          0,
+          -8
+        ],
+        "size": [
+          16,
+          1,
+          16
+        ]
+      },
+      "minecraft:light_dampening": 0,
+      "minecraft:destructible_by_mining": {
+        "seconds_to_destroy": 0
+      },
+      "minecraft:destructible_by_explosion": {
+        "explosion_resistance": 0
+      },
+      "minecraft:replaceable": {},
+      "minecraft:loot": "loot_tables/empty.json",
+      "minecraft:map_color": "#3a2f25",
+      "minecraft:sound": {
+        "sound": "gravel"
+      }
+    },
+    "permutations": [
+      {
+        "condition": "query.block_state('hollow:kind') == 1",
+        "components": {
+          "minecraft:material_instances": {
+            "*": {
+              "texture": "hollow_tracks_knocker",
+              "render_method": "alpha_test",
+              "ambient_occlusion": 0.0,
+              "face_dimming": true
+            }
+          }
+        }
+      },
+      {
+        "condition": "query.block_state('hollow:kind') == 2",
+        "components": {
+          "minecraft:material_instances": {
+            "*": {
+              "texture": "hollow_tracks_drag",
+              "render_method": "alpha_test",
+              "ambient_occlusion": 0.0,
+              "face_dimming": true
+            }
+          }
+        }
+      },
+      {
+        "condition": "query.block_state('hollow:kind') == 3",
+        "components": {
+          "minecraft:material_instances": {
+            "*": {
+              "texture": "hollow_tracks_borrowed",
+              "render_method": "alpha_test",
+              "ambient_occlusion": 0.0,
+              "face_dimming": true
+            }
+          }
+        }
+      },
+      {
+        "condition": "query.block_state('hollow:dir') == 1",
+        "components": {
+          "minecraft:transformation": {
+            "rotation": [
+              0,
+              270,
+              0
+            ]
+          }
+        }
+      },
+      {
+        "condition": "query.block_state('hollow:dir') == 2",
+        "components": {
+          "minecraft:transformation": {
+            "rotation": [
+              0,
+              180,
+              0
+            ]
+          }
+        }
+      },
+      {
+        "condition": "query.block_state('hollow:dir') == 3",
+        "components": {
+          "minecraft:transformation": {
+            "rotation": [
+              0,
+              90,
+              0
+            ]
+          }
+        }
+      }
+    ]
+  }
+}

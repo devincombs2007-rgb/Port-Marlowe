@@ -162,6 +162,134 @@ def roots_block():
     return Image.fromarray(tiled).resize((220, 220), Image.NEAREST).convert("RGB")
 
 
+# ------------------------------------------------------------------------------ tracks (decals)
+# 16x16 pixel-art prints; the top of the texture is the direction of travel. '#' = deep print,
+# '+' = shallow edge, '.' = nothing (transparent).
+TRACKS = {
+    "watcher": [  # long, root-like three-toed prints, far apart: something tall walked here
+        "..........#..#..",
+        "..........#.#...",
+        "...........##...",
+        "...........+#...",
+        "...........##...",
+        "...........##...",
+        "...........+#...",
+        "..#..#..........",
+        "..#.#...........",
+        "...##...........",
+        "...+#...........",
+        "...##...........",
+        "...##...........",
+        "...+#...........",
+        "................",
+        "................",
+    ],
+    "knocker": [  # long bare feet with five toes and a heel that drags
+        "..........#.#.#.",
+        ".........#.....#",
+        "..........####..",
+        "..........#####.",
+        "...........###..",
+        "...........###..",
+        "...........+##..",
+        "............+...",
+        "...#.#.#........",
+        "..#.....#.......",
+        "...####.........",
+        "...#####........",
+        "....###.........",
+        "....###.........",
+        "....+##.........",
+        ".....+..........",
+    ],
+    "drag": [  # something heavy and wet dragged from the water
+        ".....+###+......",
+        "....+####+......",
+        "....+####++.....",
+        ".....+####+.....",
+        ".....+####+..+..",
+        "......+###++....",
+        "......+####+....",
+        ".+....+####+....",
+        "......+###+.....",
+        ".....+####+.....",
+        ".....+###++.....",
+        "....+####+...+..",
+        "....+####+......",
+        "....++###+......",
+        ".....+####+.....",
+        ".....+####+.....",
+    ],
+    "borrowed": [  # sheep hooves that become claws halfway along
+        "..........#..#..",
+        ".........#..#...",
+        "........#..#....",
+        "................",
+        "...#..#..#......",
+        "..#..#..#.......",
+        ".#..#..#........",
+        "................",
+        "...........##...",
+        "..........#.#...",
+        "..........#.#...",
+        "................",
+        "...##...........",
+        "..#.#...........",
+        "..#.#...........",
+        "................",
+    ],
+}
+TRACK_COLOURS = {  # deep, edge (RGB) and alpha
+    "watcher": ((46, 34, 24), (70, 54, 38), 200),
+    "knocker": ((44, 33, 26), (68, 52, 40), 210),
+    "drag": ((36, 40, 26), (58, 62, 40), 190),
+    "borrowed": ((50, 36, 30), (74, 56, 44), 200),
+}
+
+
+def tracks():
+    tex_dir = ensure(os.path.join(RP, "textures", "blocks", "hollow"))
+    previews = []
+    for kind, rows in TRACKS.items():
+        deep, edge, alpha = TRACK_COLOURS[kind]
+        img = np.zeros((16, 16, 4), np.uint8)
+        mers = np.zeros((16, 16, 4), np.uint8)
+        height = np.full((16, 16), 128, np.uint8)
+        rng = np.random.default_rng(len(kind))
+        for y, row in enumerate(rows):
+            for x, ch in enumerate(row):
+                if ch == "#":
+                    j = rng.integers(-6, 7)
+                    img[y, x] = (*np.clip(np.array(deep) + j, 0, 255), alpha)
+                    height[y, x] = 70
+                    mers[y, x] = (0, 0, 120 if kind == "drag" else 230, 0)
+                elif ch == "+":
+                    img[y, x] = (*edge, int(alpha * 0.6))
+                    height[y, x] = 105
+                    mers[y, x] = (0, 0, 160 if kind == "drag" else 235, 0)
+        name = f"tracks_{kind}"
+        save_rgba(img, os.path.join(tex_dir, f"{name}.png"))
+        save_rgba(mers, os.path.join(tex_dir, f"{name}_mers.png"))
+        save_l(height, os.path.join(tex_dir, f"{name}_height.png"))
+        write_texture_set(tex_dir, name)
+        # preview: the print on a grass-coloured ground
+        ground = np.zeros((16, 16, 3), np.uint8) + np.array([88, 120, 58], np.uint8)
+        a = img[..., 3:4] / 255.0
+        comp = (img[..., :3] * a + ground * (1 - a)).astype(np.uint8)
+        previews.append(Image.fromarray(np.tile(comp, (2, 2, 1))).resize((220, 220), Image.NEAREST))
+    geo = {"format_version": "1.16.0", "minecraft:geometry": [{
+        "description": {"identifier": "geometry.hollow.tracks", "texture_width": 16, "texture_height": 16,
+                        "visible_bounds_width": 2, "visible_bounds_height": 1, "visible_bounds_offset": [0, 0.5, 0]},
+        "bones": [{"name": "decal", "pivot": [0, 0, 0], "cubes": [{
+            "origin": [-8, 0, -8], "size": [16, 0.1, 16],
+            "uv": {"up": {"uv": [0, 0], "uv_size": [16, 16]}}}]}],  # only the top face renders
+    }]}
+    geo_dir = ensure(os.path.join(RP, "models", "blocks"))
+    with open(os.path.join(geo_dir, "tracks.geo.json"), "w") as f:
+        json.dump(geo, f, indent=2)
+    return previews
+
+
 def main():
     previews = []
     previews += export_block("hollow_chime", chime(), M, variants={"_silenced": {"copper": M["cloth"]}})
@@ -169,6 +297,7 @@ def main():
     previews += export_block("heartwood_lantern", lantern(), M)
     previews += export_block("heart_altar", altar(), M, variants={"_awake": {"root": M["core"]}})
     previews.append(roots_block())
+    previews += tracks()
     sheet = Image.new("RGB", (220 * len(previews), 220))
     for i, p in enumerate(previews):
         sheet.paste(p, (i * 220, 0))

@@ -594,6 +594,23 @@ export function forgetBossPlayer(p: Player): void {
   popFog(p, "hollow_heart");
 }
 
+/** Test kit: drop the active Heart's health to the threshold of phase 2 or 3. */
+export function forceBossPhase(phase: number): string {
+  if (!load().active || !boss.heartId) return "no Heart is awake (use the altar first)";
+  const heart = world.getEntity(boss.heartId);
+  const h = heart?.getComponent("minecraft:health");
+  if (!heart || !h) return "the Heart is not loaded; stand in the arena";
+  const set = (f: number) => h.setCurrentValue(Math.max(1, Math.floor(h.effectiveMax * f)));
+  if (phase <= 2) set(0.55);
+  else if (boss.phase < 2) {
+    set(0.55);
+    later("test.phase3", 20, () => {
+      if (heart.isValid) set(0.2);
+    });
+  } else set(0.2);
+  return `the Heart drops to phase ${phase}`;
+}
+
 export function isMinion(id: string): boolean {
   return minions.has(id);
 }

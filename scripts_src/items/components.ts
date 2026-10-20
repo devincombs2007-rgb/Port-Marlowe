@@ -6,6 +6,7 @@ import { compass, dist } from "../core/math";
 import { hasEntry, openJournal, unlock, unlockNextLore } from "../systems/journal";
 import { noiseDescription } from "../systems/noise";
 import { useHeartseeker } from "../systems/sites";
+import { tracksNear } from "../systems/tracks";
 
 // Custom item behaviours (Custom Components V2, @minecraft/server 2.x).
 
@@ -101,7 +102,14 @@ function useLens(p: Player): void {
     lines.push("§7The lens stays clear. Nothing of theirs within 48 blocks.");
   }
 
-  // 3. How loud you are to the Hollowed.
+  // 3. Fresh tracks nearby.
+  const prints = tracksNear(dim, p.location, 8);
+  if (prints.length > 0) {
+    const names = ["the Watcher", "the Knocker", "something dragged from the water", "a Borrowed"];
+    lines.push(`§7Fresh tracks here: ${prints.map((k) => names[k]).join(", ")}.`);
+  }
+
+  // 4. How loud you are to the Hollowed.
   lines.push(`§8Your noise: ${noiseDescription(p)}`);
   notice(p, lines.join("\n"));
   wearHeld(p, ITEM.lens);

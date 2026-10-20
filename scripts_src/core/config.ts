@@ -62,11 +62,31 @@ export const PREF_DEFAULTS: PlayerPrefs = { ambience: 80, accents: 1, visualFx: 
 let worldCache: WorldSettings | undefined;
 const prefCache = new Map<string, PlayerPrefs>();
 
+// TEST MODE (operators, /scriptevent hollow:test on): removes waiting so every encounter can be
+// checked in one session. Runtime-only on purpose: a restart always returns to the real rules.
+let testMode = false;
+export const isTestMode = (): boolean => testMode;
+export function setTestMode(on: boolean): void {
+  testMode = on;
+}
+
 export function settings(): WorldSettings {
   if (!worldCache) {
     worldCache = sanitizeWorld(readWorld(DP.settings, WORLD_DEFAULTS));
   }
-  return worldCache;
+  return testMode ? { ...worldCache, graceDays: 0, knockerNight: 1 } : worldCache;
+}
+
+/** The saved rules without test-mode overrides (for the World rules form, so saving never
+ * persists test values). */
+export function rawSettings(): WorldSettings {
+  settings();
+  return worldCache!;
+}
+
+/** Day-based unlocks ("from day 2 the Borrowed..."); always reached in test mode. */
+export function dayReached(hollowDayNow: number, n: number): boolean {
+  return testMode || hollowDayNow >= n;
 }
 
 export function saveSettings(s: WorldSettings): void {
@@ -118,6 +138,7 @@ export function isOperator(player: Player): boolean {
 
 /** Multiplier for encounter chances from intensity + frequency. */
 export function chanceScale(): number {
+  if (testMode) return 25;
   const s = settings();
   const byIntensity = [0.55, 1.0, 1.5][s.intensity];
   return byIntensity * (s.frequency / 100);
@@ -125,6 +146,7 @@ export function chanceScale(): number {
 
 /** Multiplier for cooldown durations (smaller = more frequent). */
 export function cooldownScale(): number {
+  if (testMode) return 0.02;
   const s = settings();
   const byIntensity = [1.6, 1.0, 0.7][s.intensity];
   return byIntensity / Math.max(0.25, s.frequency / 100);
