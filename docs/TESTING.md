@@ -3,7 +3,7 @@
 A fast first pass on **Windows** (best for reading errors). Repeat the short Realm and Xbox section at the end.
 
 ## Setup (2 min)
-1. Import `THE_HOLLOW_v1.0.2.mcaddon`. Create a **new world**: Survival, cheats **on**, the behavior pack plus the Visuals pack, all experiments off.
+1. Import `THE_HOLLOW_v1.0.3.mcaddon`. Create a **new world**: Survival, cheats **on**, the behavior pack plus the Visuals pack, all experiments off.
 2. Settings → Creator → turn on **Content Log GUI**. Settings → Accessibility → turn on **Subtitles**.
 3. In the world, run:
    ```

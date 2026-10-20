@@ -1,4 +1,4 @@
-# Validation report: THE HOLLOW v1.0.2
+# Validation report: THE HOLLOW v1.0.3
 
 **Current validation:**
 - Every static check passes: **0 errors, 0 warnings**, and the validator catches **8/8** deliberately injected defects.

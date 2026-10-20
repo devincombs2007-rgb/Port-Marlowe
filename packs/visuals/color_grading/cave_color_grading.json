@@ -12,9 +12,9 @@
           1.1
         ],
         "gain": [
-          1.0,
-          1.0,
-          1.0
+          0.9,
+          0.9,
+          0.9
         ],
         "gamma": [
           2.2,
@@ -36,9 +36,9 @@
         "enabled": true,
         "shadowsMax": 0.6,
         "gain": [
-          0.97,
-          0.99,
-          1.04
+          0.93,
+          0.95,
+          0.99
         ],
         "saturation": [
           0.874,
@@ -63,11 +63,11 @@
       },
       "highlights": {
         "enabled": true,
-        "highlightsMin": 1.6,
+        "highlightsMin": 1.4,
         "gain": [
-          1.04,
-          1.0,
-          0.95
+          0.88,
+          0.85,
+          0.81
         ],
         "saturation": [
           1.0,

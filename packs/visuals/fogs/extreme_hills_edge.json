@@ -26,13 +26,13 @@
       "air": {
         "fog_start": 0.7,
         "fog_end": 1.0,
-        "fog_color": "#A6B6C2",
+        "fog_color": "#798B9A",
         "render_distance_type": "render"
       },
       "weather": {
         "fog_start": 0.25,
         "fog_end": 0.75,
-        "fog_color": "#6A7178",
+        "fog_color": "#535E68",
         "render_distance_type": "render"
       }
     },
@@ -48,9 +48,9 @@
       "media_coefficients": {
         "air": {
           "scattering": [
-            0.05,
-            0.055,
-            0.062
+            0.028,
+            0.032,
+            0.038
           ],
           "absorption": [
             0.004,

@@ -1,6 +1,25 @@
-# THE HOLLOW development checkpoint — 1.0.2
+# THE HOLLOW development checkpoint — 1.0.3
 
-## Latest continuation: 1.0.2
+## Latest continuation: 1.0.3 — darker Visuals
+
+Responds to the report that the Visuals pack is too bright. Preserves all 1.0.2 gameplay fixes.
+
+- Reduce sunlight to 75–80 lux in wild/cold looks and 70 lux in swamps (formerly 100/85).
+- Reduce peak moonlight from 0.5 to 0.16–0.20 lux, preserving its existing on/off timing.
+- Surface ambient light now falls from 0.018 by day to 0.012 at night, instead of rising to 0.045.
+  Cave ambient stays at 0.009; no hard black cutoff or negative grading offset is introduced.
+- Reduce sky fill, night moon haze and volumetric scattering. Keep fog density, height falloff,
+  air/weather distance ranges and vanilla underwater definitions intact.
+- Lower midtone gain to 0.86–0.90 and highlight gain to [0.88, 0.85, 0.81]. Retain standard gamma
+  2.2, the shared generic tone mapper and warm local-light colours.
+- Correct a stray mutation-test sound identifier in the TypeScript source (`hollow.nopewatcher.seen` → `hollow.watcher.seen`). The previously packaged script already used the correct identifier.
+- Keep all pack UUIDs stable and advance pack/module/dependency versions together to 1.0.3.
+
+The darker profile still needs a same-scene check inside Minecraft on the user's device;
+parameter reductions are not a measured percentage reduction in screen brightness.
+See `docs/VISUAL_TUNING.md` for scope, exact changes and update steps.
+
+## Previous continuation: 1.0.2
 
 - Fixed wards and lanterns losing their saved registration when a query crosses an unreadable chunk.
 - Prune genuinely removed, readable equipment before applying placement caps. Extra Heartwood
@@ -73,14 +92,14 @@ ends earlier, at 65–75% outdoors. Water fog is inherited from each vanilla bio
 
 Lighting keeps nonzero cool ambient light and moonlight. The four grading profiles share the
 `generic` tone-mapping operator, allowing a consistent operator across biome transitions.
-No additional lighting or grading changes were made in this pass.
+The original 1.0.1 pass changed only swamp density; the later 1.0.3 lighting/grading changes are documented above.
 
 ## Verified locally
 
 - Strict TypeScript compilation against the pinned stable Script API typings.
 - Static schema and reference validation: zero errors, zero warnings.
 - 60/60 headless scenarios, including event, shelter protection, saved-setting and journal regressions.
-- Importable archives rebuilt from the current source with version `1.0.2` manifests.
+- Importable archives rebuilt from the current source with version `1.0.3` manifests.
 
 ## Still requires Minecraft
 

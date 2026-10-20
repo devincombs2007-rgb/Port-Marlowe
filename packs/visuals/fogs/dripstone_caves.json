@@ -8,7 +8,7 @@
       "air": {
         "fog_start": 0.75,
         "fog_end": 1.0,
-        "fog_color": "#3A3E44",
+        "fog_color": "#292E36",
         "render_distance_type": "render"
       },
       "water": {
@@ -32,7 +32,7 @@
       "weather": {
         "fog_start": 0.75,
         "fog_end": 1.0,
-        "fog_color": "#3A3E44",
+        "fog_color": "#292E36",
         "render_distance_type": "render"
       },
       "lava": {
@@ -58,9 +58,9 @@
       "media_coefficients": {
         "air": {
           "scattering": [
-            0.03,
-            0.032,
-            0.036
+            0.018,
+            0.02,
+            0.024
           ],
           "absorption": [
             0.004,

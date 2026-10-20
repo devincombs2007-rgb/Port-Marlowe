@@ -3,7 +3,7 @@
 **You need:** Minecraft Bedrock **26.50 or newer** on every device that will play (iPhone,
 Windows and Xbox all update through their stores). An older client won't load the packs.
 
-**What's in the download:** `THE_HOLLOW_v1.0.2.mcaddon` holds three packs.
+**What's in the download:** `THE_HOLLOW_v1.0.3.mcaddon` holds three packs.
 
 | Pack | Required? | What it does |
 |---|---|---|
@@ -17,7 +17,7 @@ You do **not** need "Beta APIs" or any other experimental toggle. Leave them off
 
 ## 1. Import on iPhone (or iPad)
 
-1. Download `THE_HOLLOW_v1.0.2.mcaddon` in Safari. When Safari asks, tap **Download**. The file goes to **Files → Downloads**.
+1. Download `THE_HOLLOW_v1.0.3.mcaddon` in Safari. When Safari asks, tap **Download**. The file goes to **Files → Downloads**.
 2. Open the **Files** app and go to **Downloads**.
 3. Tap the `.mcaddon` file. If it opens a preview instead, tap the **Share** button and choose **Minecraft**.
 4. Minecraft opens and shows **"Import started…"** and then **"Successfully imported"** once for each pack.
@@ -27,7 +27,7 @@ You do **not** need "Beta APIs" or any other experimental toggle. Leave them off
 ## 2. Import on Windows
 
 1. Install **Minecraft for Windows** (Bedrock) from the Microsoft Store or the Xbox app, and update it to 26.50 or newer.
-2. Download `THE_HOLLOW_v1.0.2.mcaddon` and **double-click** it. Minecraft starts and imports all three packs.
+2. Download `THE_HOLLOW_v1.0.3.mcaddon` and **double-click** it. Minecraft starts and imports all three packs.
    - If Windows asks what to open it with, choose **Minecraft**.
    - Alternatively, double-click the separate `.mcpack` files one at a time.
 3. Go on to **step 3: Activate in a world**.
@@ -89,8 +89,8 @@ Minecraft controls these settings yourself, under **Settings → Video** on each
 |---|---|
 | **Graphics Mode → Vibrant Visuals** | Uses the Visuals pack's lighting, sky, colour grading, volumetric mist and warm local light (torches, lanterns, campfires, Heartwood Lantern, Rowan Ward). Creatures get PBR materials, and the glowing eyes use emissive textures. Only listed on devices that support it; if it's missing, your device doesn't support it. |
 | **Graphics Mode → Fancy / Simple** | Standard graphics. The add-on is fully playable. Creatures, eye glow (an unlit eye layer), particles, sounds and the add-on's encounter fog all work. |
-| **Render distance** | The Visuals pack's fog starts at 70% of your render distance, so it never hides nearby terrain. |
-| **Brightness / gamma** | Unchanged by the add-on. Nights are dark but not black. Raise brightness if your TV is dim. |
+| **Render distance** | Air fog starts at 70% of render distance in wild/cold biomes, 55% in swamps and 75% in caves. Weather and volumetric mist are separate. |
+| **Brightness / gamma** | Your device setting is unchanged. Version 1.0.3 reduces the pack's lighting and grading; keep gamma steady while comparing. See `VISUAL_TUNING.md`. |
 | **Camera shake, screen effects** | The add-on never shakes the camera and never flashes the screen. Encounter fog shifts and soft fades can be turned off per player (journal → Settings → *Visual effects*). |
 
 The Visuals pack and the encounter fog are separate, so turning one off doesn't affect the other.
@@ -105,3 +105,13 @@ The Visuals pack and the encounter fog are separate, so turning one off doesn't 
 | Nothing ever happens | The first in-game day is quiet by design, and new players get ~10 minutes of grace. Check *World rules* in the journal: creatures may be disabled or the frequency set low. Operators can run `/scriptevent hollow:status`. |
 | Vibrant Visuals option is greyed out | Only one VV-capable pack set can be active, and every active resource pack must support PBR (all three HOLLOW packs do). Another active resource pack may lack PBR support. |
 | Windows: want to see errors | Settings → Creator → enable **Content Log GUI**. THE HOLLOW logs with the prefix `[hollow]`. |
+
+## Updating only the darker visuals (1.0.3)
+
+Back up the world first. Close the world, import `THE_HOLLOW_Visuals_v1.0.3.mcpack`, then edit
+its Resource Packs. Activate THE HOLLOW: Visuals version 1.0.3 and put it above conflicting
+visual packs (prefer keeping only one lighting pack). Reopen the world. The pack UUID is
+unchanged, so this upgrades the same Visuals pack; it does not require a new world or new
+behavior/resource packs. Use the full 1.0.3 `.mcaddon` instead when updating all three packs.
+If Minecraft retains the old appearance, check the active pack version before deleting anything.
+For Xbox, update the pack in the source world and upload it to the Realm before reconnecting.

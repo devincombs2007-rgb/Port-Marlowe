@@ -32,10 +32,12 @@ Current development checkpoint and unfinished device checks: **[docs/DEVELOPMENT
 
 | File | What it is |
 |---|---|
-| [`dist/THE_HOLLOW_v1.0.2.mcaddon`](dist/THE_HOLLOW_v1.0.2.mcaddon) | Everything: behavior pack, resource pack and the optional Visuals pack. Open it to import. |
-| `dist/THE_HOLLOW_BP_v1.0.2.mcpack` | Behavior pack only |
-| `dist/THE_HOLLOW_RP_v1.0.2.mcpack` | Resource pack only (required) |
-| `dist/THE_HOLLOW_Visuals_v1.0.2.mcpack` | Optional Vibrant Visuals pack |
+| [`dist/THE_HOLLOW_v1.0.3.mcaddon`](dist/THE_HOLLOW_v1.0.3.mcaddon) | Everything: behavior pack, resource pack and the optional Visuals pack. Open it to import. |
+| `dist/THE_HOLLOW_BP_v1.0.3.mcpack` | Behavior pack only |
+| `dist/THE_HOLLOW_RP_v1.0.3.mcpack` | Resource pack only (required) |
+| `dist/THE_HOLLOW_Visuals_v1.0.3.mcpack` | Optional Vibrant Visuals pack |
+
+Darker lighting update and comparison steps: **[docs/VISUAL_TUNING.md](docs/VISUAL_TUNING.md)**.
 
 Install guide (iPhone or Windows → world → Realm → Xbox): **[docs/INSTALL.md](docs/INSTALL.md)**
 

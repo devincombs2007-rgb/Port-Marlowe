@@ -6,9 +6,9 @@ vanilla 1.26.50 definitions. Since 1.21.90, vanilla per-biome VV settings take p
 pack's global files, so the documented route is client_biome overrides; every override is a copy
 of the vanilla biome file with only the look-related identifiers swapped.
 
-Design rules: daytime stays clear and useful; dusk and night get cool, muted and misty; warm
-light (torches, lanterns, fires) is pushed slightly warmer so shelter reads as safety; nights are
-dark but never black (raised cool ambient + moonlight); fog never ends before render distance.
+Design rules: daytime stays useful without glaring highlights; dusk and night get cool, muted
+and misty. Shelter light stays warm. Keep a small ambient floor for silhouettes rather than
+raising ambient light at night. Numerical tuning needs in-game confirmation on each display.
 """
 import copy
 import glob
@@ -63,16 +63,20 @@ def lighting(group):
     moon = ls["directional_lights"]["orbital"]["moon"]
     noon = {"wild": [244, 238, 228], "cold": [232, 238, 252], "swamp": [232, 236, 206], "cave": [244, 238, 228]}[group]
     sun["color"] = {k: (noon if float(k) in (0.0, 1.0) else v) for k, v in sun["color"].items()}
-    if group == "swamp":
-        sun["illuminance"] = {k: v * 0.85 for k, v in sun["illuminance"].items()}
-    # moonlight: a little brighter than vanilla and cool, so nights are dark but readable
-    moon["illuminance"] = {k: (0.5 if v > 0 else 0.0) for k, v in moon["illuminance"].items()}
+    sun_scale = {"wild": 0.8, "cold": 0.75, "swamp": 0.7, "cave": 0.8}[group]
+    sun["illuminance"] = {k: round(v * sun_scale, 6) for k, v in sun["illuminance"].items()}
+    # Retain vanilla's zero-light intervals and phase timing; reduce the former 0.5-lux moon.
+    moon_peak = {"wild": 0.2, "cold": 0.18, "swamp": 0.16, "cave": 0.16}[group]
+    moon["illuminance"] = {k: (moon_peak if v > 0 else 0.0) for k, v in moon["illuminance"].items()}
     moon["color"] = {"0.0": [150, 170, 255], "1.0": [150, 170, 255]}
     ls["ambient"] = {
-        "illuminance": {"0.0": 0.02, "0.2": 0.025, "0.3": 0.045, "0.7": 0.045, "0.8": 0.025, "1.0": 0.02},
+        "illuminance": {"0.0": 0.018, "0.2": 0.016, "0.3": 0.012, "0.7": 0.012, "0.8": 0.016, "1.0": 0.018},
         "color": {"0.0": [255, 255, 255], "0.25": [214, 222, 255], "0.5": [200, 212, 255], "0.75": [214, 222, 255], "1.0": [255, 255, 255]},
     }
-    ls["sky"] = {"intensity": {"0.0": 1.0, "0.25": 0.9, "0.5": 0.75, "0.75": 0.9, "1.0": 1.0}}
+    ls["sky"] = {"intensity": {"0.0": 0.8, "0.2": 0.75, "0.3": 0.45, "0.5": 0.4, "0.7": 0.45, "0.8": 0.75, "1.0": 0.8}}
+    if group == "cave":
+        ls["ambient"]["illuminance"] = 0.009
+        ls["sky"]["intensity"] = 0.25
     ls["emissive"] = {"desaturation": 0.0}
     base["format_version"] = "1.26.0"
     return base
@@ -84,18 +88,18 @@ def atmospherics(group):
     base = load(src)
     a = base["minecraft:atmosphere_settings"]
     a["description"]["identifier"] = ID("atmospherics", group)
-    zenith_day = {"wild": [92, 120, 158], "cold": [100, 128, 168], "swamp": [92, 110, 112], "cave": [92, 120, 158]}[group]
+    zenith_day = {"wild": [76, 102, 138], "cold": [84, 110, 148], "swamp": [74, 92, 94], "cave": [76, 102, 138]}[group]
     # Keyframes: 0 noon, 0.25 sunset, 0.5 midnight, 0.75 sunrise. Night sky is deep blue, not grey,
     # with a lighter horizon so treeline silhouettes read at night.
-    a["sky_zenith_color"] = {"0.0": zenith_day, "0.2": zenith_day, "0.3": [34, 40, 66], "0.5": [16, 20, 34], "0.7": [34, 40, 66], "0.8": zenith_day, "1.0": zenith_day}
+    a["sky_zenith_color"] = {"0.0": zenith_day, "0.2": zenith_day, "0.3": [26, 32, 50], "0.5": [12, 16, 28], "0.7": [26, 32, 50], "0.8": zenith_day, "1.0": zenith_day}
     a["sky_horizon_color"] = {
-        "0.0": [184, 192, 200], "0.17": [196, 186, 176], "0.23": [226, 160, 128], "0.27": [150, 112, 112],
-        "0.33": [62, 70, 96], "0.5": [42, 50, 66], "0.67": [62, 70, 96], "0.73": [196, 140, 128], "0.77": [226, 170, 140],
-        "0.83": [196, 190, 182], "1.0": [184, 192, 200],
+        "0.0": [144, 157, 171], "0.17": [160, 153, 148], "0.23": [184, 128, 104], "0.27": [120, 90, 92],
+        "0.33": [46, 54, 74], "0.5": [29, 37, 50], "0.67": [46, 54, 74], "0.73": [160, 112, 104], "0.77": [184, 138, 114],
+        "0.83": [160, 156, 152], "1.0": [144, 157, 171],
     }
     if group == "swamp":
         a["sky_horizon_color"] = {k: [int(v[0] * 0.92), int(v[1] * 0.98), int(v[2] * 0.85)] for k, v in a["sky_horizon_color"].items()}
-    a["moon_mie_strength"] = {"0.0": 0.0, "0.3": 0.4, "0.5": 0.6, "0.7": 0.4, "1.0": 0.0}
+    a["moon_mie_strength"] = {"0.0": 0.0, "0.3": 0.12, "0.5": 0.18, "0.7": 0.12, "1.0": 0.0}
     return base
 
 
@@ -104,16 +108,18 @@ def grading(group):
     sat = {"wild": 0.94, "cold": 0.9, "swamp": 0.86, "cave": 0.92}[group]
     con = {"wild": 1.12, "cold": 1.1, "swamp": 1.08, "cave": 1.1}[group]
     temp = {"wild": 6300, "cold": 6000, "swamp": 6200, "cave": 6400}[group]
-    shadow_gain = {"wild": [0.97, 0.99, 1.04], "cold": [0.96, 0.99, 1.06], "swamp": [0.97, 1.01, 0.97], "cave": [0.97, 0.99, 1.04]}[group]
+    shadow_gain = {"wild": [0.92, 0.94, 0.98], "cold": [0.91, 0.94, 0.99], "swamp": [0.92, 0.96, 0.92], "cave": [0.93, 0.95, 0.99]}[group]
+    midtone_gain = {"wild": 0.88, "cold": 0.86, "swamp": 0.86, "cave": 0.9}[group]
     return {
         "format_version": "1.21.90",
         "minecraft:color_grading_settings": {
             "description": {"identifier": ID("color_grading", group)},
             "color_grading": {
-                "midtones": {"contrast": [con] * 3, "gain": [1.0, 1.0, 1.0], "gamma": [2.2] * 3, "offset": [0.0] * 3, "saturation": [sat] * 3},
+                # Keep standard gamma and zero offset: darken gain without crushing the black floor.
+                "midtones": {"contrast": [con] * 3, "gain": [midtone_gain] * 3, "gamma": [2.2] * 3, "offset": [0.0] * 3, "saturation": [sat] * 3},
                 "shadows": {"enabled": True, "shadowsMax": 0.6, "gain": shadow_gain, "saturation": [sat * 0.95] * 3,
                             "contrast": [1.0] * 3, "gamma": [2.2] * 3, "offset": [0.0] * 3},
-                "highlights": {"enabled": True, "highlightsMin": 1.6, "gain": [1.04, 1.0, 0.95], "saturation": [1.0] * 3,
+                "highlights": {"enabled": True, "highlightsMin": 1.4, "gain": [0.88, 0.85, 0.81], "saturation": [1.0] * 3,
                                "contrast": [1.0] * 3, "gamma": [2.2] * 3, "offset": [0.0] * 3},
                 "temperature": {"enabled": True, "temperature": temp, "type": "color_temperature"},
             },
@@ -136,12 +142,12 @@ def water(group):
 # ------------------------------------------------------------------------------ fog
 FOG = {
     # (air start, air end, colour), (weather start, end, colour), volumetric (density, zero_h, max_h, scattering)
-    "wild": ((0.7, 1.0, "#A6B6C2"), (0.25, 0.75, "#6A7178"), (0.055, 100.0, 62.0, [0.05, 0.055, 0.062])),
-    "cold": ((0.7, 1.0, "#B8C6D4"), (0.2, 0.7, "#7A848E"), (0.05, 110.0, 64.0, [0.055, 0.06, 0.07])),
+    "wild": ((0.7, 1.0, "#798B9A"), (0.25, 0.75, "#535E68"), (0.055, 100.0, 62.0, [0.028, 0.032, 0.038])),
+    "cold": ((0.7, 1.0, "#899DB0"), (0.2, 0.7, "#626F7D"), (0.05, 110.0, 64.0, [0.03, 0.035, 0.043])),
     # Match the pale garden's 0.07 peak density in the pinned Mojang reference. Our height
     # falloff still clears by Y82; numerical parity alone does not prove in-game visibility.
-    "swamp": ((0.55, 1.0, "#8F9A86"), (0.2, 0.65, "#5F665A"), (0.07, 82.0, 60.0, [0.05, 0.058, 0.048])),
-    "cave": ((0.75, 1.0, "#3A3E44"), (0.75, 1.0, "#3A3E44"), (0.03, 64.0, -64.0, [0.03, 0.032, 0.036])),
+    "swamp": ((0.55, 1.0, "#697764"), (0.2, 0.65, "#4A5546"), (0.07, 82.0, 60.0, [0.028, 0.034, 0.026])),
+    "cave": ((0.75, 1.0, "#292E36"), (0.75, 1.0, "#292E36"), (0.03, 64.0, -64.0, [0.018, 0.02, 0.024])),
 }
 
 
@@ -171,7 +177,7 @@ def fog_for(biome, group, vanilla_fog_id):
     return fog
 
 
-SKY = {"wild": "#86A2C4", "cold": "#9AB0CC", "swamp": "#7E9290"}
+SKY = {"wild": "#6C88AC", "cold": "#7A94B6", "swamp": "#627674"}
 
 
 def main():

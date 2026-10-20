@@ -147,12 +147,12 @@ from `.mcstructure` files in the behavior pack:
   | cave | desaturated, cool shadows |
 - **Applied through 57 client-biome overrides.** Since 1.21.90, vanilla per-biome VV settings override the global files,
   so per-biome overrides are required.
-- **Night is dark but never black:**
-  - moonlight 0.5 illuminance, cool [150,170,255];
-  - ambient keyframed from 0.02 by day to 0.045 at night;
-  - deep-blue night zenith [16,20,34];
-  - fog that starts at 70% of render distance.
-- **Colour grading:** warm highlights and cool shadows, so shelter light reads as warm and safe against a cool world.
+- **Darker Visuals profile (1.0.3; device verification pending):**
+  - moonlight 0.16–0.20 illuminance, cool [150,170,255];
+  - surface ambient falls from 0.018 by day to 0.012 at night; cave ambient 0.009;
+  - deep-blue night zenith [12,16,28], reduced moon haze and sky fill;
+  - air fog starts at 70% of render distance in wild/cold, 55% in swamps, 75% in caves.
+- **Colour grading:** reduced midtone gain (0.86–0.90) and warm highlight gain [0.88,0.85,0.81], standard gamma 2.2 and cool shadows. See `VISUAL_TUNING.md`.
 - **Local lights:** torch #FFB46B, lantern #E8873A, campfire #FF9A4A, Heartwood Lantern #FF6A3D, Rowan Ward #FF8A3A.
 - **Safety:** the add-on never shakes the camera, never flashes, and never forces darkness or blindness.
   - Fades are short, soft, and can be switched off.

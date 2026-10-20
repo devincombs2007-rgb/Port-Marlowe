@@ -70,4 +70,4 @@ Result: **60/60 scenarios passed**
 | load: 8 players, all creatures, Nightmare 200% for a full day - caps hold | pass |
 
 - music: 1 night track(s) over 4 nights; 0 ticks of night music while a Watcher was stalking
-- load: peak creature counts {"hollow:borrowed":2,"hollow:watcher":3}; script time per tick avg 0.046 ms, p99 0.804 ms, max 3.54 ms (Node on a dev machine against the fake world - not an Xbox measurement)
+- load: peak creature counts {"hollow:borrowed":2,"hollow:watcher":3}; script time per tick avg 0.040 ms, p99 0.547 ms, max 3.68 ms (Node on a dev machine against the fake world - not an Xbox measurement)

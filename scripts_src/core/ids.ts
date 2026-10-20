@@ -56,7 +56,7 @@ export const PROP = {
 } as const;
 
 export const SND = {
-  watcherSeen: "hollow.nopewatcher.seen",
+  watcherSeen: "hollow.watcher.seen",
   watcherRetreat: "hollow.watcher.retreat",
   watcherLunge: "hollow.watcher.lunge",
   windGust: "hollow.amb.forest.wind",
