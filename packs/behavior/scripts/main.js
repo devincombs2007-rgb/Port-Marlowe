@@ -1,5 +1,5 @@
 // ../../scripts_src/main.ts
-import { ItemStack as ItemStack8, Player as Player19, system as system6, world as world18 } from "@minecraft/server";
+import { ItemStack as ItemStack9, Player as Player20, system as system6, world as world18 } from "@minecraft/server";
 
 // ../../scripts_src/core/config.ts
 import { PlayerPermissionLevel } from "@minecraft/server";
@@ -146,6 +146,8 @@ var DP = {
   playTicks: "hollow:play_ticks",
   daily: "hollow:daily",
   tracks: "hollow:track_list",
+  events: "hollow:events_done",
+  lantern: "hollow:event_lantern",
   // entity
   owner: "hollow:owner",
   fight: "hollow:fight",
@@ -232,7 +234,8 @@ var WORLD_DEFAULTS = {
   destructive: false,
   sleepDisturbance: true,
   sites: true,
-  bossScaling: true
+  bossScaling: true,
+  rareEvents: true
 };
 var PREF_DEFAULTS = { ambience: 80, accents: 1, visualFx: true, hints: true, music: true };
 var worldCache;
@@ -969,9 +972,33 @@ var ENTRIES = [
     body: "§oDay 22.§r" + P + "Three knocks after midnight. I almost answered. There are no neighbours for miles." + P + "In the morning there was a long iron nail on the step, bent like a finger beckoning."
   },
   {
-    id: "lore5",
+    id: "lore_prints",
     chapter: "notes",
     lore: 5,
+    title: "Torn Page: Prints",
+    icon: "textures/items/hollow/torn_page",
+    body: "§oDay 17.§r" + P + "Bare footprints in the frost this morning, from the tree line straight to my door. Long feet. Too long. They stop at the step." + P + "There are no prints going back."
+  },
+  {
+    id: "lore_tower",
+    chapter: "notes",
+    lore: 6,
+    title: "Torn Page: Fire Watch",
+    icon: "textures/items/hollow/torn_page",
+    body: "§oDay 25, from the tower.§r" + P + "From up here you can count the lights in the valley. Mine, the Hobbs farm, the camp by the river." + P + "Tonight there was a fourth. It moved when I looked away, and it went out when I looked at it."
+  },
+  {
+    id: "lore_eye",
+    chapter: "notes",
+    lore: 7,
+    title: "Torn Page: The Flock",
+    icon: "textures/items/hollow/torn_page",
+    body: "§oDay 27.§r" + P + "Every animal in the meadow stopped at once and turned to look at me. Cows, sheep, the chickens. Nobody moved for a long breath. Then they went back to grazing as if nothing happened." + P + "Something was looking out through them."
+  },
+  {
+    id: "lore5",
+    chapter: "notes",
+    lore: 8,
     title: "Torn Page: The Shrine",
     icon: "textures/items/hollow/torn_page",
     body: "§oDay 30.§r" + P + "Found an old map in the cabin floor. Beneath these hills there is a room older than any of us, where the roots of the forest meet. Something sleeps in it and §ldreams§r them all: the watcher, the borrowed things, the clickers, the knocker, the thing in the mire." + P + "They are not five monsters. They are one heart, thinking in five directions."
@@ -979,7 +1006,7 @@ var ENTRIES = [
   {
     id: "lore6",
     chapter: "notes",
-    lore: 6,
+    lore: 9,
     title: "Torn Page: Last Entry",
     icon: "textures/items/hollow/torn_page",
     body: "§oDay 41.§r" + P + "A piece from each of them, laid on the altar, wakes it. An offering of silence." + P + "I have them all now. If I'm right, I can still it. If I'm wrong, whoever reads this: do not go alone. Bring light, bring friends, and §lbreak the veins first§r."
@@ -990,6 +1017,27 @@ var ENTRIES = [
     title: "Reading Tracks",
     icon: "textures/items/hollow/hollow_lens",
     body: "The ground keeps what the night won't tell you. Prints fade within a day." + P + "§lThin, root-toed prints§r, far apart: the Watcher. Where there are two side by side, it stood still there a long time, looking at something." + P + "§lLong bare feet§r with a dragging heel: the Knocker. They come out of the trees and stop at a door." + P + "§lA wet smear§r from the bank into the shallows: something was dragged. Walk the banks." + P + "§lSheep hooves that turn into claws§r halfway along: a Borrowed stopped pretending." + P + "§7A Hollow Lens names fresh tracks within 8 blocks."
+  },
+  {
+    id: "event_eye",
+    chapter: "notes",
+    title: "Every Eye",
+    icon: "textures/items/hollow/pale_resin",
+    body: "Every animal around me stopped, turned, and looked at me. For a long breath nothing moved. Then it let them go." + P + "It didn't hurt anyone. It wanted me to know it can look through anything that has eyes."
+  },
+  {
+    id: "event_lantern",
+    chapter: "notes",
+    title: "The Lantern",
+    icon: "textures/items/hollow/heartwood_lantern",
+    body: "A lantern burning on a stump, deep in the trees, with nobody near it. When I got close it went out." + P + "Someone left a page under it. Someone wanted it found."
+  },
+  {
+    id: "event_roof",
+    chapter: "notes",
+    title: "On the Roof",
+    icon: "textures/items/hollow/knocker_nail",
+    body: "Footsteps on the roof. Slow, heavy, from one end to the other. Then nothing." + P + "It never came in. Things that can't open doors can still climb."
   },
   {
     id: "after",
@@ -1163,6 +1211,20 @@ var ENTRIES = [
     body: "Two collapsed tents and a dead fire. Whoever camped here left in the night and didn't take their pack. Check the barrel." + P + "§7Campsites appear on open ground and at forest edges."
   },
   {
+    id: "place_tower",
+    chapter: "places",
+    title: "The Fire Watch Tower",
+    icon: "textures/items/hollow/torn_page",
+    body: "A spruce fire-watch tower above the trees. Its lantern is still lit. Nobody has climbed it in months." + P + "§7Towers stand in forests. Climb for the view, and check the lookout's chest."
+  },
+  {
+    id: "place_leanto",
+    chapter: "places",
+    title: "The Lean-to",
+    icon: "textures/items/hollow/torn_page",
+    body: `A hunter's lean-to: bedroll turned back, fire cold, a note on a stake: §o"went to check the noise"§r.` + P + "§7Lean-tos appear at forest edges and in open country."
+  },
+  {
     id: "place_shrine",
     chapter: "places",
     title: "The Underground Shrine",
@@ -1217,7 +1279,7 @@ async function openPrefs(p) {
 }
 async function openWorld(p) {
   const s = rawSettings();
-  const f = new ModalFormData().title("§lWorld rules").dropdown("Horror intensity", ["Calm: rarer, no ambush strikes", "Standard", "Nightmare: frequent, bolder"], { defaultValueIndex: s.intensity }).slider("Encounter frequency (%)", 25, 200, { defaultValue: s.frequency, valueStep: 25 }).slider("Grace days before creatures hunt", 0, 5, { defaultValue: s.graceDays, valueStep: 1 }).slider("First night the Knocker may visit", 2, 10, { defaultValue: Math.max(2, Math.min(10, s.knockerNight)), valueStep: 1 }).toggle("Creature: The Watcher", { defaultValue: s.watcher }).toggle("Creature: The Borrowed", { defaultValue: s.borrowed }).toggle("Creature: The Hollowed", { defaultValue: s.hollowed }).toggle("Creature: The Knocker", { defaultValue: s.knocker }).toggle("Creature: The Mirebound", { defaultValue: s.mirebound }).toggle("Destructive Knocker (may break wooden doors on Hard)", { defaultValue: s.destructive }).toggle("Rare bedtime knocking (harmless, never blocks sleep)", { defaultValue: s.sleepDisturbance }).toggle("Place cabins, campsites and the shrine", { defaultValue: s.sites }).toggle("Scale the Heart Below with player count", { defaultValue: s.bossScaling }).submitButton("Save");
+  const f = new ModalFormData().title("§lWorld rules").dropdown("Horror intensity", ["Calm: rarer, no ambush strikes", "Standard", "Nightmare: frequent, bolder"], { defaultValueIndex: s.intensity }).slider("Encounter frequency (%)", 25, 200, { defaultValue: s.frequency, valueStep: 25 }).slider("Grace days before creatures hunt", 0, 5, { defaultValue: s.graceDays, valueStep: 1 }).slider("First night the Knocker may visit", 2, 10, { defaultValue: Math.max(2, Math.min(10, s.knockerNight)), valueStep: 1 }).toggle("Creature: The Watcher", { defaultValue: s.watcher }).toggle("Creature: The Borrowed", { defaultValue: s.borrowed }).toggle("Creature: The Hollowed", { defaultValue: s.hollowed }).toggle("Creature: The Knocker", { defaultValue: s.knocker }).toggle("Creature: The Mirebound", { defaultValue: s.mirebound }).toggle("Destructive Knocker (may break wooden doors on Hard)", { defaultValue: s.destructive }).toggle("Rare bedtime knocking (harmless, never blocks sleep)", { defaultValue: s.sleepDisturbance }).toggle("Place cabins, campsites and the shrine", { defaultValue: s.sites }).toggle("Scale the Heart Below with player count", { defaultValue: s.bossScaling }).toggle("Rare one-off events (harmless, once per world)", { defaultValue: s.rareEvents }).submitButton("Save");
   const r = await showModal(p, f);
   if (!r || r.canceled || !r.formValues || !isOperator(p)) return;
   const v = r.formValues;
@@ -1234,7 +1296,8 @@ async function openWorld(p) {
     destructive: Boolean(v[9]),
     sleepDisturbance: Boolean(v[10]),
     sites: Boolean(v[11]),
-    bossScaling: Boolean(v[12])
+    bossScaling: Boolean(v[12]),
+    rareEvents: Boolean(v[13])
   };
   saveSettings(next);
   notice(p, "§7World rules saved.");
@@ -1479,9 +1542,11 @@ import {
   world as world7
 } from "@minecraft/server";
 var DEFS = {
-  cabin: { structure: "hollow:cabin", size: [11, 9, 11], sink: 1, spacing: 320, cap: 8, lootTable: "hollow/sites/cabin", journal: "place_cabin" },
-  camp: { structure: "hollow:campsite", size: [13, 6, 13], sink: 1, spacing: 256, cap: 10, lootTable: "hollow/sites/campsite", journal: "place_camp" },
-  shrine: { structure: "hollow:shrine", size: [25, 13, 25], sink: 0, spacing: 0, cap: 1, lootTable: "", journal: "place_shrine" }
+  cabin: { structures: ["hollow:cabin", "hollow:cabin_collapsed"], size: [11, 9, 11], sink: 1, spacing: 320, cap: 8, lootTable: "hollow/sites/cabin", journal: "place_cabin" },
+  camp: { structures: ["hollow:campsite"], size: [13, 6, 13], sink: 1, spacing: 256, cap: 10, lootTable: "hollow/sites/campsite", journal: "place_camp" },
+  tower: { structures: ["hollow:watchtower"], size: [7, 15, 7], sink: 1, spacing: 480, cap: 4, lootTable: "hollow/sites/tower", journal: "place_tower" },
+  leanto: { structures: ["hollow:leanto"], size: [7, 5, 7], sink: 1, spacing: 220, cap: 8, lootTable: "hollow/sites/leanto", journal: "place_leanto" },
+  shrine: { structures: ["hollow:shrine"], size: [25, 13, 25], sink: 0, spacing: 0, cap: 1, lootTable: "", journal: "place_shrine" }
 };
 var sites;
 function allSites() {
@@ -1545,9 +1610,9 @@ function place(dim, t, origin) {
   const rot = pick([StructureRotation.None, StructureRotation.Rotate90, StructureRotation.Rotate180, StructureRotation.Rotate270]);
   const o = { x: Math.floor(origin.x), y: Math.floor(origin.y) - def.sink, z: Math.floor(origin.z) };
   try {
-    world7.structureManager.place(def.structure, dim, o, { rotation: rot, includeEntities: false, waterlogged: false });
+    world7.structureManager.place(pick(def.structures), dim, o, { rotation: rot, includeEntities: false, waterlogged: false });
   } catch (e) {
-    console.warn(`[hollow] could not place ${def.structure}: ${e}`);
+    console.warn(`[hollow] could not place ${def.structures[0]}: ${e}`);
     return void 0;
   }
   const site = { t, d: dim.id, x: o.x, y: o.y + def.sink, z: o.z, sx: def.size[0], sy: def.size[1], sz: def.size[2] };
@@ -1563,6 +1628,12 @@ var DISABLED_SUPPLY = [
   ["knocker", ITEM.knockerNail, 1],
   ["mirebound", ITEM.mirePearl, 1]
 ];
+var SIGNS = {
+  cabin: "§lMISSING§r\nRanger E. Marlowe\nLast seen: the\neast woods",
+  camp: "DON'T\nANSWER\nTHE\nDOOR",
+  tower: "FIRE WATCH 3\nlights in the\ntrees again.\nnot ours.",
+  leanto: "went to check\nthe noise.\nback by dark"
+};
 function fill(dim, s) {
   const def = DEFS[s.t];
   const c = { x: s.x + Math.floor(s.sx / 2), y: s.y + 2, z: s.z + Math.floor(s.sz / 2) };
@@ -1587,7 +1658,7 @@ function fill(dim, s) {
   for (const loc of findBlocks(dim, c, ["minecraft:spruce_wall_sign", "minecraft:spruce_standing_sign"], Math.ceil(r / 2), s.sy, Math.ceil(r / 2), 2)) {
     try {
       block(dim, loc)?.getComponent("minecraft:sign")?.setText(
-        s.t === "cabin" ? "§lMISSING§r\nRanger E. Marlowe\nLast seen: the\neast woods" : "DON'T\nANSWER\nTHE\nDOOR"
+        SIGNS[s.t] ?? ""
       );
     } catch {
     }
@@ -1603,16 +1674,17 @@ function trySurfaceSite(p) {
   const spawn = world7.getDefaultSpawnLocation();
   if (distXZ(p.location, spawn) < 96) return;
   const bed = p.getSpawnPoint();
-  const t = c.biome === "forest" ? chance(0.7) ? "cabin" : "camp" : c.biome === "open" ? "camp" : "cabin";
-  if (t === "cabin" && c.biome !== "forest") return;
+  if (c.biome !== "forest" && c.biome !== "open") return;
+  const r = Math.random();
+  const t = c.biome === "forest" ? r < 0.45 ? "cabin" : r < 0.65 ? "camp" : r < 0.82 ? "tower" : "leanto" : r < 0.65 ? "camp" : "leanto";
   const def = DEFS[t];
   if (allSites().filter((x) => x.t === t).length >= def.cap) return;
   const baseYaw = yawOf(p.getViewDirection());
   for (let k = 0; k < 4; k++) {
     const dir = yawDir(baseYaw + 180 + rand(-70, 70));
-    const r = rand(56, 80);
-    const cx = p.location.x + dir.x * r;
-    const cz = p.location.z + dir.z * r;
+    const r2 = rand(56, 80);
+    const cx = p.location.x + dir.x * r2;
+    const cz = p.location.z + dir.z * r2;
     const g = groundNear(dim, cx, p.location.y, cz, 10, 4);
     if (!g) continue;
     if (bed && bed.dimension.id === dim.id && distXZ(g, bed) < 64) continue;
@@ -3162,11 +3234,11 @@ function plan() {
   const cfg = settings();
   const gap = [3, 2, 1][cfg.intensity];
   const night = hollowNight();
-  const eligible = cfg.knocker && night >= cfg.knockerNight && night - s.lastNight >= gap;
+  const eligible2 = cfg.knocker && night >= cfg.knockerNight && night - s.lastNight >= gap;
   const next = {
     ...s,
     plannedKey: key,
-    planned: eligible && chance(Math.min(0.9, 0.45 * chanceScale())),
+    planned: eligible2 && chance(Math.min(0.9, 0.45 * chanceScale())),
     planTick: Math.round(rand(13600, 19e3))
   };
   save3(next);
@@ -4090,13 +4162,175 @@ function startMusic() {
   everyPlayer("music", 200, tick);
 }
 
+// ../../scripts_src/systems/events.ts
+import { BlockPermutation as BlockPermutation4, ItemStack as ItemStack8 } from "@minecraft/server";
+var ANIMALS = [
+  "minecraft:sheep",
+  "minecraft:cow",
+  "minecraft:pig",
+  "minecraft:chicken",
+  "minecraft:horse",
+  "minecraft:donkey",
+  "minecraft:rabbit",
+  "minecraft:goat",
+  "minecraft:llama",
+  "minecraft:mooshroom"
+];
+var done;
+var running = false;
+function isDone(id) {
+  done ??= readWorldArray(DP.events);
+  return done.includes(id);
+}
+function markDone(id) {
+  done ??= readWorldArray(DP.events);
+  if (!done.includes(id)) done.push(id);
+  writeWorld(DP.events, done);
+}
+function animalsAround(p) {
+  const out = [];
+  for (const type of ANIMALS) {
+    try {
+      out.push(...p.dimension.getEntities({ type, location: p.location, maxDistance: 24 }));
+    } catch {
+    }
+  }
+  return out;
+}
+function everyEye(p) {
+  const herd = animalsAround(p).slice(0, 24);
+  if (herd.length < 5) return false;
+  running = true;
+  ambient(p, SND.hush, { volume: 0.9, minGap: 0, cueGap: 0 });
+  accent(p, SND.stingerDistant, 1, true);
+  const steps = 32;
+  for (let k = 0; k <= steps; k++) {
+    later("event.eye", k * 5, () => {
+      if (!p.isValid) return;
+      for (const a of herd) {
+        if (!a.isValid) continue;
+        try {
+          a.setRotation({ x: 0, y: yawOf(norm(sub(p.location, a.location))) });
+          a.addEffect("slowness", 10, { amplifier: 255, showParticles: false });
+        } catch {
+        }
+      }
+      if (k === steps) {
+        running = false;
+        unlock(p, "event_eye");
+      }
+    });
+  }
+  return true;
+}
+function getLantern() {
+  const l = readWorld(DP.lantern, { dim: "" });
+  return l.dim ? l : void 0;
+}
+function setLantern(l) {
+  writeWorld(DP.lantern, l ?? { dim: "" });
+}
+function theLantern(p) {
+  if (getLantern()) return false;
+  const dim = p.dimension;
+  const head = p.getHeadLocation();
+  const view = yawOf(p.getViewDirection());
+  for (let k = 0; k < 8; k++) {
+    const dir = yawDir(view + 180 + rand(-60, 60));
+    const r = rand(26, 38);
+    const g = groundNear(dim, p.location.x + dir.x * r, p.location.y, p.location.z + dir.z * r, 8, 3);
+    if (!g) continue;
+    const stump = block(dim, g);
+    const top = block(dim, add(g, { x: 0, y: 1, z: 0 }));
+    if (!stump?.isAir || !top?.isAir) continue;
+    if (clearLine(dim, head, add(g, { x: 0, y: 1.5, z: 0 }))) continue;
+    try {
+      stump.setPermutation(BlockPermutation4.resolve("minecraft:spruce_log"));
+      top.setPermutation(BlockPermutation4.resolve("minecraft:lantern"));
+    } catch {
+      continue;
+    }
+    setLantern({ dim: dim.id, at: g });
+    return true;
+  }
+  return false;
+}
+function watchLantern(p) {
+  const lantern = getLantern();
+  if (!lantern || p.dimension.id !== lantern.dim) return;
+  if (dist(p.location, lantern.at) > 6) return;
+  const dim = p.dimension;
+  const top = block(dim, add(lantern.at, { x: 0, y: 1, z: 0 }));
+  try {
+    if (top?.typeId === "minecraft:lantern") top.setPermutation(BlockPermutation4.resolve("minecraft:air"));
+  } catch {
+  }
+  worldSound(dim, SND.windGust, lantern.at, 0.8);
+  try {
+    dim.spawnItem(new ItemStack8(ITEM.page, 1), add(lantern.at, { x: 0.8, y: 0.2, z: 0.4 }));
+  } catch {
+  }
+  for (const q of dim.getPlayers({ location: lantern.at, maxDistance: 16 })) unlock(q, "event_lantern");
+  setLantern(void 0);
+}
+function onTheRoof(p) {
+  const dim = p.dimension;
+  let roofY;
+  try {
+    const hit = dim.getBlockFromRay(p.getHeadLocation(), { x: 0, y: 1, z: 0 }, { maxDistance: 6, includePassableBlocks: false });
+    roofY = hit ? hit.block.location.y + 1 : void 0;
+  } catch {
+    roofY = void 0;
+  }
+  if (roofY === void 0) return false;
+  const along = yawDir(yawOf(p.getViewDirection()) + 90);
+  running = true;
+  for (let k = 0; k < 7; k++) {
+    later("event.roof", 20 + k * 17, () => {
+      const at = { x: p.location.x + along.x * (k - 3) * 1.2, y: roofY, z: p.location.z + along.z * (k - 3) * 1.2 };
+      worldSound(dim, "hollow.knocker.step", at, 1, 0.85);
+    });
+  }
+  later("event.roof.end", 20 + 7 * 17 + 60, () => {
+    running = false;
+    if (p.isValid) unlock(p, "event_roof");
+  });
+  return true;
+}
+function eligible(p) {
+  return settings().rareEvents && huntable(p) && !isNewcomer(p) && !rt(p).encounter && !running;
+}
+function tick2(p) {
+  watchLantern(p);
+  if (!eligible(p) || !isNight() || !chance(0.04)) return;
+  const c = ctx(p);
+  if (!c.overworld || c.underground) return;
+  const night = hollowNight();
+  if (!c.roofed && night >= 3 && !isDone("eye") && everyEye(p)) markDone("eye");
+  else if (!c.roofed && c.biome === "forest" && night >= 4 && !isDone("lantern") && theLantern(p)) markDone("lantern");
+  else if (c.roofed && night >= 6 && !isDone("roof") && onTheRoof(p)) markDone("roof");
+}
+function forceEvent(p, id) {
+  if (running) return "an event is already running";
+  if (id === "lantern" && getLantern()) return "a lantern is already burning; walk to it first";
+  const ok = id === "eye" ? everyEye(p) : id === "lantern" ? theLantern(p) : id === "roof" ? onTheRoof(p) : false;
+  if (ok) markDone(id);
+  if (!ok) {
+    return id === "eye" ? "needs 5+ animals within 24 blocks" : id === "lantern" ? "needs open ground nearby" : id === "roof" ? "stand under a roof" : "usage: event eye|lantern|roof";
+  }
+  return `event ${id} started`;
+}
+function startEvents() {
+  everyPlayer("events", 400, tick2);
+}
+
 // ../../scripts_src/systems/ambience.ts
 function far(p, lo = 18, hi = 40) {
   const d = yawDir(rand(0, 360));
   const r = rand(lo, hi);
   return add(p.location, { x: d.x * r, y: rand(0, 4), z: d.z * r });
 }
-function tick2(p) {
+function tick3(p) {
   const c = ctx(p);
   if (!c.overworld) return;
   const night = isDarkHours();
@@ -4139,7 +4373,7 @@ function bedtime(p) {
   ambient(p, SND.bedtimeKnock, { volume: 0.9, minGap: 0, cueGap: 0 });
 }
 function startAmbience() {
-  everyPlayer("ambience", 120, tick2);
+  everyPlayer("ambience", 120, tick3);
   everyPlayer("bedtime", 40, bedtime);
 }
 
@@ -4236,6 +4470,7 @@ function init() {
   startMaterialPickups();
   startMusic();
   startTracks();
+  startEvents();
   startSites();
   startWatcher();
   startBorrowed();
@@ -4308,7 +4543,7 @@ world18.afterEvents.entityHurt.subscribe((ev) => safe("entityHurt", () => {
       onMireboundHurt(hurt2, by);
       break;
   }
-  if (hurt2 instanceof Player19 && by?.typeId === ENT.watcher) onWatcherStruck(by, hurt2);
+  if (hurt2 instanceof Player20 && by?.typeId === ENT.watcher) onWatcherStruck(by, hurt2);
   if (hurt2.typeId === ENT.heart || hurt2.typeId === ENT.vein) onBossHurt(hurt2, ev.damage, by);
 }));
 world18.afterEvents.entityDie.subscribe((ev) => safe("entityDie", () => {
@@ -4382,7 +4617,7 @@ function testCommand(p, arg) {
         ["minecraft:wheat", 8],
         ["minecraft:snowball", 16]
       ];
-      for (const [id, n] of kit) giveOrDrop(p, new ItemStack8(id, n));
+      for (const [id, n] of kit) giveOrDrop(p, new ItemStack9(id, n));
       ensureJournal(p);
       return "test kit given";
     }
@@ -4394,8 +4629,12 @@ function testCommand(p, arg) {
       return forceBossPhase(2);
     case "boss3":
       return forceBossPhase(3);
+    case "eye":
+    case "lantern":
+    case "roof":
+      return forceEvent(p, arg);
     default:
-      return "usage: /scriptevent hollow:test on|off|night|midnight|day|kit|journal|knocker|boss2|boss3";
+      return "usage: /scriptevent hollow:test on|off|night|midnight|day|kit|journal|knocker|boss2|boss3|eye|lantern|roof";
   }
 }
 function nearestPlayer(e, r) {
@@ -4407,7 +4646,7 @@ function nearestPlayer(e, r) {
 }
 system6.afterEvents.scriptEventReceive.subscribe((ev) => safe("scriptevent", () => {
   const p = ev.sourceEntity;
-  if (!(p instanceof Player19)) return;
+  if (!(p instanceof Player20)) return;
   switch (ev.id) {
     case "hollow:journal":
       void openJournal(p);
@@ -4433,8 +4672,8 @@ system6.afterEvents.scriptEventReceive.subscribe((ev) => safe("scriptevent", () 
     case "hollow:site": {
       if (!isOperator(p)) return;
       const t = ev.message.trim();
-      if (t !== "cabin" && t !== "camp" && t !== "shrine") {
-        p.sendMessage("§7usage: /scriptevent hollow:site cabin|camp|shrine");
+      if (!["cabin", "camp", "tower", "leanto", "shrine"].includes(t)) {
+        p.sendMessage("§7usage: /scriptevent hollow:site cabin|camp|tower|leanto|shrine");
         return;
       }
       p.sendMessage(`§7[hollow] ${forceSite(p, t)}`);

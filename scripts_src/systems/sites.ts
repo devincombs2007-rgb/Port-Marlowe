@@ -20,7 +20,7 @@ import { unlock } from "./journal";
 // Every placement is checked first: loaded chunks, flat dry ground, no tree trunks, and no
 // player-built blocks anywhere near the footprint. Existing builds are never overwritten.
 
-export type SiteType = "cabin" | "camp" | "shrine";
+export type SiteType = "cabin" | "camp" | "tower" | "leanto" | "shrine";
 
 export interface Site {
   t: SiteType;
@@ -35,7 +35,8 @@ export interface Site {
 }
 
 interface Def {
-  structure: string;
+  /** structure variants; one is picked at random per placement */
+  structures: string[];
   size: [number, number, number];
   /** blocks below the origin the foundation reaches */
   sink: number;
@@ -47,9 +48,11 @@ interface Def {
 }
 
 const DEFS: Record<SiteType, Def> = {
-  cabin: { structure: "hollow:cabin", size: [11, 9, 11], sink: 1, spacing: 320, cap: 8, lootTable: "hollow/sites/cabin", journal: "place_cabin" },
-  camp: { structure: "hollow:campsite", size: [13, 6, 13], sink: 1, spacing: 256, cap: 10, lootTable: "hollow/sites/campsite", journal: "place_camp" },
-  shrine: { structure: "hollow:shrine", size: [25, 13, 25], sink: 0, spacing: 0, cap: 1, lootTable: "", journal: "place_shrine" },
+  cabin: { structures: ["hollow:cabin", "hollow:cabin_collapsed"], size: [11, 9, 11], sink: 1, spacing: 320, cap: 8, lootTable: "hollow/sites/cabin", journal: "place_cabin" },
+  camp: { structures: ["hollow:campsite"], size: [13, 6, 13], sink: 1, spacing: 256, cap: 10, lootTable: "hollow/sites/campsite", journal: "place_camp" },
+  tower: { structures: ["hollow:watchtower"], size: [7, 15, 7], sink: 1, spacing: 480, cap: 4, lootTable: "hollow/sites/tower", journal: "place_tower" },
+  leanto: { structures: ["hollow:leanto"], size: [7, 5, 7], sink: 1, spacing: 220, cap: 8, lootTable: "hollow/sites/leanto", journal: "place_leanto" },
+  shrine: { structures: ["hollow:shrine"], size: [25, 13, 25], sink: 0, spacing: 0, cap: 1, lootTable: "", journal: "place_shrine" },
 };
 
 let sites: Site[] | undefined;
@@ -128,9 +131,9 @@ function place(dim: Dimension, t: SiteType, origin: Vector3): Site | undefined {
   const rot = pick([StructureRotation.None, StructureRotation.Rotate90, StructureRotation.Rotate180, StructureRotation.Rotate270]);
   const o = { x: Math.floor(origin.x), y: Math.floor(origin.y) - def.sink, z: Math.floor(origin.z) };
   try {
-    world.structureManager.place(def.structure, dim, o, { rotation: rot, includeEntities: false, waterlogged: false });
+    world.structureManager.place(pick(def.structures), dim, o, { rotation: rot, includeEntities: false, waterlogged: false });
   } catch (e) {
-    console.warn(`[hollow] could not place ${def.structure}: ${e}`);
+    console.warn(`[hollow] could not place ${def.structures[0]}: ${e}`);
     return undefined;
   }
   const site: Site = { t, d: dim.id, x: o.x, y: o.y + def.sink, z: o.z, sx: def.size[0], sy: def.size[1], sz: def.size[2] };
@@ -149,6 +152,13 @@ const DISABLED_SUPPLY: [keyof ReturnType<typeof settings>, string, number][] = [
   ["knocker", ITEM.knockerNail, 1],
   ["mirebound", ITEM.mirePearl, 1],
 ];
+
+const SIGNS: Partial<Record<SiteType, string>> = {
+  cabin: "§lMISSING§r\nRanger E. Marlowe\nLast seen: the\neast woods",
+  camp: "DON'T\nANSWER\nTHE\nDOOR",
+  tower: "FIRE WATCH 3\nlights in the\ntrees again.\nnot ours.",
+  leanto: "went to check\nthe noise.\nback by dark",
+};
 
 /** Fill containers from the site's loot table and write the cabin's notice board. */
 function fill(dim: Dimension, s: Site): void {
@@ -175,7 +185,7 @@ function fill(dim: Dimension, s: Site): void {
   for (const loc of findBlocks(dim, c, ["minecraft:spruce_wall_sign", "minecraft:spruce_standing_sign"], Math.ceil(r / 2), s.sy, Math.ceil(r / 2), 2)) {
     try {
       block(dim, loc)?.getComponent("minecraft:sign")?.setText(
-        s.t === "cabin" ? "§lMISSING§r\nRanger E. Marlowe\nLast seen: the\neast woods" : "DON'T\nANSWER\nTHE\nDOOR",
+        SIGNS[s.t] ?? "",
       );
     } catch {
       /* sign not ready */
@@ -193,8 +203,11 @@ function trySurfaceSite(p: Player): void {
   const spawn = world.getDefaultSpawnLocation();
   if (distXZ(p.location, spawn) < 96) return;
   const bed = p.getSpawnPoint();
-  const t: SiteType = c.biome === "forest" ? (chance(0.7) ? "cabin" : "camp") : c.biome === "open" ? "camp" : "cabin";
-  if (t === "cabin" && c.biome !== "forest") return;
+  if (c.biome !== "forest" && c.biome !== "open") return;
+  const r = Math.random();
+  const t: SiteType = c.biome === "forest"
+    ? (r < 0.45 ? "cabin" : r < 0.65 ? "camp" : r < 0.82 ? "tower" : "leanto")
+    : (r < 0.65 ? "camp" : "leanto");
   const def = DEFS[t];
   if (allSites().filter((x) => x.t === t).length >= def.cap) return;
   const baseYaw = yawOf(p.getViewDirection());

@@ -2,6 +2,9 @@
 
   cabin     11 x 9 x 11   abandoned ranger cabin (sink 1: y=0 is the ground layer)
   campsite  13 x 6 x 13   ruined campsite with tracks leading away (sink 1)
+  cabin_collapsed 11 x 9 x 11  variant B of the cabin: roof fallen in, wall holed
+  watchtower 7 x 15 x 7  fire-watch tower with a lantern still burning (sink 1)
+  leanto     7 x 5 x 7   hunter's lean-to with a cold fire (sink 1)
   shrine    25 x 13 x 25  underground root shrine + boss arena (placed whole underground)
 
 Unset positions are structure voids, so terrain outside the footprint is never touched.
@@ -111,6 +114,96 @@ def cabin():
     # a woodpile and a stump outside
     b.fill(9, 1, 6, 9, 2, 7, S + "spruce_log", pillar_axis="z")
     b.set(1, 1, 7, S + "stripped_spruce_log", pillar_axis="y")
+    return b
+
+
+def cabin_collapsed():
+    """Variant B: the same cabin after a storm - or after something leaned on it."""
+    b = cabin()
+    # the back-left quarter of the roof has fallen in
+    for x in range(1, 6):
+        for z in range(6, 10):
+            for y in range(5, 8):
+                if b.get(x, y, z) and b.get(x, y, z)[0] != S + "air":
+                    b.set(x, y, z, S + "air")
+    for (x, z) in ((3, 6), (4, 7), (3, 7), (5, 6)):
+        b.set(x, 2, z, S + "spruce_slab", **{"minecraft:vertical_half": "bottom"})  # debris on the floor
+    b.fill(2, 3, 6, 2, 4, 8, S + "air")  # a hole in the west wall
+    b.set(2, 4, 7, S + "stripped_spruce_log", pillar_axis="x")
+    b.set(4, 2, 6, S + "spruce_log", pillar_axis="z")  # a fallen beam
+    b.set(4, 2, 5, S + "spruce_log", pillar_axis="z")
+    b.set(7, 2, 6, S + "air")  # the stove is gone; scorch where it stood
+    b.set(7, 1, 6, S + "coarse_dirt")
+    for (x, y, z) in ((6, 4, 4), (3, 3, 4), (7, 4, 3), (5, 4, 7)):
+        b.set(x, y, z, S + "web")
+    b.set(6, 2, 4, S + "spruce_trapdoor", direction=0, open_bit=False, upside_down_bit=False)  # an overturned table
+    return b
+
+
+def watchtower():
+    """Fire-watch tower: 7x7 footprint, platform at 10 m, a lantern still burning at the top."""
+    b = Builder(7, 15, 7)
+    for (x, z) in ((1, 1), (5, 1), (1, 5), (5, 5)):
+        b.set(x, 0, z, S + "cobblestone")
+        b.fill(x, 1, z, x, 12, z, S + "spruce_log", pillar_axis="y")
+    # cross braces every 3 m
+    for y in (3, 6, 9):
+        for i in range(2, 5):
+            fence(b, i, y, 1, e=True, w=True)
+            fence(b, i, y, 5, e=True, w=True)
+            fence(b, 1, y, i, n=True, s=True)
+            fence(b, 5, y, i, n=True, s=True)
+    # a ladder up a central spine on the north side
+    b.fill(3, 1, 1, 3, 9, 1, S + "spruce_log", pillar_axis="y")
+    for y in range(1, 11):
+        b.set(3, y, 0, S + "ladder", facing_direction=2)
+    # platform (y=10), railing (y=11) with a gap at the ladder, roof (y=13)
+    b.fill(1, 10, 1, 5, 10, 5, S + "spruce_planks")
+    for i in range(1, 6):
+        for (x, z) in ((i, 1), (i, 5), (1, i), (5, i)):
+            if (x, z) != (3, 1) and (x, z) not in ((1, 1), (5, 1), (1, 5), (5, 5)):
+                fence(b, x, 11, z, n=z not in (1, 5), s=z not in (1, 5), e=x not in (1, 5), w=x not in (1, 5))
+    b.clear(2, 11, 2, 4, 12, 4)
+    b.set(3, 11, 1, S + "air")
+    b.set(3, 12, 1, S + "air")
+    b.fill(0, 13, 0, 6, 13, 6, S + "spruce_slab", **{"minecraft:vertical_half": "bottom"})
+    b.fill(1, 14, 1, 5, 14, 5, S + "spruce_slab", **{"minecraft:vertical_half": "bottom"})
+    b.set(3, 12, 3, S + "lantern", hanging=True)
+    b.set(2, 11, 4, S + "chest", **{"minecraft:cardinal_direction": "south"})
+    b.set(4, 11, 4, S + "barrel", facing_direction=1, open_bit=False)
+    b.set(4, 11, 2, S + "spruce_standing_sign", ground_sign_direction=8)
+    # the ground below: a beaten patch and a dropped lantern that went out
+    for (x, z) in ((2, 2), (3, 3), (4, 2), (2, 4)):
+        b.set(x, 0, z, S + "coarse_dirt")
+    b.set(4, 1, 3, S + "spruce_slab", **{"minecraft:vertical_half": "bottom"})
+    return b
+
+
+def leanto():
+    """A hunter's lean-to: slanted log roof, bedroll, cold fire, the bedroll still turned back."""
+    b = Builder(7, 5, 7)
+    for x in range(1, 6):
+        b.set(x, 0, 1, S + "coarse_dirt")
+    # two posts and a ridge log at the front, roof sloping down to the back
+    for x in (1, 5):
+        b.fill(x, 1, 4, x, 3, 4, S + "spruce_log", pillar_axis="y")
+    b.fill(1, 3, 4, 5, 3, 4, S + "spruce_log", pillar_axis="x")
+    for x in range(1, 6):
+        b.set(x, 3, 3, S + "spruce_stairs", weirdo_direction=3)
+        b.set(x, 2, 2, S + "spruce_stairs", weirdo_direction=3)
+        b.set(x, 1, 1, S + "spruce_stairs", weirdo_direction=3)
+    for x in (1, 5):
+        b.set(x, 2, 3, S + "spruce_leaves", persistent_bit=True)
+        b.set(x, 1, 2, S + "spruce_leaves", persistent_bit=True)
+    b.clear(2, 1, 2, 4, 2, 3)
+    b.clear(2, 1, 3, 4, 2, 4)
+    # bedroll, pack, cold fire in front
+    b.set(2, 1, 3, S + "white_carpet")
+    b.set(3, 1, 3, S + "brown_carpet")
+    b.set(4, 1, 3, S + "barrel", facing_direction=1, open_bit=False)
+    b.set(3, 1, 6, S + "campfire", extinguished=True, **{"minecraft:cardinal_direction": "south"})
+    b.set(5, 1, 6, S + "spruce_log", pillar_axis="x")
+    b.set(1, 1, 6, S + "spruce_standing_sign", ground_sign_direction=0)
     return b
 
 
@@ -226,7 +319,8 @@ COLORS = {
     "cobbled_deepslate": (70, 70, 75), "deepslate_bricks": (65, 65, 70), "cracked_deepslate_bricks": (60, 60, 64),
     "hollow_roots": (150, 140, 120), "muddy_mangrove_roots": (90, 70, 55), "chiseled_deepslate": (80, 80, 86),
     "hanging_roots": (160, 130, 110), "shroomlight": (255, 160, 80), "polished_deepslate": (75, 75, 80),
-    "heart_altar": (180, 60, 50),
+    "heart_altar": (180, 60, 50), "ladder": (150, 110, 60), "spruce_leaves": (50, 80, 50),
+    "spruce_trapdoor": (100, 74, 45),
 }
 
 
@@ -261,7 +355,8 @@ def preview(b, path, scale=10):
 def main():
     out = ensure(os.path.join(BP, "structures", "hollow"))
     ensure(os.path.join(BUILD, "previews"))
-    for name, fn in (("cabin", cabin), ("campsite", campsite), ("shrine", shrine)):
+    for name, fn in (("cabin", cabin), ("cabin_collapsed", cabin_collapsed), ("campsite", campsite),
+                     ("watchtower", watchtower), ("leanto", leanto), ("shrine", shrine)):
         b = fn()
         n_pal, n_blocks = b.write(os.path.join(out, f"{name}.mcstructure"))
         preview(b, os.path.join(BUILD, "previews", f"structure_{name}.png"), scale=8 if name == "shrine" else 12)

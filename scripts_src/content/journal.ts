@@ -77,7 +77,30 @@ export const ENTRIES: Entry[] = [
       "In the morning there was a long iron nail on the step, bent like a finger beckoning.",
   },
   {
-    id: "lore5", chapter: "notes", lore: 5, title: "Torn Page: The Shrine", icon: "textures/items/hollow/torn_page",
+    id: "lore_prints", chapter: "notes", lore: 5, title: "Torn Page: Prints", icon: "textures/items/hollow/torn_page",
+    body:
+      "§oDay 17.§r" + P +
+      "Bare footprints in the frost this morning, from the tree line straight to my door. Long feet. " +
+      "Too long. They stop at the step." + P +
+      "There are no prints going back.",
+  },
+  {
+    id: "lore_tower", chapter: "notes", lore: 6, title: "Torn Page: Fire Watch", icon: "textures/items/hollow/torn_page",
+    body:
+      "§oDay 25, from the tower.§r" + P +
+      "From up here you can count the lights in the valley. Mine, the Hobbs farm, the camp by the river." + P +
+      "Tonight there was a fourth. It moved when I looked away, and it went out when I looked at it.",
+  },
+  {
+    id: "lore_eye", chapter: "notes", lore: 7, title: "Torn Page: The Flock", icon: "textures/items/hollow/torn_page",
+    body:
+      "§oDay 27.§r" + P +
+      "Every animal in the meadow stopped at once and turned to look at me. Cows, sheep, the chickens. " +
+      "Nobody moved for a long breath. Then they went back to grazing as if nothing happened." + P +
+      "Something was looking out through them.",
+  },
+  {
+    id: "lore5", chapter: "notes", lore: 8, title: "Torn Page: The Shrine", icon: "textures/items/hollow/torn_page",
     body:
       "§oDay 30.§r" + P +
       "Found an old map in the cabin floor. Beneath these hills there is a room older than any " +
@@ -86,7 +109,7 @@ export const ENTRIES: Entry[] = [
       "They are not five monsters. They are one heart, thinking in five directions.",
   },
   {
-    id: "lore6", chapter: "notes", lore: 6, title: "Torn Page: Last Entry", icon: "textures/items/hollow/torn_page",
+    id: "lore6", chapter: "notes", lore: 9, title: "Torn Page: Last Entry", icon: "textures/items/hollow/torn_page",
     body:
       "§oDay 41.§r" + P +
       "A piece from each of them, laid on the altar, wakes it. An offering of silence." + P +
@@ -106,6 +129,33 @@ export const ENTRIES: Entry[] = [
       "§lA wet smear§r from the bank into the shallows: something was dragged. Walk the banks." + P +
       "§lSheep hooves that turn into claws§r halfway along: a Borrowed stopped pretending." + P +
       "§7A Hollow Lens names fresh tracks within 8 blocks.",
+  },
+  {
+    id: "event_eye",
+    chapter: "notes",
+    title: "Every Eye",
+    icon: "textures/items/hollow/pale_resin",
+    body:
+      "Every animal around me stopped, turned, and looked at me. For a long breath nothing moved. Then it let them go." + P +
+      "It didn't hurt anyone. It wanted me to know it can look through anything that has eyes.",
+  },
+  {
+    id: "event_lantern",
+    chapter: "notes",
+    title: "The Lantern",
+    icon: "textures/items/hollow/heartwood_lantern",
+    body:
+      "A lantern burning on a stump, deep in the trees, with nobody near it. When I got close it went out." + P +
+      "Someone left a page under it. Someone wanted it found.",
+  },
+  {
+    id: "event_roof",
+    chapter: "notes",
+    title: "On the Roof",
+    icon: "textures/items/hollow/knocker_nail",
+    body:
+      "Footsteps on the roof. Slow, heavy, from one end to the other. Then nothing." + P +
+      "It never came in. Things that can't open doors can still climb.",
   },
   {
     id: "after",
@@ -321,6 +371,18 @@ export const ENTRIES: Entry[] = [
       "Two collapsed tents and a dead fire. Whoever camped here left in the night and didn't take " +
       "their pack. Check the barrel." + P +
       "§7Campsites appear on open ground and at forest edges.",
+  },
+  {
+    id: "place_tower", chapter: "places", title: "The Fire Watch Tower", icon: "textures/items/hollow/torn_page",
+    body:
+      "A spruce fire-watch tower above the trees. Its lantern is still lit. Nobody has climbed it in months." + P +
+      "§7Towers stand in forests. Climb for the view, and check the lookout's chest.",
+  },
+  {
+    id: "place_leanto", chapter: "places", title: "The Lean-to", icon: "textures/items/hollow/torn_page",
+    body:
+      "A hunter's lean-to: bedroll turned back, fire cold, a note on a stake: §o\"went to check the noise\"§r." + P +
+      "§7Lean-tos appear at forest edges and in open country.",
   },
   {
     id: "place_shrine", chapter: "places", title: "The Underground Shrine", icon: "textures/items/hollow/heartseeker",

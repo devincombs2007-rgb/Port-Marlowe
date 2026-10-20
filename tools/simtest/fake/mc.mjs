@@ -397,6 +397,14 @@ export class Entity {
   getViewDirection() {
     return this._view ?? v3(0, 0, 1);
   }
+  setRotation(r) {
+    this._rotation = { ...r };
+    const yaw = (r.y * Math.PI) / 180;
+    this._view = v3(-Math.sin(yaw), 0, Math.cos(yaw));
+  }
+  getRotation() {
+    return this._rotation ?? { x: 0, y: 0 };
+  }
   applyDamage(amount, opts = {}) {
     return this._sim.damage(this, amount, opts.damagingEntity, opts.cause ?? "entityAttack");
   }

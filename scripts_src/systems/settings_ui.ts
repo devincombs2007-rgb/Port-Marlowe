@@ -70,6 +70,7 @@ async function openWorld(p: Player): Promise<void> {
     .toggle("Rare bedtime knocking (harmless, never blocks sleep)", { defaultValue: s.sleepDisturbance })
     .toggle("Place cabins, campsites and the shrine", { defaultValue: s.sites })
     .toggle("Scale the Heart Below with player count", { defaultValue: s.bossScaling })
+    .toggle("Rare one-off events (harmless, once per world)", { defaultValue: s.rareEvents })
     .submitButton("Save");
   const r = await showModal(p, f);
   if (!r || r.canceled || !r.formValues || !isOperator(p)) return;
@@ -89,6 +90,7 @@ async function openWorld(p: Player): Promise<void> {
     sleepDisturbance: Boolean(v[10]),
     sites: Boolean(v[11]),
     bossScaling: Boolean(v[12]),
+    rareEvents: Boolean(v[13]),
   };
   saveSettings(next);
   notice(p, "§7World rules saved.");

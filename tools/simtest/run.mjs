@@ -761,6 +761,95 @@ await test("tracks: watcher prints where it stood; journal entry on discovery", 
   noErrors(sim);
 });
 
+// =============================================================================== sites + rare events
+await test("sites: watchtower and lean-to place with signs and filled chests; cabin variants", () => {
+  const sim = newWorld(91);
+  const p = sim.addPlayer("Op", { x: 0.5, y: 64, z: 0.5 }, veteran);
+  sim.tick(60);
+  for (const [t, dx] of [["tower", 0], ["leanto", 40], ["cabin", 80], ["cabin", 120]]) {
+    p.teleport({ x: 0.5 + dx, y: 64, z: 0.5 });
+    sim.fire("scriptEventReceive", { id: "hollow:site", message: t, sourceEntity: p });
+    sim.tick(10);
+  }
+  const sites = JSON.parse(sim.world.getDynamicProperty("hollow:sites"));
+  for (const t of ["tower", "leanto", "cabin"]) assert(sites.some((s) => s.t === t), `${t} placed`);
+  const ow = sim.overworld;
+  const ids = [...ow._blocks.values()].map((c) => c.perm.type.id);
+  assert(ids.includes("minecraft:ladder"), "the tower has its ladder");
+  const signs = [...ow._blocks.values()].filter((c) => c.text).map((c) => c.text);
+  assert(signs.some((t) => t.includes("FIRE WATCH")), `tower sign written (${signs.length} signs)`);
+  assert(signs.some((t) => t.includes("check")), "lean-to sign written");
+  const chests = [...ow._blocks.values()].filter((c) => c.container);
+  assert(chests.length >= 4 && chests.every((c) => c.container.slots.some(Boolean)), "every site container has loot");
+  noErrors(sim);
+});
+
+function farmWorld(seed) {
+  const sim = newWorld(seed);
+  sim.world.setDynamicProperty("hollow:settings", JSON.stringify({ watcher: false, borrowed: false, hollowed: false, mirebound: false, knocker: false }));
+  boot(sim, seed);
+  const p = sim.addPlayer("Alex", { x: 0.5, y: 64, z: 0.5 }, veteran);
+  return { sim, p };
+}
+
+await test("events: Every Eye turns the herd to face you, harmlessly, at most once per world", () => {
+  const { sim, p } = farmWorld(92);
+  goTo(sim, 1, 1000);
+  const herd = [];
+  for (let i = 0; i < 8; i++) herd.push(sim.overworld.spawnEntity("minecraft:sheep", { x: 6 + (i % 4) * 3, y: 64, z: -6 + Math.floor(i / 4) * 12 }));
+  sim.fire("scriptEventReceive", { id: "hollow:test", message: "eye", sourceEntity: p });
+  sim.tick(60);
+  for (const s of herd) {
+    const toP = { x: p.location.x - s.location.x, z: p.location.z - s.location.z };
+    const L = Math.hypot(toP.x, toP.z);
+    const v = s.getViewDirection();
+    assert((v.x * toP.x + v.z * toP.z) / L > 0.95, "every sheep faces the player");
+    assert(s._effects.some((e) => e.id === "slowness"), "held still");
+  }
+  sim.tick(200);
+  assert(journal(p).includes("event_eye"), "journal entry afterwards");
+  eq(p._health.currentValue, 20, "harmless");
+  // it never happens again in this world, however many nights pass among the herd
+  const effectsAfter = herd.map((s) => s._effects.length);
+  for (let night = 3; night <= 9; night++) goTo(sim, night, 23000);
+  assert(herd.every((s, i) => s._effects.length === effectsAfter[i]), "Every Eye does not repeat");
+  noErrors(sim);
+});
+
+await test("events: The Lantern goes out as you arrive, leaves its page, and survives a restart", () => {
+  const { sim, p } = farmWorld(93);
+  sim.world.setDynamicProperty("hollow:settings", JSON.stringify({ rareEvents: false, watcher: false, borrowed: false, hollowed: false, mirebound: false, knocker: false }));
+  boot(sim, 93); // natural events off: this checks the forced path alone
+  // trees would hide it; this flat test field needs a wall behind the player instead
+  for (let x = -45; x <= 45; x++) for (let y = 64; y <= 68; y++) sim.overworld.setBlock({ x, y, z: -14 }, "minecraft:stone");
+  goTo(sim, 4, 14000);
+  sim.fire("scriptEventReceive", { id: "hollow:test", message: "lantern", sourceEntity: p });
+  sim.tick(2);
+  const lit = [...sim.overworld._blocks.entries()].find(([, c]) => c.perm.type.id === "minecraft:lantern");
+  assert(lit, "a lantern burns somewhere in the trees");
+  const [x, y, z] = lit[0].split(",").map(Number);
+  boot(sim, 93); // restart before anyone gets there
+  sim.tick(5);
+  p.teleport({ x: x + 3.5, y: y - 1, z: z + 0.5 });
+  sim.tick(450);
+  eq(sim.overworld.getBlock({ x, y, z }).typeId, "minecraft:air", "it went out");
+  eq(sim.overworld.items("hollow:torn_page").length, 1, "its page lies where the light was");
+  assert(journal(p).includes("event_lantern"), "journal entry");
+  noErrors(sim);
+});
+
+await test("events: footsteps cross the roof of your shelter; nothing comes in", () => {
+  const { sim, p, ow } = houseWorld(94, { knocker: false });
+  goTo(sim, 6, 14000);
+  sim.fire("scriptEventReceive", { id: "hollow:test", message: "roof", sourceEntity: p });
+  sim.tick(260);
+  const steps = sim.worldSounds.filter((s) => s === "hollow.knocker.step").length;
+  assert(steps >= 6, `footsteps on the roof (${steps})`);
+  eq(sim.spawnLog.filter((t) => t === "hollow:knocker").length, 0, "no creature spawned");
+  assert(journal(p).includes("event_roof"), "journal entry");
+  noErrors(sim);
+});
+
 // =============================================================================== test kit
 await test("test kit: operator-only; test mode removes waiting; never persists; boss/knocker shortcuts", async () => {
   const sim = newWorld(81);

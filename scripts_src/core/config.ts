@@ -25,6 +25,8 @@ export interface WorldSettings {
   sites: boolean;
   /** Scale the Heart Below with the number of players in the arena. */
   bossScaling: boolean;
+  /** Rare, harmless one-off events (once per world each). */
+  rareEvents: boolean;
 }
 
 export const WORLD_DEFAULTS: WorldSettings = {
@@ -41,6 +43,7 @@ export const WORLD_DEFAULTS: WorldSettings = {
   sleepDisturbance: true,
   sites: true,
   bossScaling: true,
+  rareEvents: true,
 };
 
 /** Per-player comfort preferences. Every player can change their own. */

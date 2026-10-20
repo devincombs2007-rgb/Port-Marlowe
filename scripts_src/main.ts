@@ -30,6 +30,7 @@ import { registerBlockComponents, startBlockSystems } from "./items/blocks";
 import { giveOrDrop, registerItemComponents, startMaterialPickups } from "./items/components";
 import { forgetMusic, startMusic } from "./systems/music";
 import { startTracks } from "./systems/tracks";
+import { forceEvent, startEvents } from "./systems/events";
 import { startAmbience } from "./systems/ambience";
 import { startCleanup, sweepLoaded, trackType } from "./systems/cleanup";
 import { addStarter, startDirector } from "./systems/director";
@@ -69,6 +70,7 @@ function init(): void {
   startMaterialPickups();
   startMusic();
   startTracks();
+  startEvents();
   startSites();
   startWatcher();
   startBorrowed();
@@ -169,7 +171,7 @@ world.afterEvents.dataDrivenEntityTrigger.subscribe((ev) => safe("ddTrigger", ()
 }), { entityTypes: [ENT.watcher, ENT.borrowed, ENT.heart] });
 
 // ------------------------------------------------------------------------------- test kit
-// /scriptevent hollow:test on|off|night|day|kit|journal|knocker|boss2|boss3   (operators)
+// /scriptevent hollow:test on|off|night|day|kit|journal|knocker|boss2|boss3|eye|lantern|roof   (operators)
 // See docs/TESTING.md for the 30-minute in-game checklist that uses these.
 function testCommand(p: Player, arg: string): string {
   switch (arg) {
@@ -207,8 +209,12 @@ function testCommand(p: Player, arg: string): string {
       return forceBossPhase(2);
     case "boss3":
       return forceBossPhase(3);
+    case "eye":
+    case "lantern":
+    case "roof":
+      return forceEvent(p, arg);
     default:
-      return "usage: /scriptevent hollow:test on|off|night|midnight|day|kit|journal|knocker|boss2|boss3";
+      return "usage: /scriptevent hollow:test on|off|night|midnight|day|kit|journal|knocker|boss2|boss3|eye|lantern|roof";
   }
 }
 
@@ -224,7 +230,7 @@ function nearestPlayer(e: Entity, r: number): Player | undefined {
 // /scriptevent hollow:journal            open the journal without the item
 // /scriptevent hollow:status             encounter + failure summary (operators)
 // /scriptevent hollow:debug              toggle debug logging (operators)
-// /scriptevent hollow:site cabin|camp|shrine   place a site in front of you (operators, testing)
+// /scriptevent hollow:site cabin|camp|tower|leanto|shrine   place a site in front of you (operators, testing)
 
 system.afterEvents.scriptEventReceive.subscribe((ev) => safe("scriptevent", () => {
   const p = ev.sourceEntity;
@@ -254,9 +260,9 @@ system.afterEvents.scriptEventReceive.subscribe((ev) => safe("scriptevent", () =
     }
     case "hollow:site": {
       if (!isOperator(p)) return;
-      const t = ev.message.trim() as "cabin" | "camp" | "shrine";
-      if (t !== "cabin" && t !== "camp" && t !== "shrine") {
-        p.sendMessage("§7usage: /scriptevent hollow:site cabin|camp|shrine");
+      const t = ev.message.trim() as "cabin" | "camp" | "tower" | "leanto" | "shrine";
+      if (!["cabin", "camp", "tower", "leanto", "shrine"].includes(t)) {
+        p.sendMessage("§7usage: /scriptevent hollow:site cabin|camp|tower|leanto|shrine");
         return;
       }
       p.sendMessage(`§7[hollow] ${forceSite(p, t)}`);

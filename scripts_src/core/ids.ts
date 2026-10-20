@@ -152,6 +152,8 @@ export const DP = {
   playTicks: "hollow:play_ticks",
   daily: "hollow:daily",
   tracks: "hollow:track_list",
+  events: "hollow:events_done",
+  lantern: "hollow:event_lantern",
   // entity
   owner: "hollow:owner",
   fight: "hollow:fight",
