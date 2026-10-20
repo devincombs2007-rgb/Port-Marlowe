@@ -1,0 +1,49 @@
+# In-game test checklist (about 30 minutes)
+
+A fast first pass on **Windows** (best for reading errors). Repeat the short Realm and Xbox section at the end.
+
+## Setup (2 min)
+1. Import `THE_HOLLOW_v1.0.0.mcaddon`. Create a **new world**: Survival, cheats **on**, the behavior pack plus the Visuals pack, all experiments off.
+2. Settings → Creator → turn on **Content Log GUI**. Settings → Accessibility → turn on **Subtitles**.
+3. In the world, run:
+   ```
+   /scriptevent hollow:test on
+   /scriptevent hollow:test kit
+   /scriptevent hollow:test journal
+   ```
+   Test mode removes every wait: no grace days, no cooldowns, encounters about 25× likelier, and every day-gate open.
+   It's for operators only and **switches itself off on restart**.
+
+**Watch throughout:** the content log should show no red errors. `/scriptevent hollow:status` prints a summary that
+includes a `failures:` count, which should stay `none`.
+
+## Creatures (15 min)
+
+| # | Where / how | Check |
+|---|---|---|
+| 1 | Forest, `/scriptevent hollow:test night`, look around | A tall figure appears 30–50 blocks away **outside your view**, you hear the hush, and subtitles show. Stare at it: it withdraws and a **Pale Resin** glints where it stood. Turn your back with no torch: you hear a twig snap behind you, then one strike. Hold a torch: no strike. |
+| 2 | Near a flock of ≥2 sheep, at night | One "sheep" never grazes. Its low bleat shows the subtitle "A sheep bleats, too low". Shears reveal it, and so does the **Lens** (only for you). It hunts at night and flees by day. |
+| 3 | Dig or find a cave below Y 0 | **Clicking** in the dark, and it emerges out of sight. **Sneak**: it ignores you. **Sprint**: it comes. Throw a **snowball** away from you: it goes to the impact. |
+| 4 | Swamp or river shallows | Bubbles, gurgles and a mossy hump. Wade close: it rears up (a short windup), then **grabs you**. **Press Sneak**: you break free. Note whether the grab actually seats you. If not, you should get a bite and slowness instead. |
+| 5 | Build a 5×5 roofed hut with a door, stand inside, `/scriptevent hollow:test knocker`, then `hollow:test night` | Within a few minutes: the chime rings, then **three knocks**, scratching and breathing. Don't open: about 45 s later it leaves and a **Knocker's Nail** is on the step. Next time, place a **Rowan Ward** by the door: it should be turned away (Use the ward: 3/4). Open the door during a visit: it comes in. |
+
+## Places and boss (8 min)
+6. Hold the **Heartseeker** and press Use: the subtitle "Heartseeker beats" shows, a direction and distance appear, and a red star appears on the locator bar. Dig to it. The shrine should be intact: 4 pillars, an altar and candles. The shrine music starts.
+7. Use the **Offering** on the altar: the title appears and the Heart rises after about 6 s. Check the **shield** (a hint when you hit it), break **4 veins**, and see the dust **telegraph** before a root burst. **Jump** the pulse ring.
+   Run `/scriptevent hollow:test boss2`: veins regrow and young Hollowed appear. Run `boss3`: the gaze sweeps, and pillars block it.
+   Kill it: you get **one Stilled Heart and XP**, and the boss music stops. Using the altar again shows "The altar is cold".
+8. Use `/scriptevent hollow:site cabin` and `camp`: structures place cleanly (no floating blocks, chests filled).
+
+## Comfort and visuals (3 min)
+9. Journal → Settings → My comfort settings: turn **Music** off, and the shrine music stops. Turn off **Visual effects**: no fog shift with the Watcher.
+10. Video → **Vibrant Visuals** on and off, at noon, dusk and midnight in a forest, a taiga, a swamp and a cave. Check that
+    nights are dark but walkable, torchlight reads warm, fog never hides the near ground, and nothing is pitch black.
+11. `/scriptevent hollow:test off`.
+
+## Realm and Xbox (after the Windows pass)
+12. Upload the world to a Realm (see INSTALL.md). Join from **Xbox**: accept the pack download, get the journal on join, turn on Subtitles, and repeat steps 1 and 5.
+13. Note any stutter during night encounters. That's the performance data the project doesn't have yet.
+
+## Reporting back
+For each failed step, note **step number, what you expected, what happened**, and any red content-log line.
+For sounds, use the **Hollow Sound Booth** page (link in the release notes) to mark sounds that are too loud, too quiet or wrong.

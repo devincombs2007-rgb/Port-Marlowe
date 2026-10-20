@@ -1,0 +1,79 @@
+{
+  "format_version": "1.26.20",
+  "minecraft:block": {
+    "description": {
+      "identifier": "hollow:rowan_ward",
+      "menu_category": {
+        "category": "items"
+      },
+      "states": {
+        "hollow:used": {
+          "values": {
+            "min": 0,
+            "max": 4
+          }
+        }
+      }
+    },
+    "components": {
+      "minecraft:geometry": "geometry.hollow.rowan_ward",
+      "minecraft:material_instances": {
+        "*": {
+          "texture": "hollow_rowan_ward",
+          "render_method": "alpha_test",
+          "ambient_occlusion": 0.0,
+          "face_dimming": true
+        }
+      },
+      "minecraft:collision_box": false,
+      "minecraft:selection_box": {
+        "origin": [
+          -3,
+          0,
+          -3
+        ],
+        "size": [
+          6,
+          15,
+          6
+        ]
+      },
+      "minecraft:light_dampening": 0,
+      "minecraft:light_emission": 4,
+      "minecraft:destructible_by_mining": {
+        "seconds_to_destroy": 0.3
+      },
+      "minecraft:placement_filter": {
+        "conditions": [
+          {
+            "allowed_faces": [
+              "up"
+            ]
+          }
+        ]
+      },
+      "minecraft:map_color": "#6d4c31",
+      "minecraft:sound": {
+        "sound": "wood"
+      },
+      "minecraft:loot": "loot_tables/empty.json",
+      "hollow:ward": {}
+    },
+    "permutations": [
+      {
+        "condition": "query.block_state('hollow:used') >= 4",
+        "components": {
+          "minecraft:material_instances": {
+            "*": {
+              "texture": "hollow_rowan_ward_spent",
+              "render_method": "alpha_test",
+              "ambient_occlusion": 0.0,
+              "face_dimming": true
+            }
+          },
+          "minecraft:light_emission": 0
+        }
+      }
+    ]
+  }
+}

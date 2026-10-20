@@ -1,0 +1,46 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "hollow:heart_below",
+      "materials": {
+        "default": "entity_alphatest",
+        "eyes": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/hollow/heart_below",
+        "glow": "textures/entity/hollow/heart_below_glow"
+      },
+      "geometry": {
+        "default": "geometry.hollow.heart_below"
+      },
+      "animations": {
+        "beat": "animation.hollow.heart.beat",
+        "roots": "animation.hollow.heart.roots",
+        "open": "animation.hollow.heart.open",
+        "mood": "controller.animation.hollow.heart.mood"
+      },
+      "scripts": {
+        "pre_animation": [
+          "variable.phase = query.property('hollow:phase');",
+          "variable.shielded = query.property('hollow:shielded');",
+          "variable.beat_rate = variable.phase == 3 ? 1.9 : (variable.phase == 2 ? 1.4 : 1.0);"
+        ],
+        "animate": [
+          "beat",
+          "roots",
+          "mood"
+        ],
+        "should_update_bones_and_effects_offscreen": true
+      },
+      "render_controllers": [
+        "controller.render.hollow.heart",
+        "controller.render.hollow.glow_all"
+      ],
+      "spawn_egg": {
+        "base_color": "#4f1d19",
+        "overlay_color": "#ff7a4a"
+      }
+    }
+  }
+}

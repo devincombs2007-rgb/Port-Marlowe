@@ -1,0 +1,51 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "hollow:offering_of_silence"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      "FRF",
+      "HGN",
+      " P "
+    ],
+    "key": {
+      "F": {
+        "item": "hollow:hollow_fang"
+      },
+      "R": {
+        "item": "hollow:pale_resin"
+      },
+      "H": {
+        "item": "hollow:borrowed_hide"
+      },
+      "G": {
+        "item": "minecraft:gold_ingot"
+      },
+      "N": {
+        "item": "hollow:knocker_nail"
+      },
+      "P": {
+        "item": "hollow:mire_pearl"
+      }
+    },
+    "unlock": [
+      {
+        "item": "hollow:mire_pearl"
+      },
+      {
+        "item": "hollow:knocker_nail"
+      },
+      {
+        "item": "hollow:borrowed_hide"
+      }
+    ],
+    "result": {
+      "item": "hollow:offering_of_silence",
+      "count": 1
+    }
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "format_version": "1.16.100",
+  "minecraft:fog_settings": {
+    "description": {
+      "identifier": "hollow:fog_mire"
+    },
+    "distance": {
+      "air": {
+        "fog_start": 0.3,
+        "fog_end": 0.85,
+        "fog_color": "#3b4636",
+        "render_distance_type": "render"
+      },
+      "water": {
+        "fog_start": 0,
+        "fog_end": 12,
+        "fog_color": "#2a3424",
+        "render_distance_type": "fixed"
+      }
+    },
+    "volumetric": {
+      "density": {
+        "air": {
+          "max_density": 0.06,
+          "uniform": false,
+          "zero_density_height": 72,
+          "max_density_height": 60
+        }
+      },
+      "media_coefficients": {
+        "air": {
+          "scattering": [
+            0.045,
+            0.05,
+            0.04
+          ],
+          "absorption": [
+            0.006,
+            0.005,
+            0.006
+          ]
+        }
+      }
+    }
+  }
+}

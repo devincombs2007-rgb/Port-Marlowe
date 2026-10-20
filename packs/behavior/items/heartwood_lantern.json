@@ -1,0 +1,25 @@
+{
+  "format_version": "1.26.30",
+  "minecraft:item": {
+    "description": {
+      "identifier": "hollow:heartwood_lantern",
+      "menu_category": {
+        "category": "items"
+      }
+    },
+    "components": {
+      "minecraft:icon": {
+        "textures": {
+          "default": "hollow_heartwood_lantern"
+        }
+      },
+      "minecraft:display_name": {
+        "value": "tile.hollow:heartwood_lantern.name"
+      },
+      "minecraft:block_placer": {
+        "block": "hollow:heartwood_lantern",
+        "replace_block_item": true
+      }
+    }
+  }
+}

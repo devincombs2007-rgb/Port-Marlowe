@@ -1,0 +1,309 @@
+{
+  "format_version": "1.26.50",
+  "minecraft:entity": {
+    "description": {
+      "identifier": "hollow:watcher",
+      "is_spawnable": true,
+      "is_summonable": true,
+      "spawn_category": "monster",
+      "properties": {
+        "hollow:state": {
+          "type": "enum",
+          "values": [
+            "lurk",
+            "stalk",
+            "withdraw",
+            "lunge"
+          ],
+          "default": "lurk",
+          "client_sync": true
+        }
+      }
+    },
+    "component_groups": {
+      "hollow:lurk": {
+        "minecraft:behavior.look_at_player": {
+          "priority": 1,
+          "look_distance": 72,
+          "probability": 1.0,
+          "look_time": {
+            "min": 2,
+            "max": 4
+          }
+        }
+      },
+      "hollow:stalk": {
+        "minecraft:behavior.nearest_attackable_target": {
+          "priority": 1,
+          "must_see": false,
+          "reselect_targets": true,
+          "within_radius": 80,
+          "scan_interval": 10,
+          "entity_types": [
+            {
+              "filters": {
+                "test": "is_family",
+                "subject": "other",
+                "value": "player"
+              },
+              "max_dist": 80
+            }
+          ]
+        },
+        "minecraft:behavior.move_towards_target": {
+          "priority": 2,
+          "within_radius": 3.5
+        },
+        "minecraft:behavior.look_at_player": {
+          "priority": 3,
+          "look_distance": 72,
+          "probability": 1.0,
+          "look_time": {
+            "min": 2,
+            "max": 4
+          }
+        }
+      },
+      "hollow:withdraw": {
+        "minecraft:behavior.avoid_mob_type": {
+          "priority": 1,
+          "max_dist": 80,
+          "max_flee": 80,
+          "sprint_distance": 24,
+          "walk_speed_multiplier": 1.2,
+          "sprint_speed_multiplier": 1.6,
+          "ignore_visibility": true,
+          "remove_target": true,
+          "entity_types": [
+            {
+              "filters": {
+                "test": "is_family",
+                "subject": "other",
+                "value": "player"
+              },
+              "max_dist": 80,
+              "walk_speed_multiplier": 1.2,
+              "sprint_speed_multiplier": 1.6
+            }
+          ]
+        },
+        "minecraft:behavior.random_stroll": {
+          "priority": 4,
+          "speed_multiplier": 1.2,
+          "xz_dist": 16,
+          "y_dist": 4
+        }
+      },
+      "hollow:lunge": {
+        "minecraft:behavior.nearest_attackable_target": {
+          "priority": 1,
+          "must_see": false,
+          "reselect_targets": true,
+          "within_radius": 12,
+          "entity_types": [
+            {
+              "filters": {
+                "test": "is_family",
+                "subject": "other",
+                "value": "player"
+              },
+              "max_dist": 12
+            }
+          ]
+        },
+        "minecraft:behavior.melee_attack": {
+          "priority": 2,
+          "speed_multiplier": 1.9,
+          "track_target": true,
+          "attack_once": true,
+          "cooldown_time": 1.0,
+          "reach_multiplier": 2.4,
+          "on_attack": {
+            "event": "hollow:watcher_struck",
+            "target": "self"
+          }
+        }
+      },
+      "hollow:despawn": {
+        "minecraft:instant_despawn": {}
+      }
+    },
+    "components": {
+      "minecraft:type_family": {
+        "family": [
+          "hollow",
+          "hollow_creature",
+          "watcher",
+          "monster",
+          "mob"
+        ]
+      },
+      "minecraft:health": {
+        "value": 40,
+        "max": 40
+      },
+      "minecraft:attack": {
+        "damage": 5
+      },
+      "minecraft:movement": {
+        "value": 0.3
+      },
+      "minecraft:movement.basic": {},
+      "minecraft:jump.static": {},
+      "minecraft:navigation.walk": {
+        "can_path_over_water": false,
+        "avoid_water": true,
+        "avoid_damage_blocks": true,
+        "can_open_doors": false,
+        "can_break_doors": false
+      },
+      "minecraft:collision_box": {
+        "width": 0.7,
+        "height": 2.9
+      },
+      "minecraft:physics": {},
+      "minecraft:pushable_by_block": {},
+      "minecraft:knockback_resistance": {
+        "value": 0.6
+      },
+      "minecraft:breathable": {
+        "total_supply": 15,
+        "suffocate_time": 0
+      },
+      "minecraft:nameable": {},
+      "minecraft:follow_range": {
+        "value": 80,
+        "max": 80
+      },
+      "minecraft:behavior.float": {
+        "priority": 0
+      },
+      "minecraft:loot": {
+        "table": "loot_tables/hollow/entities/watcher.json"
+      },
+      "minecraft:experience_reward": {
+        "on_death": "query.last_hit_by_player ? 8 : 0"
+      },
+      "minecraft:despawn": {
+        "despawn_from_distance": {
+          "min_distance": 96,
+          "max_distance": 128
+        }
+      },
+      "minecraft:ambient_sound_interval": {
+        "value": 14,
+        "range": 12,
+        "event_name": "ambient"
+      },
+      "minecraft:on_hurt": {
+        "event": "hollow:to_withdraw",
+        "target": "self"
+      },
+      "minecraft:conditional_bandwidth_optimization": {}
+    },
+    "events": {
+      "minecraft:entity_spawned": {
+        "add": {
+          "component_groups": [
+            "hollow:lurk"
+          ]
+        },
+        "set_property": {
+          "hollow:state": "lurk"
+        }
+      },
+      "hollow:to_lurk": {
+        "remove": {
+          "component_groups": [
+            "hollow:stalk",
+            "hollow:withdraw",
+            "hollow:lunge"
+          ]
+        },
+        "add": {
+          "component_groups": [
+            "hollow:lurk"
+          ]
+        },
+        "set_property": {
+          "hollow:state": "lurk"
+        }
+      },
+      "hollow:to_stalk": {
+        "remove": {
+          "component_groups": [
+            "hollow:lurk",
+            "hollow:withdraw",
+            "hollow:lunge"
+          ]
+        },
+        "add": {
+          "component_groups": [
+            "hollow:stalk"
+          ]
+        },
+        "set_property": {
+          "hollow:state": "stalk"
+        }
+      },
+      "hollow:to_withdraw": {
+        "remove": {
+          "component_groups": [
+            "hollow:lurk",
+            "hollow:stalk",
+            "hollow:lunge"
+          ]
+        },
+        "add": {
+          "component_groups": [
+            "hollow:withdraw"
+          ]
+        },
+        "set_property": {
+          "hollow:state": "withdraw"
+        }
+      },
+      "hollow:to_lunge": {
+        "remove": {
+          "component_groups": [
+            "hollow:lurk",
+            "hollow:stalk",
+            "hollow:withdraw"
+          ]
+        },
+        "add": {
+          "component_groups": [
+            "hollow:lunge"
+          ]
+        },
+        "set_property": {
+          "hollow:state": "lunge"
+        }
+      },
+      "hollow:watcher_struck": {
+        "remove": {
+          "component_groups": [
+            "hollow:lurk",
+            "hollow:stalk",
+            "hollow:lunge"
+          ]
+        },
+        "add": {
+          "component_groups": [
+            "hollow:withdraw"
+          ]
+        },
+        "set_property": {
+          "hollow:state": "withdraw"
+        }
+      },
+      "hollow:despawn": {
+        "add": {
+          "component_groups": [
+            "hollow:despawn"
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "hollow:mirebound",
+      "materials": {
+        "default": "entity_alphatest",
+        "eyes": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/hollow/mirebound",
+        "glow": "textures/entity/hollow/mirebound_glow"
+      },
+      "geometry": {
+        "default": "geometry.hollow.mirebound"
+      },
+      "animations": {
+        "lurk": "animation.hollow.mirebound.lurk",
+        "erupt": "animation.hollow.mirebound.erupt",
+        "grab": "animation.hollow.mirebound.grab",
+        "swim": "animation.hollow.mirebound.swim",
+        "mood": "controller.animation.hollow.mirebound.mood"
+      },
+      "scripts": {
+        "pre_animation": [
+          "variable.night = query.time_of_day < 0.23 || query.time_of_day > 0.77;",
+          "variable.state = query.property('hollow:state');"
+        ],
+        "animate": [
+          "mood"
+        ]
+      },
+      "render_controllers": [
+        "controller.render.hollow.default",
+        "controller.render.hollow.glow_night_head"
+      ],
+      "spawn_egg": {
+        "base_color": "#303826",
+        "overlay_color": "#d6a24a"
+      }
+    }
+  }
+}

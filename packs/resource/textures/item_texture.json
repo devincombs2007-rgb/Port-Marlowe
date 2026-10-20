@@ -1,0 +1,48 @@
+{
+  "resource_pack_name": "hollow",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "hollow_field_journal": {
+      "textures": "textures/items/hollow/field_journal"
+    },
+    "hollow_torn_page": {
+      "textures": "textures/items/hollow/torn_page"
+    },
+    "hollow_pale_resin": {
+      "textures": "textures/items/hollow/pale_resin"
+    },
+    "hollow_borrowed_hide": {
+      "textures": "textures/items/hollow/borrowed_hide"
+    },
+    "hollow_hollow_fang": {
+      "textures": "textures/items/hollow/hollow_fang"
+    },
+    "hollow_knocker_nail": {
+      "textures": "textures/items/hollow/knocker_nail"
+    },
+    "hollow_mire_pearl": {
+      "textures": "textures/items/hollow/mire_pearl"
+    },
+    "hollow_stilled_heart": {
+      "textures": "textures/items/hollow/stilled_heart"
+    },
+    "hollow_hollow_lens": {
+      "textures": "textures/items/hollow/hollow_lens"
+    },
+    "hollow_heartseeker": {
+      "textures": "textures/items/hollow/heartseeker"
+    },
+    "hollow_offering_of_silence": {
+      "textures": "textures/items/hollow/offering_of_silence"
+    },
+    "hollow_hollow_chime": {
+      "textures": "textures/items/hollow/hollow_chime"
+    },
+    "hollow_rowan_ward": {
+      "textures": "textures/items/hollow/rowan_ward"
+    },
+    "hollow_heartwood_lantern": {
+      "textures": "textures/items/hollow/heartwood_lantern"
+    }
+  }
+}

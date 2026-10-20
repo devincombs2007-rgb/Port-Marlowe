@@ -1,0 +1,46 @@
+{
+  "format_version": "1.10.0",
+  "animation_controllers": {
+    "controller.animation.hollow.watcher.locomotion": {
+      "initial_state": "idle",
+      "states": {
+        "idle": {
+          "animations": ["idle"],
+          "transitions": [{ "walking": "query.modified_move_speed > 0.08" }],
+          "blend_transition": 0.25
+        },
+        "walking": {
+          "animations": ["walk"],
+          "transitions": [{ "idle": "query.modified_move_speed < 0.04" }],
+          "blend_transition": 0.25
+        }
+      }
+    },
+    "controller.animation.hollow.watcher.mood": {
+      "initial_state": "neutral",
+      "states": {
+        "neutral": {
+          "transitions": [
+            { "lurk": "variable.state == 'lurk'" },
+            { "seen": "variable.state == 'withdraw'" },
+            { "lunge": "variable.state == 'lunge'" }
+          ]
+        },
+        "lurk": {
+          "animations": ["stare"],
+          "transitions": [{ "neutral": "variable.state != 'lurk'" }],
+          "blend_transition": 0.4
+        },
+        "seen": {
+          "animations": ["seen"],
+          "transitions": [{ "neutral": "variable.state != 'withdraw'" }]
+        },
+        "lunge": {
+          "animations": ["lunge"],
+          "transitions": [{ "neutral": "variable.state != 'lunge'" }],
+          "blend_transition": 0.15
+        }
+      }
+    }
+  }
+}

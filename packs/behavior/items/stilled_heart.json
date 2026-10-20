@@ -1,0 +1,27 @@
+{
+  "format_version": "1.26.30",
+  "minecraft:item": {
+    "description": {
+      "identifier": "hollow:stilled_heart",
+      "menu_category": {
+        "category": "items"
+      }
+    },
+    "components": {
+      "minecraft:icon": {
+        "textures": {
+          "default": "hollow_stilled_heart"
+        }
+      },
+      "minecraft:display_name": {
+        "value": "item.hollow:stilled_heart.name"
+      },
+      "hollow:material": {},
+      "minecraft:max_stack_size": 16,
+      "minecraft:rarity": {
+        "value": "epic"
+      },
+      "minecraft:interact_button": "Inspect"
+    }
+  }
+}

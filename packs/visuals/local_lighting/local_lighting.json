@@ -1,0 +1,25 @@
+{
+  "format_version": "1.21.120",
+  "minecraft:local_light_settings": {
+    "minecraft:torch": {
+      "light_color": "#FFB46B",
+      "light_type": "point_light"
+    },
+    "minecraft:lantern": {
+      "light_color": "#E8873A",
+      "light_type": "point_light"
+    },
+    "minecraft:campfire": {
+      "light_color": "#FF9A4A",
+      "light_type": "static_light"
+    },
+    "hollow:heartwood_lantern": {
+      "light_color": "#FF6A3D",
+      "light_type": "point_light"
+    },
+    "hollow:rowan_ward": {
+      "light_color": "#FF8A3A",
+      "light_type": "static_light"
+    }
+  }
+}

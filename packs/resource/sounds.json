@@ -1,0 +1,102 @@
+{
+  "entity_sounds": {
+    "entities": {
+      "hollow:watcher": {
+        "volume": 1.0,
+        "pitch": [
+          0.92,
+          1.05
+        ],
+        "events": {
+          "ambient": "hollow.watcher.creak",
+          "hurt": "hollow.watcher.hurt",
+          "death": "hollow.watcher.death",
+          "step": {
+            "sound": "hollow.watcher.step",
+            "volume": 0.35
+          }
+        }
+      },
+      "hollow:borrowed": {
+        "volume": 1.0,
+        "pitch": [
+          0.95,
+          1.05
+        ],
+        "events": {
+          "ambient": "hollow.borrowed.baa",
+          "hurt": "hollow.borrowed.hurt",
+          "death": "hollow.borrowed.death",
+          "step": {
+            "sound": "hollow.borrowed.step",
+            "volume": 0.3
+          },
+          "attack": "hollow.borrowed.attack"
+        }
+      },
+      "hollow:hollowed": {
+        "volume": 1.0,
+        "pitch": [
+          0.9,
+          1.1
+        ],
+        "events": {
+          "ambient": "hollow.hollowed.click",
+          "hurt": "hollow.hollowed.hurt",
+          "death": "hollow.hollowed.death",
+          "step": {
+            "sound": "hollow.hollowed.step",
+            "volume": 0.35
+          },
+          "attack": "hollow.hollowed.attack"
+        }
+      },
+      "hollow:knocker": {
+        "volume": 1.0,
+        "pitch": [
+          0.9,
+          1.0
+        ],
+        "events": {
+          "hurt": "hollow.knocker.hurt",
+          "death": "hollow.knocker.death",
+          "step": {
+            "sound": "hollow.knocker.step",
+            "volume": 0.45
+          }
+        }
+      },
+      "hollow:mirebound": {
+        "volume": 1.0,
+        "pitch": [
+          0.9,
+          1.05
+        ],
+        "events": {
+          "ambient": "hollow.mirebound.bubble",
+          "hurt": "hollow.mirebound.hurt",
+          "death": "hollow.mirebound.death"
+        }
+      },
+      "hollow:heart_below": {
+        "volume": 1.0,
+        "pitch": 1.0,
+        "events": {
+          "hurt": "hollow.heart.hurt",
+          "death": "hollow.heart.death"
+        }
+      },
+      "hollow:heart_vein": {
+        "volume": 1.0,
+        "pitch": [
+          0.9,
+          1.1
+        ],
+        "events": {
+          "hurt": "hollow.heart.hurt",
+          "death": "hollow.heart.vein_break"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "format_version": "1.21.30",
+  "minecraft:texture_set": {
+    "color": "hollow_chime",
+    "metalness_emissive_roughness_subsurface": "hollow_chime_mers",
+    "heightmap": "hollow_chime_height"
+  }
+}

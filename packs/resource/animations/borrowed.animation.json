@@ -1,0 +1,369 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.hollow.borrowed.disguise": {
+      "loop": true,
+      "bones": {
+        "inner": {
+          "scale": 0
+        },
+        "spines": {
+          "scale": 0
+        }
+      }
+    },
+    "animation.hollow.borrowed.idle": {
+      "loop": true,
+      "bones": {
+        "body": {
+          "position": [
+            0,
+            "math.sin(query.anim_time * 90) * 0.15",
+            0
+          ]
+        },
+        "neck": {
+          "rotation": [
+            "math.sin(query.anim_time * 25) * 2",
+            0,
+            0
+          ]
+        },
+        "head": {
+          "rotation": [
+            0,
+            0,
+            "math.sin(query.anim_time * 14) * 7"
+          ]
+        }
+      }
+    },
+    "animation.hollow.borrowed.walk": {
+      "loop": true,
+      "bones": {
+        "leg_fl": {
+          "rotation": [
+            "math.cos(query.modified_distance_moved * 38) * 28",
+            0,
+            0
+          ]
+        },
+        "leg_bl": {
+          "rotation": [
+            "math.cos(query.modified_distance_moved * 38) * 28",
+            0,
+            0
+          ]
+        },
+        "leg_fr": {
+          "rotation": [
+            "-math.cos(query.modified_distance_moved * 38) * 28",
+            0,
+            0
+          ]
+        },
+        "leg_br": {
+          "rotation": [
+            "-math.cos(query.modified_distance_moved * 38) * 28",
+            0,
+            0
+          ]
+        },
+        "body": {
+          "rotation": [
+            0,
+            0,
+            "math.sin(query.modified_distance_moved * 38) * 2.5"
+          ]
+        }
+      }
+    },
+    "animation.hollow.borrowed.look_at_target": {
+      "loop": true,
+      "bones": {
+        "head": {
+          "rotation": [
+            "query.target_x_rotation",
+            "query.target_y_rotation",
+            0
+          ]
+        }
+      }
+    },
+    "animation.hollow.borrowed.reveal": {
+      "loop": false,
+      "bones": {
+        "inner": {
+          "scale": {
+            "0.0": 0,
+            "0.4": 0,
+            "0.7": 1.12,
+            "0.9": 1.0
+          }
+        },
+        "spines": {
+          "scale": {
+            "0.0": 0,
+            "0.5": 0,
+            "0.9": 1.0
+          },
+          "rotation": {
+            "0.5": [
+              0,
+              0,
+              0
+            ],
+            "0.8": [
+              -12,
+              0,
+              0
+            ],
+            "1.4": [
+              0,
+              0,
+              0
+            ]
+          }
+        },
+        "head_l": {
+          "rotation": {
+            "0.0": [
+              0,
+              0,
+              0
+            ],
+            "0.3": [
+              0,
+              -8,
+              0
+            ],
+            "0.45": [
+              0,
+              -3,
+              0
+            ],
+            "0.7": [
+              0,
+              -44,
+              0
+            ],
+            "1.4": [
+              0,
+              -38,
+              0
+            ]
+          }
+        },
+        "head_r": {
+          "rotation": {
+            "0.0": [
+              0,
+              0,
+              0
+            ],
+            "0.3": [
+              0,
+              8,
+              0
+            ],
+            "0.45": [
+              0,
+              3,
+              0
+            ],
+            "0.7": [
+              0,
+              44,
+              0
+            ],
+            "1.4": [
+              0,
+              38,
+              0
+            ]
+          }
+        },
+        "neck": {
+          "position": {
+            "0.6": [
+              0,
+              0,
+              0
+            ],
+            "1.0": [
+              0,
+              3,
+              -3
+            ]
+          },
+          "rotation": {
+            "0.6": [
+              0,
+              0,
+              0
+            ],
+            "1.0": [
+              -15,
+              0,
+              0
+            ]
+          }
+        },
+        "body": {
+          "rotation": {
+            "0.0": [
+              0,
+              0,
+              0
+            ],
+            "0.2": [
+              0,
+              0,
+              4
+            ],
+            "0.35": [
+              0,
+              0,
+              -4
+            ],
+            "0.5": [
+              0,
+              0,
+              0
+            ]
+          },
+          "position": {
+            "0.5": [
+              0,
+              0,
+              0
+            ],
+            "1.0": [
+              0,
+              1,
+              0
+            ]
+          }
+        }
+      },
+      "animation_length": 1.4,
+      "sound_effects": {
+        "0.0": {
+          "effect": "reveal"
+        }
+      }
+    },
+    "animation.hollow.borrowed.revealed": {
+      "loop": true,
+      "bones": {
+        "inner": {
+          "scale": 1
+        },
+        "spines": {
+          "scale": 1,
+          "rotation": [
+            "math.sin(query.anim_time * 400) * 4",
+            0,
+            0
+          ]
+        },
+        "head_l": {
+          "rotation": [
+            0,
+            "-38 + math.sin(query.anim_time * 700) * 3",
+            0
+          ]
+        },
+        "head_r": {
+          "rotation": [
+            0,
+            "38 - math.sin(query.anim_time * 700) * 3",
+            0
+          ]
+        },
+        "neck": {
+          "position": [
+            0,
+            3,
+            -3
+          ],
+          "rotation": [
+            -15,
+            0,
+            0
+          ]
+        },
+        "body": {
+          "position": [
+            0,
+            1,
+            0
+          ]
+        }
+      }
+    },
+    "animation.hollow.borrowed.attack": {
+      "loop": false,
+      "bones": {
+        "neck": {
+          "position": {
+            "0.0": [
+              0,
+              3,
+              -3
+            ],
+            "0.15": [
+              0,
+              2,
+              -7
+            ],
+            "0.4": [
+              0,
+              3,
+              -3
+            ]
+          }
+        },
+        "head_l": {
+          "rotation": {
+            "0.0": [
+              0,
+              -38,
+              0
+            ],
+            "0.15": [
+              0,
+              -4,
+              0
+            ],
+            "0.4": [
+              0,
+              -38,
+              0
+            ]
+          }
+        },
+        "head_r": {
+          "rotation": {
+            "0.0": [
+              0,
+              38,
+              0
+            ],
+            "0.15": [
+              0,
+              4,
+              0
+            ],
+            "0.4": [
+              0,
+              38,
+              0
+            ]
+          }
+        }
+      },
+      "animation_length": 0.4
+    }
+  }
+}

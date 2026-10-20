@@ -1,0 +1,23 @@
+{
+  "format_version": "1.26.30",
+  "minecraft:item": {
+    "description": {
+      "identifier": "hollow:mire_pearl",
+      "menu_category": {
+        "category": "items"
+      }
+    },
+    "components": {
+      "minecraft:icon": {
+        "textures": {
+          "default": "hollow_mire_pearl"
+        }
+      },
+      "minecraft:display_name": {
+        "value": "item.hollow:mire_pearl.name"
+      },
+      "hollow:material": {},
+      "minecraft:interact_button": "Inspect"
+    }
+  }
+}

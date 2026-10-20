@@ -1,0 +1,91 @@
+{
+  "format_version": "1.10.0",
+  "animation_controllers": {
+    "controller.animation.hollow.knocker.locomotion": {
+      "initial_state": "idle",
+      "states": {
+        "idle": {
+          "animations": [
+            "idle"
+          ],
+          "transitions": [
+            {
+              "walking": "query.modified_move_speed > 0.06"
+            }
+          ],
+          "blend_transition": 0.25
+        },
+        "walking": {
+          "animations": [
+            "walk"
+          ],
+          "transitions": [
+            {
+              "idle": "query.modified_move_speed < 0.03"
+            }
+          ],
+          "blend_transition": 0.25
+        }
+      }
+    },
+    "controller.animation.hollow.knocker.mood": {
+      "initial_state": "neutral",
+      "states": {
+        "neutral": {
+          "transitions": [
+            {
+              "knocking": "variable.state == 'knock'"
+            },
+            {
+              "hunting": "variable.state == 'hunt'"
+            }
+          ]
+        },
+        "knocking": {
+          "animations": [
+            "knock"
+          ],
+          "transitions": [
+            {
+              "neutral": "variable.state != 'knock'"
+            }
+          ],
+          "blend_transition": 0.4
+        },
+        "hunting": {
+          "animations": [
+            "hunt"
+          ],
+          "transitions": [
+            {
+              "neutral": "variable.state != 'hunt'"
+            }
+          ],
+          "blend_transition": 0.3
+        }
+      }
+    },
+    "controller.animation.hollow.knocker.strike": {
+      "initial_state": "default",
+      "states": {
+        "default": {
+          "transitions": [
+            {
+              "attacking": "variable.attack_time > 0.0"
+            }
+          ]
+        },
+        "attacking": {
+          "animations": [
+            "attack"
+          ],
+          "transitions": [
+            {
+              "default": "query.all_animations_finished"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

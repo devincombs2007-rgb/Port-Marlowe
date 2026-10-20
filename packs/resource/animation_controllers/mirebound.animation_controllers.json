@@ -1,0 +1,71 @@
+{
+  "format_version": "1.10.0",
+  "animation_controllers": {
+    "controller.animation.hollow.mirebound.mood": {
+      "initial_state": "lurking",
+      "states": {
+        "lurking": {
+          "animations": [
+            "lurk"
+          ],
+          "transitions": [
+            {
+              "erupting": "variable.state == 'erupt'"
+            },
+            {
+              "grabbing": "variable.state == 'grab'"
+            },
+            {
+              "swimming": "variable.state == 'retreat'"
+            }
+          ]
+        },
+        "erupting": {
+          "animations": [
+            "erupt"
+          ],
+          "transitions": [
+            {
+              "grabbing": "variable.state == 'grab'"
+            },
+            {
+              "swimming": "variable.state == 'retreat'"
+            },
+            {
+              "lurking": "variable.state == 'lurk'"
+            }
+          ],
+          "blend_transition": 0.1
+        },
+        "grabbing": {
+          "animations": [
+            "grab"
+          ],
+          "transitions": [
+            {
+              "swimming": "variable.state == 'retreat'"
+            },
+            {
+              "lurking": "variable.state == 'lurk'"
+            }
+          ],
+          "blend_transition": 0.15
+        },
+        "swimming": {
+          "animations": [
+            "swim"
+          ],
+          "transitions": [
+            {
+              "lurking": "variable.state == 'lurk'"
+            },
+            {
+              "erupting": "variable.state == 'erupt'"
+            }
+          ],
+          "blend_transition": 0.3
+        }
+      }
+    }
+  }
+}

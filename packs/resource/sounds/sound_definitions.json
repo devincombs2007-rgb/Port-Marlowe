@@ -1,0 +1,1254 @@
+{
+  "format_version": "1.26.50",
+  "sound_definitions": {
+    "hollow.watcher.step": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/watcher/step_1",
+          "volume": 0.55
+        },
+        {
+          "name": "sounds/hollow/watcher/step_2",
+          "volume": 0.55
+        },
+        {
+          "name": "sounds/hollow/watcher/step_3",
+          "volume": 0.55
+        },
+        {
+          "name": "sounds/hollow/watcher/step_4",
+          "volume": 0.55
+        }
+      ],
+      "subtitle": "subtitles.hollow.watcher.step",
+      "min_distance": 2.0,
+      "max_distance": 20.0
+    },
+    "hollow.watcher.creak": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/watcher/creak_1",
+          "volume": 0.8
+        },
+        {
+          "name": "sounds/hollow/watcher/creak_2",
+          "volume": 0.8
+        },
+        {
+          "name": "sounds/hollow/watcher/creak_3",
+          "volume": 0.8
+        }
+      ],
+      "subtitle": "subtitles.hollow.watcher.creak",
+      "min_distance": 4.0,
+      "max_distance": 40.0
+    },
+    "hollow.watcher.seen": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/watcher/seen_1",
+          "volume": 0.7
+        },
+        {
+          "name": "sounds/hollow/watcher/seen_2",
+          "volume": 0.7
+        }
+      ],
+      "subtitle": "subtitles.hollow.watcher.seen",
+      "min_distance": 4.0,
+      "max_distance": 48.0
+    },
+    "hollow.watcher.retreat": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/watcher/retreat_1",
+          "volume": 0.8
+        },
+        {
+          "name": "sounds/hollow/watcher/retreat_2",
+          "volume": 0.8
+        }
+      ],
+      "subtitle": "subtitles.hollow.watcher.retreat",
+      "min_distance": 4.0,
+      "max_distance": 48.0
+    },
+    "hollow.watcher.lunge": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/watcher/lunge_1",
+          "volume": 1.0
+        },
+        {
+          "name": "sounds/hollow/watcher/lunge_2",
+          "volume": 1.0
+        }
+      ],
+      "subtitle": "subtitles.hollow.watcher.lunge",
+      "min_distance": 2.0,
+      "max_distance": 32.0
+    },
+    "hollow.watcher.hurt": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/watcher/hurt_1",
+          "volume": 0.9
+        },
+        {
+          "name": "sounds/hollow/watcher/hurt_2",
+          "volume": 0.9
+        },
+        {
+          "name": "sounds/hollow/watcher/hurt_3",
+          "volume": 0.9
+        }
+      ],
+      "subtitle": "subtitles.hollow.watcher.hurt",
+      "min_distance": 2.0,
+      "max_distance": 24.0
+    },
+    "hollow.watcher.death": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/watcher/death_1",
+          "volume": 1.0
+        }
+      ],
+      "subtitle": "subtitles.hollow.watcher.death",
+      "min_distance": 2.0,
+      "max_distance": 40.0
+    },
+    "hollow.amb.forest.far_call": {
+      "category": "ambient",
+      "sounds": [
+        {
+          "name": "sounds/hollow/amb/forest_far_call_1",
+          "volume": 0.55
+        },
+        {
+          "name": "sounds/hollow/amb/forest_far_call_2",
+          "volume": 0.55
+        },
+        {
+          "name": "sounds/hollow/amb/forest_far_call_3",
+          "volume": 0.55
+        }
+      ],
+      "subtitle": "subtitles.hollow.amb.forest.far_call",
+      "min_distance": 8.0,
+      "max_distance": 96.0
+    },
+    "hollow.amb.forest.branch_snap": {
+      "category": "ambient",
+      "sounds": [
+        {
+          "name": "sounds/hollow/amb/forest_branch_snap_1",
+          "volume": 0.7
+        },
+        {
+          "name": "sounds/hollow/amb/forest_branch_snap_2",
+          "volume": 0.7
+        },
+        {
+          "name": "sounds/hollow/amb/forest_branch_snap_3",
+          "volume": 0.7
+        }
+      ],
+      "subtitle": "subtitles.hollow.amb.forest.branch_snap",
+      "min_distance": 8.0,
+      "max_distance": 96.0
+    },
+    "hollow.amb.forest.footsteps": {
+      "category": "ambient",
+      "sounds": [
+        {
+          "name": "sounds/hollow/amb/forest_footsteps_1",
+          "volume": 0.6
+        },
+        {
+          "name": "sounds/hollow/amb/forest_footsteps_2",
+          "volume": 0.6
+        }
+      ],
+      "subtitle": "subtitles.hollow.amb.forest.footsteps",
+      "min_distance": 8.0,
+      "max_distance": 80.0
+    },
+    "hollow.amb.forest.wind": {
+      "category": "ambient",
+      "sounds": [
+        {
+          "name": "sounds/hollow/amb/forest_wind_1",
+          "volume": 0.45,
+          "is3D": false
+        },
+        {
+          "name": "sounds/hollow/amb/forest_wind_2",
+          "volume": 0.45,
+          "is3D": false
+        },
+        {
+          "name": "sounds/hollow/amb/forest_wind_3",
+          "volume": 0.45,
+          "is3D": false
+        }
+      ],
+      "subtitle": "subtitles.hollow.amb.forest.wind"
+    },
+    "hollow.amb.forest.hush": {
+      "category": "ambient",
+      "sounds": [
+        {
+          "name": "sounds/hollow/amb/forest_hush_1",
+          "volume": 0.5,
+          "is3D": false
+        },
+        {
+          "name": "sounds/hollow/amb/forest_hush_2",
+          "volume": 0.5,
+          "is3D": false
+        }
+      ],
+      "subtitle": "subtitles.hollow.amb.forest.hush"
+    },
+    "hollow.amb.cave.drip": {
+      "category": "ambient",
+      "sounds": [
+        {
+          "name": "sounds/hollow/amb/cave_drip_1",
+          "volume": 0.5
+        },
+        {
+          "name": "sounds/hollow/amb/cave_drip_2",
+          "volume": 0.5
+        },
+        {
+          "name": "sounds/hollow/amb/cave_drip_3",
+          "volume": 0.5
+        },
+        {
+          "name": "sounds/hollow/amb/cave_drip_4",
+          "volume": 0.5
+        }
+      ],
+      "subtitle": "subtitles.hollow.amb.cave.drip",
+      "min_distance": 4.0,
+      "max_distance": 40.0
+    },
+    "hollow.amb.cave.shift": {
+      "category": "ambient",
+      "sounds": [
+        {
+          "name": "sounds/hollow/amb/cave_shift_1",
+          "volume": 0.65
+        },
+        {
+          "name": "sounds/hollow/amb/cave_shift_2",
+          "volume": 0.65
+        },
+        {
+          "name": "sounds/hollow/amb/cave_shift_3",
+          "volume": 0.65
+        }
+      ],
+      "subtitle": "subtitles.hollow.amb.cave.shift",
+      "min_distance": 6.0,
+      "max_distance": 64.0
+    },
+    "hollow.amb.cave.breath": {
+      "category": "ambient",
+      "sounds": [
+        {
+          "name": "sounds/hollow/amb/cave_breath_1",
+          "volume": 0.55
+        },
+        {
+          "name": "sounds/hollow/amb/cave_breath_2",
+          "volume": 0.55
+        }
+      ],
+      "subtitle": "subtitles.hollow.amb.cave.breath",
+      "min_distance": 6.0,
+      "max_distance": 48.0
+    },
+    "hollow.amb.swamp.gurgle": {
+      "category": "ambient",
+      "sounds": [
+        {
+          "name": "sounds/hollow/amb/swamp_gurgle_1",
+          "volume": 0.55
+        },
+        {
+          "name": "sounds/hollow/amb/swamp_gurgle_2",
+          "volume": 0.55
+        },
+        {
+          "name": "sounds/hollow/amb/swamp_gurgle_3",
+          "volume": 0.55
+        }
+      ],
+      "subtitle": "subtitles.hollow.amb.swamp.gurgle",
+      "min_distance": 4.0,
+      "max_distance": 40.0
+    },
+    "hollow.amb.swamp.creak": {
+      "category": "ambient",
+      "sounds": [
+        {
+          "name": "sounds/hollow/amb/swamp_creak_1",
+          "volume": 0.5
+        },
+        {
+          "name": "sounds/hollow/amb/swamp_creak_2",
+          "volume": 0.5
+        }
+      ],
+      "subtitle": "subtitles.hollow.amb.swamp.creak",
+      "min_distance": 6.0,
+      "max_distance": 48.0
+    },
+    "hollow.hollowed.click": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/hollowed/click_1",
+          "volume": 0.9
+        },
+        {
+          "name": "sounds/hollow/hollowed/click_2",
+          "volume": 0.9
+        },
+        {
+          "name": "sounds/hollow/hollowed/click_3",
+          "volume": 0.9
+        },
+        {
+          "name": "sounds/hollow/hollowed/click_4",
+          "volume": 0.9
+        }
+      ],
+      "subtitle": "subtitles.hollow.hollowed.click",
+      "min_distance": 3.0,
+      "max_distance": 40.0
+    },
+    "hollow.hollowed.alert": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/hollowed/alert_1",
+          "volume": 1.0
+        },
+        {
+          "name": "sounds/hollow/hollowed/alert_2",
+          "volume": 1.0
+        }
+      ],
+      "subtitle": "subtitles.hollow.hollowed.alert",
+      "min_distance": 3.0,
+      "max_distance": 48.0
+    },
+    "hollow.hollowed.sniff": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/hollowed/sniff_1",
+          "volume": 0.7
+        },
+        {
+          "name": "sounds/hollow/hollowed/sniff_2",
+          "volume": 0.7
+        }
+      ],
+      "subtitle": "subtitles.hollow.hollowed.sniff",
+      "min_distance": 2.0,
+      "max_distance": 20.0
+    },
+    "hollow.hollowed.step": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/hollowed/step_1",
+          "volume": 0.45
+        },
+        {
+          "name": "sounds/hollow/hollowed/step_2",
+          "volume": 0.45
+        },
+        {
+          "name": "sounds/hollow/hollowed/step_3",
+          "volume": 0.45
+        },
+        {
+          "name": "sounds/hollow/hollowed/step_4",
+          "volume": 0.45
+        }
+      ],
+      "subtitle": "subtitles.hollow.hollowed.step",
+      "min_distance": 1.0,
+      "max_distance": 16.0
+    },
+    "hollow.hollowed.attack": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/hollowed/attack_1",
+          "volume": 1.0
+        },
+        {
+          "name": "sounds/hollow/hollowed/attack_2",
+          "volume": 1.0
+        }
+      ],
+      "subtitle": "subtitles.hollow.hollowed.attack",
+      "min_distance": 2.0,
+      "max_distance": 24.0
+    },
+    "hollow.hollowed.hurt": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/hollowed/hurt_1",
+          "volume": 0.9
+        },
+        {
+          "name": "sounds/hollow/hollowed/hurt_2",
+          "volume": 0.9
+        },
+        {
+          "name": "sounds/hollow/hollowed/hurt_3",
+          "volume": 0.9
+        }
+      ],
+      "subtitle": "subtitles.hollow.hollowed.hurt",
+      "min_distance": 2.0,
+      "max_distance": 24.0
+    },
+    "hollow.hollowed.death": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/hollowed/death_1",
+          "volume": 1.0
+        }
+      ],
+      "subtitle": "subtitles.hollow.hollowed.death",
+      "min_distance": 2.0,
+      "max_distance": 32.0
+    },
+    "hollow.borrowed.baa": {
+      "category": "neutral",
+      "sounds": [
+        {
+          "name": "sounds/mob/sheep/say1",
+          "volume": 0.9
+        },
+        {
+          "name": "sounds/mob/sheep/say2",
+          "volume": 0.9
+        },
+        {
+          "name": "sounds/mob/sheep/say3",
+          "volume": 0.9
+        }
+      ],
+      "subtitle": "subtitles.hollow.borrowed.baa",
+      "min_distance": 2.0,
+      "max_distance": 24.0
+    },
+    "hollow.borrowed.baa_wrong": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/mob/sheep/say1",
+          "pitch": 0.74,
+          "volume": 0.9
+        },
+        {
+          "name": "sounds/mob/sheep/say2",
+          "pitch": 0.74,
+          "volume": 0.9
+        },
+        {
+          "name": "sounds/mob/sheep/say3",
+          "pitch": 0.74,
+          "volume": 0.9
+        }
+      ],
+      "subtitle": "subtitles.hollow.borrowed.baa_wrong",
+      "min_distance": 2.0,
+      "max_distance": 28.0
+    },
+    "hollow.borrowed.reveal": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/borrowed/reveal_1",
+          "volume": 1.0
+        },
+        {
+          "name": "sounds/hollow/borrowed/reveal_2",
+          "volume": 1.0
+        }
+      ],
+      "subtitle": "subtitles.hollow.borrowed.reveal",
+      "min_distance": 2.0,
+      "max_distance": 32.0
+    },
+    "hollow.borrowed.attack": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/borrowed/attack_1",
+          "volume": 1.0
+        },
+        {
+          "name": "sounds/hollow/borrowed/attack_2",
+          "volume": 1.0
+        }
+      ],
+      "subtitle": "subtitles.hollow.borrowed.attack",
+      "min_distance": 2.0,
+      "max_distance": 24.0
+    },
+    "hollow.borrowed.hurt": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/borrowed/hurt_1",
+          "volume": 0.9
+        },
+        {
+          "name": "sounds/hollow/borrowed/hurt_2",
+          "volume": 0.9
+        },
+        {
+          "name": "sounds/hollow/borrowed/hurt_3",
+          "volume": 0.9
+        }
+      ],
+      "subtitle": "subtitles.hollow.borrowed.hurt",
+      "min_distance": 2.0,
+      "max_distance": 24.0
+    },
+    "hollow.borrowed.death": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/borrowed/death_1",
+          "volume": 1.0
+        }
+      ],
+      "subtitle": "subtitles.hollow.borrowed.death",
+      "min_distance": 2.0,
+      "max_distance": 32.0
+    },
+    "hollow.borrowed.step": {
+      "category": "neutral",
+      "sounds": [
+        {
+          "name": "sounds/mob/sheep/step1",
+          "volume": 0.35
+        },
+        {
+          "name": "sounds/mob/sheep/step2",
+          "volume": 0.35
+        },
+        {
+          "name": "sounds/mob/sheep/step3",
+          "volume": 0.35
+        },
+        {
+          "name": "sounds/mob/sheep/step4",
+          "volume": 0.35
+        },
+        {
+          "name": "sounds/mob/sheep/step5",
+          "volume": 0.35
+        }
+      ],
+      "subtitle": "subtitles.hollow.borrowed.step",
+      "min_distance": 1.0,
+      "max_distance": 12.0
+    },
+    "hollow.knocker.knock": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/knocker/knock_1",
+          "volume": 1.0
+        },
+        {
+          "name": "sounds/hollow/knocker/knock_2",
+          "volume": 1.0
+        },
+        {
+          "name": "sounds/hollow/knocker/knock_3",
+          "volume": 1.0
+        },
+        {
+          "name": "sounds/hollow/knocker/knock_4",
+          "volume": 1.0
+        }
+      ],
+      "subtitle": "subtitles.hollow.knocker.knock",
+      "min_distance": 3.0,
+      "max_distance": 40.0
+    },
+    "hollow.knocker.scratch": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/knocker/scratch_1",
+          "volume": 0.9
+        },
+        {
+          "name": "sounds/hollow/knocker/scratch_2",
+          "volume": 0.9
+        },
+        {
+          "name": "sounds/hollow/knocker/scratch_3",
+          "volume": 0.9
+        }
+      ],
+      "subtitle": "subtitles.hollow.knocker.scratch",
+      "min_distance": 2.0,
+      "max_distance": 24.0
+    },
+    "hollow.knocker.breath": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/knocker/breath_1",
+          "volume": 0.8
+        },
+        {
+          "name": "sounds/hollow/knocker/breath_2",
+          "volume": 0.8
+        }
+      ],
+      "subtitle": "subtitles.hollow.knocker.breath",
+      "min_distance": 2.0,
+      "max_distance": 16.0
+    },
+    "hollow.knocker.step": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/knocker/step_1",
+          "volume": 0.6
+        },
+        {
+          "name": "sounds/hollow/knocker/step_2",
+          "volume": 0.6
+        },
+        {
+          "name": "sounds/hollow/knocker/step_3",
+          "volume": 0.6
+        }
+      ],
+      "subtitle": "subtitles.hollow.knocker.step",
+      "min_distance": 2.0,
+      "max_distance": 20.0
+    },
+    "hollow.knocker.lunge": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/knocker/lunge_1",
+          "volume": 1.0
+        }
+      ],
+      "subtitle": "subtitles.hollow.knocker.lunge",
+      "min_distance": 2.0,
+      "max_distance": 32.0
+    },
+    "hollow.knocker.hurt": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/knocker/hurt_1",
+          "volume": 0.9
+        },
+        {
+          "name": "sounds/hollow/knocker/hurt_2",
+          "volume": 0.9
+        },
+        {
+          "name": "sounds/hollow/knocker/hurt_3",
+          "volume": 0.9
+        }
+      ],
+      "subtitle": "subtitles.hollow.knocker.hurt",
+      "min_distance": 2.0,
+      "max_distance": 24.0
+    },
+    "hollow.knocker.death": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/knocker/death_1",
+          "volume": 1.0
+        }
+      ],
+      "subtitle": "subtitles.hollow.knocker.death",
+      "min_distance": 2.0,
+      "max_distance": 32.0
+    },
+    "hollow.knocker.leave": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/knocker/leave_1",
+          "volume": 0.7
+        }
+      ],
+      "subtitle": "subtitles.hollow.knocker.leave",
+      "min_distance": 4.0,
+      "max_distance": 40.0
+    },
+    "hollow.amb.bedtime_knock": {
+      "category": "ambient",
+      "sounds": [
+        {
+          "name": "sounds/hollow/amb/bedtime_knock_1",
+          "volume": 0.45,
+          "is3D": false
+        },
+        {
+          "name": "sounds/hollow/amb/bedtime_knock_2",
+          "volume": 0.45,
+          "is3D": false
+        }
+      ],
+      "subtitle": "subtitles.hollow.amb.bedtime_knock"
+    },
+    "hollow.mirebound.bubble": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/mirebound/bubble_1",
+          "volume": 0.6
+        },
+        {
+          "name": "sounds/hollow/mirebound/bubble_2",
+          "volume": 0.6
+        },
+        {
+          "name": "sounds/hollow/mirebound/bubble_3",
+          "volume": 0.6
+        },
+        {
+          "name": "sounds/hollow/mirebound/bubble_4",
+          "volume": 0.6
+        }
+      ],
+      "subtitle": "subtitles.hollow.mirebound.bubble",
+      "min_distance": 2.0,
+      "max_distance": 24.0
+    },
+    "hollow.mirebound.gurgle": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/mirebound/gurgle_1",
+          "volume": 0.8
+        },
+        {
+          "name": "sounds/hollow/mirebound/gurgle_2",
+          "volume": 0.8
+        },
+        {
+          "name": "sounds/hollow/mirebound/gurgle_3",
+          "volume": 0.8
+        }
+      ],
+      "subtitle": "subtitles.hollow.mirebound.gurgle",
+      "min_distance": 2.0,
+      "max_distance": 28.0
+    },
+    "hollow.mirebound.erupt": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/mirebound/erupt_1",
+          "volume": 1.0
+        },
+        {
+          "name": "sounds/hollow/mirebound/erupt_2",
+          "volume": 1.0
+        }
+      ],
+      "subtitle": "subtitles.hollow.mirebound.erupt",
+      "min_distance": 2.0,
+      "max_distance": 32.0
+    },
+    "hollow.mirebound.grab": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/mirebound/grab_1",
+          "volume": 1.0
+        },
+        {
+          "name": "sounds/hollow/mirebound/grab_2",
+          "volume": 1.0
+        }
+      ],
+      "subtitle": "subtitles.hollow.mirebound.grab",
+      "min_distance": 2.0,
+      "max_distance": 24.0
+    },
+    "hollow.mirebound.release": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/mirebound/release_1",
+          "volume": 0.9
+        }
+      ],
+      "subtitle": "subtitles.hollow.mirebound.release",
+      "min_distance": 2.0,
+      "max_distance": 24.0
+    },
+    "hollow.mirebound.hurt": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/mirebound/hurt_1",
+          "volume": 0.9
+        },
+        {
+          "name": "sounds/hollow/mirebound/hurt_2",
+          "volume": 0.9
+        },
+        {
+          "name": "sounds/hollow/mirebound/hurt_3",
+          "volume": 0.9
+        }
+      ],
+      "subtitle": "subtitles.hollow.mirebound.hurt",
+      "min_distance": 2.0,
+      "max_distance": 24.0
+    },
+    "hollow.mirebound.death": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/mirebound/death_1",
+          "volume": 1.0
+        }
+      ],
+      "subtitle": "subtitles.hollow.mirebound.death",
+      "min_distance": 2.0,
+      "max_distance": 32.0
+    },
+    "hollow.heart.beat": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/heart/beat_1",
+          "volume": 1.0
+        },
+        {
+          "name": "sounds/hollow/heart/beat_2",
+          "volume": 1.0
+        }
+      ],
+      "subtitle": "subtitles.hollow.heart.beat",
+      "min_distance": 6.0,
+      "max_distance": 64.0
+    },
+    "hollow.heart.beat_fast": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/heart/beat_fast_1",
+          "volume": 1.0
+        }
+      ],
+      "subtitle": "subtitles.hollow.heart.beat_fast",
+      "min_distance": 6.0,
+      "max_distance": 64.0
+    },
+    "hollow.heart.awaken": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/heart/awaken_1",
+          "volume": 1.0
+        }
+      ],
+      "subtitle": "subtitles.hollow.heart.awaken",
+      "min_distance": 8.0,
+      "max_distance": 96.0
+    },
+    "hollow.heart.drone": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/heart/drone_1",
+          "volume": 0.6
+        }
+      ],
+      "subtitle": "subtitles.hollow.heart.drone",
+      "min_distance": 8.0,
+      "max_distance": 48.0
+    },
+    "hollow.heart.root_warn": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/heart/root_warn_1",
+          "volume": 1.0
+        },
+        {
+          "name": "sounds/hollow/heart/root_warn_2",
+          "volume": 1.0
+        }
+      ],
+      "subtitle": "subtitles.hollow.heart.root_warn",
+      "min_distance": 2.0,
+      "max_distance": 32.0
+    },
+    "hollow.heart.root_strike": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/heart/root_strike_1",
+          "volume": 1.0
+        },
+        {
+          "name": "sounds/hollow/heart/root_strike_2",
+          "volume": 1.0
+        },
+        {
+          "name": "sounds/hollow/heart/root_strike_3",
+          "volume": 1.0
+        }
+      ],
+      "subtitle": "subtitles.hollow.heart.root_strike",
+      "min_distance": 2.0,
+      "max_distance": 32.0
+    },
+    "hollow.heart.pulse": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/heart/pulse_1",
+          "volume": 1.0
+        },
+        {
+          "name": "sounds/hollow/heart/pulse_2",
+          "volume": 1.0
+        }
+      ],
+      "subtitle": "subtitles.hollow.heart.pulse",
+      "min_distance": 4.0,
+      "max_distance": 48.0
+    },
+    "hollow.heart.phase": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/heart/phase_1",
+          "volume": 1.0
+        }
+      ],
+      "subtitle": "subtitles.hollow.heart.phase",
+      "min_distance": 8.0,
+      "max_distance": 96.0
+    },
+    "hollow.heart.hurt": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/heart/hurt_1",
+          "volume": 0.9
+        },
+        {
+          "name": "sounds/hollow/heart/hurt_2",
+          "volume": 0.9
+        },
+        {
+          "name": "sounds/hollow/heart/hurt_3",
+          "volume": 0.9
+        }
+      ],
+      "subtitle": "subtitles.hollow.heart.hurt",
+      "min_distance": 4.0,
+      "max_distance": 40.0
+    },
+    "hollow.heart.death": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/heart/death_1",
+          "volume": 1.0
+        }
+      ],
+      "subtitle": "subtitles.hollow.heart.death",
+      "min_distance": 8.0,
+      "max_distance": 128.0
+    },
+    "hollow.heart.vein_break": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/heart/vein_break_1",
+          "volume": 1.0
+        },
+        {
+          "name": "sounds/hollow/heart/vein_break_2",
+          "volume": 1.0
+        }
+      ],
+      "subtitle": "subtitles.hollow.heart.vein_break",
+      "min_distance": 4.0,
+      "max_distance": 40.0
+    },
+    "hollow.heart.spawn": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/heart/spawn_1",
+          "volume": 0.9
+        }
+      ],
+      "subtitle": "subtitles.hollow.heart.spawn",
+      "min_distance": 4.0,
+      "max_distance": 32.0
+    },
+    "hollow.chime.ring": {
+      "category": "block",
+      "sounds": [
+        {
+          "name": "sounds/hollow/chime/ring_1",
+          "volume": 0.8
+        },
+        {
+          "name": "sounds/hollow/chime/ring_2",
+          "volume": 0.8
+        },
+        {
+          "name": "sounds/hollow/chime/ring_3",
+          "volume": 0.8
+        }
+      ],
+      "subtitle": "subtitles.hollow.chime.ring",
+      "min_distance": 4.0,
+      "max_distance": 32.0
+    },
+    "hollow.ward.repel": {
+      "category": "block",
+      "sounds": [
+        {
+          "name": "sounds/hollow/ward/repel_1",
+          "volume": 0.9
+        },
+        {
+          "name": "sounds/hollow/ward/repel_2",
+          "volume": 0.9
+        }
+      ],
+      "subtitle": "subtitles.hollow.ward.repel",
+      "min_distance": 4.0,
+      "max_distance": 32.0
+    },
+    "hollow.ward.place": {
+      "category": "block",
+      "sounds": [
+        {
+          "name": "sounds/hollow/ward/place_1",
+          "volume": 0.8
+        }
+      ],
+      "subtitle": "subtitles.hollow.ward.place",
+      "min_distance": 2.0,
+      "max_distance": 16.0
+    },
+    "hollow.ward.spent": {
+      "category": "block",
+      "sounds": [
+        {
+          "name": "sounds/hollow/ward/spent_1",
+          "volume": 0.8
+        }
+      ],
+      "subtitle": "subtitles.hollow.ward.spent",
+      "min_distance": 2.0,
+      "max_distance": 16.0
+    },
+    "hollow.lens.use": {
+      "category": "player",
+      "sounds": [
+        {
+          "name": "sounds/hollow/lens/use_1",
+          "volume": 0.7
+        }
+      ],
+      "subtitle": "subtitles.hollow.lens.use",
+      "min_distance": 1.0,
+      "max_distance": 8.0
+    },
+    "hollow.journal.open": {
+      "category": "ui",
+      "sounds": [
+        {
+          "name": "sounds/hollow/journal/open_1",
+          "volume": 0.8,
+          "is3D": false
+        },
+        {
+          "name": "sounds/hollow/journal/open_2",
+          "volume": 0.8,
+          "is3D": false
+        }
+      ],
+      "subtitle": "subtitles.hollow.journal.open"
+    },
+    "hollow.journal.entry": {
+      "category": "ui",
+      "sounds": [
+        {
+          "name": "sounds/hollow/journal/entry_1",
+          "volume": 0.8,
+          "is3D": false
+        }
+      ],
+      "subtitle": "subtitles.hollow.journal.entry"
+    },
+    "hollow.heartseeker.pulse": {
+      "category": "player",
+      "sounds": [
+        {
+          "name": "sounds/hollow/heartseeker/pulse_1",
+          "volume": 0.8
+        }
+      ],
+      "subtitle": "subtitles.hollow.heartseeker.pulse",
+      "min_distance": 1.0,
+      "max_distance": 8.0
+    },
+    "hollow.altar.insert": {
+      "category": "block",
+      "sounds": [
+        {
+          "name": "sounds/hollow/altar/insert_1",
+          "volume": 1.0
+        }
+      ],
+      "subtitle": "subtitles.hollow.altar.insert",
+      "min_distance": 4.0,
+      "max_distance": 48.0
+    },
+    "hollow.stinger.low": {
+      "category": "ambient",
+      "sounds": [
+        {
+          "name": "sounds/hollow/stinger/low_1",
+          "volume": 0.8,
+          "is3D": false
+        },
+        {
+          "name": "sounds/hollow/stinger/low_2",
+          "volume": 0.8,
+          "is3D": false
+        }
+      ],
+      "subtitle": "subtitles.hollow.stinger.low"
+    },
+    "hollow.stinger.distant": {
+      "category": "ambient",
+      "sounds": [
+        {
+          "name": "sounds/hollow/stinger/distant_1",
+          "volume": 0.6,
+          "is3D": false
+        },
+        {
+          "name": "sounds/hollow/stinger/distant_2",
+          "volume": 0.6,
+          "is3D": false
+        }
+      ],
+      "subtitle": "subtitles.hollow.stinger.distant"
+    },
+    "hollow.music.night_1": {
+      "category": "music",
+      "sounds": [
+        {
+          "name": "sounds/hollow/music/night_1",
+          "stream": true,
+          "volume": 0.7
+        }
+      ]
+    },
+    "hollow.music.night_2": {
+      "category": "music",
+      "sounds": [
+        {
+          "name": "sounds/hollow/music/night_2",
+          "stream": true,
+          "volume": 0.7
+        }
+      ]
+    },
+    "hollow.music.night_3": {
+      "category": "music",
+      "sounds": [
+        {
+          "name": "sounds/hollow/music/night_3",
+          "stream": true,
+          "volume": 0.7
+        }
+      ]
+    },
+    "hollow.music.cave": {
+      "category": "music",
+      "sounds": [
+        {
+          "name": "sounds/hollow/music/cave",
+          "stream": true,
+          "volume": 0.7
+        }
+      ]
+    },
+    "hollow.music.shrine": {
+      "category": "music",
+      "sounds": [
+        {
+          "name": "sounds/hollow/music/shrine",
+          "stream": true,
+          "volume": 0.7
+        }
+      ]
+    },
+    "hollow.music.boss": {
+      "category": "music",
+      "sounds": [
+        {
+          "name": "sounds/hollow/music/boss",
+          "stream": true,
+          "volume": 0.7
+        }
+      ]
+    },
+    "hollow.music.dawn": {
+      "category": "music",
+      "sounds": [
+        {
+          "name": "sounds/hollow/music/dawn",
+          "stream": true,
+          "volume": 0.7
+        }
+      ]
+    }
+  }
+}

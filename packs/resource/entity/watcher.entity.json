@@ -1,0 +1,43 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "hollow:watcher",
+      "materials": {
+        "default": "entity_alphatest",
+        "eyes": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/hollow/watcher",
+        "glow": "textures/entity/hollow/watcher_glow"
+      },
+      "geometry": {
+        "default": "geometry.hollow.watcher"
+      },
+      "animations": {
+        "idle": "animation.hollow.watcher.idle",
+        "walk": "animation.hollow.watcher.walk",
+        "look_at_target": "animation.hollow.watcher.look_at_target",
+        "stare": "animation.hollow.watcher.stare",
+        "seen": "animation.hollow.watcher.seen",
+        "lunge": "animation.hollow.watcher.lunge",
+        "locomotion": "controller.animation.hollow.watcher.locomotion",
+        "mood": "controller.animation.hollow.watcher.mood"
+      },
+      "scripts": {
+        "pre_animation": [
+          "variable.state = query.property('hollow:state');"
+        ],
+        "animate": ["look_at_target", "locomotion", "mood"]
+      },
+      "render_controllers": [
+        "controller.render.hollow.default",
+        "controller.render.hollow.glow_head"
+      ],
+      "spawn_egg": {
+        "base_color": "#2a251f",
+        "overlay_color": "#c0baae"
+      }
+    }
+  }
+}

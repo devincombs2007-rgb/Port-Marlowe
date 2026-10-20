@@ -1,0 +1,38 @@
+{
+  "format_version": "1.16.100",
+  "minecraft:fog_settings": {
+    "description": {
+      "identifier": "hollow:fog_heart"
+    },
+    "distance": {
+      "air": {
+        "fog_start": 8,
+        "fog_end": 60,
+        "fog_color": "#22130f",
+        "render_distance_type": "fixed"
+      }
+    },
+    "volumetric": {
+      "density": {
+        "air": {
+          "max_density": 0.07,
+          "uniform": true
+        }
+      },
+      "media_coefficients": {
+        "air": {
+          "scattering": [
+            0.06,
+            0.03,
+            0.025
+          ],
+          "absorption": [
+            0.01,
+            0.012,
+            0.012
+          ]
+        }
+      }
+    }
+  }
+}

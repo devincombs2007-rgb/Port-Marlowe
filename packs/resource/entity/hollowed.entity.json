@@ -1,0 +1,47 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "hollow:hollowed",
+      "materials": {
+        "default": "entity_alphatest",
+        "eyes": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/hollow/hollowed",
+        "glow": "textures/entity/hollow/hollowed_glow"
+      },
+      "geometry": {
+        "default": "geometry.hollow.hollowed"
+      },
+      "animations": {
+        "idle": "animation.hollow.hollowed.idle",
+        "walk": "animation.hollow.hollowed.walk",
+        "click": "animation.hollow.hollowed.click",
+        "investigate": "animation.hollow.hollowed.investigate",
+        "attack": "animation.hollow.hollowed.attack",
+        "locomotion": "controller.animation.hollow.hollowed.locomotion",
+        "mood": "controller.animation.hollow.hollowed.mood",
+        "strike": "controller.animation.hollow.hollowed.strike"
+      },
+      "scripts": {
+        "pre_animation": [
+          "variable.state = query.property('hollow:state');"
+        ],
+        "animate": [
+          "locomotion",
+          "mood",
+          "strike"
+        ]
+      },
+      "render_controllers": [
+        "controller.render.hollow.default",
+        "controller.render.hollow.glow_throat"
+      ],
+      "spawn_egg": {
+        "base_color": "#8a9196",
+        "overlay_color": "#9fc3c6"
+      }
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "format_version": "1.26.30",
+  "minecraft:item": {
+    "description": {
+      "identifier": "hollow:knocker_nail",
+      "menu_category": {
+        "category": "items"
+      }
+    },
+    "components": {
+      "minecraft:icon": {
+        "textures": {
+          "default": "hollow_knocker_nail"
+        }
+      },
+      "minecraft:display_name": {
+        "value": "item.hollow:knocker_nail.name"
+      },
+      "hollow:material": {},
+      "minecraft:interact_button": "Inspect"
+    }
+  }
+}

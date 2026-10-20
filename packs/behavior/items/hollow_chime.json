@@ -1,0 +1,25 @@
+{
+  "format_version": "1.26.30",
+  "minecraft:item": {
+    "description": {
+      "identifier": "hollow:hollow_chime",
+      "menu_category": {
+        "category": "items"
+      }
+    },
+    "components": {
+      "minecraft:icon": {
+        "textures": {
+          "default": "hollow_hollow_chime"
+        }
+      },
+      "minecraft:display_name": {
+        "value": "tile.hollow:hollow_chime.name"
+      },
+      "minecraft:block_placer": {
+        "block": "hollow:hollow_chime",
+        "replace_block_item": true
+      }
+    }
+  }
+}

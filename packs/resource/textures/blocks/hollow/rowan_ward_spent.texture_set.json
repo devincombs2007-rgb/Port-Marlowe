@@ -1,0 +1,8 @@
+{
+  "format_version": "1.21.30",
+  "minecraft:texture_set": {
+    "color": "rowan_ward_spent",
+    "metalness_emissive_roughness_subsurface": "rowan_ward_spent_mers",
+    "heightmap": "rowan_ward_spent_height"
+  }
+}
