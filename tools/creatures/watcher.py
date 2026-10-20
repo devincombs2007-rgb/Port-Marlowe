@@ -58,6 +58,11 @@ def build():
         m.bone(f"{side}_shin", f"{side}_leg", pivot=(sx * 1.4, 12.5, 0), rotation=(4, 0, 0))
         m.cube(f"{side}_shin", (sx * 1.4 - 0.8, 1, -0.8), (1.6, 12, 1.6), "bark")
         m.cube(f"{side}_shin", (sx * 1.4 - 1.0, 0, -2.4), (2.0, 1, 3.4), "twig")  # root-like foot
+    # hanging moss: thin strands from the shoulder knots and one from the crown, breaking the outline
+    for side, sx in (("right", -1), ("left", 1)):
+        m.cube(f"{side}_arm", (sx * 5.3 - 0.25, 30.5, -0.9), (0.5, 5, 0.5), "moss")
+        m.cube(f"{side}_arm", (sx * 3.6 - 0.25, 32.0, 0.7), (0.5, 3.5, 0.5), "moss")
+    m.cube("head", (2.2, 44.5, -1.0), (0.5, 5, 0.5), "moss")
     m.locator("head", "eyes", (0, 46.5, -3.2))
     m.locator("body", "core", (0, 30, 0))
     return m
@@ -70,6 +75,7 @@ def materials():
                          ao=0.35, mers=(0, 0, 238, 0), height_strength=0.9),
         "pale": Material(PALE, base=0.58, noise=(0.5, 0.2, 2), streak=(0.3, 2.2, 0.3, 0.25),
                          speckle=(0.05, -0.25), ao=0.05, edge=0.0, mers=(0, 0, 175, 40), height_strength=0.4),
+        "moss": Material(LICHEN, base=0.4, noise=(0.6, 0.3, 2), ao=0.0, edge=0.0, mers=(0, 0, 250, 90)),
         "twig": Material(TWIG, base=0.5, noise=(0.6, 0.25, 2), streak=(2, 0.3, 2, 0.3),
                          speckle=(0.05, -0.2), ao=0.1, mers=(0, 0, 245, 0)),
     }
