@@ -116,6 +116,152 @@ await test("settings: non-operators cannot see world rules; values are sanitised
   noErrors(sim);
 });
 
+// =============================================================================== UI resilience
+const openBook = (sim, p) => sim.fire("scriptEventReceive", { id: "hollow:journal", sourceEntity: p, message: "" });
+async function advanceForms(sim, rounds = 12) {
+  for (let i = 0; i < rounds; i++) { sim.tick(10); await flush(); }
+}
+
+await test("journal: repeated taps share one session; a closed form can reopen", async () => {
+  const sim = newWorld(111);
+  const p = sim.addPlayer("Alex");
+  sim.tick(100);
+  let finish;
+  p._ui.push(() => new Promise((resolve) => { finish = resolve; }));
+  openBook(sim, p);
+  openBook(sim, p);
+  eq(p._shownForms.length, 1, "one form for repeated taps");
+  finish({ canceled: true, cancelationReason: "UserClosed" });
+  await advanceForms(sim, 3);
+  openBook(sim, p);
+  await advanceForms(sim, 3);
+  eq(p._shownForms.length, 2, "session released after closing");
+  noErrors(sim);
+});
+
+await test("journal: disconnected session cannot navigate or unlock a new session", async () => {
+  const sim = newWorld(112);
+  const p = sim.addPlayer("Alex");
+  sim.tick(100);
+  let oldFinish, newFinish;
+  p._ui.push(() => new Promise((resolve) => { oldFinish = resolve; }));
+  openBook(sim, p);
+  sim.removePlayer(p);
+  sim.tick(2);
+  sim.addPlayer("Alex");
+  p._ui.push(() => new Promise((resolve) => { newFinish = resolve; }));
+  openBook(sim, p);
+  oldFinish({ canceled: false, selection: 0 });
+  await advanceForms(sim, 3);
+  eq(p._shownForms.length, 2, "stale response cannot open a chapter");
+  openBook(sim, p);
+  eq(p._shownForms.length, 2, "stale finalizer cannot release the new session lock");
+  newFinish({ canceled: true });
+  await advanceForms(sim, 3);
+  noErrors(sim);
+});
+
+await test("journal: form rejection cancels cleanly and allows a later attempt", async () => {
+  const sim = newWorld(113);
+  const p = sim.addPlayer("Alex");
+  sim.tick(100);
+  p._ui.push(() => Promise.reject(new Error("player disconnected during show")));
+  openBook(sim, p);
+  await advanceForms(sim, 3);
+  openBook(sim, p);
+  await advanceForms(sim, 3);
+  eq(p._shownForms.length, 2, "failed show releases the session");
+  noErrors(sim);
+});
+
+await test("journal: busy menus retry through comfort settings; closing never retries", async () => {
+  const sim = newWorld(114);
+  const p = sim.addPlayer("Alex");
+  sim.tick(100);
+  const busy = { canceled: true, cancelationReason: "UserBusy" };
+  p._ui.push(busy, { canceled: false, selection: 4 }, busy,
+    { canceled: false, selection: 0 }, busy,
+    { canceled: false, formValues: [30, 0, false, true, false] });
+  openBook(sim, p);
+  await advanceForms(sim, 20);
+  const prefs = JSON.parse(p.getDynamicProperty("hollow:prefs"));
+  eq(prefs.ambience, 30, "ambience saved after busy retries");
+  eq(prefs.music, false, "music preference saved");
+  eq(prefs.visualFx, false, "effects preference saved");
+  const shown = p._shownForms.length;
+  openBook(sim, p); // no response queued: UserClosed
+  await advanceForms(sim, 20);
+  eq(p._shownForms.length, shown + 1, "closing does not reopen the menu");
+  noErrors(sim);
+});
+
+await test("journal: entries stay unread when their form cannot be shown", async () => {
+  const sim = newWorld(115);
+  const p = sim.addPlayer("Alex");
+  sim.tick(100);
+  p._ui.push({ canceled: false, selection: 0 }, { canceled: false, selection: 0 },
+    ...Array.from({ length: 7 }, () => ({ canceled: true, cancelationReason: "UserBusy" })));
+  openBook(sim, p);
+  await advanceForms(sim, 20);
+  eq(JSON.parse(p.getDynamicProperty("hollow:journal")).r.length, 0, "an unseen entry is still unread");
+  noErrors(sim);
+});
+
+await test("settings: malformed saved values recover defaults without enabling destructive options", async () => {
+  const sim = newWorld(116);
+  const p = sim.addPlayer("Alex");
+  sim.tick(100);
+  sim.world.setDynamicProperty("hollow:settings", JSON.stringify({ intensity: null, frequency: "bad", graceDays: {}, knockerNight: -50, watcher: "false", destructive: "true", sites: false }));
+  p.setDynamicProperty("hollow:prefs", JSON.stringify({ ambience: "bad", accents: 500, visualFx: "false", hints: false, music: null }));
+  boot(sim, 116);
+  let inspectedWorld, inspectedPrefs;
+  p._ui.push({ canceled: false, selection: 4 }, { canceled: false, selection: 1 }, (f) => {
+    const values = f.controls.map((c) => c.type === "toggle" ? c.o.defaultValue : c.type === "dropdown" ? c.o.defaultValueIndex : c.o.defaultValue);
+    inspectedWorld = values;
+    return { canceled: false, formValues: values };
+  });
+  openBook(sim, p);
+  await advanceForms(sim);
+    eq(inspectedWorld[0], 1, "intensity fallback");
+    eq(inspectedWorld[1], 100, "frequency fallback");
+    eq(inspectedWorld[2], 1, "grace fallback");
+    eq(inspectedWorld[3], 1, "knocker clamped to valid minimum");
+    eq(inspectedWorld[4], true, "invalid creature toggle falls back");
+    eq(inspectedWorld[9], false, "string does not turn destruction on");
+    eq(inspectedWorld[11], false, "valid false is preserved");
+  const world = JSON.parse(sim.world.getDynamicProperty("hollow:settings"));
+  eq(world.destructive, false, "safe rules saved");
+  p._ui.push({ canceled: false, selection: 4 }, { canceled: false, selection: 0 }, (f) => {
+    inspectedPrefs = f.controls;
+    return { canceled: true };
+  });
+  openBook(sim, p);
+  await advanceForms(sim);
+    eq(inspectedPrefs[0].o.defaultValue, 80, "ambience fallback");
+    eq(inspectedPrefs[1].o.defaultValueIndex, 2, "accents clamped");
+    eq(inspectedPrefs[2].o.defaultValue, true, "visual effect fallback");
+    eq(inspectedPrefs[3].o.defaultValue, false, "valid hint preference preserved");
+    eq(inspectedPrefs[4].o.defaultValue, true, "music fallback");
+  noErrors(sim);
+});
+
+await test("settings: opening and saving world rules preserves supported grace and night ranges", async () => {
+  const sim = newWorld(117);
+  sim.world.setDynamicProperty("hollow:settings", JSON.stringify({ graceDays: 10, knockerNight: 20 }));
+  boot(sim, 117);
+  const p = sim.addPlayer("Alex");
+  sim.tick(100);
+  p._ui.push({ canceled: false, selection: 4 }, { canceled: false, selection: 1 }, (f) => ({
+    canceled: false, formValues: f.controls.map((c) => c.type === "toggle" ? c.o.defaultValue : c.type === "dropdown" ? c.o.defaultValueIndex : c.o.defaultValue),
+  }));
+  openBook(sim, p);
+  await advanceForms(sim);
+  const world = JSON.parse(sim.world.getDynamicProperty("hollow:settings"));
+  eq(world.graceDays, 10, "grace remains ten days");
+  eq(world.knockerNight, 20, "knocker remains night twenty");
+  noErrors(sim);
+});
+
 // =============================================================================== pacing
 await test("day 1 is safe: nothing hunts; the Watcher can only be glimpsed", () => {
   const sim = newWorld(7);
@@ -489,6 +635,95 @@ await test("chime rings when a creature is within 14 blocks, never when silenced
   noErrors(sim);
 });
 
+// =============================================================================== shelter protection
+function borrowedWorld(seed = 121) {
+  const sim = newWorld(seed);
+  sim.world.setDynamicProperty("hollow:settings", JSON.stringify({ watcher: false, hollowed: false, mirebound: false, knocker: false, sites: false }));
+  boot(sim, seed);
+  const p = sim.addPlayer("Alex", { x: 0.5, y: 64, z: 0.5 }, veteran);
+  for (let i = 0; i < 4; i++) sim.overworld.spawnEntity("minecraft:sheep", { x: 24 + i, y: 64, z: -12 });
+  sim.fire("scriptEventReceive", { id: "hollow:test", message: "on", sourceEntity: p });
+  sim.fire("scriptEventReceive", { id: "hollow:test", message: "night", sourceEntity: p });
+  return { sim, p, ow: sim.overworld };
+}
+function waitBorrowed(sim) {
+  for (let i = 0; i < 2000; i++) {
+    sim.tick(1);
+    const b = sim.overworld.getEntities({ type: "hollow:borrowed" }).find((e) => !e._events.includes("hollow:reveal") && !e._events.includes("hollow:flee"));
+    if (b) return b;
+  }
+  throw new Error("no disguised Borrowed joined the flock");
+}
+
+await test("borrowed: joins a real flock and shears reveal it at night", () => {
+  const { sim, p } = borrowedWorld();
+  const b = waitBorrowed(sim);
+  assert(Math.hypot(b.location.x - p.location.x, b.location.z - p.location.z) >= 14, "appears away from player");
+  p.teleport({ x: b.location.x + 1, y: b.location.y, z: b.location.z });
+  sim.fire("dataDrivenEntityTrigger", { entity: b, eventId: "hollow:sheared" });
+  assert(b._events.includes("hollow:reveal"), "shears reveal the night hunter");
+  assert(journal(p).includes("borrowed2"), "counterplay is recorded");
+  noErrors(sim);
+});
+
+await test("ward: unloading its chunk cannot erase protection or the saved registry", () => {
+  const { sim, p, ow } = borrowedWorld(122);
+  const b = waitBorrowed(sim);
+  const at = { x: Math.floor(b.location.x) + 2, y: 64, z: Math.floor(b.location.z) };
+  const ward = sim.placeBlock(p, at, "hollow:rowan_ward");
+  ow.loaded = (loc) => !(Math.floor(loc.x) === at.x && Math.floor(loc.z) === at.z);
+  sim.tick(30);
+  eq(JSON.parse(sim.world.getDynamicProperty("hollow:wards")).length, 1, "unreadable ward stays registered");
+  assert(!b._events.includes("hollow:flee"), "no invented protection from an unreadable block");
+  ow.loaded = () => true;
+  sim.tick(20);
+  assert(b._events.includes("hollow:flee"), "ward works again as soon as the chunk is readable");
+  eq(ward.permutation.getState("hollow:used"), 1, "one charge used");
+  noErrors(sim);
+});
+
+await test("ward: same creature type spends one charge per night across a server restart", () => {
+  const { sim, p, ow } = borrowedWorld(123);
+  let b = waitBorrowed(sim);
+  const at = { x: Math.floor(b.location.x) + 2, y: 64, z: Math.floor(b.location.z) };
+  const ward = sim.placeBlock(p, at, "hollow:rowan_ward");
+  sim.tick(20);
+  assert(b._events.includes("hollow:flee"), "first borrowed repelled");
+  eq(ward.permutation.getState("hollow:used"), 1, "first charge spent");
+  boot(sim, 123);
+  sim.tick(50); // startup orphan sweep removes the old encounter
+  sim.fire("scriptEventReceive", { id: "hollow:test", message: "on", sourceEntity: p });
+  b = waitBorrowed(sim);
+  b.teleport({ x: at.x + 1, y: 64, z: at.z + 1 });
+  sim.tick(20);
+  assert(b._events.includes("hollow:flee"), "second borrowed repelled");
+  eq(ward.permutation.getState("hollow:used"), 1, "no extra charge after restarting on the same night");
+  noErrors(sim);
+});
+
+await test("equipment: stale loaded lantern registrations release capacity; unloaded ones keep it", () => {
+  const sim = newWorld(124);
+  const p = sim.addPlayer("Alex");
+  sim.tick(100);
+  const spots = [];
+  for (let i = 0; i < 16; i++) {
+    const at = { x: i * 4, y: 64, z: 4 };
+    spots.push(at);
+    sim.placeBlock(p, at, "hollow:heartwood_lantern");
+  }
+  sim.overworld.loaded = (loc) => !(loc.x === spots[0].x && loc.z === spots[0].z);
+  sim.placeBlock(p, { x: 1, y: 64, z: 1 }, "hollow:heartwood_lantern");
+  assert(p._log.some((l) => l.includes("light only")), "overflow lantern warns player");
+  eq(JSON.parse(sim.world.getDynamicProperty("hollow:lanterns")).length, 16, "unloaded lantern reserves its slot");
+  sim.overworld.loaded = () => true;
+  sim.overworld.setBlock(spots[0], "minecraft:air"); // command removal, without break callbacks
+  sim.placeBlock(p, { x: 2, y: 64, z: 1 }, "hollow:heartwood_lantern");
+  const saved = JSON.parse(sim.world.getDynamicProperty("hollow:lanterns"));
+  eq(saved.length, 16, "capacity recovered after a real removal");
+  assert(saved.some((s) => s.x === 2 && s.z === 1), "new lantern registered");
+  noErrors(sim);
+});
+
 // =============================================================================== mirebound
 function swampWorld(seed = 31, refuse = false) {
   const sim = newWorld(seed);
@@ -617,6 +852,46 @@ await test("hollowed: thrown projectiles create a decoy away from the player", (
   noErrors(sim);
 });
 
+await test("lantern: protects a cave player from new Hollowed encounters, including after reload", () => {
+  const { sim, p, ow } = caveWorld(125);
+  const lantern = sim.placeBlock(p, { x: 1, y: -12, z: 1 }, "hollow:heartwood_lantern");
+  boot(sim, 125);
+  sim.tick(50);
+  sim.spawnLog.length = 0;
+  sim.tick(6000);
+  eq(sim.spawnLog.filter((t) => t === "hollow:hollowed").length, 0, "no natural Hollowed while protected");
+  sim.breakBlock(p, lantern);
+  sim.tick(6000);
+  assert(sim.spawnLog.includes("hollow:hollowed"), "cave encounters resume after lantern removal");
+  noErrors(sim);
+});
+
+await test("lantern: unloaded chunk preserves its registry; noise inside its radius draws no Hollowed", () => {
+  const { sim, p, ow } = caveWorld(126);
+  let h;
+  for (let i = 0; i < 6000 && !h; i++) { sim.tick(1); h = ow.getEntities({ type: "hollow:hollowed" })[0]; }
+  assert(h, "tracked Hollowed exists");
+  h.teleport({ x: 8.5, y: -12, z: 0.5 });
+  sim.tick(25);
+  const at = { x: -20, y: -12, z: 0 };
+  sim.placeBlock(p, at, "hollow:heartwood_lantern");
+  ow.loaded = (loc) => !(Math.floor(loc.x) === at.x && Math.floor(loc.z) === at.z);
+  sim.fire("projectileHitBlock", { dimension: ow, location: p.location });
+  eq(JSON.parse(sim.world.getDynamicProperty("hollow:lanterns")).length, 1, "unreadable lantern stays registered");
+  ow.loaded = () => true;
+  sim.fire("projectileHitBlock", { dimension: ow, location: p.location });
+  // Ignore any decoy from the deliberately unreadable first lookup, then let it expire.
+  sim.tick(220);
+  sim.fire("projectileHitBlock", { dimension: ow, location: p.location });
+  eq(ow.getEntities({ type: "hollow:lure" }).length, 0, "protected impact makes no lure");
+  sim.fire("projectileHitBlock", { dimension: ow, location: { x: 10, y: -12, z: 0 } });
+  assert(ow.getEntities({ type: "hollow:lure" }).length > 0, "unprotected decoy still works");
+  h.teleport({ x: 0.5, y: -12, z: 0.5 });
+  sim.tick(25);
+  assert(!h.isValid, "wild Hollowed cannot remain within lantern protection");
+  noErrors(sim);
+});
+
 // =============================================================================== sites, items
 await test("sites: a disabled creature's material is guaranteed in new site chests", () => {
   const sim = newWorld(51);
@@ -653,6 +928,32 @@ await test("items: material pickup teaches its recipe; lens reveals to its user 
   eq(p._inv.getItem(0).getComponent("minecraft:durability").damage, 1, "one use of durability");
   sim.tick(210);
   eq(p._overrides.size, 0, "reveal fades after 10 s");
+  noErrors(sim);
+});
+
+await test("items: queued page/lens uses cannot bypass consumption by switching hotbar slots", () => {
+  const sim = newWorld(127);
+  const p = sim.addPlayer("Alex");
+  sim.tick(100);
+  const before = journal(p).length;
+  p.hold("hollow:torn_page", 1);
+  for (let i = 0; i < 5; i++) sim.useItem(p);
+  sim.tick(2);
+  eq(journal(p).length, before + 1, "one page unlocks one entry despite repeated queued use");
+  eq(p._inv.count("hollow:torn_page"), 0, "page consumed");
+  p.hold("hollow:torn_page", 1);
+  sim.useItem(p);
+  p.hold("minecraft:stick");
+  sim.tick(2);
+  eq(journal(p).length, before + 1, "a hotbar swap cannot unlock a page without consuming it");
+  sim.overworld.spawnEntity("hollow:borrowed", { x: 8, y: 64, z: 0 });
+  const sounds = p._sounds.length;
+  p.hold("hollow:hollow_lens");
+  sim.useItem(p);
+  p.hold("minecraft:stick");
+  sim.tick(2);
+  eq(p._overrides.size, 0, "swapping away from the lens cancels the reveal");
+  eq(p._sounds.length, sounds, "cancelled scan makes no lens cue");
   noErrors(sim);
 });
 
@@ -1030,6 +1331,43 @@ await test("test kit: kit, journal, boss2/boss3 and knocker shortcuts work", () 
   sim.fire("scriptEventReceive", { id: "hollow:test", message: "knocker", sourceEntity: p });
   assert(p._log.some((l) => l.includes("planned")), "knocker visit planned");
   noErrors(sim);
+});
+
+await test("grace: extended grace days apply to Borrowed, Mirebound and Knocker, not just the Watcher", () => {
+  const { sim, p, ow } = borrowedWorld(128);
+  sim.world.setDynamicProperty("hollow:settings", JSON.stringify({ graceDays: 5, frequency: 200, watcher: false, hollowed: false, mirebound: false, knocker: false, sites: false }));
+  boot(sim, 128); // test mode is intentionally off
+  sim.absTime = 4 * DAY + 13000;
+  sim.tick(8000);
+  assert(!sim.spawnLog.includes("hollow:borrowed"), "Borrowed respects the five-day grace period");
+  sim.absTime = 5 * DAY + 13000;
+  sim.tick(4000);
+  assert(sim.spawnLog.includes("hollow:borrowed"), "Borrowed can spawn after grace expires");
+  noErrors(sim);
+
+  const swamp = newWorld(129);
+  swamp.world.setDynamicProperty("hollow:settings", JSON.stringify({ graceDays: 5, frequency: 200, watcher: false, hollowed: false, borrowed: false, knocker: false, sites: false }));
+  boot(swamp, 129);
+  swamp.overworld.biome = () => "minecraft:swampland";
+  for (let x = 4; x <= 30; x++) for (let z = -16; z <= 16; z++) {
+    swamp.overworld.setBlock({ x, y: 63, z }, "minecraft:water");
+    swamp.overworld.setBlock({ x, y: 62, z }, "minecraft:water");
+  }
+  const wader = swamp.addPlayer("Wader", { x: 2.5, y: 64, z: 0.5 }, veteran);
+  wader._view = { x: 1, y: 0, z: 0 };
+  swamp.absTime = 4 * DAY + 13000;
+  swamp.tick(8000);
+  assert(!swamp.spawnLog.includes("hollow:mirebound"), "Mirebound respects grace");
+  swamp.absTime = 5 * DAY + 13000;
+  swamp.tick(4000);
+  assert(swamp.spawnLog.includes("hollow:mirebound"), "Mirebound resumes after grace");
+  noErrors(swamp);
+
+  const house = houseWorld(21, { graceDays: 5, knockerNight: 1, intensity: 2, frequency: 200 });
+  house.sim.absTime = 4 * DAY + 13000;
+  house.sim.tick(9000);
+  assert(!house.sim.spawnLog.includes("hollow:knocker"), "early Knocker night cannot override grace");
+  noErrors(house.sim);
 });
 
 // =============================================================================== load + caps

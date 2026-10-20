@@ -3,7 +3,7 @@
 A fast first pass on **Windows** (best for reading errors). Repeat the short Realm and Xbox section at the end.
 
 ## Setup (2 min)
-1. Import `THE_HOLLOW_v1.0.1.mcaddon`. Create a **new world**: Survival, cheats **on**, the behavior pack plus the Visuals pack, all experiments off.
+1. Import `THE_HOLLOW_v1.0.2.mcaddon`. Create a **new world**: Survival, cheats **on**, the behavior pack plus the Visuals pack, all experiments off.
 2. Settings → Creator → turn on **Content Log GUI**. Settings → Accessibility → turn on **Subtitles**.
 3. In the world, run:
    ```
@@ -56,6 +56,32 @@ includes a `failures:` count, which should stay `none`.
   it. One page should drop when the lantern goes out; revisiting must not drop a second page.
   In a separate test, replace the lantern with another block before approaching: the replacement
   must stay intact and no page should appear.
+
+## Shelter and inventory regression checks
+
+- Place a Rowan Ward and a Heartwood Lantern near a chunk boundary. Leave/rejoin and approach
+  from the other side. Both must still work when their chunks load; protection must not be
+  permanently lost just because a previous query could not read the block.
+- Let a ward repel a Borrowed, save/restart on the same night, then let another Borrowed enter
+  its radius. It should repel again without spending an additional charge for that creature type.
+- Place a Heartwood Lantern in a cave: natural Hollowed encounters stop inside its radius.
+  A thrown decoy inside that radius must not draw one in. Remove the lantern and encounters resume.
+- Rapidly tap the journal, open settings with chat briefly busy, and leave/rejoin with a form
+  open. Expect one menu session, no stale menus on reconnect and no invalid-player errors.
+- Use a Torn Page and immediately switch hotbar slots: it should cancel instead of granting a
+  free lore entry. Repeated use of one page must unlock only one entry.
+
+## Portable audio review
+
+Run `python3 tools/sounds/audition_page.py --standalone`. Open
+`build/audition/THE_HOLLOW_Sound_Booth.html` in a browser that runs local HTML. Audio is embedded as
+MP3 so there are no supporting files or network requests. Mark sounds and choose **Export feedback**
+to produce a JSON file you can return with the project. Browser storage may be unavailable in
+some file viewers; export before closing when the page says reviews are kept on-screen only.
+
+The browser regression script is `node tools/simtest/audition_check.mjs` (requires Playwright and
+Chromium). It checks embedded audio decoding, saved reviews, filters and JSON export at a mobile
+viewport. This is not a human listening approval or an iPhone Safari test.
 
 ## Reporting back
 For each failed step, note **step number, what you expected, what happened**, and any red content-log line.

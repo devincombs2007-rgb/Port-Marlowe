@@ -5,6 +5,7 @@ import { Entity, ItemStack, Player, system, world } from "@minecraft/server";
 import { forgetAudio } from "./core/audio";
 import { forgetPrefs, isOperator, setTestMode } from "./core/config";
 import { clearAllFog } from "./core/fx";
+import { forgetForms } from "./core/forms";
 import { ENT } from "./core/ids";
 import { debug, setDebug, debugEnabled } from "./core/log";
 import { forgetRuntime, rt } from "./core/players";
@@ -108,6 +109,7 @@ world.afterEvents.playerSpawn.subscribe((ev) => safe("playerSpawn", () => {
 }));
 
 function forgetEncounters(playerId: string): void {
+  forgetForms(playerId);
   forgetEventTarget(playerId);
   forgetWatcherTarget(playerId);
   forgetBorrowedTarget(playerId);

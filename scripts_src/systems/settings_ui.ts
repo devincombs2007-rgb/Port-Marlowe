@@ -1,18 +1,10 @@
-import { Player, system } from "@minecraft/server";
-import { ActionFormData, FormCancelationReason, ModalFormData, ModalFormResponse } from "@minecraft/server-ui";
+import { Player } from "@minecraft/server";
+import { ActionFormData, ModalFormData } from "@minecraft/server-ui";
 import { PlayerPrefs, WorldSettings, isOperator, prefs, rawSettings, savePrefs, saveSettings } from "../core/config";
 import { clearAllFog, notice } from "../core/fx";
+import { showForm } from "../core/forms";
 
 // Controller-friendly settings: every option is a toggle, dropdown or slider in a server form.
-
-function showModal(p: Player, f: ModalFormData, retries = 6): Promise<ModalFormResponse | undefined> {
-  return f.show(p).then((r) => {
-    if (r.canceled && r.cancelationReason === FormCancelationReason.UserBusy && retries > 0) {
-      return new Promise<ModalFormResponse | undefined>((res) => system.runTimeout(() => showModal(p, f, retries - 1).then(res), 10));
-    }
-    return r;
-  });
-}
 
 export async function openSettings(p: Player, op: boolean): Promise<void> {
   const menu = new ActionFormData()
@@ -22,8 +14,8 @@ export async function openSettings(p: Player, op: boolean): Promise<void> {
       "(Music, Ambient/Environment, Hostile Creatures) and Subtitles are in Minecraft's own Settings menu.")
     .button("My comfort settings", "textures/ui/hollow/settings");
   if (op) menu.button("World rules §8(operator)", "textures/ui/hollow/world");
-  const r = await menu.show(p);
-  if (r.canceled || r.selection === undefined) return;
+  const r = await showForm(p, menu);
+  if (!r || r.canceled || r.selection === undefined) return;
   if (r.selection === 0) return openPrefs(p);
   if (r.selection === 1 && isOperator(p)) return openWorld(p);
 }
@@ -38,7 +30,7 @@ async function openPrefs(p: Player): Promise<void> {
     .toggle("Action-bar hints", { defaultValue: cur.hints })
     .toggle("Music (night, cave, shrine and boss tracks)", { defaultValue: cur.music })
     .submitButton("Save");
-  const r = await showModal(p, f);
+  const r = await showForm(p, f);
   if (!r || r.canceled || !r.formValues) return;
   const v = r.formValues;
   const next: PlayerPrefs = {
@@ -59,8 +51,8 @@ async function openWorld(p: Player): Promise<void> {
     .title("§lWorld rules")
     .dropdown("Horror intensity", ["Calm: rarer, no ambush strikes", "Standard", "Nightmare: frequent, bolder"], { defaultValueIndex: s.intensity })
     .slider("Encounter frequency (%)", 25, 200, { defaultValue: s.frequency, valueStep: 25 })
-    .slider("Grace days before creatures hunt", 0, 5, { defaultValue: s.graceDays, valueStep: 1 })
-    .slider("First night the Knocker may visit", 2, 10, { defaultValue: Math.max(2, Math.min(10, s.knockerNight)), valueStep: 1 })
+    .slider("Grace days before creatures hunt", 0, 10, { defaultValue: s.graceDays, valueStep: 1 })
+    .slider("First night the Knocker may visit", 1, 20, { defaultValue: s.knockerNight, valueStep: 1 })
     .toggle("Creature: The Watcher", { defaultValue: s.watcher })
     .toggle("Creature: The Borrowed", { defaultValue: s.borrowed })
     .toggle("Creature: The Hollowed", { defaultValue: s.hollowed })
@@ -68,11 +60,11 @@ async function openWorld(p: Player): Promise<void> {
     .toggle("Creature: The Mirebound", { defaultValue: s.mirebound })
     .toggle("Destructive Knocker (may break wooden doors on Hard)", { defaultValue: s.destructive })
     .toggle("Rare bedtime knocking (harmless, never blocks sleep)", { defaultValue: s.sleepDisturbance })
-    .toggle("Place cabins, campsites and the shrine", { defaultValue: s.sites })
+    .toggle("Place cabins, camps, towers, lean-tos and the shrine", { defaultValue: s.sites })
     .toggle("Scale the Heart Below with player count", { defaultValue: s.bossScaling })
     .toggle("Rare one-off events (harmless, once per world)", { defaultValue: s.rareEvents })
     .submitButton("Save");
-  const r = await showModal(p, f);
+  const r = await showForm(p, f);
   if (!r || r.canceled || !r.formValues || !isOperator(p)) return;
   // No labels/dividers in this form, so values map 1:1 to the controls above.
   const v = r.formValues;

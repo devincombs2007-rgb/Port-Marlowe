@@ -124,7 +124,7 @@ export function tryStartWatcher(p: Player): boolean {
     const x = p.location.x + dir.x * r;
     const z = p.location.z + dir.z * r;
     const g = groundNear(dim, x, p.location.y, z, 12, 3);
-    if (!g) continue;
+    if (!g || protectedSpot(dim, g)) continue;
     if (biomeGroup(dim, g) !== "forest") continue;
     if (hasBlockNear(dim, g, LIGHT_BLOCKS, 5, 2, 5)) continue;
     if (!clearLine(dim, head, add(g, { x: 0, y: HEAD, z: 0 }))) continue;

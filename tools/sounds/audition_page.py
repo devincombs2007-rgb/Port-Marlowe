@@ -4,7 +4,7 @@ per-sound verdicts that save to the published page's database, so feedback can d
 Run after tools/sounds/sourced.py. Audio is transcoded to MP3 because iPhone Safari does not
 reliably play Ogg Vorbis. Publish build/audition/index.html with the a/** files as supporting files.
 """
-import html
+import base64
 import json
 import os
 import subprocess
@@ -50,6 +50,7 @@ def transcode(src, dst, music):
 
 
 def main():
+    standalone = "--standalone" in sys.argv
     cat = json.load(open(os.path.join(os.path.dirname(__file__), "catalog_generated.json")))
     events = cat["events"]
     data = []
@@ -65,20 +66,32 @@ def main():
                 pub = f"a/{rel}.mp3"
                 transcode(os.path.join(RP, v["file"] + ".ogg"), os.path.join(OUT, pub), ev.startswith("music"))
                 files[pub] = os.path.join(OUT, pub)
-                vs.append({"id": rel.replace("/", "__"), "src": pub, "n": i + 1,
+                src = pub
+                if standalone:
+                    with open(os.path.join(OUT, pub), "rb") as audio_file:
+                        src = "data:audio/mpeg;base64," + base64.b64encode(audio_file.read()).decode("ascii")
+                vs.append({"id": rel.replace("/", "__"), "src": src, "n": i + 1,
                            "sources": [s.split("/", 1)[1] for s in v["sources"]]})
             items.append({"event": ev, "subtitle": e["subtitle"], "vanilla": e.get("vanilla", []), "variants": vs})
         data.append({"key": key, "title": title, "blurb": blurb, "events": items})
     total = sum(len(i["variants"]) for g in data for i in g["events"])
     page = TEMPLATE.replace("__DATA__", json.dumps(data, separators=(",", ":"))).replace("__TOTAL__", str(total))
+    if standalone:
+        page = "\n".join(line for line in page.splitlines() if "fonts.googleapis.com" not in line)
     with open(os.path.join(OUT, "index.html"), "w") as f:
         f.write(page)
     with open(os.path.join(OUT, "files.json"), "w") as f:
         json.dump(files, f, indent=0)
+    if standalone:
+        with open(os.path.join(OUT, "THE_HOLLOW_Sound_Booth.html"), "w") as f:
+            f.write(page)
     print(f"audition page: {total} sounds, {len(files)} audio files -> {os.path.relpath(OUT)}")
 
 
-TEMPLATE = r"""<title>Hollow Sound Booth</title>
+TEMPLATE = r"""<!doctype html>
+<html lang="en"><meta charset="utf-8">
+<title>Hollow Sound Booth</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
@@ -132,15 +145,16 @@ section { margin-top: 34px; }
 
 <div class="wrap">
   <h1>Hollow Sound Booth</h1>
-  <p class="lede">Every sound in <b>THE HOLLOW</b>, rebuilt from downloaded CC0 recordings (Kenney, Abstraction / Ben Burnes, rubberduck on OpenGameArt) and CC0 music. I picked and processed them from measurements and file descriptions; <b>nobody has listened to them yet</b>. Play each one, mark it, and add a note where something feels off. Your marks are saved here and I can read them to retune the add-on.</p>
+  <p class="lede">Listen to <b>THE HOLLOW</b>'s sounds and music, built from credited CC0 recordings. Mark anything too loud, too quiet or wrong for the scene, then <b>export your feedback</b> to share it for the next tuning pass. Reviews are stored in this browser when available; they are not automatically sent to ChatGPT.</p>
   <div class="bar">
     <span class="progress" id="progress">Reviewed <b>0</b> of __TOTAL__</span>
     <div class="chips" role="group" aria-label="Show">
       <button class="chip" id="f-all" aria-pressed="true">All</button>
       <button class="chip" id="f-todo" aria-pressed="false">Not reviewed</button>
       <button class="chip" id="f-flag" aria-pressed="false">Flagged</button>
+      <button class="chip" id="export">Export feedback</button>
     </div>
-    <span class="status" id="status">Connecting to saved reviews…</span>
+    <span class="status" id="status" role="status" aria-live="polite">Loading reviews…</span>
   </div>
   <div id="list"></div>
 </div>
@@ -149,6 +163,17 @@ section { margin-top: 34px; }
 const DATA = __DATA__;
 const VERDICTS = [["good", "Good"], ["loud", "Too loud"], ["quiet", "Too quiet"], ["wrong", "Wrong feel"]];
 const reviews = new Map();   // variant id -> {verdict, note}
+const STORAGE_KEY = "hollow.sound-reviews.v1";
+const variantIds = new Set(DATA.flatMap((g) => g.events.flatMap((e) => e.variants.map((v) => v.id))));
+try {
+  for (const [id, r] of Object.entries(JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"))) {
+    if (variantIds.has(id) && r && typeof r === "object") reviews.set(id, {
+      verdict: VERDICTS.some(([v]) => v === r.verdict) ? r.verdict : "",
+      note: typeof r.note === "string" ? r.note.slice(0, 2000) : "",
+      event: typeof r.event === "string" ? r.event : "",
+    });
+  }
+} catch { /* browsing environment may disable persistent storage */ }
 let filter = "all", db = null, canWrite = true, current = null;
 const audio = new Audio();
 audio.preload = "none";
@@ -222,12 +247,28 @@ audio.addEventListener("pause", () => { if (current) { current.dataset.on = "0";
 
 function setStatus(t) { document.getElementById("status").textContent = t; }
 
+function saveLocal() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(Object.fromEntries(reviews))); return true; }
+  catch { return false; }
+}
+
+document.getElementById("export").addEventListener("click", () => {
+  const result = { format: "hollow-sound-reviews", version: 1, exportedAt: new Date().toISOString(), reviews: Object.fromEntries(reviews) };
+  const url = URL.createObjectURL(new Blob([JSON.stringify(result, null, 2)], { type: "application/json" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "THE_HOLLOW_sound_feedback.json";
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+
 async function save(id, event, patch) {
   const prev = reviews.get(id) ?? {};
   const next = { ...prev, ...patch, event, at: new Date().toISOString() };
   reviews.set(id, next);
   paint();
-  if (!db || !canWrite) { setStatus(db ? "View only: your marks are not saved." : "Not connected: marks are kept on this screen only."); return; }
+  const local = saveLocal();
+  if (!db || !canWrite) { setStatus(local ? "Saved in this browser. Export to share feedback." : "Kept on this screen only. Export before closing."); return; }
   try {
     await db.collection("reviews").doc(id).set({ file: id, event, verdict: next.verdict ?? "", note: next.note ?? "", at: next.at });
     setStatus("Saved");
@@ -248,13 +289,14 @@ for (const [id, f] of [["f-all", "all"], ["f-todo", "todo"], ["f-flag", "flag"]]
 }
 
 render();
+setStatus("Local reviews loaded. Export to share feedback.");
 
 (async () => {
   const claude = window.claude;
-  if (!claude?.use) { setStatus("Not connected: marks are kept on this screen only."); return; }
+  if (!claude?.use) return;
   db = await claude.use("db");
   const user = await claude.use("user");
-  if (!db) { setStatus("Not connected: marks are kept on this screen only."); return; }
+  if (!db) return;
   const w = user ? await user.can("data.write") : null;
   if (w === false) { canWrite = false; setStatus("View only: you can listen, but marks are not saved."); }
   db.collection("reviews").onSnapshot((snap) => {
@@ -265,8 +307,9 @@ render();
     if (canWrite) setStatus(snap.metadata.fromCache ? "Loading saved reviews…" : "Saved reviews loaded");
     paint();
   }, () => setStatus("Saved reviews are unavailable right now."));
-})();
+})().catch(() => setStatus("Cloud reviews unavailable. You can still save locally and export."));
 </script>
+</html>
 """
 
 if __name__ == "__main__":

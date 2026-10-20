@@ -23,12 +23,14 @@ export interface Spot {
 
 const LIMITS = { [DP.chimes]: 32, [DP.wards]: 32, lanterns: 16 } as Record<string, number>;
 const LANTERNS = "hollow:lanterns";
+const REGISTERED_TYPES: Record<string, string> = { [DP.chimes]: BLOCK.chime, [DP.wards]: BLOCK.ward, [LANTERNS]: BLOCK.lantern };
 const cache = new Map<string, Spot[]>();
 
 function list(key: string): Spot[] {
   let l = cache.get(key);
   if (!l) {
-    l = readWorldArray<Spot>(key).filter((s) => typeof s?.x === "number");
+    l = readWorldArray<Spot>(key).filter((s) => s && typeof s.d === "string" &&
+      [s.x, s.y, s.z].every((v) => typeof v === "number" && Number.isFinite(v)));
     cache.set(key, l);
   }
   return l;
@@ -44,6 +46,14 @@ const same = (s: Spot, d: Dimension, loc: Vector3) =>
 function register(key: string, b: Block, limit: number): boolean {
   const l = list(key);
   if (l.some((s) => same(s, b.dimension, b.location))) return true;
+  // Explosions/commands can remove blocks without our break callbacks. Only prune positions
+  // we can actually read; an unloaded chunk must retain its reservation and protection.
+  for (const s of [...l]) {
+    let dim: Dimension;
+    try { dim = world.getDimension(s.d); } catch { continue; }
+    const existing = block(dim, s);
+    if (existing && existing.typeId !== REGISTERED_TYPES[key]) unregister(key, dim, s);
+  }
   if (l.length >= limit) return false;
   l.push({ d: b.dimension.id, x: b.location.x, y: b.location.y, z: b.location.z });
   persist(key);
@@ -56,6 +66,7 @@ function unregister(key: string, d: Dimension, loc: Vector3): void {
   if (i >= 0) {
     l.splice(i, 1);
     persist(key);
+    if (key === DP.wards) forgetWardUses(d, loc);
   }
 }
 
@@ -69,7 +80,21 @@ const spotLoc = (s: Spot): Vector3 => ({ x: s.x + 0.5, y: s.y + 0.5, z: s.z + 0.
 // ------------------------------------------------------------------------------- wards
 
 const WARD_RADIUS = 10;
-const wardUses = new Map<string, number>(); // "x,y,z|creature|night" -> tick used
+interface WardUse { key: string; night: number }
+let wardUses: WardUse[] | undefined;
+const wardKey = (d: Dimension, loc: Vector3) => `${d.id}|${Math.floor(loc.x)},${Math.floor(loc.y)},${Math.floor(loc.z)}|`;
+
+function currentWardUses(): WardUse[] {
+  wardUses ??= readWorldArray<WardUse>(DP.wardUses);
+  wardUses = wardUses.filter((u) => u && typeof u.key === "string" && u.night === nightKey()).slice(-256);
+  return wardUses;
+}
+
+function forgetWardUses(d: Dimension, loc: Vector3): void {
+  const prefix = wardKey(d, loc);
+  wardUses = currentWardUses().filter((u) => !u.key.startsWith(prefix));
+  writeWorld(DP.wardUses, wardUses);
+}
 
 // The block stores charges *used* (default 0 = a freshly placed, fully charged ward).
 function chargesOf(perm: BlockPermutation): number {
@@ -82,11 +107,12 @@ function wardCharges(b: Block | undefined): number {
   return chargesOf(b.permutation);
 }
 
-function setWardCharges(b: Block, n: number): void {
+function setWardCharges(b: Block, n: number): boolean {
   try {
     b.setPermutation(withCustomState(b.permutation, "hollow:used", 4 - Math.max(0, Math.min(4, n))));
+    return true;
   } catch {
-    /* block changed */
+    return false;
   }
 }
 
@@ -94,6 +120,7 @@ function setWardCharges(b: Block, n: number): void {
 export function wardNear(dim: Dimension, loc: Vector3): Block | undefined {
   for (const s of within(DP.wards, dim, loc, WARD_RADIUS)) {
     const b = block(dim, s);
+    if (!b) continue; // unreadable chunk is not a broken ward
     const c = wardCharges(b);
     if (c < 0) {
       unregister(DP.wards, dim, s);
@@ -109,15 +136,17 @@ export function wardNear(dim: Dimension, loc: Vector3): Block | undefined {
  * type per night, so a single persistent visitor can't drain it.
  */
 export function useWard(ward: Block, creature: string): void {
-  const key = `${ward.location.x},${ward.location.y},${ward.location.z}|${creature}|${nightKey()}`;
+  const key = `${wardKey(ward.dimension, ward.location)}${creature}`;
+  const c = wardCharges(ward);
+  if (c <= 0) return;
   const loc = ward.center();
   worldSound(ward.dimension, SND.wardRepel, loc);
   particle(ward.dimension, PARTICLE.wardGlow, loc);
-  if (wardUses.has(key)) return;
-  wardUses.set(key, now());
-  if (wardUses.size > 256) wardUses.clear();
-  const c = wardCharges(ward);
-  setWardCharges(ward, c - 1);
+  const uses = currentWardUses();
+  if (uses.some((u) => u.key === key)) return;
+  if (!setWardCharges(ward, c - 1)) return;
+  uses.push({ key, night: nightKey() });
+  writeWorld(DP.wardUses, uses);
   if (c - 1 <= 0) worldSound(ward.dimension, SND.wardSpent, loc);
 }
 
@@ -126,6 +155,7 @@ export function useWard(ward: Block, creature: string): void {
 export function lanternNear(dim: Dimension, loc: Vector3, radius = 24): boolean {
   for (const s of within(LANTERNS, dim, loc, radius)) {
     const b = block(dim, s);
+    if (!b) continue; // preserve protection registration across chunk boundaries
     if (b?.typeId === BLOCK.lantern) return true;
     unregister(LANTERNS, dim, s);
   }
@@ -271,7 +301,11 @@ export function registerBlockComponents(ev: StartupEvent): void {
 
   ev.blockComponentRegistry.registerCustomComponent("hollow:lantern", {
     onPlace(e) {
-      register(LANTERNS, e.block, LIMITS.lanterns);
+      if (!register(LANTERNS, e.block, LIMITS.lanterns)) {
+        for (const p of e.dimension.getPlayers({ location: e.block.location, maxDistance: 8 })) {
+          notice(p, "§7This world already has 16 active Heartwood Lanterns. This one gives light only.");
+        }
+      }
     },
     onPlayerBreak(e) {
       unregister(LANTERNS, e.dimension, e.block.location);

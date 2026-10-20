@@ -7,7 +7,7 @@ import { add, chance, dist, pick, rand, scale } from "../core/math";
 import { ctx, huntable, isNewcomer, onlinePlayers } from "../core/players";
 import { every, later } from "../core/scheduler";
 import { readWorld, writeWorld } from "../core/store";
-import { hollowNight, isDay, nightKey, now, seconds, tod } from "../core/time";
+import { hollowDay, hollowNight, isDay, nightKey, now, seconds, tod } from "../core/time";
 import { DOORS, block, clearLine, findBlocks, getCustomState, groundNear } from "../core/world";
 import { lanternNear, useWard, wardNear } from "../items/blocks";
 import { unlock } from "../systems/journal";
@@ -74,7 +74,7 @@ function plan(): Saved {
   const cfg = settings();
   const gap = [3, 2, 1][cfg.intensity];
   const night = hollowNight();
-  const eligible = cfg.knocker && night >= cfg.knockerNight && night - s.lastNight >= gap;
+  const eligible = cfg.knocker && hollowDay() >= cfg.graceDays && night >= cfg.knockerNight && night - s.lastNight >= gap;
   const next: Saved = {
     ...s, plannedKey: key, planned: eligible && chance(Math.min(0.9, 0.45 * chanceScale())),
     planTick: Math.round(rand(13600, 19000)),
@@ -151,7 +151,7 @@ function tryVisit(): void {
       const lateral = rand(-6, 6);
       const target = add(add(door, scale(out, r)), scale(side, lateral));
       const g = groundNear(dim, target.x, door.y, target.z, 8, 3);
-      if (!g) continue;
+      if (!g || lanternNear(dim, g)) continue;
       if (clearLine(dim, p.getHeadLocation(), add(g, { x: 0, y: 2, z: 0 }))) continue;
       let e: Entity;
       try {

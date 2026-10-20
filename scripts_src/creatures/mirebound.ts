@@ -97,7 +97,7 @@ function nearWater(p: Player): boolean {
 
 export function tryStartMirebound(p: Player): boolean {
   const s = settings();
-  if (!s.mirebound || !dayReached(hollowDay(), 2)) return false;
+  if (!s.mirebound || hollowDay() < s.graceDays || !dayReached(hollowDay(), 2)) return false;
   const c = ctx(p);
   if (!c.overworld || c.underground || (c.biome !== "swamp" && c.biome !== "shore")) return false;
   if (!huntable(p) || rt(p).encounter || !cooldownReady(p, "mirebound")) return false;
@@ -111,7 +111,7 @@ export function tryStartMirebound(p: Player): boolean {
     const d = yawDir(yaw + rand(-55, 55));
     const r = rand(10, 22);
     const at = shallowWater(dim, p.location.x + d.x * r, p.location.y, p.location.z + d.z * r);
-    if (!at || distXZ(at, p.location) < 8) continue;
+    if (!at || distXZ(at, p.location) < 8 || protectedSpot(dim, at)) continue;
     let e: Entity;
     try {
       e = dim.spawnEntity(ENT.mirebound, at, { initialRotation: yawOf(norm(sub(p.location, at))) });
@@ -210,7 +210,7 @@ function update(): void {
           if (dist(p.location, e.location) < 18 && clearLine(dim, p.getHeadLocation(), add(e.location, { x: 0, y: 1, z: 0 }))) unlock(p, "mirebound1");
         }
       }
-      const prey = players.find((p) => huntable(p) && distXZ(p.location, e.location) < 3.5 && Math.abs(p.location.y - e.location.y) < 2.5 && nearWater(p));
+      const prey = players.find((p) => huntable(p) && distXZ(p.location, e.location) < 3.5 && Math.abs(p.location.y - e.location.y) < 2.5 && nearWater(p) && !protectedSpot(dim, p.location));
       if (prey) {
         setState(e, m, "erupt");
         m.victim = prey.id;
@@ -224,7 +224,7 @@ function update(): void {
     if (m.state === "erupt") {
       if (inState < 12) continue; // the windup: step away now
       const v = m.victim ? (world.getEntity(m.victim) as Player | undefined) : undefined;
-      if (!v?.isValid || dist(v.location, e.location) > 3.2 || !huntable(v)) {
+      if (!v?.isValid || dist(v.location, e.location) > 3.2 || !huntable(v) || protectedSpot(dim, v.location)) {
         m.victim = undefined;
         if (v?.isValid) notice(v, "§7It snaps at empty water. Get to dry land.");
         setState(e, m, "retreat");

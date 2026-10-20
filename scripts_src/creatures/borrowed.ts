@@ -79,7 +79,7 @@ function reveal(e: Entity, enc: Enc, why: string, by?: Player): void {
 
 export function tryStartBorrowed(p: Player): boolean {
   const s = settings();
-  if (!s.borrowed || !dayReached(hollowDay(), 1)) return false;
+  if (!s.borrowed || hollowDay() < s.graceDays || !dayReached(hollowDay(), 1)) return false;
   const c = ctx(p);
   if (!c.overworld || c.underground || c.inWater) return false;
   if (!huntable(p) || !cooldownReady(p, "borrowed")) return false;
@@ -102,7 +102,7 @@ export function tryStartBorrowed(p: Player): boolean {
   if (hidden.length === 0) return false;
   const sheep = pick(hidden);
   const g = groundNear(dim, sheep.location.x + rand(-2, 2), sheep.location.y, sheep.location.z + rand(-2, 2), 4, 2);
-  if (!g || dist(g, p.location) < 14) return false;
+  if (!g || dist(g, p.location) < 14 || lanternNear(dim, g)) return false;
   let e: Entity;
   try {
     e = dim.spawnEntity(ENT.borrowed, g, { initialRotation: rand(0, 360) });

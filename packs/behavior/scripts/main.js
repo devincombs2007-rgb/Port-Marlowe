@@ -135,6 +135,7 @@ var DP = {
   sites: "hollow:sites",
   chimes: "hollow:chimes",
   wards: "hollow:wards",
+  wardUses: "hollow:ward_uses",
   boss: "hollow:boss",
   knocker: "hollow:knocker",
   version: "hollow:data_version",
@@ -263,29 +264,49 @@ function saveSettings(s) {
   writeWorld(DP.settings, worldCache);
 }
 function sanitizeWorld(s) {
-  const out = { ...WORLD_DEFAULTS, ...s };
-  out.intensity = Math.max(0, Math.min(2, Math.round(out.intensity)));
-  out.frequency = Math.max(25, Math.min(200, Math.round(out.frequency)));
-  out.graceDays = Math.max(0, Math.min(10, Math.round(out.graceDays)));
-  out.knockerNight = Math.max(1, Math.min(20, Math.round(out.knockerNight)));
+  const out = { ...WORLD_DEFAULTS };
+  out.intensity = numberSetting(s.intensity, out.intensity, 0, 2);
+  out.frequency = numberSetting(s.frequency, out.frequency, 25, 200);
+  out.graceDays = numberSetting(s.graceDays, out.graceDays, 0, 10);
+  out.knockerNight = numberSetting(s.knockerNight, out.knockerNight, 1, 20);
+  for (const key of [
+    "watcher",
+    "borrowed",
+    "hollowed",
+    "knocker",
+    "mirebound",
+    "destructive",
+    "sleepDisturbance",
+    "sites",
+    "bossScaling",
+    "rareEvents"
+  ]) {
+    if (typeof s[key] === "boolean") out[key] = s[key];
+  }
   return out;
+}
+function numberSetting(v, fallback, min, max) {
+  return typeof v === "number" && Number.isFinite(v) ? Math.max(min, Math.min(max, Math.round(v))) : fallback;
+}
+function sanitizePrefs(p) {
+  return {
+    ambience: numberSetting(p.ambience, PREF_DEFAULTS.ambience, 0, 100),
+    accents: numberSetting(p.accents, PREF_DEFAULTS.accents, 0, 2),
+    visualFx: typeof p.visualFx === "boolean" ? p.visualFx : PREF_DEFAULTS.visualFx,
+    hints: typeof p.hints === "boolean" ? p.hints : PREF_DEFAULTS.hints,
+    music: typeof p.music === "boolean" ? p.music : PREF_DEFAULTS.music
+  };
 }
 function prefs(player) {
   let p = prefCache.get(player.id);
   if (!p) {
-    p = { ...PREF_DEFAULTS, ...readEntity(player, DP.prefs, PREF_DEFAULTS) };
+    p = sanitizePrefs(readEntity(player, DP.prefs, PREF_DEFAULTS));
     prefCache.set(player.id, p);
   }
   return p;
 }
 function savePrefs(player, p) {
-  const clean = {
-    ambience: Math.max(0, Math.min(100, Math.round(p.ambience))),
-    accents: Math.max(0, Math.min(2, Math.round(p.accents))),
-    visualFx: !!p.visualFx,
-    hints: !!p.hints,
-    music: p.music !== false
-  };
+  const clean = sanitizePrefs(p);
   prefCache.set(player.id, clean);
   writeEntity(player, DP.prefs, clean);
 }
@@ -442,6 +463,41 @@ function notice(p, text) {
     p.onScreenDisplay.setActionBar(text);
   } catch {
   }
+}
+
+// ../../scripts_src/core/forms.ts
+import { system as system2 } from "@minecraft/server";
+import { FormCancelationReason } from "@minecraft/server-ui";
+var sessions = /* @__PURE__ */ new Map();
+function forgetForms(playerId) {
+  sessions.delete(playerId);
+}
+async function formSession(p, render) {
+  if (!p.isValid || sessions.has(p.id)) return;
+  const token = {};
+  sessions.set(p.id, token);
+  try {
+    await render();
+  } finally {
+    if (sessions.get(p.id) === token) sessions.delete(p.id);
+  }
+}
+async function showForm(p, form, retries = 6) {
+  const token = sessions.get(p.id);
+  const current = () => p.isValid && sessions.get(p.id) === token;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    if (!current()) return void 0;
+    let r;
+    try {
+      r = await form.show(p);
+    } catch {
+      return void 0;
+    }
+    if (!current()) return void 0;
+    if (!r.canceled || r.cancelationReason !== FormCancelationReason.UserBusy || attempt === retries) return r;
+    await new Promise((resolve) => system2.runTimeout(resolve, 10));
+  }
+  return void 0;
 }
 
 // ../../scripts_src/core/log.ts
@@ -737,6 +793,13 @@ function holdingLight(player) {
     return false;
   }
 }
+function heldItem(player) {
+  try {
+    return player.getComponent("minecraft:equippable")?.getEquipment(EquipmentSlot.Mainhand)?.typeId;
+  } catch {
+    return void 0;
+  }
+}
 function volumeAround(c, rx, ry, rz) {
   const x = Math.floor(c.x), y = Math.floor(c.y), z = Math.floor(c.z);
   return new BlockVolume({ x: x - rx, y: y - ry, z: z - rz }, { x: x + rx, y: y + ry, z: z + rz });
@@ -860,7 +923,7 @@ function onlinePlayers() {
 }
 
 // ../../scripts_src/core/scheduler.ts
-import { system as system2, world as world5 } from "@minecraft/server";
+import { system as system3, world as world5 } from "@minecraft/server";
 var failures = /* @__PURE__ */ new Map();
 function safe(label, fn) {
   try {
@@ -872,15 +935,15 @@ function safe(label, fn) {
   }
 }
 function every(label, ticks, fn, offset = 0) {
-  const start = () => system2.runInterval(() => safe(label, fn), ticks);
-  if (offset > 0) system2.runTimeout(start, offset);
+  const start = () => system3.runInterval(() => safe(label, fn), ticks);
+  if (offset > 0) system3.runTimeout(start, offset);
   else start();
 }
 function everyPlayer(label, period, fn) {
-  system2.runInterval(() => {
+  system3.runInterval(() => {
     const players = world5.getAllPlayers();
     if (players.length === 0) return;
-    const t = system2.currentTick;
+    const t = system3.currentTick;
     for (let i = 0; i < players.length; i++) {
       if ((i * 7 + t) % period !== 0) continue;
       const p = players[i];
@@ -890,7 +953,7 @@ function everyPlayer(label, period, fn) {
   }, 1);
 }
 function later(label, ticks, fn) {
-  system2.runTimeout(() => safe(label, fn), Math.max(1, Math.round(ticks)));
+  system3.runTimeout(() => safe(label, fn), Math.max(1, Math.round(ticks)));
 }
 function failureReport() {
   const parts = [];
@@ -1242,28 +1305,19 @@ var CHAPTERS = [
 ];
 
 // ../../scripts_src/systems/settings_ui.ts
-import { system as system3 } from "@minecraft/server";
-import { ActionFormData, FormCancelationReason, ModalFormData } from "@minecraft/server-ui";
-function showModal(p, f, retries = 6) {
-  return f.show(p).then((r) => {
-    if (r.canceled && r.cancelationReason === FormCancelationReason.UserBusy && retries > 0) {
-      return new Promise((res) => system3.runTimeout(() => showModal(p, f, retries - 1).then(res), 10));
-    }
-    return r;
-  });
-}
+import { ActionFormData, ModalFormData } from "@minecraft/server-ui";
 async function openSettings(p, op) {
   const menu = new ActionFormData().title("§lSettings").body("§7Comfort settings are yours alone. World rules affect everyone and need operator permission.\n\n§8Brightness, render distance, graphics mode (Vibrant Visuals), the sound sliders (Music, Ambient/Environment, Hostile Creatures) and Subtitles are in Minecraft's own Settings menu.").button("My comfort settings", "textures/ui/hollow/settings");
   if (op) menu.button("World rules §8(operator)", "textures/ui/hollow/world");
-  const r = await menu.show(p);
-  if (r.canceled || r.selection === void 0) return;
+  const r = await showForm(p, menu);
+  if (!r || r.canceled || r.selection === void 0) return;
   if (r.selection === 0) return openPrefs(p);
   if (r.selection === 1 && isOperator(p)) return openWorld(p);
 }
 async function openPrefs(p) {
   const cur = prefs(p);
   const f = new ModalFormData().title("§lMy comfort settings").slider("Ambience volume (script cues)", 0, 100, { defaultValue: cur.ambience, valueStep: 10 }).dropdown("Encounter accents (short stingers)", ["Off", "Subtle", "Full"], { defaultValueIndex: cur.accents }).toggle("Visual effects (fog shifts, soft fades)", { defaultValue: cur.visualFx }).toggle("Action-bar hints", { defaultValue: cur.hints }).toggle("Music (night, cave, shrine and boss tracks)", { defaultValue: cur.music }).submitButton("Save");
-  const r = await showModal(p, f);
+  const r = await showForm(p, f);
   if (!r || r.canceled || !r.formValues) return;
   const v = r.formValues;
   const next = {
@@ -1279,8 +1333,8 @@ async function openPrefs(p) {
 }
 async function openWorld(p) {
   const s = rawSettings();
-  const f = new ModalFormData().title("§lWorld rules").dropdown("Horror intensity", ["Calm: rarer, no ambush strikes", "Standard", "Nightmare: frequent, bolder"], { defaultValueIndex: s.intensity }).slider("Encounter frequency (%)", 25, 200, { defaultValue: s.frequency, valueStep: 25 }).slider("Grace days before creatures hunt", 0, 5, { defaultValue: s.graceDays, valueStep: 1 }).slider("First night the Knocker may visit", 2, 10, { defaultValue: Math.max(2, Math.min(10, s.knockerNight)), valueStep: 1 }).toggle("Creature: The Watcher", { defaultValue: s.watcher }).toggle("Creature: The Borrowed", { defaultValue: s.borrowed }).toggle("Creature: The Hollowed", { defaultValue: s.hollowed }).toggle("Creature: The Knocker", { defaultValue: s.knocker }).toggle("Creature: The Mirebound", { defaultValue: s.mirebound }).toggle("Destructive Knocker (may break wooden doors on Hard)", { defaultValue: s.destructive }).toggle("Rare bedtime knocking (harmless, never blocks sleep)", { defaultValue: s.sleepDisturbance }).toggle("Place cabins, campsites and the shrine", { defaultValue: s.sites }).toggle("Scale the Heart Below with player count", { defaultValue: s.bossScaling }).toggle("Rare one-off events (harmless, once per world)", { defaultValue: s.rareEvents }).submitButton("Save");
-  const r = await showModal(p, f);
+  const f = new ModalFormData().title("§lWorld rules").dropdown("Horror intensity", ["Calm: rarer, no ambush strikes", "Standard", "Nightmare: frequent, bolder"], { defaultValueIndex: s.intensity }).slider("Encounter frequency (%)", 25, 200, { defaultValue: s.frequency, valueStep: 25 }).slider("Grace days before creatures hunt", 0, 10, { defaultValue: s.graceDays, valueStep: 1 }).slider("First night the Knocker may visit", 1, 20, { defaultValue: s.knockerNight, valueStep: 1 }).toggle("Creature: The Watcher", { defaultValue: s.watcher }).toggle("Creature: The Borrowed", { defaultValue: s.borrowed }).toggle("Creature: The Hollowed", { defaultValue: s.hollowed }).toggle("Creature: The Knocker", { defaultValue: s.knocker }).toggle("Creature: The Mirebound", { defaultValue: s.mirebound }).toggle("Destructive Knocker (may break wooden doors on Hard)", { defaultValue: s.destructive }).toggle("Rare bedtime knocking (harmless, never blocks sleep)", { defaultValue: s.sleepDisturbance }).toggle("Place cabins, camps, towers, lean-tos and the shrine", { defaultValue: s.sites }).toggle("Scale the Heart Below with player count", { defaultValue: s.bossScaling }).toggle("Rare one-off events (harmless, once per world)", { defaultValue: s.rareEvents }).submitButton("Save");
+  const r = await showForm(p, f);
   if (!r || r.canceled || !r.formValues || !isOperator(p)) return;
   const v = r.formValues;
   const next = {
@@ -1374,16 +1428,6 @@ function ensureJournal(p, force = false) {
   } catch {
   }
 }
-function show(p, form, retries = 6) {
-  return form.show(p).then((r) => {
-    if (r.canceled && r.cancelationReason === FormCancelationReason2.UserBusy && retries > 0) {
-      return new Promise(
-        (res) => system4.runTimeout(() => show(p, form, retries - 1).then(res), 10)
-      );
-    }
-    return r;
-  });
-}
 function threatsAwake() {
   const s = settings();
   const day = hollowDay();
@@ -1398,6 +1442,9 @@ function threatsAwake() {
   return lines.join("\n");
 }
 async function openJournal(p) {
+  await formSession(p, () => openJournalMenu(p));
+}
+async function openJournalMenu(p) {
   ui(p, SND.journalOpen, 0.9);
   const d = data(p);
   const total = ENTRIES.length;
@@ -1413,7 +1460,7 @@ async function openJournal(p) {
 §8${count} entries`, ch.icon);
   }
   form.button("Settings\n§8comfort & world rules", "textures/ui/hollow/settings");
-  const r = await show(p, form);
+  const r = await showForm(p, form);
   if (!r || r.canceled || r.selection === void 0) return;
   if (r.selection < CHAPTERS.length) await openChapter(p, CHAPTERS[r.selection].id);
   else await openSettings(p, isOperator(p));
@@ -1431,22 +1478,22 @@ async function openChapter(p, ch) {
     form.button(`${d.r.includes(e.id) ? "" : "§6• §r"}${e.title}`, e.icon);
   }
   form.button("§8Back", "textures/ui/hollow/back");
-  const r = await show(p, form);
+  const r = await showForm(p, form);
   if (!r || r.canceled || r.selection === void 0) return;
-  if (r.selection >= unlocked.length) return openJournal(p);
+  if (r.selection >= unlocked.length) return openJournalMenu(p);
   await openEntry(p, unlocked[r.selection].id, ch);
 }
 async function openEntry(p, id, back) {
   const e = ENTRY_BY_ID.get(id);
   if (!e) return;
   const d = data(p);
-  if (!d.r.includes(id)) {
+  ui(p, SND.journalOpen, 0.6, 1.15);
+  const form = new ActionFormData2().title(`§l${e.title}`).body(e.body).button("§8Back", "textures/ui/hollow/back");
+  const r = await showForm(p, form);
+  if (r && r.cancelationReason !== FormCancelationReason2.UserBusy && !d.r.includes(id)) {
     d.r.push(id);
     save(p, d);
   }
-  ui(p, SND.journalOpen, 0.6, 1.15);
-  const form = new ActionFormData2().title(`§l${e.title}`).body(e.body).button("§8Back", "textures/ui/hollow/back");
-  const r = await show(p, form);
   if (!r || r.canceled) return;
   await openChapter(p, back);
 }
@@ -1984,6 +2031,7 @@ function consumeHeld(p, typeId) {
 }
 var revealTimers = /* @__PURE__ */ new Map();
 function useLens(p) {
+  if (!p.isValid || heldItem(p) !== ITEM.lens) return;
   ui(p, SND.lens, 1);
   const dim = p.dimension;
   const head = p.getHeadLocation();
@@ -2043,6 +2091,7 @@ function registerItemComponents(ev) {
     onUse(e) {
       const p = e.source;
       system5.run(() => {
+        if (!p.isValid || heldItem(p) !== ITEM.page) return;
         const title = unlockNextLore(p);
         if (title) {
           consumeHeld(p, ITEM.page);
@@ -2130,6 +2179,7 @@ function tryStartHollowed(p) {
   if (!s.hollowed || hollowDay() < s.graceDays) return false;
   const c = ctx(p);
   if (!c.overworld || !c.underground || !huntable(p) || !cooldownReady(p, "hollowed")) return false;
+  if (protectedSpot(p.dimension, p.location)) return false;
   const maxY = dayReached(hollowDay(), 3) ? 40 : 0;
   if (p.location.y > maxY) return false;
   let nearCount = 0;
@@ -2142,7 +2192,7 @@ function tryStartHollowed(p) {
     const d = yawDir(rand(0, 360));
     const r = rand(18, 30);
     const g = groundNear(dim, p.location.x + d.x * r, p.location.y + rand(-4, 4), p.location.z + d.z * r, 6, 2);
-    if (!g) continue;
+    if (!g || protectedSpot(dim, g)) continue;
     try {
       if (dim.getLightLevel(add(g, { x: 0, y: 0.5, z: 0 })) > 3) continue;
     } catch {
@@ -2211,6 +2261,7 @@ function removeLure(l) {
   }
 }
 function hear(n) {
+  if (protectedSpot(n.dim, n.at)) return;
   let heard = false;
   for (const h of hs.values()) {
     if (h.dim !== n.dim.id) continue;
@@ -2254,6 +2305,11 @@ function update() {
     const e = world10.getEntity(h.id);
     if (!e?.isValid) {
       hs.delete(h.id);
+      continue;
+    }
+    if (!h.juvenile && protectedSpot(e.dimension, e.location)) {
+      hs.delete(h.id);
+      e.remove();
       continue;
     }
     h.pos = e.location;
@@ -2816,11 +2872,12 @@ function bossSummary() {
 // ../../scripts_src/items/blocks.ts
 var LIMITS = { [DP.chimes]: 32, [DP.wards]: 32, lanterns: 16 };
 var LANTERNS = "hollow:lanterns";
+var REGISTERED_TYPES = { [DP.chimes]: BLOCK.chime, [DP.wards]: BLOCK.ward, [LANTERNS]: BLOCK.lantern };
 var cache2 = /* @__PURE__ */ new Map();
 function list2(key) {
   let l = cache2.get(key);
   if (!l) {
-    l = readWorldArray(key).filter((s) => typeof s?.x === "number");
+    l = readWorldArray(key).filter((s) => s && typeof s.d === "string" && [s.x, s.y, s.z].every((v) => typeof v === "number" && Number.isFinite(v)));
     cache2.set(key, l);
   }
   return l;
@@ -2832,6 +2889,16 @@ var same = (s, d, loc) => s.d === d.id && s.x === Math.floor(loc.x) && s.y === M
 function register(key, b, limit) {
   const l = list2(key);
   if (l.some((s) => same(s, b.dimension, b.location))) return true;
+  for (const s of [...l]) {
+    let dim;
+    try {
+      dim = world12.getDimension(s.d);
+    } catch {
+      continue;
+    }
+    const existing = block(dim, s);
+    if (existing && existing.typeId !== REGISTERED_TYPES[key]) unregister(key, dim, s);
+  }
   if (l.length >= limit) return false;
   l.push({ d: b.dimension.id, x: b.location.x, y: b.location.y, z: b.location.z });
   persist2(key);
@@ -2843,6 +2910,7 @@ function unregister(key, d, loc) {
   if (i >= 0) {
     l.splice(i, 1);
     persist2(key);
+    if (key === DP.wards) forgetWardUses(d, loc);
   }
 }
 function within(key, d, loc, radius) {
@@ -2851,7 +2919,18 @@ function within(key, d, loc, radius) {
 }
 var spotLoc = (s) => ({ x: s.x + 0.5, y: s.y + 0.5, z: s.z + 0.5 });
 var WARD_RADIUS = 10;
-var wardUses = /* @__PURE__ */ new Map();
+var wardUses;
+var wardKey = (d, loc) => `${d.id}|${Math.floor(loc.x)},${Math.floor(loc.y)},${Math.floor(loc.z)}|`;
+function currentWardUses() {
+  wardUses ??= readWorldArray(DP.wardUses);
+  wardUses = wardUses.filter((u) => u && typeof u.key === "string" && u.night === nightKey()).slice(-256);
+  return wardUses;
+}
+function forgetWardUses(d, loc) {
+  const prefix = wardKey(d, loc);
+  wardUses = currentWardUses().filter((u) => !u.key.startsWith(prefix));
+  writeWorld(DP.wardUses, wardUses);
+}
 function chargesOf(perm) {
   const used = getCustomState(perm, "hollow:used");
   return 4 - (typeof used === "number" ? used : 0);
@@ -2863,12 +2942,15 @@ function wardCharges(b) {
 function setWardCharges(b, n) {
   try {
     b.setPermutation(withCustomState(b.permutation, "hollow:used", 4 - Math.max(0, Math.min(4, n))));
+    return true;
   } catch {
+    return false;
   }
 }
 function wardNear(dim, loc) {
   for (const s of within(DP.wards, dim, loc, WARD_RADIUS)) {
     const b = block(dim, s);
+    if (!b) continue;
     const c = wardCharges(b);
     if (c < 0) {
       unregister(DP.wards, dim, s);
@@ -2879,20 +2961,23 @@ function wardNear(dim, loc) {
   return void 0;
 }
 function useWard(ward, creature) {
-  const key = `${ward.location.x},${ward.location.y},${ward.location.z}|${creature}|${nightKey()}`;
+  const key = `${wardKey(ward.dimension, ward.location)}${creature}`;
+  const c = wardCharges(ward);
+  if (c <= 0) return;
   const loc = ward.center();
   worldSound(ward.dimension, SND.wardRepel, loc);
   particle(ward.dimension, PARTICLE.wardGlow, loc);
-  if (wardUses.has(key)) return;
-  wardUses.set(key, now());
-  if (wardUses.size > 256) wardUses.clear();
-  const c = wardCharges(ward);
-  setWardCharges(ward, c - 1);
+  const uses = currentWardUses();
+  if (uses.some((u) => u.key === key)) return;
+  if (!setWardCharges(ward, c - 1)) return;
+  uses.push({ key, night: nightKey() });
+  writeWorld(DP.wardUses, uses);
   if (c - 1 <= 0) worldSound(ward.dimension, SND.wardSpent, loc);
 }
 function lanternNear(dim, loc, radius = 24) {
   for (const s of within(LANTERNS, dim, loc, radius)) {
     const b = block(dim, s);
+    if (!b) continue;
     if (b?.typeId === BLOCK.lantern) return true;
     unregister(LANTERNS, dim, s);
   }
@@ -3021,7 +3106,11 @@ function registerBlockComponents(ev) {
   });
   ev.blockComponentRegistry.registerCustomComponent("hollow:lantern", {
     onPlace(e) {
-      register(LANTERNS, e.block, LIMITS.lanterns);
+      if (!register(LANTERNS, e.block, LIMITS.lanterns)) {
+        for (const p of e.dimension.getPlayers({ location: e.block.location, maxDistance: 8 })) {
+          notice(p, "§7This world already has 16 active Heartwood Lanterns. This one gives light only.");
+        }
+      }
     },
     onPlayerBreak(e) {
       unregister(LANTERNS, e.dimension, e.block.location);
@@ -3071,7 +3160,7 @@ function reveal(e, enc, why, by) {
 }
 function tryStartBorrowed(p) {
   const s = settings();
-  if (!s.borrowed || !dayReached(hollowDay(), 1)) return false;
+  if (!s.borrowed || hollowDay() < s.graceDays || !dayReached(hollowDay(), 1)) return false;
   const c = ctx(p);
   if (!c.overworld || c.underground || c.inWater) return false;
   if (!huntable(p) || !cooldownReady(p, "borrowed")) return false;
@@ -3093,7 +3182,7 @@ function tryStartBorrowed(p) {
   if (hidden.length === 0) return false;
   const sheep = pick(hidden);
   const g = groundNear(dim, sheep.location.x + rand(-2, 2), sheep.location.y, sheep.location.z + rand(-2, 2), 4, 2);
-  if (!g || dist(g, p.location) < 14) return false;
+  if (!g || dist(g, p.location) < 14 || lanternNear(dim, g)) return false;
   let e;
   try {
     e = dim.spawnEntity(ENT.borrowed, g, { initialRotation: rand(0, 360) });
@@ -3234,7 +3323,7 @@ function plan() {
   const cfg = settings();
   const gap = [3, 2, 1][cfg.intensity];
   const night = hollowNight();
-  const eligible2 = cfg.knocker && night >= cfg.knockerNight && night - s.lastNight >= gap;
+  const eligible2 = cfg.knocker && hollowDay() >= cfg.graceDays && night >= cfg.knockerNight && night - s.lastNight >= gap;
   const next = {
     ...s,
     plannedKey: key,
@@ -3305,7 +3394,7 @@ function tryVisit() {
       const lateral = rand(-6, 6);
       const target = add(add(door, scale(out, r)), scale(side, lateral));
       const g = groundNear(dim, target.x, door.y, target.z, 8, 3);
-      if (!g) continue;
+      if (!g || lanternNear(dim, g)) continue;
       if (clearLine(dim, p.getHeadLocation(), add(g, { x: 0, y: 2, z: 0 }))) continue;
       let e;
       try {
@@ -3576,7 +3665,7 @@ function nearWater(p) {
 }
 function tryStartMirebound(p) {
   const s = settings();
-  if (!s.mirebound || !dayReached(hollowDay(), 2)) return false;
+  if (!s.mirebound || hollowDay() < s.graceDays || !dayReached(hollowDay(), 2)) return false;
   const c = ctx(p);
   if (!c.overworld || c.underground || c.biome !== "swamp" && c.biome !== "shore") return false;
   if (!huntable(p) || rt(p).encounter || !cooldownReady(p, "mirebound")) return false;
@@ -3590,7 +3679,7 @@ function tryStartMirebound(p) {
     const d = yawDir(yaw + rand(-55, 55));
     const r = rand(10, 22);
     const at = shallowWater(dim, p.location.x + d.x * r, p.location.y, p.location.z + d.z * r);
-    if (!at || distXZ(at, p.location) < 8) continue;
+    if (!at || distXZ(at, p.location) < 8 || protectedSpot(dim, at)) continue;
     let e;
     try {
       e = dim.spawnEntity(ENT.mirebound, at, { initialRotation: yawOf(norm(sub(p.location, at))) });
@@ -3677,7 +3766,7 @@ function update5() {
           if (dist(p.location, e.location) < 18 && clearLine(dim, p.getHeadLocation(), add(e.location, { x: 0, y: 1, z: 0 }))) unlock(p, "mirebound1");
         }
       }
-      const prey = players.find((p) => huntable(p) && distXZ(p.location, e.location) < 3.5 && Math.abs(p.location.y - e.location.y) < 2.5 && nearWater(p));
+      const prey = players.find((p) => huntable(p) && distXZ(p.location, e.location) < 3.5 && Math.abs(p.location.y - e.location.y) < 2.5 && nearWater(p) && !protectedSpot(dim, p.location));
       if (prey) {
         setState2(e, m, "erupt");
         m.victim = prey.id;
@@ -3690,7 +3779,7 @@ function update5() {
     if (m.state === "erupt") {
       if (inState < 12) continue;
       const v = m.victim ? world15.getEntity(m.victim) : void 0;
-      if (!v?.isValid || dist(v.location, e.location) > 3.2 || !huntable(v)) {
+      if (!v?.isValid || dist(v.location, e.location) > 3.2 || !huntable(v) || protectedSpot(dim, v.location)) {
         m.victim = void 0;
         if (v?.isValid) notice(v, "§7It snaps at empty water. Get to dry land.");
         setState2(e, m, "retreat");
@@ -3865,7 +3954,7 @@ function tryStartWatcher(p) {
     const x = p.location.x + dir.x * r;
     const z = p.location.z + dir.z * r;
     const g = groundNear(dim, x, p.location.y, z, 12, 3);
-    if (!g) continue;
+    if (!g || protectedSpot(dim, g)) continue;
     if (biomeGroup(dim, g) !== "forest") continue;
     if (hasBlockNear(dim, g, LIGHT_BLOCKS, 5, 2, 5)) continue;
     if (!clearLine(dim, head, add(g, { x: 0, y: HEAD, z: 0 }))) continue;
@@ -4527,6 +4616,7 @@ world18.afterEvents.playerSpawn.subscribe((ev) => safe("playerSpawn", () => {
   }
 }));
 function forgetEncounters(playerId) {
+  forgetForms(playerId);
   forgetEventTarget(playerId);
   forgetWatcherTarget(playerId);
   forgetBorrowedTarget(playerId);

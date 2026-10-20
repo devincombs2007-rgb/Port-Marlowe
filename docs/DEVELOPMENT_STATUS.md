@@ -1,4 +1,31 @@
-# THE HOLLOW development checkpoint — 1.0.1
+# THE HOLLOW development checkpoint — 1.0.2
+
+## Latest continuation: 1.0.2
+
+- Fixed wards and lanterns losing their saved registration when a query crosses an unreadable chunk.
+- Prune genuinely removed, readable equipment before applying placement caps. Extra Heartwood
+  Lanterns now explain that they give light only when the 16-lantern protection cap is full.
+- Extended grace-day settings now also delay the Borrowed, Mirebound and natural Knocker visits.
+- Ward charge history persists across saves/restarts and separates dimensions. One creature type
+  cannot drain another charge by returning after a restart on the same night.
+- All five natural encounter spawners check both their target and chosen spawn location against
+  Heartwood Lantern protection. Wild Hollowed ignore noise inside the protected radius and
+  disappear if they enter it. Mirebound cannot start a grab on a protected player.
+- Journal/settings use one navigation session per player, bounded busy retries and disconnect-safe
+  cancellation. Delayed responses cannot enter a new session. An entry remains unread when its
+  form never opened. Corrupt saved settings recover valid defaults; settings forms preserve the
+  complete supported grace/night ranges.
+- Completed a portable Sound Booth export with embedded MP3 audio, local review storage and JSON
+  feedback export. It no longer requires a Claude session to collect feedback.
+- Queued page/lens uses now cancel on a hotbar swap; repeated page callbacks cannot unlock
+  more lore entries than the pages consumed.
+- Corrected the older audio credits and release counts against the current shipped catalogue.
+
+Verification: 60/60 headless simulation scenarios; strict TypeScript compilation; static schema
+and reference validation. The portable Sound Booth passed its separate headless Chromium check: 150 embedded audio
+variants, MP3 decoding, review storage, filters, feedback export and storage-disabled fallback,
+with no network requests. This does not establish iPhone Safari playback or human audio quality.
+Consult `docs/TESTING.md` for the remaining engine tests.
 
 ## Starting point
 
@@ -52,8 +79,8 @@ No additional lighting or grading changes were made in this pass.
 
 - Strict TypeScript compilation against the pinned stable Script API typings.
 - Static schema and reference validation: zero errors, zero warnings.
-- 45/45 headless scenarios, including eight new event regression scenarios.
-- Importable archives rebuilt from the current source with version `1.0.1` manifests.
+- 60/60 headless scenarios, including event, shelter protection, saved-setting and journal regressions.
+- Importable archives rebuilt from the current source with version `1.0.2` manifests.
 
 ## Still requires Minecraft
 

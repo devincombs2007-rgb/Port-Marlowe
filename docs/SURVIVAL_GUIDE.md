@@ -100,7 +100,7 @@ Nugget   Stick     Nugget
 - Place it near your door. **Within 10 blocks:** the Knocker turns back before it knocks, the Watcher won't
   step closer, and a Borrowed is revealed and flees.
 - **4 charges.** It spends one charge each time it turns something away, but at most **one charge per creature
-  type per night**, so one persistent visitor can't drain it.
+  type per night**, even across a save/restart, so one persistent visitor can't drain it.
 - **Recharge:** use **Charcoal** on it, +1 charge each. **Use** it with an empty hand to see its charges.
 - Breaking a fully charged ward returns it. Breaking a used ward drops salvage (2 nuggets + string), so you can't
   refill one by breaking and re-placing it.
@@ -138,7 +138,9 @@ Place it in the **altar** at the centre of the shrine.
 ### Heartwood Lantern: the reward
 *Shapeless: Stilled Heart + Lantern.*
 A warm, permanent light. **Within 24 blocks** no Hollow creature spawns or is drawn in, and the
-Knocker never visits. Up to 16 per world.
+Knocker never visits. This protects ordinary encounters; a boss fight you deliberately awaken,
+including its summoned minions, still runs. Up to 16 active lanterns per world; extra lanterns
+show a message and provide light only.
 
 ---
 
@@ -256,8 +258,8 @@ Open **Journal → Settings**.
 |---|---|---|
 | Horror intensity | Standard | **Calm:** rarer, and the Watcher never strikes. **Nightmare:** more frequent, bolder, shorter cooldowns. |
 | Encounter frequency | 100% | 25–200%, scales spawn chances and cooldowns. |
-| Grace days | 1 | Days before creatures hunt (0–5). |
-| First Knocker night | 4 | 2–10. |
+| Grace days | 1 | Days before creatures hunt (0–10). |
+| First Knocker night | 4 | 1–20. |
 | Creature toggles | all on | Turn any of the five creatures off. Their materials then appear in new site chests. |
 | Destructive Knocker | **off** | May try to break wooden doors, on Hard only. |
 | Rare bedtime knocking | on | A harmless knock while you sleep, about one night in six after the Knocker's first night. Never blocks sleep. |

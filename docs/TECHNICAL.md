@@ -69,8 +69,8 @@ There are no per-tick full scans. Everything that recurs is listed here.
 | ambience | 120 ticks per player, staggered | chance roll, maybe 1 sound | 1 player per tick |
 | bedtime | 40 ticks per player | sleeping check | trivial |
 | sites.place | 1200 ticks per player | 30% roll → ≤4 candidate checks (`containsBlock` on footprint volumes) | rare |
-| sites.discover | 100 ticks per player | distance to ≤19 site records | ≤19 |
-| sites.validate | 6000 ticks | small-radius block search per **loaded** site | ≤19 sites |
+| sites.discover | 100 ticks per player | distance to ≤31 site records | ≤31 |
+| sites.validate | 6000 ticks | small-radius block search per **loaded** site | ≤31 sites |
 | watcher.update | 4 ticks | per active encounter: 1–2 raycasts per nearby player | ≤3 encounters |
 | borrowed.update | 10 ticks | per active Borrowed | ≤2 |
 | hollowed.update | 20 ticks | per active Hollowed and lure | ≤6 + lures |
@@ -162,16 +162,19 @@ FOV, the camera shake toggle, and the per-category audio sliders.
 
 ## 7. Audio
 
-- **70 sound events with 153 variants**, all synthesised procedurally by `tools/sounds/design.py` with no samples.
-  - Techniques: modal synthesis for knocks and the chime, stick-slip friction for creaks and scratches, granular crackle
-    for twigs and leaves, Minnaert bubbles for the Mirebound, formant voices for bleats and breaths, filtered noise beds for
-    wind and drones, and convolution reverb.
-  - Encoded as OGG Vorbis, mono, 44.1 kHz, so the engine positions them in 3D.
+- **77 sound events**, with 150 packaged OGG files and 11 references to vanilla sheep files.
+  The current `tools/sounds/sourced.py` pipeline processes credited CC0 recordings (Kenney,
+  Abstraction/Ben Burnes, rubberduck and the music creators in CREDITS.md). The earlier
+  all-synthesis `design.py` catalogue is retained for event calibration and reference.
+- Positional SFX are mono; music uses its own client playback policy and Minecraft's Music slider.
+- `python3 tools/sounds/audition_page.py --standalone` creates a portable, embedded-MP3 Sound Booth
+  at `build/audition/THE_HOLLOW_Sound_Booth.html`. It needs no Claude session or server. Reviews
+  save in browser storage when available and can be exported as JSON for the next tuning pass.
 - **Mixing rules in script:**
   - ambient cues have a ≥9 s global gap per player plus per-cue gaps;
   - encounter accents have a ≥45 s gap;
   - world sounds play at the source position;
-  - nothing loops indefinitely.
+  - shrine/boss music loops only while the player remains in the relevant area.
 - **Settings:** ambience volume and encounter accents are separate per-player settings. Minecraft's own category sliders
   (Hostile Creatures, Ambient/Environment, Blocks…) apply on top.
 - **Honest limitation:** I can't listen to audio. Every sound was checked by spectrogram, peak and RMS level, duration and

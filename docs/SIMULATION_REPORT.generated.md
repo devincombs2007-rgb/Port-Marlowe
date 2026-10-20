@@ -4,13 +4,20 @@ The real bundled behavior-pack scripts run against a fake Minecraft API (`tools/
 This checks script logic: scheduling, events, persistence, reloads, state machines, caps, cooldowns and rewards.
 It is **not** an in-game test: there is no engine pathfinding, melee, physics, rendering or audio.
 
-Result: **45/45 scenarios passed**
+Result: **60/60 scenarios passed**
 
 | Scenario | Result |
 |---|---|
 | first join gives a kept, locked journal and starter entries | pass |
 | journal UI opens chapters and entries with a controller-style selection | pass |
 | settings: non-operators cannot see world rules; values are sanitised | pass |
+| journal: repeated taps share one session; a closed form can reopen | pass |
+| journal: disconnected session cannot navigate or unlock a new session | pass |
+| journal: form rejection cancels cleanly and allows a later attempt | pass |
+| journal: busy menus retry through comfort settings; closing never retries | pass |
+| journal: entries stay unread when their form cannot be shown | pass |
+| settings: malformed saved values recover defaults without enabling destructive options | pass |
+| settings: opening and saving world rules preserves supported grace and night ranges | pass |
 | day 1 is safe: nothing hunts; the Watcher can only be glimpsed | pass |
 | newcomers, creative and peaceful players are never targeted | pass |
 | watcher appears out of view, 34-50 blocks away | pass |
@@ -27,12 +34,19 @@ Result: **45/45 scenarios passed**
 | knocker: a ward by the door turns it away (one charge, no nail); opening the door lets it in | pass |
 | ward: 4 charges, one per creature per night, charcoal recharges, salvage when used | pass |
 | chime rings when a creature is within 14 blocks, never when silenced | pass |
+| borrowed: joins a real flock and shears reveal it at night | pass |
+| ward: unloading its chunk cannot erase protection or the saved registry | pass |
+| ward: same creature type spends one charge per night across a server restart | pass |
+| equipment: stale loaded lantern registrations release capacity; unloaded ones keep it | pass |
 | mirebound: shallow water only; clues; 0.6 s windup; sneak frees; max 5 s hold | pass |
 | mirebound: grab holds at most 5 s; sneak/dismount frees; forced-riding fallback bites | pass |
 | hollowed: spawns out of sight in the dark; hears sprinting, not sneaking or wool | pass |
 | hollowed: thrown projectiles create a decoy away from the player | pass |
+| lantern: protects a cave player from new Hollowed encounters, including after reload | pass |
+| lantern: unloaded chunk preserves its registry; noise inside its radius draws no Hollowed | pass |
 | sites: a disabled creature's material is guaranteed in new site chests | pass |
 | items: material pickup teaches its recipe; lens reveals to its user only and wears | pass |
+| items: queued page/lens uses cannot bypass consumption by switching hotbar slots | pass |
 | music: shrine and boss tracks loop in place; off switch; silence while hunted; one track per night | pass |
 | music: night tracks are rare (at most one per night) and fall silent while something hunts you | pass |
 | tracks: the Knocker leaves bare-foot prints to the door that fade after a day; nothing is replaced | pass |
@@ -52,7 +66,8 @@ Result: **45/45 scenarios passed**
 | events: a replacement block at the lantern scene is preserved without a reward | pass |
 | test kit: operator-only; test mode removes waiting; never persists; boss/knocker shortcuts | pass |
 | test kit: kit, journal, boss2/boss3 and knocker shortcuts work | pass |
+| grace: extended grace days apply to Borrowed, Mirebound and Knocker, not just the Watcher | pass |
 | load: 8 players, all creatures, Nightmare 200% for a full day - caps hold | pass |
 
 - music: 1 night track(s) over 4 nights; 0 ticks of night music while a Watcher was stalking
-- load: peak creature counts {"hollow:borrowed":2,"hollow:watcher":3}; script time per tick avg 0.040 ms, p99 0.536 ms, max 5.31 ms (Node on a dev machine against the fake world - not an Xbox measurement)
+- load: peak creature counts {"hollow:borrowed":2,"hollow:watcher":3}; script time per tick avg 0.046 ms, p99 0.804 ms, max 3.54 ms (Node on a dev machine against the fake world - not an Xbox measurement)

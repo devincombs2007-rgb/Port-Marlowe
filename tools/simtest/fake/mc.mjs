@@ -841,8 +841,14 @@ class FormBase {
   title(t) { this._title = t; return this; }
   body(t) { this._body = t; return this; }
   button(text, icon) { this.controls.push({ type: "button", text, icon }); return this; }
-  slider(label, min, max, o) { this.controls.push({ type: "slider", label, min, max, o }); return this; }
-  dropdown(label, opts, o) { this.controls.push({ type: "dropdown", label, opts, o }); return this; }
+  slider(label, min, max, o) {
+    if (!Number.isFinite(o.defaultValue) || o.defaultValue < min || o.defaultValue > max) throw new RangeError("slider default outside range");
+    this.controls.push({ type: "slider", label, min, max, o }); return this;
+  }
+  dropdown(label, opts, o) {
+    if (!Number.isInteger(o.defaultValueIndex) || o.defaultValueIndex < 0 || o.defaultValueIndex >= opts.length) throw new RangeError("dropdown default outside range");
+    this.controls.push({ type: "dropdown", label, opts, o }); return this;
+  }
   toggle(label, o) { this.controls.push({ type: "toggle", label, o }); return this; }
   submitButton() { return this; }
   show(player) {

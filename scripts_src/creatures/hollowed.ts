@@ -7,6 +7,7 @@ import { cooldownReady, ctx, huntable, setCooldown } from "../core/players";
 import { every, everyPlayer } from "../core/scheduler";
 import { hollowDay, now, seconds } from "../core/time";
 import { LIGHT_BLOCKS, clearLine, groundNear, hasBlockNear } from "../core/world";
+import { protectedSpot } from "../items/blocks";
 import { unlock } from "../systems/journal";
 import { Noise, emitNoise, movementNoise, onNoise, setListenerCheck } from "../systems/noise";
 
@@ -56,6 +57,7 @@ export function tryStartHollowed(p: Player): boolean {
   if (!s.hollowed || hollowDay() < s.graceDays) return false;
   const c = ctx(p);
   if (!c.overworld || !c.underground || !huntable(p) || !cooldownReady(p, "hollowed")) return false;
+  if (protectedSpot(p.dimension, p.location)) return false;
   const maxY = dayReached(hollowDay(), 3) ? 40 : 0; // deeper is dangerous first; shallower caves later
   if (p.location.y > maxY) return false;
   let nearCount = 0;
@@ -69,7 +71,7 @@ export function tryStartHollowed(p: Player): boolean {
     const d = yawDir(rand(0, 360));
     const r = rand(18, 30);
     const g = groundNear(dim, p.location.x + d.x * r, p.location.y + rand(-4, 4), p.location.z + d.z * r, 6, 2);
-    if (!g) continue;
+    if (!g || protectedSpot(dim, g)) continue;
     try {
       if (dim.getLightLevel(add(g, { x: 0, y: 0.5, z: 0 })) > 3) continue;
     } catch {
@@ -148,6 +150,7 @@ function removeLure(l: Lure): void {
 }
 
 function hear(n: Noise): void {
+  if (protectedSpot(n.dim, n.at)) return;
   let heard = false;
   for (const h of hs.values()) {
     if (h.dim !== n.dim.id) continue;
@@ -197,6 +200,11 @@ function update(): void {
     const e = world.getEntity(h.id);
     if (!e?.isValid) {
       hs.delete(h.id);
+      continue;
+    }
+    if (!h.juvenile && protectedSpot(e.dimension, e.location)) {
+      hs.delete(h.id);
+      e.remove();
       continue;
     }
     h.pos = e.location;

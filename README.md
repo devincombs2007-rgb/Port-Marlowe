@@ -16,11 +16,11 @@ in it is patient, though. You are watched long before you are attacked.
   Lantern (reward).
 - **An optional Visuals pack** for Vibrant Visuals: cool forests, muted earth tones, warm
   shelter light and unsettling caves. Standard graphics work fully without it.
-- Original models, textures, animations and 153 procedurally synthesised sounds.
+- Original models, textures and animations, plus 150 audio files built from credited CC0 recordings.
 
 > **Status:**
 > - Statically validated: 0 errors, 0 warnings.
-> - The real scripts pass 45/45 headless simulation scenarios, including server restarts mid-boss-fight.
+> - The real scripts pass 60/60 headless simulation scenarios, including server restarts mid-boss-fight.
 > - See [docs/VALIDATION_REPORT.md](docs/VALIDATION_REPORT.md).
 >
 > **No in-game, Xbox or Realm testing has been done yet.** Read the known limitations before you rely on it in a
@@ -32,10 +32,10 @@ Current development checkpoint and unfinished device checks: **[docs/DEVELOPMENT
 
 | File | What it is |
 |---|---|
-| [`dist/THE_HOLLOW_v1.0.1.mcaddon`](dist/THE_HOLLOW_v1.0.1.mcaddon) | Everything: behavior pack, resource pack and the optional Visuals pack. Open it to import. |
-| `dist/THE_HOLLOW_BP_v1.0.1.mcpack` | Behavior pack only |
-| `dist/THE_HOLLOW_RP_v1.0.1.mcpack` | Resource pack only (required) |
-| `dist/THE_HOLLOW_Visuals_v1.0.1.mcpack` | Optional Vibrant Visuals pack |
+| [`dist/THE_HOLLOW_v1.0.2.mcaddon`](dist/THE_HOLLOW_v1.0.2.mcaddon) | Everything: behavior pack, resource pack and the optional Visuals pack. Open it to import. |
+| `dist/THE_HOLLOW_BP_v1.0.2.mcpack` | Behavior pack only |
+| `dist/THE_HOLLOW_RP_v1.0.2.mcpack` | Resource pack only (required) |
+| `dist/THE_HOLLOW_Visuals_v1.0.2.mcpack` | Optional Vibrant Visuals pack |
 
 Install guide (iPhone or Windows → world → Realm → Xbox): **[docs/INSTALL.md](docs/INSTALL.md)**
 
@@ -71,6 +71,7 @@ tools/fetch_reference.sh                     # Mojang bedrock-samples v1.26.50.4
 (cd tools/typecheck && npm ci)               # pinned @minecraft typings, TypeScript, esbuild
 python3 tools/build.py --assets              # regenerate models, textures, sounds, structures, visuals
 python3 tools/build.py                       # content JSON + compile scripts + validate + simulate + package -> dist/
+python3 tools/sounds/audition_page.py --standalone  # optional: portable audio review HTML
 python3 tools/selftest_validator.py          # optional: proves the validator catches injected defects
 node tools/simtest/run.mjs [filter]          # optional: run the headless simulation scenarios on their own
 ```

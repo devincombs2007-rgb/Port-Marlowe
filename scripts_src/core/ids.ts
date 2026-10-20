@@ -56,7 +56,7 @@ export const PROP = {
 } as const;
 
 export const SND = {
-  watcherSeen: "hollow.watcher.seen",
+  watcherSeen: "hollow.nopewatcher.seen",
   watcherRetreat: "hollow.watcher.retreat",
   watcherLunge: "hollow.watcher.lunge",
   windGust: "hollow.amb.forest.wind",
@@ -141,6 +141,7 @@ export const DP = {
   sites: "hollow:sites",
   chimes: "hollow:chimes",
   wards: "hollow:wards",
+  wardUses: "hollow:ward_uses",
   boss: "hollow:boss",
   knocker: "hollow:knocker",
   version: "hollow:data_version",

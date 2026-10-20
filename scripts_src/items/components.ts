@@ -3,6 +3,7 @@ import { ui } from "../core/audio";
 import { notice } from "../core/fx";
 import { ENT, FAMILY, ITEM, PROP, SND } from "../core/ids";
 import { compass, dist } from "../core/math";
+import { heldItem } from "../core/world";
 import { hasEntry, openJournal, unlock, unlockNextLore } from "../systems/journal";
 import { noiseDescription } from "../systems/noise";
 import { useHeartseeker } from "../systems/sites";
@@ -56,6 +57,7 @@ function consumeHeld(p: Player, typeId: string): void {
 const revealTimers = new Map<string, number>();
 
 function useLens(p: Player): void {
+  if (!p.isValid || heldItem(p) !== ITEM.lens) return;
   ui(p, SND.lens, 1);
   const dim = p.dimension;
   const head = p.getHeadLocation();
@@ -127,6 +129,7 @@ export function registerItemComponents(ev: StartupEvent): void {
     onUse(e) {
       const p = e.source;
       system.run(() => {
+        if (!p.isValid || heldItem(p) !== ITEM.page) return;
         const title = unlockNextLore(p);
         if (title) {
           consumeHeld(p, ITEM.page);

@@ -1,9 +1,10 @@
 import { EntityInventoryComponent, ItemLockMode, ItemStack, Player, system } from "@minecraft/server";
-import { ActionFormData, ActionFormResponse, FormCancelationReason } from "@minecraft/server-ui";
+import { ActionFormData, FormCancelationReason } from "@minecraft/server-ui";
 import { CHAPTERS, Chapter, ENTRIES, ENTRY_BY_ID, LORE_PAGES } from "../content/journal";
 import { ui } from "../core/audio";
 import { isOperator, settings } from "../core/config";
 import { notice } from "../core/fx";
+import { formSession, showForm } from "../core/forms";
 import { DP, ITEM, SND } from "../core/ids";
 import { readEntity, writeEntity } from "../core/store";
 import { hollowDay, hollowNight } from "../core/time";
@@ -108,17 +109,6 @@ export function ensureJournal(p: Player, force = false): void {
 
 // ---------------------------------------------------------------------------------- UI
 
-function show(p: Player, form: ActionFormData, retries = 6): Promise<ActionFormResponse | undefined> {
-  return form.show(p).then((r) => {
-    if (r.canceled && r.cancelationReason === FormCancelationReason.UserBusy && retries > 0) {
-      return new Promise<ActionFormResponse | undefined>((res) =>
-        system.runTimeout(() => show(p, form, retries - 1).then(res), 10),
-      );
-    }
-    return r;
-  });
-}
-
 function threatsAwake(): string {
   const s = settings();
   const day = hollowDay();
@@ -134,6 +124,10 @@ function threatsAwake(): string {
 }
 
 export async function openJournal(p: Player): Promise<void> {
+  await formSession(p, () => openJournalMenu(p));
+}
+
+async function openJournalMenu(p: Player): Promise<void> {
   ui(p, SND.journalOpen, 0.9);
   const d = data(p);
   const total = ENTRIES.length;
@@ -148,7 +142,7 @@ export async function openJournal(p: Player): Promise<void> {
     form.button(`${ch.title}${unreadIn(ch.id) ? " §6(new)" : ""}\n§8${count} entries`, ch.icon);
   }
   form.button("Settings\n§8comfort & world rules", "textures/ui/hollow/settings");
-  const r = await show(p, form);
+  const r = await showForm(p, form);
   if (!r || r.canceled || r.selection === undefined) return;
   if (r.selection < CHAPTERS.length) await openChapter(p, CHAPTERS[r.selection].id);
   else await openSettings(p, isOperator(p));
@@ -171,9 +165,9 @@ async function openChapter(p: Player, ch: Chapter): Promise<void> {
     form.button(`${d.r.includes(e.id) ? "" : "§6• §r"}${e.title}`, e.icon);
   }
   form.button("§8Back", "textures/ui/hollow/back");
-  const r = await show(p, form);
+  const r = await showForm(p, form);
   if (!r || r.canceled || r.selection === undefined) return;
-  if (r.selection >= unlocked.length) return openJournal(p);
+  if (r.selection >= unlocked.length) return openJournalMenu(p);
   await openEntry(p, unlocked[r.selection].id, ch);
 }
 
@@ -181,13 +175,13 @@ async function openEntry(p: Player, id: string, back: Chapter): Promise<void> {
   const e = ENTRY_BY_ID.get(id);
   if (!e) return;
   const d = data(p);
-  if (!d.r.includes(id)) {
+  ui(p, SND.journalOpen, 0.6, 1.15);
+  const form = new ActionFormData().title(`§l${e.title}`).body(e.body).button("§8Back", "textures/ui/hollow/back");
+  const r = await showForm(p, form);
+  if (r && r.cancelationReason !== FormCancelationReason.UserBusy && !d.r.includes(id)) {
     d.r.push(id);
     save(p, d);
   }
-  ui(p, SND.journalOpen, 0.6, 1.15);
-  const form = new ActionFormData().title(`§l${e.title}`).body(e.body).button("§8Back", "textures/ui/hollow/back");
-  const r = await show(p, form);
   if (!r || r.canceled) return;
   await openChapter(p, back);
 }

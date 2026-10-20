@@ -98,31 +98,43 @@ export function saveSettings(s: WorldSettings): void {
 }
 
 function sanitizeWorld(s: WorldSettings): WorldSettings {
-  const out = { ...WORLD_DEFAULTS, ...s };
-  out.intensity = Math.max(0, Math.min(2, Math.round(out.intensity)));
-  out.frequency = Math.max(25, Math.min(200, Math.round(out.frequency)));
-  out.graceDays = Math.max(0, Math.min(10, Math.round(out.graceDays)));
-  out.knockerNight = Math.max(1, Math.min(20, Math.round(out.knockerNight)));
+  const out = { ...WORLD_DEFAULTS };
+  out.intensity = numberSetting(s.intensity, out.intensity, 0, 2);
+  out.frequency = numberSetting(s.frequency, out.frequency, 25, 200);
+  out.graceDays = numberSetting(s.graceDays, out.graceDays, 0, 10);
+  out.knockerNight = numberSetting(s.knockerNight, out.knockerNight, 1, 20);
+  for (const key of ["watcher", "borrowed", "hollowed", "knocker", "mirebound", "destructive",
+    "sleepDisturbance", "sites", "bossScaling", "rareEvents"] as const) {
+    if (typeof s[key] === "boolean") out[key] = s[key];
+  }
   return out;
+}
+
+function numberSetting(v: unknown, fallback: number, min: number, max: number): number {
+  return typeof v === "number" && Number.isFinite(v) ? Math.max(min, Math.min(max, Math.round(v))) : fallback;
+}
+
+function sanitizePrefs(p: PlayerPrefs): PlayerPrefs {
+  return {
+    ambience: numberSetting(p.ambience, PREF_DEFAULTS.ambience, 0, 100),
+    accents: numberSetting(p.accents, PREF_DEFAULTS.accents, 0, 2),
+    visualFx: typeof p.visualFx === "boolean" ? p.visualFx : PREF_DEFAULTS.visualFx,
+    hints: typeof p.hints === "boolean" ? p.hints : PREF_DEFAULTS.hints,
+    music: typeof p.music === "boolean" ? p.music : PREF_DEFAULTS.music,
+  };
 }
 
 export function prefs(player: Player): PlayerPrefs {
   let p = prefCache.get(player.id);
   if (!p) {
-    p = { ...PREF_DEFAULTS, ...readEntity(player, DP.prefs, PREF_DEFAULTS) };
+    p = sanitizePrefs(readEntity(player, DP.prefs, PREF_DEFAULTS));
     prefCache.set(player.id, p);
   }
   return p;
 }
 
 export function savePrefs(player: Player, p: PlayerPrefs): void {
-  const clean: PlayerPrefs = {
-    ambience: Math.max(0, Math.min(100, Math.round(p.ambience))),
-    accents: Math.max(0, Math.min(2, Math.round(p.accents))),
-    visualFx: !!p.visualFx,
-    hints: !!p.hints,
-    music: p.music !== false,
-  };
+  const clean = sanitizePrefs(p);
   prefCache.set(player.id, clean);
   writeEntity(player, DP.prefs, clean);
 }
