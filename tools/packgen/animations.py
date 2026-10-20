@@ -12,6 +12,7 @@ from hollowkit import RP  # noqa: E402
 
 Q = "query"
 DIST = "query.modified_distance_moved"
+MOVE_WEIGHT = "math.clamp(query.modified_move_speed * 5.0, 0.0, 1.0)"
 
 
 def anim(bones, loop=True, length=None, sounds=None):
@@ -37,7 +38,7 @@ def write(name, animations, controllers):
 def locomotion(prefix):
     return ctrl("idle", {
         "idle": {"animations": ["idle"], "transitions": [{"walking": f"{Q}.modified_move_speed > 0.06"}], "blend_transition": 0.25},
-        "walking": {"animations": ["walk"], "transitions": [{"idle": f"{Q}.modified_move_speed < 0.03"}], "blend_transition": 0.25},
+        "walking": {"animations": [{"walk": MOVE_WEIGHT}], "transitions": [{"idle": f"{Q}.modified_move_speed < 0.03"}], "blend_transition": 0.25},
     })
 
 
@@ -57,7 +58,7 @@ def borrowed():
         "animation.hollow.borrowed.idle": anim({
             "body": {"position": [0, "math.sin(query.anim_time * 90) * 0.15", 0]},
             "neck": {"rotation": ["math.sin(query.anim_time * 25) * 2", 0, 0]},
-            "head": {"rotation": [0, 0, "math.sin(query.anim_time * 14) * 7"]},
+            "head": {"rotation": [0, 0, "math.sin(query.anim_time * 14) * (variable.watchful ? 10 : 3)"]},
         }),
         # Tell: a pacing gait (both legs on one side move together). Sheep trot diagonally.
         "animation.hollow.borrowed.walk": anim({
@@ -68,7 +69,16 @@ def borrowed():
             "body": {"rotation": [0, 0, f"math.sin({DIST} * 38) * 2.5"]},
         }),
         "animation.hollow.borrowed.look_at_target": anim({
-            "head": {"rotation": ["query.target_x_rotation", "query.target_y_rotation", 0]},
+            "head": {"rotation": ["math.clamp(query.target_x_rotation, -25, 25)", "math.clamp(query.target_y_rotation, -55, 55)", 0]},
+        }),
+        # Once exposed, the paired sheep-like pace breaks into a low, diagonal scramble.
+        "animation.hollow.borrowed.run": anim({
+            "leg_fl": {"rotation": [f"math.cos({DIST} * 52) * 38", 0, -3]},
+            "leg_br": {"rotation": [f"math.cos({DIST} * 52) * 38", 0, 3]},
+            "leg_fr": {"rotation": [f"-math.cos({DIST} * 52) * 38", 0, 3]},
+            "leg_bl": {"rotation": [f"-math.cos({DIST} * 52) * 38", 0, -3]},
+            "body": {"position": [0, f"-math.abs(math.sin({DIST} * 52)) * 0.45", 0],
+                     "rotation": [5, 0, f"math.sin({DIST} * 52) * 2"]},
         }),
         "animation.hollow.borrowed.reveal": anim({
             "inner": {"scale": {"0.0": 0, "0.4": 0, "0.7": 1.12, "0.9": 1.0}},
@@ -96,13 +106,20 @@ def borrowed():
     }
     C = {
         "controller.animation.hollow.borrowed.form": ctrl("disguised", {
-            "disguised": {"animations": ["disguise", "idle"], "transitions": [{"revealing": "variable.revealed"}]},
+            "disguised": {"animations": ["disguise"], "transitions": [{"revealing": "variable.revealed"}], "blend_transition": 0.15},
             "revealing": {"animations": ["reveal"], "transitions": [{"revealed": "query.all_animations_finished"}, {"disguised": "!variable.revealed"}]},
             "revealed": {"animations": ["revealed"], "transitions": [{"disguised": "!variable.revealed"}], "blend_transition": 0.2},
         }),
         "controller.animation.hollow.borrowed.locomotion": ctrl("idle", {
-            "idle": {"transitions": [{"walking": f"{Q}.modified_move_speed > 0.06"}]},
-            "walking": {"animations": ["walk"], "transitions": [{"idle": f"{Q}.modified_move_speed < 0.03"}], "blend_transition": 0.2},
+            "idle": {"animations": [{"idle": "variable.state != 'revealing'"}], "transitions": [
+                {"running": f"{Q}.modified_move_speed > 0.06 && variable.revealed && variable.state != 'revealing'"},
+                {"walking": f"{Q}.modified_move_speed > 0.06 && !variable.revealed"}], "blend_transition": 0.2},
+            "walking": {"animations": [{"walk": MOVE_WEIGHT}], "transitions": [
+                {"idle": f"{Q}.modified_move_speed < 0.03 || variable.state == 'revealing'"},
+                {"running": "variable.revealed"}], "blend_transition": 0.2},
+            "running": {"animations": [{"run": MOVE_WEIGHT}], "transitions": [
+                {"idle": f"{Q}.modified_move_speed < 0.03 || variable.state == 'revealing'"},
+                {"walking": "!variable.revealed"}], "blend_transition": 0.2},
         }),
         "controller.animation.hollow.borrowed.strike": strike(),
     }
@@ -138,6 +155,12 @@ def hollowed():
             "feeler_r": {"rotation": [-30, 0, 0]},
             "body": {"position": [0, -1, 0]},
         }),
+        "animation.hollow.hollowed.listen": anim({
+            "body": {"position": [0, -0.6, 0]},
+            "head": {"rotation": [8, "math.sin(query.anim_time * 65) * 24", "math.sin(query.anim_time * 33) * 3"]},
+            "feeler_l": {"rotation": [-18, 0, "math.sin(query.anim_time * 90) * 3"]},
+            "feeler_r": {"rotation": [-18, 0, "-math.sin(query.anim_time * 90) * 3"]},
+        }),
         "animation.hollow.hollowed.attack": anim({
             "jaw": {"rotation": {"0.0": [0, 0, 0], "0.1": [40, 0, 0], "0.25": [0, 0, 0]}},
             "head": {"rotation": {"0.0": [0, 0, 0], "0.1": [-15, 0, 0], "0.3": [0, 0, 0]}},
@@ -147,11 +170,13 @@ def hollowed():
     C = {
         "controller.animation.hollow.hollowed.locomotion": locomotion("hollowed"),
         "controller.animation.hollow.hollowed.mood": ctrl("calm", {
-            "calm": {"animations": ["click"], "transitions": [{"alert": "variable.state == 'investigate'"}]},
-            "alert": {"animations": ["click", "investigate"], "transitions": [{"calm": "variable.state != 'investigate'"}], "blend_transition": 0.3},
+            "calm": {"animations": ["click"], "transitions": [{"alert": "variable.state == 'investigate'"}, {"listening": "variable.state == 'listening'"}], "blend_transition": 0.25},
+            "alert": {"animations": ["click", "investigate"], "transitions": [{"listening": "variable.state == 'listening'"}, {"calm": "variable.state == 'calm'"}], "blend_transition": 0.3},
+            "listening": {"animations": ["click", "listen"], "transitions": [{"alert": "variable.state == 'investigate'"}, {"calm": "variable.state == 'calm'"}], "blend_transition": 0.3},
         }),
         "controller.animation.hollow.hollowed.strike": strike(),
     }
+    C["controller.animation.hollow.hollowed.locomotion"]["states"]["idle"]["animations"] = [{"idle": "variable.state == 'calm'"}]
     write("hollowed", A, C)
 
 
@@ -174,7 +199,7 @@ def knocker():
             "left_arm": {"rotation": [f"math.cos({DIST} * 26) * 8", 0, 0]},
         }),
         "animation.hollow.knocker.look_at_target": anim({
-            "head": {"rotation": ["query.target_x_rotation * 0.6", "query.target_y_rotation * 0.6", 0]},
+            "head": {"rotation": ["math.clamp(query.target_x_rotation * 0.6, -25, 25)", "math.clamp(query.target_y_rotation * 0.6, -55, 55)", 0]},
         }),
         # At the door: three raps, then a long pause with the head pressed close, listening.
         "animation.hollow.knocker.knock": anim({

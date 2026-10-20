@@ -6,14 +6,14 @@
       "states": {
         "disguised": {
           "animations": [
-            "disguise",
-            "idle"
+            "disguise"
           ],
           "transitions": [
             {
               "revealing": "variable.revealed"
             }
-          ]
+          ],
+          "blend_transition": 0.15
         },
         "revealing": {
           "animations": [
@@ -45,19 +45,49 @@
       "initial_state": "idle",
       "states": {
         "idle": {
-          "transitions": [
-            {
-              "walking": "query.modified_move_speed > 0.06"
-            }
-          ]
-        },
-        "walking": {
           "animations": [
-            "walk"
+            {
+              "idle": "variable.state != 'revealing'"
+            }
           ],
           "transitions": [
             {
-              "idle": "query.modified_move_speed < 0.03"
+              "running": "query.modified_move_speed > 0.06 && variable.revealed && variable.state != 'revealing'"
+            },
+            {
+              "walking": "query.modified_move_speed > 0.06 && !variable.revealed"
+            }
+          ],
+          "blend_transition": 0.2
+        },
+        "walking": {
+          "animations": [
+            {
+              "walk": "math.clamp(query.modified_move_speed * 5.0, 0.0, 1.0)"
+            }
+          ],
+          "transitions": [
+            {
+              "idle": "query.modified_move_speed < 0.03 || variable.state == 'revealing'"
+            },
+            {
+              "running": "variable.revealed"
+            }
+          ],
+          "blend_transition": 0.2
+        },
+        "running": {
+          "animations": [
+            {
+              "run": "math.clamp(query.modified_move_speed * 5.0, 0.0, 1.0)"
+            }
+          ],
+          "transitions": [
+            {
+              "idle": "query.modified_move_speed < 0.03 || variable.state == 'revealing'"
+            },
+            {
+              "walking": "!variable.revealed"
             }
           ],
           "blend_transition": 0.2

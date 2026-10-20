@@ -3,7 +3,7 @@
 A fast first pass on **Windows** (best for reading errors). Repeat the short Realm and Xbox section at the end.
 
 ## Setup (2 min)
-1. Import `THE_HOLLOW_v1.0.5.mcaddon`. Create a **new world**: Survival, cheats **on**, the behavior pack plus the Visuals pack, all experiments off.
+1. Import `THE_HOLLOW_v1.0.6.mcaddon`. Create a **new world**: Survival, cheats **on**, the behavior pack plus the Visuals pack, all experiments off.
 2. Settings → Creator → turn on **Content Log GUI**. Settings → Accessibility → turn on **Subtitles**.
 3. In the world, run:
    ```
@@ -104,3 +104,9 @@ and badlands; the older 57-biome pack did not cover them all. Cross profile boun
 lighting/water transitions, inspect water ripples for noise, and look at underwater visibility.
 Check a torch-lit door and lantern path against the cold world, then note FPS/stutter on the
 actual device. No Minecraft visual result or performance measurement exists from Codex yet.
+
+## Creature movement 1.0.6
+
+Follow [MOVEMENT_TESTING.md](MOVEMENT_TESTING.md) for the new Watcher rhythms/forest edges,
+Borrowed transformation and watching pauses, and Hollowed search/listen behavior. Keep the
+existing clicking sound as the audio reference; no audio polish or lore expansion is included.

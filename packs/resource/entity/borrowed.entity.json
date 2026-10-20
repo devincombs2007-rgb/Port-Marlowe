@@ -25,12 +25,15 @@
         "attack": "animation.hollow.borrowed.attack",
         "form": "controller.animation.hollow.borrowed.form",
         "locomotion": "controller.animation.hollow.borrowed.locomotion",
-        "strike": "controller.animation.hollow.borrowed.strike"
+        "strike": "controller.animation.hollow.borrowed.strike",
+        "run": "animation.hollow.borrowed.run"
       },
       "scripts": {
         "pre_animation": [
           "variable.night = query.time_of_day < 0.23 || query.time_of_day > 0.77;",
-          "variable.revealed = query.property('hollow:revealed');"
+          "variable.revealed = query.property('hollow:revealed');",
+          "variable.state = query.property('hollow:state');",
+          "variable.watchful = query.property('hollow:watchful');"
         ],
         "animate": [
           "look_at_target",

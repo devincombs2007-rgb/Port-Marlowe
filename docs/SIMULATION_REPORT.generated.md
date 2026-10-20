@@ -4,7 +4,7 @@ The real bundled behavior-pack scripts run against a fake Minecraft API (`tools/
 This checks script logic: scheduling, events, persistence, reloads, state machines, caps, cooldowns and rewards.
 It is **not** an in-game test: there is no engine pathfinding, melee, physics, rendering or audio.
 
-Result: **78/78 scenarios passed**
+Result: **88/88 scenarios passed**
 
 | Scenario | Result |
 |---|---|
@@ -31,6 +31,9 @@ Result: **78/78 scenarios passed**
 | newcomers, creative and peaceful players are never targeted | pass |
 | watcher appears out of view, 34-50 blocks away | pass |
 | watcher: staring makes it withdraw and leave one Pale Resin (once per night) | pass |
+| watcher: consecutive successful encounters alternate direct and patient stalking | pass |
+| watcher: patient stalking pauses at distance and observation removes both movement groups | pass |
+| watcher: may watch an open forest edge but still requires forest spawn ground | pass |
 | watcher: stalks when unwatched; twig warning; lunges only at an unlit player | pass |
 | leaving mid-encounter removes the encounter; rejoining duplicates nothing | pass |
 | boss: full fight - shield, veins, phases, minions, rewards once, altar rests | pass |
@@ -47,6 +50,10 @@ Result: **78/78 scenarios passed**
 | ward: overflow stays inactive without consuming charcoal and can reclaim a freed slot | pass |
 | chime rings when a creature is within 14 blocks, never when silenced | pass |
 | borrowed: joins a real flock and shears reveal it at night | pass |
+| borrowed: transformation has no hunting group and repeated shears cannot skip its window | pass |
+| borrowed: dawn and wards interrupt the transformation into a safe retreat | pass |
+| borrowed: disguised flock member pauses to watch and resumes without exposing itself | pass |
+| borrowed: a transformation cannot resume after its target dies or changes dimension | pass |
 | ward: unloading its chunk cannot erase protection or the saved registry | pass |
 | ward: same creature type spends one charge per night across a server restart | pass |
 | equipment: stale loaded lantern registrations release capacity; unloaded ones keep it | pass |
@@ -55,6 +62,9 @@ Result: **78/78 scenarios passed**
 | hollowed: spawns out of sight in the dark; hears sprinting, not sneaking or wool | pass |
 | hollowed: reading movement noise in the journal cannot swallow a landing sound | pass |
 | hollowed: thrown projectiles create a decoy away from the player | pass |
+| hollowed: reaching a decoy triggers a listening pause and a fresh noise redirects it | pass |
+| hollowed: a listening creature reacts at close range even to a sneaking player | pass |
+| hollowed: boss juveniles keep their combat behavior instead of entering listening pauses | pass |
 | lantern: protects a cave player from new Hollowed encounters, including after reload | pass |
 | lantern: unloaded chunk preserves its registry; noise inside its radius draws no Hollowed | pass |
 | sites: a disabled creature's material is guaranteed in new site chests | pass |
@@ -87,5 +97,5 @@ Result: **78/78 scenarios passed**
 | grace: extended grace days apply to Borrowed, Mirebound and Knocker, not just the Watcher | pass |
 | load: 8 players, all creatures, Nightmare 200% for a full day - caps hold | pass |
 
-- music: 1 night track(s) over 4 nights; 0 ticks of night music while a Watcher was stalking
-- load: peak creature counts {"hollow:borrowed":2,"hollow:watcher":3}; script time per tick avg 0.041 ms, p99 0.547 ms, max 7.64 ms (Node on a dev machine against the fake world - not an Xbox measurement)
+- music: 1 night track(s) over 4 nights; 43 ticks of night music while a Watcher was stalking
+- load: peak creature counts {"hollow:borrowed":2,"hollow:watcher":3}; script time per tick avg 0.040 ms, p99 0.545 ms, max 50.36 ms (Node on a dev machine against the fake world - not an Xbox measurement)

@@ -22,7 +22,7 @@ import { TrackKind, trail } from "../systems/tracks";
 //  * Revealed at night it hunts; by day it only flees. Below 40% health it flees.
 //  * The Hollow Lens shows its true shape to the user only (property override), safely.
 
-type State = "disguised" | "revealed" | "fleeing";
+type State = "disguised" | "revealing" | "revealed" | "fleeing";
 
 interface Enc {
   id: string;
@@ -33,6 +33,8 @@ interface Enc {
   close: number;
   noticed: Set<string>;
   nextWrong: number;
+  pauseUntil: number;
+  nextPause: number;
 }
 
 const encs = new Map<string, Enc>();
@@ -45,7 +47,7 @@ function setState(e: Entity, enc: Enc, s: State): void {
   enc.state = s;
   enc.stateAt = now();
   try {
-    e.triggerEvent(s === "revealed" ? "hollow:reveal" : s === "fleeing" ? "hollow:flee" : "minecraft:entity_spawned");
+    e.triggerEvent(s === "revealing" ? "hollow:begin_reveal" : s === "revealed" ? "hollow:reveal" : s === "fleeing" ? "hollow:flee" : "minecraft:entity_spawned");
   } catch {
     /* unloaded */
   }
@@ -68,8 +70,9 @@ function teach(e: Entity, deep: boolean): void {
 
 function reveal(e: Entity, enc: Enc, why: string, by?: Player): void {
   if (enc.state !== "disguised") return;
-  const night = isDarkHours();
-  setState(e, enc, night ? "revealed" : "fleeing");
+  // Give the 1.4-second visual reveal a real non-attacking window before activating chase AI.
+  setState(e, enc, "revealing");
+  enc.pauseUntil = 0;
   teach(e, true);
   for (const p of playersNear(e, 32)) accent(p, SND.stingerLow, 2);
   if (by) hint(by, why === "shears" ? "§7The wool doesn't shear. It peels away in one wet sheet." : "§7That was never a sheep.");
@@ -110,7 +113,7 @@ export function tryStartBorrowed(p: Player): boolean {
     return false;
   }
   e.setDynamicProperty(DP.owner, p.id);
-  encs.set(e.id, { id: e.id, target: p.id, born: now(), state: "disguised", stateAt: now(), close: 0, noticed: new Set(), nextWrong: now() + seconds(30) });
+  encs.set(e.id, { id: e.id, target: p.id, born: now(), state: "disguised", stateAt: now(), close: 0, noticed: new Set(), nextWrong: now() + seconds(30), pauseUntil: 0, nextPause: now() + seconds(rand(8, 16)) });
   setCooldown(p, "borrowed", seconds(rand(600, 900) * cooldownScale()));
   return true;
 }
@@ -149,7 +152,25 @@ function update(): void {
       vanish(e, enc);
       continue;
     }
+    if (enc.state === "revealing") {
+      if (lanternNear(e.dimension, e.location)) { vanish(e, enc); continue; }
+      const ward = wardNear(e.dimension, e.location);
+      if (ward) { useWard(ward, "borrowed"); setState(e, enc, "fleeing"); continue; }
+      if (inState >= 28) setState(e, enc, isDarkHours() ? "revealed" : "fleeing");
+      continue;
+    }
     if (enc.state === "disguised") {
+      if (enc.pauseUntil && t >= enc.pauseUntil) {
+        enc.pauseUntil = 0;
+        e.triggerEvent("hollow:watchful_end");
+      }
+      if (!enc.pauseUntil && t >= enc.nextPause) {
+        enc.nextPause = t + seconds(rand(10, 18));
+        if (near.some((q) => dist(q.location, e.location) <= 20)) {
+          enc.pauseUntil = t + seconds(rand(2, 4));
+          e.triggerEvent("hollow:watchful");
+        }
+      }
       const ward = wardNear(e.dimension, e.location);
       if (ward) {
         useWard(ward, "borrowed");
@@ -230,7 +251,7 @@ export function onBorrowedDied(id: string, killer?: Entity): void {
 
 export function forgetBorrowedTarget(playerId: string): void {
   for (const enc of [...encs.values()]) {
-    if (enc.target === playerId && enc.state === "disguised") vanish(world.getEntity(enc.id), enc);
+    if (enc.target === playerId && (enc.state === "disguised" || enc.state === "revealing")) vanish(world.getEntity(enc.id), enc);
   }
 }
 

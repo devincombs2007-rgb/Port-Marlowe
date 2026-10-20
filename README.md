@@ -22,11 +22,13 @@ in it is patient, though. You are watched long before you are attacked.
 
 > **Status:**
 > - Statically validated: 0 errors, 0 warnings.
-> - The real scripts pass 78/78 headless simulation scenarios, including server restarts mid-boss-fight.
+> - The real scripts pass 88/88 headless simulation scenarios, including server restarts mid-boss-fight.
 > - See [docs/VALIDATION_REPORT.md](docs/VALIDATION_REPORT.md).
 >
-> **No in-game, Xbox or Realm testing has been done yet.** Read the known limitations before you rely on it in a
-> long-running world.
+> **Playtest feedback:** the user has seen the Borrowed and likes the Hollowed clicking sound.
+> Codex has not run Minecraft; broader creature, animation, Xbox and Realm verification is still pending.
+
+Movement changes and focused playtest: **[docs/MOVEMENT_TESTING.md](docs/MOVEMENT_TESTING.md)**.
 
 Current development checkpoint and unfinished device checks: **[docs/DEVELOPMENT_STATUS.md](docs/DEVELOPMENT_STATUS.md)**.
 
@@ -34,10 +36,10 @@ Current development checkpoint and unfinished device checks: **[docs/DEVELOPMENT
 
 | File | What it is |
 |---|---|
-| [`dist/THE_HOLLOW_v1.0.5.mcaddon`](dist/THE_HOLLOW_v1.0.5.mcaddon) | Everything: behavior pack, resource pack and the optional Visuals pack. Open it to import. |
-| `dist/THE_HOLLOW_BP_v1.0.5.mcpack` | Behavior pack only |
-| `dist/THE_HOLLOW_RP_v1.0.5.mcpack` | Resource pack only (required) |
-| `dist/THE_HOLLOW_Visuals_v1.0.5.mcpack` | Optional Vibrant Visuals pack |
+| [`dist/THE_HOLLOW_v1.0.6.mcaddon`](dist/THE_HOLLOW_v1.0.6.mcaddon) | Everything: behavior pack, resource pack and the optional Visuals pack. Open it to import. |
+| `dist/THE_HOLLOW_BP_v1.0.6.mcpack` | Behavior pack only |
+| `dist/THE_HOLLOW_RP_v1.0.6.mcpack` | Resource pack only (required) |
+| `dist/THE_HOLLOW_Visuals_v1.0.6.mcpack` | Optional Vibrant Visuals pack |
 
 Horror visual style and comparison steps: **[docs/VISUAL_TUNING.md](docs/VISUAL_TUNING.md)**.
 

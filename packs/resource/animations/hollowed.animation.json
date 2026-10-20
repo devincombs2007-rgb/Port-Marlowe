@@ -129,6 +129,39 @@
         }
       }
     },
+    "animation.hollow.hollowed.listen": {
+      "loop": true,
+      "bones": {
+        "body": {
+          "position": [
+            0,
+            -0.6,
+            0
+          ]
+        },
+        "head": {
+          "rotation": [
+            8,
+            "math.sin(query.anim_time * 65) * 24",
+            "math.sin(query.anim_time * 33) * 3"
+          ]
+        },
+        "feeler_l": {
+          "rotation": [
+            -18,
+            0,
+            "math.sin(query.anim_time * 90) * 3"
+          ]
+        },
+        "feeler_r": {
+          "rotation": [
+            -18,
+            0,
+            "-math.sin(query.anim_time * 90) * 3"
+          ]
+        }
+      }
+    },
     "animation.hollow.hollowed.attack": {
       "loop": false,
       "bones": {

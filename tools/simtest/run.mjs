@@ -407,7 +407,7 @@ await test("day 1 is safe: nothing hunts; the Watcher can only be glimpsed", () 
   const watchers = sim.spawnLog.filter((t) => t === "hollow:watcher").length;
   assert(watchers >= 1, "a watcher was glimpsed during the first night (forest, frequency 200%)");
   const allEvents = [...sim.overworld._entities.values()].flatMap((e) => e._events ?? []);
-  assert(!allEvents.includes("hollow:to_stalk") && !allEvents.includes("hollow:to_lunge"), "watcher never stalked on day 1");
+  assert(!allEvents.some((event) => event === "hollow:to_stalk" || event === "hollow:to_stalk_patient") && !allEvents.includes("hollow:to_lunge"), "watcher never stalked on day 1");
   eq(p._health.currentValue, 20, "player untouched");
   noErrors(sim);
 });
@@ -479,13 +479,62 @@ await test("watcher: staring makes it withdraw and leave one Pale Resin (once pe
   noErrors(sim);
 });
 
+await test("watcher: consecutive successful encounters alternate direct and patient stalking", () => {
+  const { sim, p, w } = watcherNight(301);
+  const first = w.getProperty("hollow:patient");
+  sim.damage(w, 999, p);
+  let second;
+  for (let i = 0; i < 8000 && !second; i++) { sim.tick(1); second = sim.overworld.getEntities({ type: "hollow:watcher" })[0]; }
+  assert(second, "second eligible encounter appeared");
+  eq(second.getProperty("hollow:patient"), !first, "pattern alternates, rather than repeating the same pursuit");
+  noErrors(sim);
+});
+
+await test("watcher: patient stalking pauses at distance and observation removes both movement groups", () => {
+  let sample;
+  for (let seed = 302; seed < 312; seed++) {
+    const candidate = watcherNight(seed);
+    if (candidate.w.getProperty("hollow:patient")) { sample = candidate; break; }
+  }
+  assert(sample, "patient pattern sampled");
+  const { sim, p, w } = sample;
+  sim.tick(100);
+  assert(w._groups.has("hollow:stalk_patient"), "slow pursuit group active");
+  p.lookAt({ x: w.location.x, y: w.location.y + 2.6, z: w.location.z });
+  sim.tick(4);
+  assert(!w._groups.has("hollow:stalk_patient") && !w._groups.has("hollow:stalk"), "observed movement removed");
+  assert(w._groups.has("hollow:lurk"), "zero-speed watching pose active");
+  p._view = { x: -(w.location.x - p.location.x), y: 0, z: -(w.location.z - p.location.z) };
+  const n = Math.hypot(p._view.x, p._view.z); p._view.x /= n; p._view.z /= n;
+  sim.tick(80);
+  const before = w._events.length;
+  sim.tick(220);
+  assert(w._events.slice(before).includes("hollow:to_lurk"), "patient creature pauses without being watched");
+  assert(w._events.slice(before).includes("hollow:to_stalk_patient"), "creep resumes after its pause");
+  noErrors(sim);
+});
+
+await test("watcher: may watch an open forest edge but still requires forest spawn ground", () => {
+  for (const edge of [true, false]) {
+    const sim = newWorld(313);
+    sim.world.setDynamicProperty("hollow:settings", JSON.stringify({ watcher: true, borrowed: false, hollowed: false, mirebound: false, knocker: false, sites: false }));
+    boot(sim, 313);
+    sim.overworld.biome = (loc) => edge && Math.hypot(loc.x, loc.z) > 20 ? "minecraft:forest" : "minecraft:plains";
+    sim.addPlayer("Alex", undefined, veteran);
+    goTo(sim, 1, 13000);
+    sim.tick(5000);
+    eq(sim.spawnLog.includes("hollow:watcher"), edge, edge ? "forest-edge sighting" : "treeless plains stay excluded");
+    noErrors(sim);
+  }
+});
+
 await test("watcher: stalks when unwatched; twig warning; lunges only at an unlit player", () => {
   const { sim, p, w } = watcherNight();
   p._view = { x: -(w.location.x - p.location.x), y: 0, z: -(w.location.z - p.location.z) }; // look away
   const L = Math.hypot(p._view.x, p._view.z);
   p._view = { x: p._view.x / L, y: 0, z: p._view.z / L };
   sim.tick(100);
-  assert(w._events.includes("hollow:to_stalk"), `stalking: ${w._events}`);
+  assert(w._events.some((event) => event === "hollow:to_stalk" || event === "hollow:to_stalk_patient"), `stalking: ${w._events}`);
   // (no pathfinding in the fake) - move it behind the player as the engine would
   w.teleport({ x: p.location.x - p._view.x * 8, y: 64, z: p.location.z - p._view.z * 8 });
   sim.tick(8);
@@ -846,9 +895,65 @@ await test("borrowed: joins a real flock and shears reveal it at night", () => {
   assert(Math.hypot(b.location.x - p.location.x, b.location.z - p.location.z) >= 14, "appears away from player");
   p.teleport({ x: b.location.x + 1, y: b.location.y, z: b.location.z });
   sim.fire("dataDrivenEntityTrigger", { entity: b, eventId: "hollow:sheared" });
-  assert(b._events.includes("hollow:reveal"), "shears reveal the night hunter");
+  assert(b._events.includes("hollow:begin_reveal"), "shears begin the visible transformation");
+  sim.tick(40);
+  assert(b._events.includes("hollow:reveal"), "hunting activates after the transformation window");
   assert(journal(p).includes("borrowed2"), "counterplay is recorded");
   noErrors(sim);
+});
+
+await test("borrowed: transformation has no hunting group and repeated shears cannot skip its window", () => {
+  const { sim, p } = borrowedWorld(314); const b = waitBorrowed(sim);
+  p.teleport({ x: b.location.x + 8, y: b.location.y, z: b.location.z });
+  sim.fire("dataDrivenEntityTrigger", { entity: b, eventId: "hollow:sheared" });
+  eq(b.getProperty("hollow:state"), "revealing", "transformation begins");
+  assert(b._groups.has("hollow:revealing") && !b._groups.has("hollow:revealed"), "no chase/attack AI during reveal");
+  sim.tick(20);
+  sim.fire("dataDrivenEntityTrigger", { entity: b, eventId: "hollow:sheared" });
+  eq(b.getProperty("hollow:state"), "revealing", "not hunting before 28 ticks");
+  sim.tick(20);
+  eq(b.getProperty("hollow:state"), "revealed", "night hunt begins after the window");
+  assert(!b._groups.has("hollow:revealing") && b._groups.has("hollow:revealed"), "temporary zero-speed group removed");
+  noErrors(sim);
+});
+
+await test("borrowed: dawn and wards interrupt the transformation into a safe retreat", () => {
+  for (const reason of ["dawn", "ward"]) {
+    const { sim, p } = borrowedWorld(315); const b = waitBorrowed(sim);
+    sim.fire("dataDrivenEntityTrigger", { entity: b, eventId: "hollow:sheared" });
+    if (reason === "dawn") sim.world.setTimeOfDay(1000);
+    else sim.placeBlock(p, { x: Math.floor(b.location.x) + 1, y: 64, z: Math.floor(b.location.z) }, "hollow:rowan_ward");
+    sim.tick(40);
+    eq(b.getProperty("hollow:state"), "fleeing", "retreats instead of night hunting");
+    assert(!b._groups.has("hollow:revealed") && !b._groups.has("hollow:revealing"), "no stale attack or freeze group");
+    noErrors(sim);
+  }
+});
+
+await test("borrowed: disguised flock member pauses to watch and resumes without exposing itself", () => {
+  const { sim, p } = borrowedWorld(316); const b = waitBorrowed(sim);
+  p.teleport({ x: b.location.x + 10, y: b.location.y, z: b.location.z });
+  p.hold("minecraft:torch");
+  for (let i = 0; i < 400 && !b.getProperty("hollow:watchful"); i++) sim.tick(1);
+  eq(b.getProperty("hollow:watchful"), true, "watchful pause begins");
+  assert(b._groups.has("hollow:watchful"), "pause has a real stop-movement group");
+  sim.tick(90);
+  eq(b.getProperty("hollow:watchful"), false, "pause ends");
+  assert(!b._groups.has("hollow:watchful") && b._groups.has("hollow:disguised"), "walking restores without revealing");
+  eq(b.getProperty("hollow:revealed"), false, "remains an impostor");
+  noErrors(sim);
+});
+
+await test("borrowed: a transformation cannot resume after its target dies or changes dimension", () => {
+  for (const reason of ["death", "dimension"]) {
+    const { sim, p } = borrowedWorld(319); const b = waitBorrowed(sim);
+    sim.fire("dataDrivenEntityTrigger", { entity: b, eventId: "hollow:sheared" });
+    if (reason === "death") sim.damage(p, 100);
+    else { p.dimension = sim.world.getDimension("minecraft:nether"); sim.fire("playerDimensionChange", { player: p }); }
+    sim.tick(40);
+    assert(!b.isValid && !b._events.includes("hollow:reveal"), "no late hunter from a cancelled transformation");
+    noErrors(sim);
+  }
 });
 
 await test("ward: unloading its chunk cannot erase protection or the saved registry", () => {
@@ -1053,6 +1158,53 @@ await test("hollowed: thrown projectiles create a decoy away from the player", (
   sim.tick(2);
   const lure = ow.getEntities({ type: "hollow:lure" })[0];
   assert(lure && Math.hypot(lure.location.x - 9, lure.location.z - 9) < 1.5, "decoy at the impact point");
+  noErrors(sim);
+});
+
+await test("hollowed: reaching a decoy triggers a listening pause and a fresh noise redirects it", () => {
+  const { sim, p, ow } = caveWorld(317);
+  let h;
+  for (let i = 0; i < 6000 && !h; i++) { sim.tick(1); h = ow.getEntities({ type: "hollow:hollowed" })[0]; }
+  assert(h, "listener spawned");
+  const at = { ...h.location };
+  sim.fire("projectileHitBlock", { dimension: ow, location: at });
+  sim.tick(40);
+  eq(h.getProperty("hollow:state"), "listening", "pauses to listen at the last noise");
+  assert(h._groups.has("hollow:listening") && !h._groups.has("hollow:investigate"), "movement stopped while listening");
+  sim.fire("projectileHitBlock", { dimension: ow, location: { x: at.x + 8, y: at.y, z: at.z } });
+  eq(h.getProperty("hollow:state"), "investigate", "fresh noise wakes it immediately");
+  assert(!h._groups.has("hollow:listening") && h._groups.has("hollow:investigate"), "new pursuit has no frozen overlay");
+  h.teleport({ x: at.x + 8, y: at.y, z: at.z }); sim.tick(40);
+  eq(h.getProperty("hollow:state"), "listening", "arriving at new noise produces another listen");
+  sim.tick(100);
+  eq(h.getProperty("hollow:state"), "calm", "eventually resumes its normal wandering");
+  noErrors(sim);
+});
+
+await test("hollowed: a listening creature reacts at close range even to a sneaking player", () => {
+  const { sim, p, ow } = caveWorld(318);
+  let h;
+  for (let i = 0; i < 6000 && !h; i++) { sim.tick(1); h = ow.getEntities({ type: "hollow:hollowed" })[0]; }
+  assert(h, "listener spawned");
+  sim.fire("projectileHitBlock", { dimension: ow, location: { ...h.location } }); sim.tick(40);
+  eq(h.getProperty("hollow:state"), "listening", "listening before approach");
+  p.isSneaking = true; p.teleport({ x: h.location.x + 2, y: h.location.y, z: h.location.z }); sim.tick(20);
+  eq(h.getProperty("hollow:state"), "investigate", "close-contact rule still applies");
+  assert(!h._groups.has("hollow:listening"), "contact restores movement");
+  noErrors(sim);
+});
+
+await test("hollowed: boss juveniles keep their combat behavior instead of entering listening pauses", () => {
+  const { sim, p, awaken } = bossWorld(1, 320);
+  awaken(); sim.tick(125);
+  const heart = hearts(sim)[0];
+  for (const v of veins(sim)) sim.damage(v, 999, p);
+  sim.tick(10); sim.damage(heart, heart._health.effectiveMax * 0.45, p); sim.tick(10);
+  const young = sim.overworld.getEntities({ type: "hollow:hollowed" });
+  assert(young.length > 0, "boss minions spawned");
+  for (const h of young) sim.fire("projectileHitBlock", { dimension: sim.overworld, location: { ...h.location } });
+  sim.tick(100);
+  assert(young.every((h) => !h._events.includes("hollow:listen")), "no noncombat pauses in the boss fight");
   noErrors(sim);
 });
 
@@ -1268,24 +1420,33 @@ await test("music: night tracks are rare (at most one per night) and fall silent
   const sim = newWorld(72);
   sim.world.setDynamicProperty("hollow:settings", JSON.stringify({ frequency: 200, borrowed: false, hollowed: false, mirebound: false, knocker: false }));
   boot(sim, 72);
+  // Start with a quiet, treeless window so music eligibility is exercised independently of
+  // the Watcher's random pattern draws. Enable wooded terrain after the first track starts.
+  sim.overworld.biome = () => "minecraft:plains";
   const p = sim.addPlayer("Alex", { x: 0.5, y: 64, z: 0.5 }, veteran);
-  let overlap = 0, nightTracks = 0, last;
+  let overlap = 0, longestOverlap = 0, overlapRun = 0, huntedTicks = 0, nightTracks = 0, last;
   for (let night = 1; night <= 4; night++) {
     goTo(sim, night, 12000);
     for (let t = 0; t < 12000; t++) {
       sim.tick(1);
       const m = p._music?.track;
-      if (m !== last && m?.startsWith("hollow.music.night")) nightTracks++;
+      if (m !== last && m?.startsWith("hollow.music.night")) {
+        nightTracks++;
+        sim.overworld.biome = () => "minecraft:forest";
+      }
       last = m;
-      const state = (w) => [...w._events].reverse().find((e) => e.startsWith("hollow:to_"));
-      const hunted = sim.overworld.getEntities({ type: "hollow:watcher" }).some((w) => ["hollow:to_stalk", "hollow:to_lunge"].includes(state(w)));
-      if (hunted && m?.startsWith("hollow.music.night")) overlap++;
+      const hunted = sim.overworld.getEntities({ type: "hollow:watcher" }).some((w) => ["stalk", "lunge"].includes(w.getProperty("hollow:state")));
+      if (hunted) huntedTicks++;
+      if (hunted && m?.startsWith("hollow.music.night")) {
+        overlap++; overlapRun++; longestOverlap = Math.max(longestOverlap, overlapRun);
+      } else overlapRun = 0;
     }
   }
   assert(nightTracks >= 1, "night music played at least once in 4 nights");
   assert(nightTracks <= 4, `at most one night track per night (${nightTracks} in 4 nights)`);
   notes.push(`music: ${nightTracks} night track(s) over 4 nights; ${overlap} ticks of night music while a Watcher was stalking`);
-  assert(overlap <= 220, `night music stops within one music check of a hunt (${overlap} overlapping ticks)`);
+  assert(huntedTicks > 0, "the fixture actually exercised stalking");
+  assert(longestOverlap <= 220, `night music stops within one music check of a hunt (${longestOverlap} consecutive overlapping ticks)`);
   noErrors(sim);
 });
 

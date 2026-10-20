@@ -17,16 +17,16 @@ Errors: **0** · Warnings: **0**
 - sounds: 77 events, 161 files (11 vanilla references); subtitles checked against lang
 - recipes: 7
 - texture sets: 21
-- structure hollow:shrine: 25x13x25, 14 palette entries
-- structure hollow:watchtower: 7x15x7, 13 palette entries
-- structure hollow:leanto: 7x5x7, 11 palette entries
 - structure hollow:campsite: 13x6x13, 17 palette entries
-- structure hollow:cabin_collapsed: 11x9x11, 29 palette entries
+- structure hollow:leanto: 7x5x7, 11 palette entries
 - structure hollow:cabin: 11x9x11, 31 palette entries
+- structure hollow:shrine: 25x13x25, 14 palette entries
+- structure hollow:cabin_collapsed: 11x9x11, 29 palette entries
+- structure hollow:watchtower: 7x15x7, 13 palette entries
 - visuals: 83 client biome overrides, 28 VV definitions
 - behavior entities: 9 (schema-validated + component names, events, component groups, properties, loot paths, lang)
 - client entities: 9 (textures, geometry, animations, controllers, render controllers, bones, Molang properties)
-- geometry: 14 models (UV bounds); animations: 33; controllers: 13; render controllers: 8
+- geometry: 14 models (UV bounds); animations: 35; controllers: 13; render controllers: 8
 - items: 14, blocks: 6 (schema-validated + icons, terrain textures, custom components registered in script, states, lang)
 - particles: 11; fogs: 86
 - scripts: every hollow:* id, sound, particle, fog, event, property and block state referenced from TypeScript resolves

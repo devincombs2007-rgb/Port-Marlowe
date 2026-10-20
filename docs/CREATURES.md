@@ -37,11 +37,11 @@ models. They are **not in-game screenshots**.
 | Textures | Colour, MERS (emissive eye glints, rough bark), heightmap texture set; separate glow layer for standard graphics. |
 | Animations | idle sway, walk, look_at_target, stare (head tilt), seen (flinch), lunge; locomotion and mood controllers. |
 | Sounds | step, creak, seen, retreat, lunge, hurt, death (+ forest hush, distant stinger). |
-| Stats | 40 HP, 5 melee damage (vanilla difficulty scaling), speed 0.30. |
+| Stats | 40 HP, 5 melee damage (vanilla difficulty scaling), speed 0.30 direct / 0.19 patient; 0 while lurking. |
 | Drops | Pale Resin 1–2 (+Looting), sticks. Staring it down also leaves 1 Pale Resin (once per player per night; 2 on Nightmare). |
 
 **Spawn rules:**
-- Overworld, **forest-group biome**, dusk to dawn (time 12400–23400), player on the surface, not roofed and not in water.
+- Overworld, **forest-group biome or adjacent open/shore forest edge**, dusk to dawn (time 12400–23400), player on the surface, not roofed and not in water.
 - Base chance 10% per evaluation × `chanceScale`; cooldown 4–7 min.
 - Placed 34–50 blocks away at 95–160° from the view direction, on forest ground, with no light block within 5 blocks
   and a clear line to the player's head.
@@ -51,7 +51,9 @@ models. They are **not in-game screenshots**.
 **States** (`creatures/watcher.ts`, updated every 4 ticks):
 - `lurk`: stands still at the treeline. Being watched adds to a stare counter: **24 ticks (1.2 s) of gaze → `withdraw`
   ("stared")**, which drops resin. If it's unobserved for 60 ticks (3 s) and the player isn't safe → `stalk`.
-- `stalk`: approaches with pathfinding only while unobserved; any observer sends it back to `lurk`.
+- `stalk`: approaches with native pathfinding only while unobserved; any observer sends it back to a zero-speed `lurk`.
+  Direct and patient encounters alternate per player in a session. Patient pursuit moves slower and pauses
+  0.8–1.4 seconds at distances over 12 blocks every 7–11 seconds. Grace glimpses remain non-hunting.
   - At ≤10 blocks a **twig-snap warning** plays at its position.
   - At ≤5 blocks, if it can strike → `lunge`; otherwise → `lurk`.
 - `lunge`: one melee strike (the entity's `melee_attack`), then `withdraw` ("struck").
@@ -75,7 +77,7 @@ models. They are **not in-game screenshots**.
 |---|---|
 | Model | Original sheep-proportioned geometry with legs a touch too long and the head carried a touch too low. The true form is built into the same rig: the head splits into two hinged halves around a pale inner skull, and three spines unfold from under the wool. |
 | Textures | Disguise, true form, night eyeshine glow (`glow_night_borrowed` render controller: eyes only shine at night). |
-| Animations | disguise (no grazing, pacing), idle, walk, look_at_target, reveal, revealed, attack, form, strike. |
+| Animations | disguise (no grazing, pacing), idle, walk, exposed scramble/run, look_at_target, reveal, revealed, attack, form, strike. |
 | Sounds | baa, baa_wrong (bleat ending in a click), reveal, attack, hurt, death, step. |
 | Stats | 24 HP, 5 damage, speed 0.23 disguised / 0.32 revealed / 0.34 fleeing. |
 | Drops | Borrowed Hide 1–2 (+Looting), bone 50%. |
@@ -88,11 +90,15 @@ models. They are **not in-game screenshots**.
 - At most min(2, players) at once, and one per target.
 
 **States:**
-- `disguised`: harmless. Shows tells every 35–70 s at night (wrong bleat 45%).
+- `disguised`: harmless. Pauses 2–4 seconds to watch nearby players between bouts of wandering;
+  its head tilt becomes more pronounced while watching. Existing wrong-bleat timing is unchanged.
 - It's revealed by: **shears** (custom `interact` → `hollow:sheared` event), being **hurt**, a **Rowan Ward** within
   10 blocks, or at night a player within 4 blocks, in the dark, without a light, for 2 s.
 - The **Hollow Lens** reveals it *visually* to the lens user only (`setPropertyOverrideForEntity`). That's an
   investigation reveal and doesn't trigger the hunt.
+- `revealing`: stationary, non-attacking for at least 28 ticks (1.4 seconds); the 10-tick update
+  cadence can extend the window slightly. Afterwards it hunts at night or flees in daylight. Wards
+  can send it fleeing immediately, and target death/travel cancels an incomplete transformation.
 - `revealed`: at night it hunts (melee); by day it flees.
 - `fleeing`: below 40% HP, at dawn, or after a ward. It vanishes once out of range.
 - In daylight, a disguised Borrowed older than 3 minutes with nobody within 24 blocks quietly leaves.
@@ -142,7 +148,9 @@ Within 3 blocks it finds a player regardless (`nearest_attackable_target` with a
 - `calm`: wanders and clicks.
 - A heard noise within radius → `investigate`. A temporary invisible **lure** entity
   (`hollow:lure`, family `hollow_temp`) is placed at the noise. The Hollowed targets it with normal pathfinding,
-  then sniffs.
+  then pauses to listen for 2–4 seconds when it reaches the last heard point. A fresh noise
+  redirects it immediately, and a huntable player within 3 blocks restores pursuit. Boss juveniles
+  do not enter this listening state.
 - Lures expire after 10 s. A Hollowed with no player within 64 blocks for 30 s is removed.
 
 **Counterplay:** sneak; wool and carpet floors; throw projectiles as decoys; keep light around; keep distance.

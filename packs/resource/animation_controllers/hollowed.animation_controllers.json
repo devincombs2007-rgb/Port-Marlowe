@@ -6,7 +6,9 @@
       "states": {
         "idle": {
           "animations": [
-            "idle"
+            {
+              "idle": "variable.state == 'calm'"
+            }
           ],
           "transitions": [
             {
@@ -17,7 +19,9 @@
         },
         "walking": {
           "animations": [
-            "walk"
+            {
+              "walk": "math.clamp(query.modified_move_speed * 5.0, 0.0, 1.0)"
+            }
           ],
           "transitions": [
             {
@@ -38,8 +42,12 @@
           "transitions": [
             {
               "alert": "variable.state == 'investigate'"
+            },
+            {
+              "listening": "variable.state == 'listening'"
             }
-          ]
+          ],
+          "blend_transition": 0.25
         },
         "alert": {
           "animations": [
@@ -48,7 +56,25 @@
           ],
           "transitions": [
             {
-              "calm": "variable.state != 'investigate'"
+              "listening": "variable.state == 'listening'"
+            },
+            {
+              "calm": "variable.state == 'calm'"
+            }
+          ],
+          "blend_transition": 0.3
+        },
+        "listening": {
+          "animations": [
+            "click",
+            "listen"
+          ],
+          "transitions": [
+            {
+              "alert": "variable.state == 'investigate'"
+            },
+            {
+              "calm": "variable.state == 'calm'"
             }
           ],
           "blend_transition": 0.3

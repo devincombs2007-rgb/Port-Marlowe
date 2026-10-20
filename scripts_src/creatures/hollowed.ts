@@ -21,12 +21,14 @@ interface H {
   id: string;
   dim: string;
   born: number;
-  state: "calm" | "investigate";
+  state: "calm" | "investigate" | "listening";
   stateAt: number;
   alertAt: number;
   pos: Vector3;
   lastSeenPlayer: number;
   juvenile: boolean;
+  searchAt?: Vector3;
+  listenUntil: number;
 }
 
 interface Lure {
@@ -46,7 +48,7 @@ export const isLureTracked = (id: string): boolean => lures.has(id);
 function track(e: Entity, juvenile: boolean): void {
   hs.set(e.id, {
     id: e.id, dim: e.dimension.id, born: now(), state: juvenile ? "investigate" : "calm", stateAt: now(), alertAt: -999,
-    pos: e.location, lastSeenPlayer: now(), juvenile,
+    pos: e.location, lastSeenPlayer: now(), juvenile, listenUntil: 0,
   });
 }
 
@@ -172,6 +174,7 @@ function hear(n: Noise): void {
       h.state = "investigate";
     }
     h.stateAt = now();
+    h.searchAt = { ...n.at };
     if (n.source && dist(n.source.location, h.pos) < 24) unlock(n.source, "hollowed2");
   }
   if (heard) placeLure(n.dim, n.at);
@@ -225,7 +228,25 @@ function update(): void {
       continue;
     }
     for (const p of players) if (dist(p.location, e.location) < 20) unlock(p, "hollowed1");
+    if (h.state === "listening") {
+      const contact = players.some((p) => huntable(p) && dist(p.location, e.location) < 3);
+      if (contact || t >= h.listenUntil) {
+        e.triggerEvent(contact ? "hollow:investigate" : "hollow:calm");
+        h.state = contact ? "investigate" : "calm";
+        h.stateAt = t;
+        h.searchAt = undefined;
+      }
+      continue;
+    }
     if (h.state === "investigate" && !h.juvenile) {
+      const contact = players.some((p) => huntable(p) && dist(p.location, e.location) < 3);
+      if (!contact && h.searchAt && dist(e.location, h.searchAt) < 2.5 && t - h.stateAt >= 20) {
+        e.triggerEvent("hollow:listen");
+        h.state = "listening";
+        h.stateAt = t;
+        h.listenUntil = t + seconds(rand(2, 4));
+        continue;
+      }
       const lureNear = [...lures.values()].some((l) => l.dim === h.dim && distSq(l.at, h.pos) < 36 * 36);
       if (!lureNear || t - h.stateAt > 240) {
         worldSound(e.dimension, SND.hollowedSniff, e.location, 0.8);

@@ -17,7 +17,9 @@
         },
         "walking": {
           "animations": [
-            "walk"
+            {
+              "walk": "math.clamp(query.modified_move_speed * 5.0, 0.0, 1.0)"
+            }
           ],
           "transitions": [
             {

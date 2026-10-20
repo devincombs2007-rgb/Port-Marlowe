@@ -17,6 +17,11 @@
           ],
           "default": "lurk",
           "client_sync": true
+        },
+        "hollow:patient": {
+          "type": "bool",
+          "default": false,
+          "client_sync": true
         }
       }
     },
@@ -30,6 +35,9 @@
             "min": 2,
             "max": 4
           }
+        },
+        "minecraft:movement": {
+          "value": 0
         }
       },
       "hollow:stalk": {
@@ -62,6 +70,9 @@
             "min": 2,
             "max": 4
           }
+        },
+        "minecraft:movement": {
+          "value": 0.3
         }
       },
       "hollow:withdraw": {
@@ -92,6 +103,9 @@
           "speed_multiplier": 1.2,
           "xz_dist": 16,
           "y_dist": 4
+        },
+        "minecraft:movement": {
+          "value": 0.3
         }
       },
       "hollow:lunge": {
@@ -122,10 +136,48 @@
             "event": "hollow:watcher_struck",
             "target": "self"
           }
+        },
+        "minecraft:movement": {
+          "value": 0.3
         }
       },
       "hollow:despawn": {
         "minecraft:instant_despawn": {}
+      },
+      "hollow:stalk_patient": {
+        "minecraft:behavior.nearest_attackable_target": {
+          "priority": 1,
+          "must_see": false,
+          "reselect_targets": true,
+          "within_radius": 80,
+          "scan_interval": 10,
+          "entity_types": [
+            {
+              "filters": {
+                "test": "is_family",
+                "subject": "other",
+                "value": "player"
+              },
+              "max_dist": 80
+            }
+          ]
+        },
+        "minecraft:behavior.move_towards_target": {
+          "priority": 2,
+          "within_radius": 3.5
+        },
+        "minecraft:behavior.look_at_player": {
+          "priority": 3,
+          "look_distance": 72,
+          "probability": 1.0,
+          "look_time": {
+            "min": 2,
+            "max": 4
+          }
+        },
+        "minecraft:movement": {
+          "value": 0.19
+        }
       }
     },
     "components": {
@@ -148,7 +200,9 @@
       "minecraft:movement": {
         "value": 0.3
       },
-      "minecraft:movement.basic": {},
+      "minecraft:movement.basic": {
+        "max_turn": 20
+      },
       "minecraft:jump.static": {},
       "minecraft:navigation.walk": {
         "can_path_over_water": false,
@@ -217,7 +271,8 @@
           "component_groups": [
             "hollow:stalk",
             "hollow:withdraw",
-            "hollow:lunge"
+            "hollow:lunge",
+            "hollow:stalk_patient"
           ]
         },
         "add": {
@@ -234,7 +289,8 @@
           "component_groups": [
             "hollow:lurk",
             "hollow:withdraw",
-            "hollow:lunge"
+            "hollow:lunge",
+            "hollow:stalk_patient"
           ]
         },
         "add": {
@@ -251,7 +307,8 @@
           "component_groups": [
             "hollow:lurk",
             "hollow:stalk",
-            "hollow:lunge"
+            "hollow:lunge",
+            "hollow:stalk_patient"
           ]
         },
         "add": {
@@ -268,7 +325,8 @@
           "component_groups": [
             "hollow:lurk",
             "hollow:stalk",
-            "hollow:withdraw"
+            "hollow:withdraw",
+            "hollow:stalk_patient"
           ]
         },
         "add": {
@@ -285,7 +343,8 @@
           "component_groups": [
             "hollow:lurk",
             "hollow:stalk",
-            "hollow:lunge"
+            "hollow:lunge",
+            "hollow:stalk_patient"
           ]
         },
         "add": {
@@ -302,6 +361,24 @@
           "component_groups": [
             "hollow:despawn"
           ]
+        }
+      },
+      "hollow:to_stalk_patient": {
+        "remove": {
+          "component_groups": [
+            "hollow:lurk",
+            "hollow:withdraw",
+            "hollow:lunge",
+            "hollow:stalk"
+          ]
+        },
+        "add": {
+          "component_groups": [
+            "hollow:stalk_patient"
+          ]
+        },
+        "set_property": {
+          "hollow:state": "stalk"
         }
       }
     }

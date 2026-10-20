@@ -22,7 +22,8 @@
         "attack": "animation.hollow.hollowed.attack",
         "locomotion": "controller.animation.hollow.hollowed.locomotion",
         "mood": "controller.animation.hollow.hollowed.mood",
-        "strike": "controller.animation.hollow.hollowed.strike"
+        "strike": "controller.animation.hollow.hollowed.strike",
+        "listen": "animation.hollow.hollowed.listen"
       },
       "scripts": {
         "pre_animation": [

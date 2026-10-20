@@ -33,7 +33,7 @@
           "rotation": [
             0,
             0,
-            "math.sin(query.anim_time * 14) * 7"
+            "math.sin(query.anim_time * 14) * (variable.watchful ? 10 : 3)"
           ]
         }
       }
@@ -83,9 +83,54 @@
       "bones": {
         "head": {
           "rotation": [
-            "query.target_x_rotation",
-            "query.target_y_rotation",
+            "math.clamp(query.target_x_rotation, -25, 25)",
+            "math.clamp(query.target_y_rotation, -55, 55)",
             0
+          ]
+        }
+      }
+    },
+    "animation.hollow.borrowed.run": {
+      "loop": true,
+      "bones": {
+        "leg_fl": {
+          "rotation": [
+            "math.cos(query.modified_distance_moved * 52) * 38",
+            0,
+            -3
+          ]
+        },
+        "leg_br": {
+          "rotation": [
+            "math.cos(query.modified_distance_moved * 52) * 38",
+            0,
+            3
+          ]
+        },
+        "leg_fr": {
+          "rotation": [
+            "-math.cos(query.modified_distance_moved * 52) * 38",
+            0,
+            3
+          ]
+        },
+        "leg_bl": {
+          "rotation": [
+            "-math.cos(query.modified_distance_moved * 52) * 38",
+            0,
+            -3
+          ]
+        },
+        "body": {
+          "position": [
+            0,
+            "-math.abs(math.sin(query.modified_distance_moved * 52)) * 0.45",
+            0
+          ],
+          "rotation": [
+            5,
+            0,
+            "math.sin(query.modified_distance_moved * 52) * 2"
           ]
         }
       }

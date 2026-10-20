@@ -9,7 +9,11 @@
       "properties": {
         "hollow:state": {
           "type": "enum",
-          "values": ["calm", "investigate"],
+          "values": [
+            "calm",
+            "investigate",
+            "listening"
+          ],
           "default": "calm",
           "client_sync": true
         }
@@ -25,7 +29,9 @@
         }
       },
       "hollow:investigate": {
-        "minecraft:movement": { "value": 0.3 },
+        "minecraft:movement": {
+          "value": 0.3
+        },
         "minecraft:behavior.nearest_attackable_target": {
           "priority": 1,
           "must_see": false,
@@ -36,15 +42,28 @@
             {
               "filters": {
                 "all_of": [
-                  { "test": "is_family", "subject": "other", "value": "player" },
-                  { "test": "has_ability", "subject": "other", "value": "invulnerable", "operator": "!=" }
+                  {
+                    "test": "is_family",
+                    "subject": "other",
+                    "value": "player"
+                  },
+                  {
+                    "test": "has_ability",
+                    "subject": "other",
+                    "value": "invulnerable",
+                    "operator": "!="
+                  }
                 ]
               },
               "max_dist": 3,
               "priority": 0
             },
             {
-              "filters": { "test": "is_family", "subject": "other", "value": "hollow_lure" },
+              "filters": {
+                "test": "is_family",
+                "subject": "other",
+                "value": "hollow_lure"
+              },
               "max_dist": 32,
               "priority": 1
             }
@@ -52,39 +71,84 @@
         }
       },
       "hollow:juvenile": {
-        "minecraft:scale": { "value": 0.6 },
-        "minecraft:health": { "value": 10, "max": 10 },
-        "minecraft:attack": { "damage": 3 },
-        "minecraft:collision_box": { "width": 0.7, "height": 0.6 },
-        "minecraft:loot": { "table": "loot_tables/empty.json" }
+        "minecraft:scale": {
+          "value": 0.6
+        },
+        "minecraft:health": {
+          "value": 10,
+          "max": 10
+        },
+        "minecraft:attack": {
+          "damage": 3
+        },
+        "minecraft:collision_box": {
+          "width": 0.7,
+          "height": 0.6
+        },
+        "minecraft:loot": {
+          "table": "loot_tables/empty.json"
+        }
       },
       "hollow:despawn": {
         "minecraft:instant_despawn": {}
+      },
+      "hollow:listening": {
+        "minecraft:movement": {
+          "value": 0
+        }
       }
     },
     "components": {
       "minecraft:type_family": {
-        "family": ["hollow", "hollow_creature", "hollowed", "monster", "mob"]
+        "family": [
+          "hollow",
+          "hollow_creature",
+          "hollowed",
+          "monster",
+          "mob"
+        ]
       },
-      "minecraft:health": { "value": 26, "max": 26 },
-      "minecraft:attack": { "damage": 6 },
-      "minecraft:movement": { "value": 0.26 },
-      "minecraft:movement.basic": {},
+      "minecraft:health": {
+        "value": 26,
+        "max": 26
+      },
+      "minecraft:attack": {
+        "damage": 6
+      },
+      "minecraft:movement": {
+        "value": 0.26
+      },
+      "minecraft:movement.basic": {
+        "max_turn": 20
+      },
       "minecraft:jump.static": {},
       "minecraft:navigation.walk": {
         "avoid_water": true,
         "avoid_damage_blocks": true,
         "can_open_doors": false
       },
-      "minecraft:collision_box": { "width": 1.0, "height": 0.9 },
+      "minecraft:collision_box": {
+        "width": 1.0,
+        "height": 0.9
+      },
       "minecraft:physics": {},
       "minecraft:pushable_by_entity": {},
       "minecraft:pushable_by_block": {},
-      "minecraft:breathable": { "total_supply": 15, "suffocate_time": 0 },
+      "minecraft:breathable": {
+        "total_supply": 15,
+        "suffocate_time": 0
+      },
       "minecraft:nameable": {},
-      "minecraft:follow_range": { "value": 32, "max": 32 },
-      "minecraft:behavior.float": { "priority": 0 },
-      "minecraft:behavior.hurt_by_target": { "priority": 1 },
+      "minecraft:follow_range": {
+        "value": 32,
+        "max": 32
+      },
+      "minecraft:behavior.float": {
+        "priority": 0
+      },
+      "minecraft:behavior.hurt_by_target": {
+        "priority": 1
+      },
       "minecraft:behavior.nearest_attackable_target": {
         "priority": 2,
         "must_see": false,
@@ -95,8 +159,17 @@
           {
             "filters": {
               "all_of": [
-                { "test": "is_family", "subject": "other", "value": "player" },
-                { "test": "has_ability", "subject": "other", "value": "invulnerable", "operator": "!=" }
+                {
+                  "test": "is_family",
+                  "subject": "other",
+                  "value": "player"
+                },
+                {
+                  "test": "has_ability",
+                  "subject": "other",
+                  "value": "invulnerable",
+                  "operator": "!="
+                }
               ]
             },
             "max_dist": 3
@@ -110,12 +183,24 @@
         "cooldown_time": 1.2
       },
       "minecraft:damage_sensor": {
-        "triggers": [{ "cause": "fall", "deals_damage": "no" }]
+        "triggers": [
+          {
+            "cause": "fall",
+            "deals_damage": "no"
+          }
+        ]
       },
-      "minecraft:loot": { "table": "loot_tables/hollow/entities/hollowed.json" },
-      "minecraft:experience_reward": { "on_death": "query.last_hit_by_player ? 10 : 0" },
+      "minecraft:loot": {
+        "table": "loot_tables/hollow/entities/hollowed.json"
+      },
+      "minecraft:experience_reward": {
+        "on_death": "query.last_hit_by_player ? 10 : 0"
+      },
       "minecraft:despawn": {
-        "despawn_from_distance": { "min_distance": 64, "max_distance": 96 }
+        "despawn_from_distance": {
+          "min_distance": 64,
+          "max_distance": 96
+        }
       },
       "minecraft:ambient_sound_interval": {
         "value": 3,
@@ -126,26 +211,85 @@
     },
     "events": {
       "minecraft:entity_spawned": {
-        "add": { "component_groups": ["hollow:calm"] },
-        "set_property": { "hollow:state": "calm" }
+        "add": {
+          "component_groups": [
+            "hollow:calm"
+          ]
+        },
+        "set_property": {
+          "hollow:state": "calm"
+        }
       },
       "hollow:investigate": {
-        "remove": { "component_groups": ["hollow:calm"] },
-        "add": { "component_groups": ["hollow:investigate"] },
-        "set_property": { "hollow:state": "investigate" }
+        "remove": {
+          "component_groups": [
+            "hollow:calm",
+            "hollow:listening"
+          ]
+        },
+        "add": {
+          "component_groups": [
+            "hollow:investigate"
+          ]
+        },
+        "set_property": {
+          "hollow:state": "investigate"
+        }
       },
       "hollow:calm": {
-        "remove": { "component_groups": ["hollow:investigate"] },
-        "add": { "component_groups": ["hollow:calm"] },
-        "set_property": { "hollow:state": "calm" }
+        "remove": {
+          "component_groups": [
+            "hollow:investigate",
+            "hollow:listening"
+          ]
+        },
+        "add": {
+          "component_groups": [
+            "hollow:calm"
+          ]
+        },
+        "set_property": {
+          "hollow:state": "calm"
+        }
       },
       "hollow:make_juvenile": {
-        "add": { "component_groups": ["hollow:juvenile", "hollow:investigate"] },
-        "remove": { "component_groups": ["hollow:calm"] },
-        "set_property": { "hollow:state": "investigate" }
+        "add": {
+          "component_groups": [
+            "hollow:juvenile",
+            "hollow:investigate"
+          ]
+        },
+        "remove": {
+          "component_groups": [
+            "hollow:calm"
+          ]
+        },
+        "set_property": {
+          "hollow:state": "investigate"
+        }
       },
       "hollow:despawn": {
-        "add": { "component_groups": ["hollow:despawn"] }
+        "add": {
+          "component_groups": [
+            "hollow:despawn"
+          ]
+        }
+      },
+      "hollow:listen": {
+        "remove": {
+          "component_groups": [
+            "hollow:calm",
+            "hollow:investigate"
+          ]
+        },
+        "add": {
+          "component_groups": [
+            "hollow:listening"
+          ]
+        },
+        "set_property": {
+          "hollow:state": "listening"
+        }
       }
     }
   }

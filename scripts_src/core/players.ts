@@ -13,6 +13,7 @@ export interface Runtime {
   cooldowns: Map<string, number>;
   /** The single major encounter currently focused on this player, if any. */
   encounter?: string;
+  lastWatcherPattern?: "direct" | "patient";
   ctx?: Ctx;
   ctxDim?: string;
   ctxPos?: { x: number; y: number; z: number };

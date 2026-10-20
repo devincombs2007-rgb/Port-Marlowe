@@ -1,6 +1,35 @@
-# THE HOLLOW development checkpoint — 1.0.5
+# THE HOLLOW development checkpoint — 1.0.6
 
-## Latest continuation: 1.0.5 — horror visual direction
+## Latest continuation: 1.0.6 — creature movement and encounter variations
+
+User playtest feedback: the Borrowed sheep impostor is visible and the Hollowed cave clicking
+sounds great. No other creatures were reported seen. The device, installed version and world
+age were not specified. The user asked for movement and encounter variety, deferred storytelling,
+and asked to keep the cave clicking sound. No lore pages or sound assets were changed.
+
+- Watcher encounters alternate direct and patient pursuit per player in a session. Patient
+  pursuit uses slower native pathing and short pauses at distance. Observation removes either
+  stalking group and restores a zero-speed lurk group. Core light/ward/stare/grace rules remain.
+- Watchers can appear at open/shore forest edges, while their spawn point must still be wooded,
+  34–50 blocks away and under the existing light, ground and line-of-sight restrictions.
+- Borrowed sheep pause to watch nearby players for 2–4 seconds, then resume their disguised
+  wandering. Exposed forms use a different diagonal scrambling gait.
+- Borrowed transformations have a stationary non-attacking window of at least 1.4 seconds.
+  Afterwards they hunt at night or flee in daylight. Wards interrupt safely; death/travel
+  cancels an uncompleted transformation. This prevents hunting during the opening animation.
+- A wild Hollowed reaching the last heard noise pauses to listen for 2–4 seconds. New noises
+  redirect it immediately; close contact restores pursuit. Boss juveniles retain combat behavior.
+- Weight walk animations by movement speed, blend idle/walk/run states, limit head twists and
+  use bounded native turning. Reduce the Watcher's large walking body dip. Static Borrowed run
+  poses were inspected offline; engine movement/animation quality still requires the user test.
+- Preserve all 1.0.5 shader settings and audio bytes. Keep spawn chances, cooldowns and caps;
+  variety does not mean constant encounters or new guaranteed spawns.
+
+Verification: strict TypeScript, static validation, 88/88 headless scenarios (10 new), visual-data
+checks and archive integrity. The simulation does not implement native pathfinding or animation
+playback. See `MOVEMENT_TESTING.md` for a targeted device test and remaining engine questions.
+
+## Previous continuation: 1.0.5 — horror visual direction
 
 - Expand the optional Visuals pack from 57 to all 83 Overworld client-biome definitions in the
   pinned Mojang release. Native Nether/End biome settings remain intact.
@@ -148,12 +177,13 @@ The original 1.0.1 pass changed only swamp density; the later 1.0.3 lighting/gra
 
 - Strict TypeScript compilation against the pinned stable Script API typings.
 - Static schema and reference validation: zero errors, zero warnings.
-- 78/78 headless scenarios, including field guidance, lifecycle, equipment, event and journal regressions.
-- Importable archives rebuilt from the current source with version `1.0.5` manifests.
+- 88/88 headless scenarios, including movement states, encounter variations, field guidance and lifecycle regressions.
+- Importable archives rebuilt from the current source with version `1.0.6` manifests.
 
 ## Still requires Minecraft
 
-No iPhone, Xbox, Windows or Realm runtime test has been performed. Next, follow
+Codex has not run Minecraft. The user reports the Borrowed and positive Hollowed clicking audio;
+other engine/device details remain unconfirmed. Next, follow
 [TESTING.md](TESTING.md), including the event checks, and compare swamp/forest visibility at
 dusk, midnight and during rain with Vibrant Visuals on and off. Check the Heart model and eye
 animations in the engine, listen to the audio, and collect device performance observations.

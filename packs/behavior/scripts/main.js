@@ -2299,7 +2299,8 @@ function track(e, juvenile) {
     alertAt: -999,
     pos: e.location,
     lastSeenPlayer: now(),
-    juvenile
+    juvenile,
+    listenUntil: 0
   });
 }
 function tryStartHollowed(p) {
@@ -2411,6 +2412,7 @@ function hear(n) {
       h.state = "investigate";
     }
     h.stateAt = now();
+    h.searchAt = { ...n.at };
     if (n.source && dist(n.source.location, h.pos) < 24) unlock(n.source, "hollowed2");
   }
   if (heard) placeLure(n.dim, n.at);
@@ -2456,7 +2458,25 @@ function update() {
       continue;
     }
     for (const p of players) if (dist(p.location, e.location) < 20) unlock(p, "hollowed1");
+    if (h.state === "listening") {
+      const contact = players.some((p) => huntable(p) && dist(p.location, e.location) < 3);
+      if (contact || t >= h.listenUntil) {
+        e.triggerEvent(contact ? "hollow:investigate" : "hollow:calm");
+        h.state = contact ? "investigate" : "calm";
+        h.stateAt = t;
+        h.searchAt = void 0;
+      }
+      continue;
+    }
     if (h.state === "investigate" && !h.juvenile) {
+      const contact = players.some((p) => huntable(p) && dist(p.location, e.location) < 3);
+      if (!contact && h.searchAt && dist(e.location, h.searchAt) < 2.5 && t - h.stateAt >= 20) {
+        e.triggerEvent("hollow:listen");
+        h.state = "listening";
+        h.stateAt = t;
+        h.listenUntil = t + seconds(rand(2, 4));
+        continue;
+      }
       const lureNear = [...lures.values()].some((l) => l.dim === h.dim && distSq(l.at, h.pos) < 36 * 36);
       if (!lureNear || t - h.stateAt > 240) {
         worldSound(e.dimension, SND.hollowedSniff, e.location, 0.8);
@@ -3267,7 +3287,7 @@ function setState(e, enc, s) {
   enc.state = s;
   enc.stateAt = now();
   try {
-    e.triggerEvent(s === "revealed" ? "hollow:reveal" : s === "fleeing" ? "hollow:flee" : "minecraft:entity_spawned");
+    e.triggerEvent(s === "revealing" ? "hollow:begin_reveal" : s === "revealed" ? "hollow:reveal" : s === "fleeing" ? "hollow:flee" : "minecraft:entity_spawned");
   } catch {
   }
 }
@@ -3286,8 +3306,8 @@ function teach(e, deep) {
 }
 function reveal(e, enc, why, by) {
   if (enc.state !== "disguised") return;
-  const night = isDarkHours();
-  setState(e, enc, night ? "revealed" : "fleeing");
+  setState(e, enc, "revealing");
+  enc.pauseUntil = 0;
   teach(e, true);
   for (const p of playersNear(e, 32)) accent(p, SND.stingerLow, 2);
   if (by) hint(by, why === "shears" ? "§7The wool doesn't shear. It peels away in one wet sheet." : "§7That was never a sheep.");
@@ -3324,7 +3344,7 @@ function tryStartBorrowed(p) {
     return false;
   }
   e.setDynamicProperty(DP.owner, p.id);
-  encs.set(e.id, { id: e.id, target: p.id, born: now(), state: "disguised", stateAt: now(), close: 0, noticed: /* @__PURE__ */ new Set(), nextWrong: now() + seconds(30) });
+  encs.set(e.id, { id: e.id, target: p.id, born: now(), state: "disguised", stateAt: now(), close: 0, noticed: /* @__PURE__ */ new Set(), nextWrong: now() + seconds(30), pauseUntil: 0, nextPause: now() + seconds(rand(8, 16)) });
   setCooldown(p, "borrowed", seconds(rand(600, 900) * cooldownScale()));
   return true;
 }
@@ -3357,7 +3377,32 @@ function update3() {
       vanish(e, enc);
       continue;
     }
+    if (enc.state === "revealing") {
+      if (lanternNear(e.dimension, e.location)) {
+        vanish(e, enc);
+        continue;
+      }
+      const ward = wardNear(e.dimension, e.location);
+      if (ward) {
+        useWard(ward, "borrowed");
+        setState(e, enc, "fleeing");
+        continue;
+      }
+      if (inState >= 28) setState(e, enc, isDarkHours() ? "revealed" : "fleeing");
+      continue;
+    }
     if (enc.state === "disguised") {
+      if (enc.pauseUntil && t >= enc.pauseUntil) {
+        enc.pauseUntil = 0;
+        e.triggerEvent("hollow:watchful_end");
+      }
+      if (!enc.pauseUntil && t >= enc.nextPause) {
+        enc.nextPause = t + seconds(rand(10, 18));
+        if (near.some((q) => dist(q.location, e.location) <= 20)) {
+          enc.pauseUntil = t + seconds(rand(2, 4));
+          e.triggerEvent("hollow:watchful");
+        }
+      }
       const ward = wardNear(e.dimension, e.location);
       if (ward) {
         useWard(ward, "borrowed");
@@ -3428,7 +3473,7 @@ function onBorrowedDied(id, killer) {
 }
 function forgetBorrowedTarget(playerId) {
   for (const enc of [...encs.values()]) {
-    if (enc.target === playerId && enc.state === "disguised") vanish(world14.getEntity(enc.id), enc);
+    if (enc.target === playerId && (enc.state === "disguised" || enc.state === "revealing")) vanish(world14.getEntity(enc.id), enc);
   }
 }
 function startBorrowed() {
@@ -4032,7 +4077,7 @@ function setState3(e, enc, s) {
   enc.state = s;
   enc.stateAt = now();
   try {
-    e.triggerEvent(`hollow:to_${s}`);
+    e.triggerEvent(s === "stalk" && enc.pattern === "patient" ? "hollow:to_stalk_patient" : `hollow:to_${s}`);
   } catch {
   }
 }
@@ -4071,7 +4116,7 @@ function tryStartWatcher(p) {
   const s = settings();
   if (!s.watcher || !isDarkHours()) return false;
   const c = ctx(p);
-  if (!c.overworld || c.biome !== "forest" || c.underground || c.inWater || c.roofed) return false;
+  if (!c.overworld || !["forest", "open", "shore"].includes(c.biome) || c.underground || c.inWater || c.roofed) return false;
   if (!huntable(p) || rt(p).encounter || !cooldownReady(p, "watcher")) return false;
   if (encounters.size >= Math.min(3, Math.max(1, onlinePlayers().length))) return false;
   if (!chance(0.1 * chanceScale())) return false;
@@ -4100,6 +4145,10 @@ function tryStartWatcher(p) {
     }
     e.setDynamicProperty(DP.owner, p.id);
     e.setDynamicProperty(DP.born, now());
+    const previous = rt(p).lastWatcherPattern;
+    const pattern = previous ? previous === "direct" ? "patient" : "direct" : chance(0.5) ? "patient" : "direct";
+    rt(p).lastWatcherPattern = pattern;
+    e.setProperty("hollow:patient", pattern === "patient");
     const enc = {
       id: e.id,
       target: p.id,
@@ -4113,7 +4162,10 @@ function tryStartWatcher(p) {
       closeCue: false,
       resin: false,
       litAt: -999,
-      lit: false
+      lit: false,
+      pattern,
+      pauseUntil: 0,
+      nextPause: now() + seconds(rand(8, 12))
     };
     encounters.set(e.id, enc);
     rt(p).encounter = "watcher";
@@ -4228,12 +4280,18 @@ function update6() {
         if (age > seconds(45)) withdraw(e, enc, "timeout");
         continue;
       }
-      if (enc.unseen >= 60 && !targetSafe(p, enc)) setState3(e, enc, "stalk");
+      if (t >= enc.pauseUntil && enc.unseen >= 60 && !targetSafe(p, enc)) setState3(e, enc, "stalk");
       continue;
     }
     if (enc.state === "stalk") {
       trail(e, 0 /* Watcher */, 2.8);
       if (targetSafe(p, enc)) {
+        setState3(e, enc, "lurk");
+        continue;
+      }
+      if (enc.pattern === "patient" && d > 12 && t >= enc.nextPause) {
+        enc.pauseUntil = t + seconds(rand(0.8, 1.4));
+        enc.nextPause = t + seconds(rand(7, 11));
         setState3(e, enc, "lurk");
         continue;
       }

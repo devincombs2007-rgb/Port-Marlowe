@@ -38,6 +38,9 @@ interface Enc {
   resin: boolean;
   litAt: number;
   lit: boolean;
+  pattern: "direct" | "patient";
+  pauseUntil: number;
+  nextPause: number;
 }
 
 const encounters = new Map<string, Enc>();
@@ -56,7 +59,7 @@ function setState(e: Entity, enc: Enc, s: State): void {
   enc.state = s;
   enc.stateAt = now();
   try {
-    e.triggerEvent(`hollow:to_${s}`);
+    e.triggerEvent(s === "stalk" && enc.pattern === "patient" ? "hollow:to_stalk_patient" : `hollow:to_${s}`);
   } catch {
     /* entity unloaded */
   }
@@ -105,7 +108,7 @@ export function tryStartWatcher(p: Player): boolean {
   const s = settings();
   if (!s.watcher || !isDarkHours()) return false;
   const c = ctx(p);
-  if (!c.overworld || c.biome !== "forest" || c.underground || c.inWater || c.roofed) return false;
+  if (!c.overworld || !["forest", "open", "shore"].includes(c.biome) || c.underground || c.inWater || c.roofed) return false;
   if (!huntable(p) || rt(p).encounter || !cooldownReady(p, "watcher")) return false;
   if (encounters.size >= Math.min(3, Math.max(1, onlinePlayers().length))) return false;
   if (!chance(0.1 * chanceScale())) return false;
@@ -136,9 +139,16 @@ export function tryStartWatcher(p: Player): boolean {
     }
     e.setDynamicProperty(DP.owner, p.id);
     e.setDynamicProperty(DP.born, now());
+    // Alternate successful encounters after the initial random choice; failed spawn attempts
+    // never consume a pattern. Keep the same grace, stare and light counterplay in both.
+    const previous = rt(p).lastWatcherPattern;
+    const pattern = previous ? (previous === "direct" ? "patient" : "direct") : (chance(0.5) ? "patient" : "direct");
+    rt(p).lastWatcherPattern = pattern;
+    e.setProperty("hollow:patient", pattern === "patient");
     const enc: Enc = {
       id: e.id, target: p.id, born: now(), state: "lurk", stateAt: now(), stare: 0, unseen: 0,
       sawOnce: false, glimpse: hollowDay() < s.graceDays, closeCue: false, resin: false, litAt: -999, lit: false,
+      pattern, pauseUntil: 0, nextPause: now() + seconds(rand(8, 12)),
     };
     encounters.set(e.id, enc);
     rt(p).encounter = "watcher";
@@ -270,13 +280,19 @@ function update(): void {
         if (age > seconds(45)) withdraw(e, enc, "timeout");
         continue;
       }
-      if (enc.unseen >= 60 && !targetSafe(p, enc)) setState(e, enc, "stalk");
+      if (t >= enc.pauseUntil && enc.unseen >= 60 && !targetSafe(p, enc)) setState(e, enc, "stalk");
       continue;
     }
 
     if (enc.state === "stalk") {
       trail(e, TrackKind.Watcher, 2.8);
       if (targetSafe(p, enc)) {
+        setState(e, enc, "lurk");
+        continue;
+      }
+      if (enc.pattern === "patient" && d > 12 && t >= enc.nextPause) {
+        enc.pauseUntil = t + seconds(rand(0.8, 1.4));
+        enc.nextPause = t + seconds(rand(7, 11));
         setState(e, enc, "lurk");
         continue;
       }

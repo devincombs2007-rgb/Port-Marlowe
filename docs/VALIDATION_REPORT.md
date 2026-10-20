@@ -1,11 +1,11 @@
-# Validation report: THE HOLLOW v1.0.5
+# Validation report: THE HOLLOW v1.0.6
 
 **Current validation:**
 - Every static check passes: **0 errors, 0 warnings**, and the validator catches **8/8** deliberately injected defects.
-- The real scripts pass **78/78 headless simulation scenarios** (§1b) against a fake Minecraft API, including server
+- The real scripts pass **88/88 headless simulation scenarios** (§1b) against a fake Minecraft API, including server
   restarts mid-fight.
-- **Nothing has been run inside Minecraft yet:** no Windows, iPhone, Xbox or Realm session. The in-game test plan in §3
-  is what remains, and §4 lists every known limitation and unverified assumption.
+- **User playtest:** the Borrowed has been seen and the Hollowed clicking sound was praised. Device/version/world age were not specified.
+  Codex has not run Minecraft; the full in-game plan in §3 remains outstanding.
 
 Build date: 2026-10-19 · Target: Minecraft Bedrock 26.50 (1.26.50) · `@minecraft/server` 2.10.0 · `@minecraft/server-ui` 2.2.0
 
@@ -23,7 +23,7 @@ Run with `python3 tools/build.py`. The full machine output is in
 | Behavior entities (9) | **Mojang JSON schema** (entity 1.26.50); every component name exists in 1.26.50 (406 known); event → component group references; `set_property` names declared; loot table paths exist; entity names in lang | ✅ |
 | Client entities (9) | textures, geometry, animations and controllers exist; render-controller textures, materials and `part_visibility` bones exist; animated bones exist in the geometry; every `query.property` is declared in the BP; sound and particle effects resolve and animations only use declared effect names; spawn-egg names in lang | ✅ |
 | Geometry (14) | All UV boxes lie within the texture size | ✅ |
-| Animations (33) and controllers (13) | Referenced by short name in each client entity; controller states reference existing animations | ✅ |
+| Animations (35) and controllers (13) | Referenced by short name in each client entity; controller states reference existing animations | ✅ |
 | Items (14), blocks (6) | **Mojang schemas** (item 1.26.30, block 1.26.20); icons in `item_texture.json`; terrain textures exist; custom components are registered in the TypeScript; block states and permutations reference declared states; lang | ✅ |
 | Recipes (7), loot tables | Every item id exists in vanilla 1.26.50 or in the add-on | ✅ |
 | Texture sets (21) | MERS is RGBA, heightmap is single-channel, no normal map alongside a heightmap (mutually exclusive) | ✅ |
@@ -162,8 +162,8 @@ for `[hollow]` lines and content errors.
 
 ## 4. Known limitations and unverified assumptions
 
-**Not tested anywhere at runtime.** Everything below was built against the documented 1.26.50 behavior and Mojang's
-schemas, but hasn't been observed in game.
+**Limited user playtest only; Codex has not run Minecraft.** The user has seen the Borrowed and heard/liked Hollowed clicking.
+The wider behaviors and assumptions below still require targeted engine/device checks.
 
 | # | Assumption or limitation | Risk | Fallback / mitigation |
 |---|---|---|---|
@@ -173,7 +173,7 @@ schemas, but hasn't been observed in game.
 | 4 | **Vibrant Visuals pack interplay:** `local_lighting.json` and client-biome overrides from several active packs may not merge, so the top pack wins. | Low | Documented: use one VV pack at a time. The add-on is fully playable without the Visuals pack. |
 | 5 | **Custom block in a structure palette:** the shrine `.mcstructure` contains `hollow:heart_altar` with state `hollow:awake=0`. | Low | The block and state are declared in the BP and validated. If placement drops it, operators can re-place the shrine with `/scriptevent hollow:site shrine` (testing only). |
 | 6 | **Knocker pathing** to doors in unusual builds (doors in walls more than 2 thick, doors up stairs). | Low | It gives up after 70 s and leaves. No damage, and no stuck creature. |
-| 7 | **Sounds were never auditioned.** I can't listen to audio. All 150 packaged files were checked by spectrogram, level, duration and clipping only. | Medium (quality, not function) | The current sounds are processed from credited recordings by `tools/sounds/sourced.py`, so any cue is easy to retune and rebuild. Expect some to need adjusting after a listening pass. |
+| 7 | **Full audio catalogue not auditioned.** The user likes the Hollowed clicking. Other files were checked by spectrogram, level, duration and clipping only. | Medium (quality, not function) | The current sounds are processed from credited recordings by `tools/sounds/sourced.py`, so any cue is easy to retune and rebuild. Expect some to need adjusting after a listening pass. |
 | 8 | **Art is procedural, original, low-resolution "Minecraft-style".** It's consistent, but not hand-painted by an artist. | n/a | Generators are parameterised; every texture can be repainted or replaced. |
 | 9 | **Performance unmeasured on any device.** The bounds in TECHNICAL.md §3 are design limits. The simulation's per-tick script time is only a relative indicator from Node. | Unknown | Operators can lower *Encounter frequency* or disable creatures. |
 | 10 | **Realm upload UI wording** differs slightly between platforms and versions. | Low | The install guide describes both routes. |
@@ -183,7 +183,7 @@ schemas, but hasn't been observed in game.
 | 14 | **Spawn-egg creatures are test props.** They have no encounter logic and are removed by the start-up sweep or the next chunk load. | Low | Documented in the survival guide's operator section. |
 
 ## 5. Explicit non-claims
-- No claim of Xbox, iPhone, Windows or Realm testing.
+- Codex has not performed Xbox, iPhone, Windows or Realm testing. Limited user feedback is recorded above.
 - No frame-rate or performance claim.
 - No claim that the sounds or art are professionally produced. They are original and procedurally generated (see CREDITS.md).
 - No use of beta or experimental APIs, so no experiments toggle is needed.
