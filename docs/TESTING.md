@@ -3,7 +3,7 @@
 A fast first pass on **Windows** (best for reading errors). Repeat the short Realm and Xbox section at the end.
 
 ## Setup (2 min)
-1. Import `THE_HOLLOW_v1.0.4.mcaddon`. Create a **new world**: Survival, cheats **on**, the behavior pack plus the Visuals pack, all experiments off.
+1. Import `THE_HOLLOW_v1.0.5.mcaddon`. Create a **new world**: Survival, cheats **on**, the behavior pack plus the Visuals pack, all experiments off.
 2. Settings → Creator → turn on **Content Log GUI**. Settings → Accessibility → turn on **Subtitles**.
 3. In the world, run:
    ```
@@ -44,7 +44,7 @@ not named, discovered recipes advance the goal, and a novice sees the settling-i
 Test a charcoal recharge and an overflow ward after freeing a slot. Use the lens/Heartseeker,
 then die or change dimension: the reveal/marker should clear and a fresh use should work.
 9. Journal → Settings → My comfort settings: turn **Music** off, and the shrine music stops. Turn off **Visual effects**: no fog shift with the Watcher.
-10. Video → **Vibrant Visuals** on and off, at noon, dusk and midnight in a forest, a taiga, a swamp and a cave. Check that
+10. Video → **Vibrant Visuals** on and off, at noon, dusk and midnight in a forest, a taiga, a swamp, a cave, a dark forest, a desert and an ocean shore. Check that
     nights are dark but walkable, torchlight reads warm, fog never hides the near ground, and nothing is pitch black.
 11. `/scriptevent hollow:test off`.
 
@@ -94,3 +94,13 @@ viewport. This is not a human listening approval or an iPhone Safari test.
 ## Reporting back
 For each failed step, note **step number, what you expected, what happened**, and any red content-log line.
 For sounds, use the **Hollow Sound Booth** page (link in the release notes) to mark sounds that are too loud, too quiet or wrong.
+
+## Horror visuals 1.0.5
+
+Confirm Visuals 1.0.5 is active with one lighting pack and Vibrant Visuals selected. Keep gamma
+steady. Review noon/sunset/midnight in all seven profile groups, then repeat with rain. Allow
+exposure to settle at cave entrances. Check cold/frozen oceans, pale garden, lush/sulfur caves
+and badlands; the older 57-biome pack did not cover them all. Cross profile boundaries to check
+lighting/water transitions, inspect water ripples for noise, and look at underwater visibility.
+Check a torch-lit door and lantern path against the cold world, then note FPS/stutter on the
+actual device. No Minecraft visual result or performance measurement exists from Codex yet.

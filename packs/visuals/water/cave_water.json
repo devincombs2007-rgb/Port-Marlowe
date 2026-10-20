@@ -1,31 +1,32 @@
 {
-  "format_version": "1.21.120",
+  "format_version": "1.26.0",
   "minecraft:water_settings": {
     "description": {
       "identifier": "hollow:cave_water"
     },
     "particle_concentrations": {
-      "chlorophyll": 0.0,
-      "suspended_sediment": 0.0,
-      "cdom": 0.0
+      "chlorophyll": 0.04,
+      "suspended_sediment": 0.08,
+      "cdom": 0.12
     },
     "caustics": {
-      "enabled": true,
-      "frame_length": 0.09,
-      "scale": 0.5,
+      "enabled": false,
+      "frame_length": 0.18,
+      "scale": 0.35,
       "power": 1
     },
     "waves": {
       "enabled": false,
-      "frequency": 1,
-      "octaves": 28,
-      "depth": 1,
-      "speed": 2,
-      "shape": 1.5,
-      "pull": 0.3799999952316284,
-      "mix": 0.20000000298023224,
-      "frequency_scaling": 1.2000000476837158,
-      "speed_scaling": 1.0299999713897705
-    }
+      "frequency": 0.65,
+      "octaves": 2,
+      "depth": 0.05,
+      "speed": 0.35,
+      "shape": 1.1,
+      "pull": 0.15,
+      "mix": 0.2,
+      "frequency_scaling": 1.2,
+      "speed_scaling": 1.03
+    },
+    "biome_water_color_contribution": 0.25
   }
 }

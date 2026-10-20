@@ -26,20 +26,20 @@
       "air": {
         "fog_start": 0.55,
         "fog_end": 1.0,
-        "fog_color": "#697764",
+        "fog_color": "#65745F",
         "render_distance_type": "render"
       },
       "weather": {
         "fog_start": 0.2,
-        "fog_end": 0.65,
-        "fog_color": "#4A5546",
+        "fog_end": 0.7,
+        "fog_color": "#475342",
         "render_distance_type": "render"
       }
     },
     "volumetric": {
       "density": {
         "air": {
-          "max_density": 0.07,
+          "max_density": 0.065,
           "uniform": false,
           "zero_density_height": 82.0,
           "max_density_height": 60.0
@@ -48,14 +48,14 @@
       "media_coefficients": {
         "air": {
           "scattering": [
-            0.028,
-            0.034,
-            0.026
+            0.024,
+            0.03,
+            0.022
           ],
           "absorption": [
-            0.004,
-            0.004,
-            0.005
+            0.006,
+            0.006,
+            0.007
           ]
         }
       },

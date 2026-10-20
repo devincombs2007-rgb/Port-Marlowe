@@ -7,14 +7,14 @@
     "color_grading": {
       "midtones": {
         "contrast": [
-          1.08,
-          1.08,
-          1.08
+          1.09,
+          1.09,
+          1.09
         ],
         "gain": [
-          0.86,
-          0.86,
-          0.86
+          0.85,
+          0.85,
+          0.85
         ],
         "gamma": [
           2.2,
@@ -27,23 +27,23 @@
           0.0
         ],
         "saturation": [
-          0.86,
-          0.86,
-          0.86
+          0.78,
+          0.78,
+          0.78
         ]
       },
       "shadows": {
         "enabled": true,
         "shadowsMax": 0.6,
         "gain": [
-          0.92,
-          0.96,
+          0.91,
+          0.95,
           0.92
         ],
         "saturation": [
-          0.817,
-          0.817,
-          0.817
+          0.741,
+          0.741,
+          0.741
         ],
         "contrast": [
           1.0,
@@ -92,7 +92,7 @@
       },
       "temperature": {
         "enabled": true,
-        "temperature": 6200,
+        "temperature": 6300,
         "type": "color_temperature"
       }
     },

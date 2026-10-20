@@ -23,9 +23,9 @@ official Minecraft Creator docs (the MicrosoftDocs/minecraft-creator GitHub sour
 | Lighting | `1.26.0` | Sun and moon, keyframed ambient and sky intensity, emissive desaturation. |
 | Atmospherics | `1.21.40` | Keyframed sky zenith and horizon colours, Rayleigh/Mie, moon Mie. |
 | Color grading | `1.21.90` | Generic tone mapping across every look. Only one operator may be used in a pack set. |
-| Water | `1.21.120` | Per-look chlorophyll, sediment and CDOM (murky swamp water). |
+| Water | `1.26.0` | Per-look particle concentrations, biome-colour contribution, bounded ripples and caustics. |
 | Local lighting | `1.21.120` | Point and static light colours for torch, lantern, campfire and HOLLOW blocks. |
-| Client biome | `1.21.120` (vanilla base) | Validated against `json_schemas/client/biome/1.21.130`. |
+| Client biome | Inherited vanilla versions through `1.26.0` | Validated against `json_schemas/client/biome/1.21.130`. |
 | Structures | `.mcstructure` (LE NBT), block palette version `1.26.50.4` | Every palette entry is validated against `mojang-blocks.json` 1.26.50. |
 
 **Not used:** beta APIs, experimental toggles, Preview-only features, Molang features gated behind experiments,
@@ -151,22 +151,20 @@ remain separate.
 - Encounter fog (`hollow:watched`, `hollow:heart`, `hollow:mire`) is pushed per player through `player.fogSettings`
   and can be disabled per player.
 
-**Visuals pack (optional, Vibrant Visuals only):**
-- **Four looks:**
-  | Look | Character |
-  |---|---|
-  | wild | cool forest daylight, muted saturation 0.94 |
-  | cold | blue-white |
-  | swamp | olive and humid, sediment-rich water |
-  | cave | desaturated, cool shadows |
-- **Applied through 57 client-biome overrides.** Since 1.21.90, vanilla per-biome VV settings override the global files,
-  so per-biome overrides are required.
-- **Darker Visuals profile (1.0.3; device verification pending):**
-  - moonlight 0.16–0.20 illuminance, cool [150,170,255];
-  - surface ambient falls from 0.018 by day to 0.012 at night; cave ambient 0.009;
-  - deep-blue night zenith [12,16,28], reduced moon haze and sky fill;
-  - air fog starts at 70% of render distance in wild/cold, 55% in swamps, 75% in caves.
-- **Colour grading:** reduced midtone gain (0.86–0.90) and warm highlight gain [0.88,0.85,0.81], standard gamma 2.2 and cool shadows. See `VISUAL_TUNING.md`.
+**Visuals pack (optional, Vibrant Visuals):**
+- Seven looks: wild, cold, swamp, cave, canopy, arid and coast. All 83 Overworld definitions
+  in the pinned reference are overridden through client-biome identifiers. Nether/End biome
+  definitions and non-look components (music, foliage, grass, ambient sounds) stay intact.
+- Steel/olive shadows and muted saturation 0.78–0.84; sunlight 62–70 lux, moon 0.13–0.17 lux;
+  ambient night floor 0.010–0.011, standard gamma 2.2, zero grading offsets and shared `generic`
+  tone mapper. All authored daily curves have matching start/end values.
+- Reduced sun glare, moon haze and lowland volumetric density. Region-specific distance fog
+  ends at render distance in clear air; underwater distance/volume settings are inherited.
+- Slightly stained water, two-octave ripples (four at coasts), cold/cave waves off. Caustics off
+  in swamp/canopy/cave; minimum integer power 1 with slower animation elsewhere. Water format
+  1.26.0 supports biome-colour contribution. No frame-rate/performance benefit is claimed.
+- See `VISUAL_TUNING.md` for art direction and device review; `VISUAL_REPORT.generated.md` lists
+  the current numeric inputs. `tools/visuals/verify_visuals.py` runs as part of every build.
 - **Local lights:** torch #FFB46B, lantern #E8873A, campfire #FF9A4A, Heartwood Lantern #FF6A3D, Rowan Ward #FF8A3A.
 - **Safety:** the add-on never shakes the camera, never flashes, and never forces darkness or blindness.
   - Fades are short, soft, and can be switched off.

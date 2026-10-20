@@ -15,8 +15,9 @@ in it is patient, though. You are watched long before you are attacked.
 - **Survival equipment:** Hollow Chime (warning), Rowan Ward (limited protection), Hollow Lens
   (investigation), Heartseeker and Offering of Silence (boss progression), and the Heartwood
   Lantern (reward).
-- **An optional Visuals pack** for Vibrant Visuals: cool forests, muted earth tones, warm
-  shelter light and unsettling caves. Standard graphics work fully without it.
+- **An optional Visuals pack** for Vibrant Visuals: seven horror looks across all 83 Overworld biome
+  definitions, muted earth tones, cold nights, warm shelter light and restrained water effects.
+  Standard graphics work fully without it.
 - Original models, textures and animations, plus 150 audio files built from credited CC0 recordings.
 
 > **Status:**
@@ -33,12 +34,12 @@ Current development checkpoint and unfinished device checks: **[docs/DEVELOPMENT
 
 | File | What it is |
 |---|---|
-| [`dist/THE_HOLLOW_v1.0.4.mcaddon`](dist/THE_HOLLOW_v1.0.4.mcaddon) | Everything: behavior pack, resource pack and the optional Visuals pack. Open it to import. |
-| `dist/THE_HOLLOW_BP_v1.0.4.mcpack` | Behavior pack only |
-| `dist/THE_HOLLOW_RP_v1.0.4.mcpack` | Resource pack only (required) |
-| `dist/THE_HOLLOW_Visuals_v1.0.4.mcpack` | Optional Vibrant Visuals pack |
+| [`dist/THE_HOLLOW_v1.0.5.mcaddon`](dist/THE_HOLLOW_v1.0.5.mcaddon) | Everything: behavior pack, resource pack and the optional Visuals pack. Open it to import. |
+| `dist/THE_HOLLOW_BP_v1.0.5.mcpack` | Behavior pack only |
+| `dist/THE_HOLLOW_RP_v1.0.5.mcpack` | Resource pack only (required) |
+| `dist/THE_HOLLOW_Visuals_v1.0.5.mcpack` | Optional Vibrant Visuals pack |
 
-Darker lighting update and comparison steps: **[docs/VISUAL_TUNING.md](docs/VISUAL_TUNING.md)**.
+Horror visual style and comparison steps: **[docs/VISUAL_TUNING.md](docs/VISUAL_TUNING.md)**.
 
 Install guide (iPhone or Windows → world → Realm → Xbox): **[docs/INSTALL.md](docs/INSTALL.md)**
 

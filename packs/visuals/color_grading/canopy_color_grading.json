@@ -1,0 +1,103 @@
+{
+  "format_version": "1.21.90",
+  "minecraft:color_grading_settings": {
+    "description": {
+      "identifier": "hollow:canopy_color_grading"
+    },
+    "color_grading": {
+      "midtones": {
+        "contrast": [
+          1.1,
+          1.1,
+          1.1
+        ],
+        "gain": [
+          0.85,
+          0.85,
+          0.85
+        ],
+        "gamma": [
+          2.2,
+          2.2,
+          2.2
+        ],
+        "offset": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "saturation": [
+          0.78,
+          0.78,
+          0.78
+        ]
+      },
+      "shadows": {
+        "enabled": true,
+        "shadowsMax": 0.6,
+        "gain": [
+          0.91,
+          0.95,
+          0.92
+        ],
+        "saturation": [
+          0.741,
+          0.741,
+          0.741
+        ],
+        "contrast": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "gamma": [
+          2.2,
+          2.2,
+          2.2
+        ],
+        "offset": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "highlights": {
+        "enabled": true,
+        "highlightsMin": 1.4,
+        "gain": [
+          0.88,
+          0.85,
+          0.81
+        ],
+        "saturation": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "contrast": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "gamma": [
+          2.2,
+          2.2,
+          2.2
+        ],
+        "offset": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "temperature": {
+        "enabled": true,
+        "temperature": 6250,
+        "type": "color_temperature"
+      }
+    },
+    "tone_mapping": {
+      "operator": "generic"
+    }
+  }
+}

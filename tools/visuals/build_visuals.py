@@ -21,23 +21,62 @@ from hollowkit import VP, ROOT, ensure  # noqa: E402
 
 SRC = os.path.join(ROOT, "build", "bedrock-samples", "resource_pack")
 
+# Keep native Nether/End lighting and gameplay-signalling biome components intact.
+EXCLUDED = {"hell", "basalt_deltas", "crimson_forest", "warped_forest", "soulsand_valley", "the_end"}
+
+# Existing memberships remain unless a more specific art direction is useful.
 GROUPS = {
     "wild": [
         "forest", "forest_hills", "flower_forest", "birch_forest", "birch_forest_hills", "birch_forest_mutated",
-        "birch_forest_hills_mutated", "roofed_forest", "roofed_forest_mutated", "dappled_forest", "taiga", "taiga_hills",
-        "taiga_mutated", "mega_taiga", "mega_taiga_hills", "redwood_taiga_mutated", "redwood_taiga_hills_mutated", "plains",
-        "sunflower_plains", "meadow", "cherry_grove", "extreme_hills", "extreme_hills_edge", "extreme_hills_mutated",
-        "extreme_hills_plus_trees", "extreme_hills_plus_trees_mutated", "river", "beach", "stone_beach", "jungle",
-        "jungle_edge", "jungle_hills", "jungle_mutated", "jungle_edge_mutated", "bamboo_jungle", "bamboo_jungle_hills",
-        "savanna", "savanna_mutated", "savanna_plateau", "savanna_plateau_mutated", "stony_peaks",
+        "birch_forest_hills_mutated", "dappled_forest", "taiga", "taiga_hills", "taiga_mutated", "mega_taiga",
+        "mega_taiga_hills", "redwood_taiga_mutated", "redwood_taiga_hills_mutated", "plains", "sunflower_plains",
+        "meadow", "cherry_grove", "extreme_hills", "extreme_hills_edge", "extreme_hills_mutated",
+        "extreme_hills_plus_trees", "extreme_hills_plus_trees_mutated", "jungle", "jungle_edge", "jungle_hills",
+        "jungle_mutated", "jungle_edge_mutated", "bamboo_jungle", "bamboo_jungle_hills", "savanna", "savanna_mutated",
+        "savanna_plateau", "savanna_plateau_mutated", "stony_peaks", "mushroom_island", "mushroom_island_shore",
     ],
     "cold": [
         "cold_taiga", "cold_taiga_hills", "cold_taiga_mutated", "grove", "snowy_slopes", "ice_plains", "ice_mountains",
-        "frozen_river", "cold_beach", "frozen_peaks", "jagged_peaks",
+        "ice_plains_spikes", "frozen_river", "cold_beach", "frozen_peaks", "jagged_peaks", "frozen_ocean",
+        "deep_frozen_ocean", "legacy_frozen_ocean", "cold_ocean", "deep_cold_ocean",
     ],
     "swamp": ["swampland", "swampland_mutated", "mangrove_swamp"],
-    "cave": ["dripstone_caves", "deep_dark"],
+    "cave": ["dripstone_caves", "deep_dark", "lush_caves", "sulfur_caves"],
+    "canopy": ["roofed_forest", "roofed_forest_mutated", "pale_garden"],
+    "arid": ["desert", "desert_hills", "desert_mutated", "mesa", "mesa_bryce", "mesa_plateau", "mesa_plateau_mutated",
+             "mesa_plateau_stone", "mesa_plateau_stone_mutated"],
+    "coast": ["beach", "stone_beach", "river", "ocean", "deep_ocean", "lukewarm_ocean", "deep_lukewarm_ocean",
+              "warm_ocean", "deep_warm_ocean"],
 }
+
+# Film direction: steel/olive shadows, subdued earth colours and amber practical lights.
+# These values describe inputs, never measured screen brightness or visibility.
+STYLE = {
+    # sun scale, moon peak, day/night ambient, day/night sky, saturation, contrast, midtone gain
+    "wild":   (0.68, 0.16, 0.016, 0.010, 0.70, 0.34, 0.84, 1.10, 0.86),
+    "cold":   (0.70, 0.15, 0.016, 0.010, 0.65, 0.34, 0.80, 1.08, 0.85),
+    "swamp":  (0.62, 0.13, 0.015, 0.010, 0.62, 0.30, 0.78, 1.09, 0.85),
+    "cave":   (0.68, 0.15, 0.010, 0.010, 0.25, 0.25, 0.82, 1.06, 0.90),
+    "canopy": (0.62, 0.13, 0.015, 0.010, 0.62, 0.30, 0.78, 1.10, 0.85),
+    "arid":   (0.70, 0.16, 0.016, 0.011, 0.70, 0.36, 0.82, 1.08, 0.86),
+    "coast":  (0.70, 0.17, 0.016, 0.011, 0.72, 0.38, 0.82, 1.08, 0.86),
+}
+
+DAY_SKY = {
+    "wild": [66, 82, 96], "cold": [76, 94, 116], "swamp": [65, 81, 76], "cave": [66, 82, 96],
+    "canopy": [64, 76, 77], "arid": [96, 91, 86], "coast": [71, 91, 105],
+}
+DAY_HORIZON = {
+    "wild": [120, 132, 139], "cold": [130, 144, 158], "swamp": [108, 121, 105], "cave": [120, 132, 139],
+    "canopy": [110, 122, 117], "arid": [143, 130, 115], "coast": [125, 140, 148],
+}
+
+
+def cycle(day, dusk, night):
+    """Closed daily curve: normalized orbital time is noon=0, sunset=.25, midnight=.5."""
+    return {"0.0": day, "0.18": day, "0.25": dusk, "0.32": night, "0.5": night,
+            "0.68": night, "0.75": dusk, "0.82": day, "1.0": day}
+
 
 ID = lambda kind, group: f"hollow:{group}_{kind}"  # noqa: E731
 
@@ -61,22 +100,19 @@ def lighting(group):
     ls["description"]["identifier"] = ID("lighting", group)
     sun = ls["directional_lights"]["orbital"]["sun"]
     moon = ls["directional_lights"]["orbital"]["moon"]
-    noon = {"wild": [244, 238, 228], "cold": [232, 238, 252], "swamp": [232, 236, 206], "cave": [244, 238, 228]}[group]
-    sun["color"] = {k: (noon if float(k) in (0.0, 1.0) else v) for k, v in sun["color"].items()}
-    sun_scale = {"wild": 0.8, "cold": 0.75, "swamp": 0.7, "cave": 0.8}[group]
+    sun_scale, moon_peak, day_ambient, night_ambient, day_sky, night_sky, *_ = STYLE[group]
+    # Author every colour stop: the previous generator retained vanilla's highly orange
+    # daytime stops and only replaced its final key. Start/end now match exactly.
+    noon = [224, 232, 231] if group not in ("swamp", "arid") else [234, 230, 214]
+    sun["color"] = cycle(noon, [196, 161, 139], [151, 164, 177])
     sun["illuminance"] = {k: round(v * sun_scale, 6) for k, v in sun["illuminance"].items()}
-    # Retain vanilla's zero-light intervals and phase timing; reduce the former 0.5-lux moon.
-    moon_peak = {"wild": 0.2, "cold": 0.18, "swamp": 0.16, "cave": 0.16}[group]
     moon["illuminance"] = {k: (moon_peak if v > 0 else 0.0) for k, v in moon["illuminance"].items()}
-    moon["color"] = {"0.0": [150, 170, 255], "1.0": [150, 170, 255]}
+    moon["color"] = {"0.0": [175, 194, 218], "1.0": [175, 194, 218]}
     ls["ambient"] = {
-        "illuminance": {"0.0": 0.018, "0.2": 0.016, "0.3": 0.012, "0.7": 0.012, "0.8": 0.016, "1.0": 0.018},
-        "color": {"0.0": [255, 255, 255], "0.25": [214, 222, 255], "0.5": [200, 212, 255], "0.75": [214, 222, 255], "1.0": [255, 255, 255]},
+        "illuminance": cycle(day_ambient, round((day_ambient + night_ambient) / 2, 4), night_ambient),
+        "color": cycle([225, 233, 233], [209, 221, 228], [190, 207, 222]),
     }
-    ls["sky"] = {"intensity": {"0.0": 0.8, "0.2": 0.75, "0.3": 0.45, "0.5": 0.4, "0.7": 0.45, "0.8": 0.75, "1.0": 0.8}}
-    if group == "cave":
-        ls["ambient"]["illuminance"] = 0.009
-        ls["sky"]["intensity"] = 0.25
+    ls["sky"] = {"intensity": cycle(day_sky, round((day_sky + night_sky) / 2, 3), night_sky)}
     ls["emissive"] = {"desaturation": 0.0}
     base["format_version"] = "1.26.0"
     return base
@@ -88,28 +124,21 @@ def atmospherics(group):
     base = load(src)
     a = base["minecraft:atmosphere_settings"]
     a["description"]["identifier"] = ID("atmospherics", group)
-    zenith_day = {"wild": [76, 102, 138], "cold": [84, 110, 148], "swamp": [74, 92, 94], "cave": [76, 102, 138]}[group]
-    # Keyframes: 0 noon, 0.25 sunset, 0.5 midnight, 0.75 sunrise. Night sky is deep blue, not grey,
-    # with a lighter horizon so treeline silhouettes read at night.
-    a["sky_zenith_color"] = {"0.0": zenith_day, "0.2": zenith_day, "0.3": [26, 32, 50], "0.5": [12, 16, 28], "0.7": [26, 32, 50], "0.8": zenith_day, "1.0": zenith_day}
-    a["sky_horizon_color"] = {
-        "0.0": [144, 157, 171], "0.17": [160, 153, 148], "0.23": [184, 128, 104], "0.27": [120, 90, 92],
-        "0.33": [46, 54, 74], "0.5": [29, 37, 50], "0.67": [46, 54, 74], "0.73": [160, 112, 104], "0.77": [184, 138, 114],
-        "0.83": [160, 156, 152], "1.0": [144, 157, 171],
-    }
-    if group == "swamp":
-        a["sky_horizon_color"] = {k: [int(v[0] * 0.92), int(v[1] * 0.98), int(v[2] * 0.85)] for k, v in a["sky_horizon_color"].items()}
-    a["moon_mie_strength"] = {"0.0": 0.0, "0.3": 0.12, "0.5": 0.18, "0.7": 0.12, "1.0": 0.0}
+    a["sky_zenith_color"] = cycle(DAY_SKY[group], [35, 41, 47], [12, 17, 24])
+    a["sky_horizon_color"] = cycle(DAY_HORIZON[group], [125, 99, 91], [31, 40, 49])
+    # Reduce inherited sunset glare rather than turning the world black to hide it.
+    a["sun_mie_strength"] = cycle(0.0, 0.22, 0.0)
+    a["moon_mie_strength"] = cycle(0.0, 0.025, 0.10)
+    a["sun_glare_shape"] = cycle(0.0, 0.025, 0.0)
     return base
 
 
 # ------------------------------------------------------------------------------ colour grading
 def grading(group):
-    sat = {"wild": 0.94, "cold": 0.9, "swamp": 0.86, "cave": 0.92}[group]
-    con = {"wild": 1.12, "cold": 1.1, "swamp": 1.08, "cave": 1.1}[group]
-    temp = {"wild": 6300, "cold": 6000, "swamp": 6200, "cave": 6400}[group]
-    shadow_gain = {"wild": [0.92, 0.94, 0.98], "cold": [0.91, 0.94, 0.99], "swamp": [0.92, 0.96, 0.92], "cave": [0.93, 0.95, 0.99]}[group]
-    midtone_gain = {"wild": 0.88, "cold": 0.86, "swamp": 0.86, "cave": 0.9}[group]
+    *_, sat, con, midtone_gain = STYLE[group]
+    temp = {"wild": 6250, "cold": 6100, "swamp": 6300, "cave": 6350,
+            "canopy": 6250, "arid": 6500, "coast": 6200}[group]
+    shadow_gain = [0.90, 0.94, 0.97] if group not in ("swamp", "canopy") else [0.91, 0.95, 0.92]
     return {
         "format_version": "1.21.90",
         "minecraft:color_grading_settings": {
@@ -117,7 +146,7 @@ def grading(group):
             "color_grading": {
                 # Keep standard gamma and zero offset: darken gain without crushing the black floor.
                 "midtones": {"contrast": [con] * 3, "gain": [midtone_gain] * 3, "gamma": [2.2] * 3, "offset": [0.0] * 3, "saturation": [sat] * 3},
-                "shadows": {"enabled": True, "shadowsMax": 0.6, "gain": shadow_gain, "saturation": [sat * 0.95] * 3,
+                "shadows": {"enabled": True, "shadowsMax": 0.6, "gain": shadow_gain, "saturation": [round(sat * 0.95, 4)] * 3,
                             "contrast": [1.0] * 3, "gamma": [2.2] * 3, "offset": [0.0] * 3},
                 "highlights": {"enabled": True, "highlightsMin": 1.4, "gain": [0.88, 0.85, 0.81], "saturation": [1.0] * 3,
                                "contrast": [1.0] * 3, "gamma": [2.2] * 3, "offset": [0.0] * 3},
@@ -134,20 +163,34 @@ def water(group):
     base = load("water/water.json")
     w = base["minecraft:water_settings"]
     w["description"]["identifier"] = ID("water", group)
-    if group == "swamp":
-        w["particle_concentrations"] = {"chlorophyll": 0.6, "suspended_sediment": 0.5, "cdom": 0.4}
+    concentrations = {
+        "wild": (0.10, 0.12, 0.18), "cold": (0.02, 0.04, 0.08), "swamp": (0.60, 0.50, 0.45),
+        "cave": (0.04, 0.08, 0.12), "canopy": (0.18, 0.18, 0.28), "arid": (0.04, 0.20, 0.12),
+        "coast": (0.08, 0.10, 0.15),
+    }
+    chlorophyll, sediment, cdom = concentrations[group]
+    w["particle_concentrations"] = {"chlorophyll": chlorophyll, "suspended_sediment": sediment, "cdom": cdom}
+    w["biome_water_color_contribution"] = 0.25
+    w["caustics"] = {"enabled": group not in ("swamp", "canopy", "cave"), "frame_length": 0.18, "scale": 0.35, "power": 1}
+    # Low-complexity image-based ripples: no moving geometry or gameplay waves.
+    w["waves"] = {"enabled": group not in ("cave", "cold"), "frequency": 0.65,
+                  "octaves": 4 if group == "coast" else 2, "depth": 0.12 if group == "coast" else 0.05,
+                  "speed": 0.35, "shape": 1.1, "pull": 0.15, "mix": 0.2,
+                  "frequency_scaling": 1.2, "speed_scaling": 1.03}
+    base["format_version"] = "1.26.0"
     return base
 
 
 # ------------------------------------------------------------------------------ fog
 FOG = {
-    # (air start, air end, colour), (weather start, end, colour), volumetric (density, zero_h, max_h, scattering)
-    "wild": ((0.7, 1.0, "#798B9A"), (0.25, 0.75, "#535E68"), (0.055, 100.0, 62.0, [0.028, 0.032, 0.038])),
-    "cold": ((0.7, 1.0, "#899DB0"), (0.2, 0.7, "#626F7D"), (0.05, 110.0, 64.0, [0.03, 0.035, 0.043])),
-    # Match the pale garden's 0.07 peak density in the pinned Mojang reference. Our height
-    # falloff still clears by Y82; numerical parity alone does not prove in-game visibility.
-    "swamp": ((0.55, 1.0, "#697764"), (0.2, 0.65, "#4A5546"), (0.07, 82.0, 60.0, [0.028, 0.034, 0.026])),
-    "cave": ((0.75, 1.0, "#292E36"), (0.75, 1.0, "#292E36"), (0.03, 64.0, -64.0, [0.018, 0.02, 0.024])),
+    # Air/weather distance settings, then height-limited volume density and RGB scattering.
+    "wild": ((0.65, 1.0, "#75848A"), (0.25, 0.75, "#505C61"), (0.045, 100.0, 62.0, [0.022, 0.026, 0.029])),
+    "cold": ((0.70, 1.0, "#8698A7"), (0.25, 0.75, "#5F6D79"), (0.035, 110.0, 64.0, [0.025, 0.030, 0.036])),
+    "swamp": ((0.55, 1.0, "#65745F"), (0.20, 0.70, "#475342"), (0.065, 82.0, 60.0, [0.024, 0.030, 0.022])),
+    "cave": ((0.75, 1.0, "#292F36"), (0.75, 1.0, "#292F36"), (0.020, 64.0, -64.0, [0.016, 0.019, 0.023])),
+    "canopy": ((0.60, 1.0, "#67756C"), (0.25, 0.75, "#48544E"), (0.055, 96.0, 62.0, [0.023, 0.028, 0.025])),
+    "arid": ((0.75, 1.0, "#8B8276"), (0.35, 0.80, "#686055"), (0.018, 104.0, 62.0, [0.021, 0.019, 0.017])),
+    "coast": ((0.70, 1.0, "#758A92"), (0.25, 0.75, "#52636B"), (0.032, 100.0, 62.0, [0.021, 0.026, 0.030])),
 }
 
 
@@ -171,16 +214,21 @@ def fog_for(biome, group, vanilla_fog_id):
     air = {"max_density": dens, "uniform": False, "zero_density_height": zero_h, "max_density_height": max_h} if group != "cave" \
         else {"max_density": dens, "uniform": True}
     vol.setdefault("density", {})["air"] = air
-    vol.setdefault("media_coefficients", {})["air"] = {"scattering": scat, "absorption": [0.004, 0.004, 0.005]}
+    vol.setdefault("media_coefficients", {})["air"] = {"scattering": scat, "absorption": [0.006, 0.006, 0.007]}
     vol.setdefault("henyey_greenstein_g", {})["air"] = {"henyey_greenstein_g": 0.6}
     fog["format_version"] = "1.21.90"
     return fog
 
 
-SKY = {"wild": "#6C88AC", "cold": "#7A94B6", "swamp": "#627674"}
+SKY = {group: "#" + "".join(f"{v:02X}" for v in rgb) for group, rgb in DAY_SKY.items() if group != "cave"}
 
 
 def main():
+    # Fail before replacing generated files if the pinned biome inventory changes unexpectedly.
+    assigned = [biome for biomes in GROUPS.values() for biome in biomes]
+    available = {os.path.basename(p).split(".")[0] for p in glob.glob(os.path.join(SRC, "biomes", "*.json"))}
+    assert len(assigned) == len(set(assigned)), "duplicate visual biome assignment"
+    assert set(assigned) == available - EXCLUDED, f"biome coverage mismatch: {set(assigned) ^ (available - EXCLUDED)}"
     for d in ("biomes", "fogs", "lighting", "atmospherics", "color_grading", "water", "local_lighting"):
         p = os.path.join(VP, d)
         if os.path.isdir(p):

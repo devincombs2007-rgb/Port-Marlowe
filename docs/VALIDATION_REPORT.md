@@ -1,4 +1,4 @@
-# Validation report: THE HOLLOW v1.0.4
+# Validation report: THE HOLLOW v1.0.5
 
 **Current validation:**
 - Every static check passes: **0 errors, 0 warnings**, and the validator catches **8/8** deliberately injected defects.
@@ -18,7 +18,7 @@ Run with `python3 tools/build.py`. The full machine output is in
 
 | Area | What is checked | Result |
 |---|---|---|
-| JSON | All 260 JSON files parse | ✅ |
+| JSON | All 324 JSON files parse | ✅ |
 | Manifests | `format_version` 2, unique UUIDs, BP→RP dependency resolves by UUID and version, `pbr` capability on both RPs, `min_engine_version` 1.26.50, script entry exists, **every script module version is present and stable in Mojang's 1.26.50 metadata** | ✅ |
 | Behavior entities (9) | **Mojang JSON schema** (entity 1.26.50); every component name exists in 1.26.50 (406 known); event → component group references; `set_property` names declared; loot table paths exist; entity names in lang | ✅ |
 | Client entities (9) | textures, geometry, animations and controllers exist; render-controller textures, materials and `part_visibility` bones exist; animated bones exist in the geometry; every `query.property` is declared in the BP; sound and particle effects resolve and animations only use declared effect names; spawn-egg names in lang | ✅ |
@@ -29,9 +29,10 @@ Run with `python3 tools/build.py`. The full machine output is in
 | Texture sets (21) | MERS is RGBA, heightmap is single-channel, no normal map alongside a heightmap (mutually exclusive) | ✅ |
 | Sounds | 77 events / 150 packaged files / 11 vanilla references; every referenced file exists; every sound used by entities, animations or scripts is defined | ✅ |
 | Particles (11) | **Mojang schema** (1.21.10); textures exist | ✅ |
-| Fogs (60) | Every fog id referenced by scripts or biomes is defined | ✅ |
+| Fogs (86) | Every fog id referenced by scripts or biomes is defined | ✅ |
 | Structures (6) | NBT parses; every palette block and state exists in vanilla 1.26.50 (or is a declared add-on block state) | ✅ |
-| Visuals | 57 client biomes pass the **Mojang client-biome schema**, each overrides a real vanilla biome, and every lighting, atmosphere, colour grading, water and fog id resolves | ✅ |
+| Visuals | 83 client biomes pass the **Mojang client-biome schema**, each overrides a real vanilla biome, and every lighting, atmosphere, colour grading, water and fog id resolves | ✅ |
+| Visual profile checks | 83 Overworld definitions; daily curves close at the seam; bounded light/grading/water settings; native music/foliage/underwater fog preserved; all seven profiles use one tone mapper | ✅ |
 | Scripts | `tsc --strict` against the pinned typings (no `any` escapes on APIs); every `hollow:*` id, sound, particle, fog, event, property and block state referenced in TypeScript resolves | ✅ |
 | Packaging | `.mcaddon` has a `manifest.json` at the root of each of its three folders; zip CRC test passes; only shippable file types (json, png, ogg, lang, mcstructure, js) | ✅ |
 

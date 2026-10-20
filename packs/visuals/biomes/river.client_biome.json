@@ -12,16 +12,16 @@
         "surface_color": "#0084FF"
       },
       "minecraft:atmosphere_identifier": {
-        "atmosphere_identifier": "hollow:wild_atmospherics"
+        "atmosphere_identifier": "hollow:coast_atmospherics"
       },
       "minecraft:color_grading_identifier": {
-        "color_grading_identifier": "hollow:wild_color_grading"
+        "color_grading_identifier": "hollow:coast_color_grading"
       },
       "minecraft:lighting_identifier": {
-        "lighting_identifier": "hollow:wild_lighting"
+        "lighting_identifier": "hollow:coast_lighting"
       },
       "minecraft:water_identifier": {
-        "water_identifier": "hollow:wild_water"
+        "water_identifier": "hollow:coast_water"
       },
       "minecraft:biome_music": {
         "underwater_music": true
@@ -34,7 +34,7 @@
         "underwater_loop": "ambient.underwater.loop"
       },
       "minecraft:sky_color": {
-        "sky_color": "#6C88AC"
+        "sky_color": "#475B69"
       }
     }
   }

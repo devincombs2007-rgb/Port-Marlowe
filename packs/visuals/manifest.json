@@ -2,12 +2,12 @@
   "format_version": 2,
   "header": {
     "name": "THE HOLLOW: Visuals (optional)",
-    "description": "\u00a77Vibrant Visuals lighting, atmosphere, colour grading and fog. Optional; disable it if another visuals pack conflicts.",
+    "description": "\u00a77Horror atmosphere: seven Overworld looks, muted daylight, cold nights, warm shelter light and restrained water. Optional; use one lighting pack.",
     "uuid": "0eefff6a-77f2-5024-aa5f-4ae021c10921",
     "version": [
       1,
       0,
-      4
+      5
     ],
     "min_engine_version": [
       1,
@@ -22,7 +22,7 @@
       "version": [
         1,
         0,
-        4
+        5
       ]
     }
   ],

@@ -1,6 +1,31 @@
-# THE HOLLOW development checkpoint — 1.0.4
+# THE HOLLOW development checkpoint — 1.0.5
 
-## Latest continuation: 1.0.4 — field guidance and survival reliability
+## Latest continuation: 1.0.5 — horror visual direction
+
+- Expand the optional Visuals pack from 57 to all 83 Overworld client-biome definitions in the
+  pinned Mojang release. Native Nether/End biome settings remain intact.
+- Seven looks: wild, cold, swamp, cave, dense canopy, arid and coast. Added coverage includes
+  oceans, deserts/badlands, pale garden, mushroom biomes, lush caves and sulfur caves.
+- Author complete closed sun-colour curves. The old generator retained orange vanilla stops
+  and only replaced the final stop; the new steel/amber direction applies throughout the day.
+- Muted saturation 0.78–0.84, restrained 62–70 lux peak sunlight, cool moonlight 0.13–0.17 lux,
+  nonzero ambient floors and warm local light. Lower glare/haze instead of forcing blackouts.
+- Reduce lowland volumetric density and give arid/coastal/canopy regions their own mist profiles.
+  Preserve vanilla underwater fog and all non-look biome components, including music/foliage.
+- Slightly tinted water; slow two-octave ripples (four at coasts), still cold/cave water; no
+  caustics in swamp/canopy/cave profiles and slower minimum-power caustics elsewhere.
+- Add `tools/visuals/verify_visuals.py` to every build and generate `VISUAL_REPORT.generated.md`.
+  It checks biome coverage, day-cycle seams, sensible light/water bounds and preservation rules.
+  Four isolated negative checks detect a seam, invalid caustics power, biome music edit and
+  mismatched tone mapper without modifying working pack files.
+- Preserve the full 1.0.4 gameplay and stable UUIDs; advance all pack versions together to 1.0.5.
+
+Verification: strict compilation, static validation, visual-data verification, 78/78 gameplay
+simulations, generated-file reproducibility and archive/manifest checks. No Minecraft rendering
+or device performance testing was performed; the style needs the same-scene review in
+`VISUAL_TUNING.md`. No claim of perfect appearance, new ray tracing or measured frame rate.
+
+## Previous continuation: 1.0.4 — field guidance and survival reliability
 
 - Add Journal → Field conditions & next steps: local roof/light, registered lantern or charged
   ward, movement noise, encounter pacing, progression hints and a discovered-recipe shortcut.
@@ -95,7 +120,9 @@ Uncommitted work from Claude's session is unavailable.
   against different data.
 - Pack/module versions and the BP-to-RP dependency advance together to `1.0.1`, preserving UUIDs.
 
-## Visuals review
+## Historical visuals review (1.0.1)
+
+The current 1.0.5 inputs and coverage are in `VISUAL_REPORT.generated.md` and `VISUAL_TUNING.md`.
 
 Reference: Mojang `bedrock-samples`, tag `v1.26.50.4`, commit
 `46ba6ea985fb5a92d79a9419198f10dda14c199d`. These are numerical comparisons, not rendered results.
@@ -122,7 +149,7 @@ The original 1.0.1 pass changed only swamp density; the later 1.0.3 lighting/gra
 - Strict TypeScript compilation against the pinned stable Script API typings.
 - Static schema and reference validation: zero errors, zero warnings.
 - 78/78 headless scenarios, including field guidance, lifecycle, equipment, event and journal regressions.
-- Importable archives rebuilt from the current source with version `1.0.4` manifests.
+- Importable archives rebuilt from the current source with version `1.0.5` manifests.
 
 ## Still requires Minecraft
 

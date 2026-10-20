@@ -1,73 +1,92 @@
-# Darker Visuals — 1.0.3
+# THE HOLLOW horror visuals — 1.0.5
 
-This pass addresses the report that THE HOLLOW's shader is too bright. It targets less sky
-wash and darker nights while retaining a nonzero ambient floor and warm shelter lights.
-These are parameter changes, not measurements of final screen brightness. Minecraft's
-exposure adaptation, video settings, weather, biome and display affect the result.
+The direction is quiet survival horror: steel and olive shadows, subdued earth colours, dim
+moonlight, readable silhouettes and amber shelter lights. Daylight stays useful for building
+and gathering. Dusk should feel uneasy; the forest should not look like a bright blue night.
 
-## What changed
+These are authored rendering inputs, not screenshots or measurements of screen brightness.
+Minecraft exposure adaptation, weather, video settings and the display affect the result.
+No claim of perfect appearance or tested iPhone/Xbox performance is made.
 
-| Control | 1.0.2 | 1.0.3 |
+## Seven looks, complete Overworld coverage
+
+| Look | Direction | Coverage |
 |---|---|---|
-| Peak sunlight, wild / cold / swamp | 100 / 100 / 85 lux | 80 / 75 / 70 lux |
-| Peak moonlight, wild / cold / swamp / cave | 0.5 lux throughout | 0.20 / 0.18 / 0.16 / 0.16 lux |
-| Surface ambient, day → night | 0.020 → 0.045 lux | 0.018 → 0.012 lux |
-| Cave ambient | Same day/night curve as surface | Constant 0.009 lux |
-| Surface sky lighting, noon → midnight | 1.0 → 0.75 | 0.8 → 0.4 |
-| Cave sky lighting | Same curve as surface | Constant 0.25 |
-| Midtone gain, wild / cold / swamp / cave | 1.0 throughout | 0.88 / 0.86 / 0.86 / 0.90 |
-| Highlight RGB gain | [1.04, 1.0, 0.95] | [0.88, 0.85, 0.81] |
-| Highlight threshold | 1.6 × average luminance | 1.4 × average luminance |
-| Moon haze at midnight | 0.6 | 0.18 |
-| Sky, horizon and distance-fog colours | Pale blue/grey | Deeper blue/grey and muted olive |
-| Volumetric scattering | Higher, paler haze | Lower scattering in all four looks |
+| Wild | Steel daylight, cool shadows, muted greens | Forests, plains, taigas, hills, jungles, savannas, mushrooms |
+| Cold | Grey-blue distance, restrained snow highlights | Snowy mountains/taigas, frozen rivers and cold/frozen oceans |
+| Swamp | Olive-grey haze, subdued light, stained water | Swampland and mangroves |
+| Cave | Dim cool fill, no caustic shimmer, still water | Dripstone, deep dark, lush caves and sulfur caves |
+| Canopy | Desaturated moss/ash, closer lowland mist | Dark forests and pale garden |
+| Arid | Dusty sepia-grey distance with lighter mist | Deserts and badlands |
+| Coast | Steel water and sea mist, gentle surface motion | Beaches, rivers and temperate/warm oceans |
 
-Standard grading gamma stays at 2.2, with zero offset. The tone-mapping operator remains
-`generic` throughout, allowing biome transitions to use the same operator. Local light
-colours and gameplay light levels are unchanged. The lower grading gain also affects bright
-local lights; their actual visibility still requires an engine check.
+All **83 Overworld client-biome definitions** in Mojang's pinned `v1.26.50.4` reference are
+covered, up from 57. The Nether and End retain their native biome definitions. Biome identity,
+music, foliage/grass colours, ambient sounds and underwater fog remain unchanged. The grading
+still changes how these colours appear in the final image. Global renderer controls such as
+local light colours can also be visible beyond the Overworld, as in previous releases.
 
-Fog density, height falloff and air/weather start/end distances are unchanged. Water settings
-and underwater fog are preserved. No texture resolution, ray count or new rendering pass is added.
+## Changes since 1.0.4
 
-## Scope
+- **Complete daylight direction:** author the full sun-colour curve. The old generator kept
+  vanilla's saturated orange intermediate stops and changed only the final stop. Day-cycle
+  endpoints now match exactly and the muted steel/amber direction applies throughout the day.
+- **Less glare:** lower sun Mie strength and glare shape near sunrise/sunset; reduce moon haze.
+  This controls those atmosphere contributions; it does not disable Minecraft's bloom renderer.
+- **Restrained light:** sunlight peaks at 62–70 lux, moonlight at 0.13–0.17 lux. Surface ambient
+  remains 0.010–0.011 lux at night, with a 0.010 cave floor. This avoids introducing zero ambient
+  light; it does not establish that every scene is readable on every screen.
+- **Muted colour:** saturation 0.78–0.84, moderate contrast, reduced midtone/highlight gains,
+  standard gamma 2.2, zero grading offsets. Cool shadows contrast with warm practical lights.
+- **Mist with regional character:** lower volumetric density, height falloff outdoors and a
+  lighter arid profile. Clear-air distance fog ends at render distance, preserving that range.
+- **Water:** modest particle concentrations and 0.25 biome-colour contribution. Caustics are
+  off in swamp/canopy/cave profiles; elsewhere they use documented minimum power 1 and slower
+  animation. Gentle image-based waves use two octaves, four at coasts; cold/cave waves stay off.
+  The ripples do not move water geometry or affect swimming. Device cost is unmeasured.
+- **Shelter:** torch, lantern, campfire, Heartwood Lantern and ward colours are preserved.
+  Local lights retain their existing types and gameplay block-light levels.
 
-The existing 57 client-biome overrides retain their four profiles: wild, cold, swamp and cave.
-This includes the supported forests, plains, taigas, hills, jungles, rivers, beaches, savannas,
-swamps, dripstone caves and deep dark. Biomes without an override, including deserts, oceans,
-lush caves, the Nether and the End, retain their existing appearance. There is no claim of
-worldwide darkness or a replacement renderer.
+Exact current light/grade inputs are listed in [VISUAL_REPORT.generated.md](VISUAL_REPORT.generated.md).
 
-The full lighting/grading changes require Vibrant Visuals. Simple/Fancy graphics receive the
-pack's distance-fog and sky-colour overrides, not the Vibrant Visuals lighting or grading.
+## Install and compare
 
-## Update and compare
+1. Back up the world and close it. Import `THE_HOLLOW_Visuals_v1.0.5.mcpack` to update only the
+   look, or `THE_HOLLOW_v1.0.5.mcaddon` to update all packs. Pack UUIDs are stable.
+2. In the world's Resource Packs, confirm THE HOLLOW: Visuals **1.0.5** is active. Use one
+   lighting pack while comparing. Select Vibrant Visuals in Video on a supported device.
+3. Keep game gamma and display settings steady. Use the same test-world positions at noon,
+   sunset and midnight, clear and rainy. Allow exposure to settle after moving between light
+   and shade. A copied test world with cheats can use `/time set noon`, `/time set sunset`
+   and `/time set midnight`.
+4. Check a treeline, a dark-forest floor, snowy ground, a torch-lit door, a lantern path, a
+   cave entrance, a swamp bank and an ocean shore. Cross biome boundaries and check for abrupt
+   colour/water changes. Check pale garden, lush/sulfur caves and deserts, which lacked overrides.
+5. Report a screenshot with biome, time, graphics mode and gamma if a scene is too bright,
+   too dark, excessively tinted or visually noisy. Same-scene device feedback is the next
+   necessary step for judging the actual look.
+6. For Xbox, update the source world and its packs, upload to the Realm and reconnect.
 
-1. Back up the world, close it, and import `THE_HOLLOW_Visuals_v1.0.3.mcpack` for a visuals-only
-   update, or `THE_HOLLOW_v1.0.3.mcaddon` to update all three packs.
-2. In the world's Resource Packs, confirm THE HOLLOW: Visuals version 1.0.3 is active. Use one
-   lighting pack while comparing. Keep the game's gamma setting and display settings steady.
-3. In a copied test world with cheats, compare the same forest/swamp/cave positions at
-   `/time set noon`, `/time set sunset`, and `/time set midnight`, including clear and rainy
-   weather. Give exposure time to settle after leaving a bright area.
-4. Check ground visibility, a distant treeline, torch-lit doors, lantern-lit paths, snow and
-   reflected sky. Darker should still leave enough detail to navigate; report the biome, time,
-   graphics mode and a screenshot if a scene remains washed out or becomes unreadable.
-5. For Xbox, update the source world's packs, upload the world to the Realm and reconnect.
-
-Pack UUIDs are preserved for updating existing worlds. The standalone Visuals pack has no
-behavior-pack dependency and can be used with the existing 1.0.2 gameplay packs.
+Simple/Fancy graphics receive the pack's distance-fog and sky-colour overrides; the full
+lighting, grading, volumetric mist and water effects require Vibrant Visuals. This pack does
+not add ray tracing, force a frame rate, alter graphics settings or change world weather.
 
 ## Verification
 
-The release build runs strict TypeScript compilation, static schema/reference validation and
-all 60 gameplay simulations. Archive integrity and manifest versions are checked during packaging.
-The generated profiles were compared with 1.0.2 to confirm lower light/gain/scattering values,
-unchanged biome coverage and unchanged local lights, water and fog distance/density settings.
-These checks do not render Minecraft or establish Xbox/iPhone appearance or frame rate.
+Every build runs `tools/visuals/verify_visuals.py`. It checks complete Overworld coverage,
+preservation of non-look biome data and underwater fog, daily lighting seam continuity,
+nonzero ambient bounds, one shared tone mapper and documented light/grading/water ranges.
+Four isolated negative checks confirmed that seams, fractional caustics power, biome music
+edits and mismatched tone mappers are rejected. Regeneration produces the same JSON bytes.
+
+The complete build also runs strict TypeScript compilation, static validation, all 78 gameplay
+simulations and archive checks. These do not render Minecraft or measure visibility, animation
+quality, transition smoothness, audio or device frame rate.
 
 Official parameter references:
 
-- [Mojang: lighting, ambient and sky controls](https://learn.microsoft.com/en-us/minecraft/creator/documents/vibrantvisuals/lightingcustomization?view=minecraft-bedrock-stable)
-- [Mojang: gain, gamma, shadows and highlights](https://learn.microsoft.com/en-us/minecraft/creator/documents/vibrantvisuals/colorgradingtonemappingcustomization?view=minecraft-bedrock-stable)
-- [Mojang: per-biome settings take precedence over globals](https://learn.microsoft.com/en-us/minecraft/creator/documents/vibrantvisuals/biomecustomization?view=minecraft-bedrock-stable)
+- [Mojang: lighting, ambient and sky](https://learn.microsoft.com/en-us/minecraft/creator/documents/vibrantvisuals/lightingcustomization?view=minecraft-bedrock-stable)
+- [Mojang: atmospherics](https://learn.microsoft.com/en-us/minecraft/creator/documents/vibrantvisuals/atmosphericscustomization?view=minecraft-bedrock-stable)
+- [Mojang: water effects](https://learn.microsoft.com/en-us/minecraft/creator/documents/vibrantvisuals/watercustomization?view=minecraft-bedrock-stable)
+- [Mojang: colour grading](https://learn.microsoft.com/en-us/minecraft/creator/documents/vibrantvisuals/colorgradingtonemappingcustomization?view=minecraft-bedrock-stable)
+- [Mojang: biome settings and blending](https://learn.microsoft.com/en-us/minecraft/creator/documents/vibrantvisuals/biomecustomization?view=minecraft-bedrock-stable)

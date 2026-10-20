@@ -1,0 +1,32 @@
+{
+  "format_version": "1.26.0",
+  "minecraft:water_settings": {
+    "description": {
+      "identifier": "hollow:coast_water"
+    },
+    "particle_concentrations": {
+      "chlorophyll": 0.08,
+      "suspended_sediment": 0.1,
+      "cdom": 0.15
+    },
+    "caustics": {
+      "enabled": true,
+      "frame_length": 0.18,
+      "scale": 0.35,
+      "power": 1
+    },
+    "waves": {
+      "enabled": true,
+      "frequency": 0.65,
+      "octaves": 4,
+      "depth": 0.12,
+      "speed": 0.35,
+      "shape": 1.1,
+      "pull": 0.15,
+      "mix": 0.2,
+      "frequency_scaling": 1.2,
+      "speed_scaling": 1.03
+    },
+    "biome_water_color_contribution": 0.25
+  }
+}
