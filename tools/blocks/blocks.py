@@ -62,7 +62,7 @@ def export_block(name, model, materials, features=(), variants=None, seed=3):
     out = []
     for suffix, over in [("", {})] + list((variants or {}).items()):
         mats = {**materials, **over}
-        color, mers, height = Painter(model, mats, features, seed=seed).paint()
+        color, mers, height = Painter(model, mats, features, seed=seed, scale=2, ao_rays=16, ao_dist=4.0, ao_strength=0.4).paint()
         tex = f"{name}{suffix}"
         save_rgba(color, os.path.join(tex_dir, f"{tex}.png"))
         save_rgba(mers, os.path.join(tex_dir, f"{tex}_mers.png"))

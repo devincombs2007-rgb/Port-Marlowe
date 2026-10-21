@@ -123,6 +123,9 @@ class Model:
         self.bones = {}
         self.order = []
         self.visible_bounds = visible_bounds
+        # Texels per model unit in the exported atlas. Per-face UVs are written in atlas pixels,
+        # so a scale of 2 doubles texture resolution without changing the geometry's shape.
+        self.texel_scale = 1
 
     def bone(self, name, parent=None, pivot=(0, 0, 0), rotation=None):
         b = Bone(name, parent, pivot, rotation)
@@ -229,7 +232,8 @@ class Model:
                     for face, (u, v, w, h) in c.face_rects().items():
                         if face in c.skip:
                             continue
-                        uv[face] = {"uv": [u, v], "uv_size": [w, h]}
+                        k = self.texel_scale
+                        uv[face] = {"uv": [u * k, v * k], "uv_size": [w * k, h * k]}
                     jc["uv"] = uv
                     cubes.append(jc)
                 jb["cubes"] = cubes
@@ -242,8 +246,8 @@ class Model:
             "minecraft:geometry": [{
                 "description": {
                     "identifier": self.identifier,
-                    "texture_width": self.atlas_width,
-                    "texture_height": self.atlas_height,
+                    "texture_width": self.atlas_width * self.texel_scale,
+                    "texture_height": self.atlas_height * self.texel_scale,
                     "visible_bounds_width": vw,
                     "visible_bounds_height": vh,
                     "visible_bounds_offset": list(vo),

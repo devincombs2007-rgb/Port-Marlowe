@@ -1,3 +1,4 @@
+import { frighten } from "../core/fear";
 import { Difficulty, Entity, ItemStack, Player, Vector3, world } from "@minecraft/server";
 import { accent, worldSound } from "../core/audio";
 import { chanceScale, isTestMode, settings } from "../core/config";
@@ -17,7 +18,7 @@ import { TrackKind, standingPrints, trail } from "../systems/tracks";
 // A rare night visitor (never before the configured night, default 4; at most one visit per night
 // in the whole world; two nights apart on Standard). It only visits a player who is inside a roofed
 // shelter with a door. It walks to the door with normal pathfinding, knocks, scratches and breathes
-// for about 45 seconds, then leaves a Knocker's Nail on the step.
+// for about 45 seconds, then leaves a Doorstep Nail on the step.
 //   * It cannot open doors. With "Destructive Knocker" on and the world on Hard, it may try to
 //     break a wooden door late in the visit (vanilla door-breaking rules apply).
 //   * Opening the door while it is there lets it in (it hunts until hurt badly or 90 s pass).
@@ -245,6 +246,7 @@ function update(): void {
     }
     if (d <= 2.4) {
       setPhase(e, v, "knock");
+      for (const p of insidePlayers(v)) frighten(p, 16);
       standingPrints(e, TrackKind.Knocker);
     }
     else if (inState > seconds(70) || daybreak) setPhase(e, v, "leave");
@@ -328,6 +330,7 @@ function answered(e: Entity, v: Visit): void {
     unlock(p, "knocker1");
     unlock(p, "knocker3");
     accent(p, SND.stingerLow, 2, true);
+    frighten(p, 22);
   }
 }
 

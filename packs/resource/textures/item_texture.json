@@ -32,6 +32,9 @@
     "hollow_heartseeker": {
       "textures": "textures/items/hollow/heartseeker"
     },
+    "hollow_hearth_tea": {
+      "textures": "textures/items/hollow/hearth_tea"
+    },
     "hollow_offering_of_silence": {
       "textures": "textures/items/hollow/offering_of_silence"
     },

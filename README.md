@@ -12,13 +12,17 @@ in it is patient, though. You are watched long before you are attacked.
 - **A Field Journal** that fills in as you play. Its Field Conditions page checks local equipment,
   explains quiet encounter pacing and suggests a discovered recipe. It works with a controller,
   stays with you through death, and holds the settings.
-- **Survival equipment:** Hollow Chime (warning), Rowan Ward (limited protection), Hollow Lens
-  (investigation), Heartseeker and Offering of Silence (boss progression), and the Heartwood
+- **Survival equipment:** Telltale Chime (warning), Rowan Ward (limited protection), Seer's Glass
+  (investigation), Heartseeker and Hush Offering (boss progression), and the Heartwood
   Lantern (reward).
 - **An optional Visuals pack** for Vibrant Visuals: seven horror looks across all 83 Overworld biome
   definitions, muted earth tones, cold nights, warm shelter light and restrained water effects.
   Standard graphics work fully without it.
-- Original models, textures and animations, plus 150 audio files built from credited CC0 recordings.
+- Original models with 2x hand-tuned procedural textures (baked occlusion, PBR wetness, subsurface
+  skin, glowing eyes and veins), richer animations, ink-sketch journal illustrations, and 150
+  credited CC0 recordings plus 11 synthesized Dread sounds.
+- **Soft shadows** are requested explicitly by the Visuals pack, with blood-orange dusks, cold blue
+  moonlight, split-toned grading and stronger volumetric light shafts.
 
 > **Status:**
 > - Statically validated: 0 errors, 0 warnings.
@@ -36,10 +40,10 @@ Current development checkpoint and unfinished device checks: **[docs/DEVELOPMENT
 
 | File | What it is |
 |---|---|
-| [`dist/THE_HOLLOW_v1.0.6.mcaddon`](dist/THE_HOLLOW_v1.0.6.mcaddon) | Everything: behavior pack, resource pack and the optional Visuals pack. Open it to import. |
-| `dist/THE_HOLLOW_BP_v1.0.6.mcpack` | Behavior pack only |
-| `dist/THE_HOLLOW_RP_v1.0.6.mcpack` | Resource pack only (required) |
-| `dist/THE_HOLLOW_Visuals_v1.0.6.mcpack` | Optional Vibrant Visuals pack |
+| [`dist/THE_HOLLOW_v1.1.0.mcaddon`](dist/THE_HOLLOW_v1.1.0.mcaddon) | Everything: behavior pack, resource pack and the optional Visuals pack. Open it to import. |
+| `dist/THE_HOLLOW_BP_v1.1.0.mcpack` | Behavior pack only |
+| `dist/THE_HOLLOW_RP_v1.1.0.mcpack` | Resource pack only (required) |
+| `dist/THE_HOLLOW_Visuals_v1.1.0.mcpack` | Optional Vibrant Visuals pack |
 
 Horror visual style and comparison steps: **[docs/VISUAL_TUNING.md](docs/VISUAL_TUNING.md)**.
 

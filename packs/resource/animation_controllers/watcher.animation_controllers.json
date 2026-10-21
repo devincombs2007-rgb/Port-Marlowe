@@ -10,10 +10,13 @@
           ],
           "transitions": [
             {
-              "walking": "query.modified_move_speed > 0.08"
+              "walking": "query.modified_move_speed > 0.08 && !variable.patient"
+            },
+            {
+              "creeping": "query.modified_move_speed > 0.05 && variable.patient"
             }
           ],
-          "blend_transition": 0.25
+          "blend_transition": 0.3
         },
         "walking": {
           "animations": [
@@ -24,9 +27,28 @@
           "transitions": [
             {
               "idle": "query.modified_move_speed < 0.04"
+            },
+            {
+              "creeping": "variable.patient"
             }
           ],
-          "blend_transition": 0.25
+          "blend_transition": 0.3
+        },
+        "creeping": {
+          "animations": [
+            {
+              "creep": "math.clamp(query.modified_move_speed * 7.0, 0.0, 1.0)"
+            }
+          ],
+          "transitions": [
+            {
+              "idle": "query.modified_move_speed < 0.03"
+            },
+            {
+              "walking": "!variable.patient"
+            }
+          ],
+          "blend_transition": 0.45
         }
       }
     },
@@ -65,7 +87,8 @@
             {
               "neutral": "variable.state != 'withdraw'"
             }
-          ]
+          ],
+          "blend_transition": 0.05
         },
         "lunge": {
           "animations": [
@@ -76,7 +99,7 @@
               "neutral": "variable.state != 'lunge'"
             }
           ],
-          "blend_transition": 0.15
+          "blend_transition": 0.1
         }
       }
     }

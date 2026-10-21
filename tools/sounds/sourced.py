@@ -288,7 +288,7 @@ SUBTITLES = {
     "heart.root_warn": "The ground rumbles", "heart.root_strike": "Roots burst", "heart.pulse": "A pulse rolls out",
     "heart.phase": "The Heart roars", "heart.hurt": "Heart hurts", "heart.death": "The Heart stills",
     "heart.vein_break": "A vein bursts", "heart.spawn": "Something crawls from the roots", "chime.ring": "Chime rings",
-    "ward.repel": "Ward flares", "ward.place": "Ward smoulders", "ward.spent": "Ward burns out", "lens.use": "Lens clouds",
+    "ward.repel": "Ward flares", "ward.place": "Ward smoulders", "ward.spent": "Ward burns out", "lens.use": "Seer's Glass clouds",
     "journal.open": "Pages turn", "journal.entry": "Journal updated", "heartseeker.pulse": "Heartseeker beats",
     "altar.insert": "Offering placed", "stinger.low": "Dread", "stinger.distant": "Unease",
 }

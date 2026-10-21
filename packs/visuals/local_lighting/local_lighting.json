@@ -9,8 +9,28 @@
       "light_color": "#E8873A",
       "light_type": "point_light"
     },
+    "minecraft:candle": {
+      "light_color": "#FFB36A",
+      "light_type": "point_light"
+    },
+    "minecraft:soul_torch": {
+      "light_color": "#4FD8D2",
+      "light_type": "point_light"
+    },
+    "minecraft:soul_lantern": {
+      "light_color": "#4FD8D2",
+      "light_type": "point_light"
+    },
     "minecraft:campfire": {
       "light_color": "#FF9A4A",
+      "light_type": "static_light"
+    },
+    "minecraft:soul_campfire": {
+      "light_color": "#3FC6C0",
+      "light_type": "static_light"
+    },
+    "minecraft:lit_pumpkin": {
+      "light_color": "#FF9A3C",
       "light_type": "static_light"
     },
     "hollow:heartwood_lantern": {

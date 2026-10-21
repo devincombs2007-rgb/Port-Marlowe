@@ -1,3 +1,4 @@
+import { frighten } from "../core/fear";
 import { Block, Dimension, EntityDamageCause, Entity, EquipmentSlot, GameMode, ItemStack, Player, Vector3, world } from "@minecraft/server";
 import { accent, worldSound } from "../core/audio";
 import { settings } from "../core/config";
@@ -14,7 +15,7 @@ import { shrine } from "../systems/sites";
 import { spawnJuvenile } from "./hollowed";
 
 // THE HEART BELOW
-// Awakened deliberately: an Offering of Silence placed in the shrine altar.
+// Awakened deliberately: a Hush Offering placed in the shrine altar.
 //  Phase 1 (100-60%): shielded until all four veins on the pillars are broken. Root bursts at
 //    each player's feet (dust + rumble warn 1.2 s ahead) and a slow pulse ring you can jump.
 //  Phase 2 (60-25%): shield returns, three veins regrow once, young Hollowed crawl out.
@@ -165,7 +166,7 @@ export function useAltar(p: Player, altar: Block): void {
     return;
   }
   if (held?.typeId !== ITEM.offering) {
-    notice(p, "§7A socket of old roots. It waits for an §fOffering of Silence§7.");
+    notice(p, "§7A socket of old roots. It waits for a §fHush Offering§7.");
     unlock(p, "craft_offering");
     return;
   }
@@ -205,6 +206,7 @@ function awaken(dim: Dimension, center: Vector3, altar: Block): void {
     unlock(p, "heart2");
     try {
       p.onScreenDisplay.setTitle("§4The Heart Below", { subtitle: "§7wakes", fadeInDuration: 20, stayDuration: 50, fadeOutDuration: 30 });
+      frighten(p, 20);
     } catch {
       /* ignore */
     }

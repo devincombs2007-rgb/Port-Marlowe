@@ -1,3 +1,4 @@
+import { dreadChance, frighten } from "../core/fear";
 import { Entity, EntityDamageCause, Player, Vector3, world } from "@minecraft/server";
 import { accent, worldSound } from "../core/audio";
 import { chanceScale, cooldownScale, dayReached, settings } from "../core/config";
@@ -103,7 +104,7 @@ export function tryStartMirebound(p: Player): boolean {
   if (!huntable(p) || rt(p).encounter || !cooldownReady(p, "mirebound")) return false;
   if (ms.size >= Math.min(3, Math.max(1, onlinePlayers().length))) return false;
   const base = isDarkHours() ? 0.12 : 0.03;
-  if (!chance(base * chanceScale())) return false;
+  if (!chance(base * chanceScale() * dreadChance(p))) return false;
   if (protectedSpot(p.dimension, p.location)) return false;
   const dim = p.dimension;
   const yaw = yawOf(p.getViewDirection());
@@ -121,7 +122,7 @@ export function tryStartMirebound(p: Player): boolean {
     e.setDynamicProperty(DP.owner, p.id);
     ms.set(e.id, { id: e.id, target: p.id, born: now(), state: "lurk", stateAt: now(), grabs: 0, nextCue: now() + 40, lastPlayer: now(), dmgAt: 0, seatTries: 0 });
     rt(p).encounter = "mirebound";
-    setCooldown(p, "mirebound", seconds(rand(360, 540) * cooldownScale()));
+    setCooldown(p, "mirebound", seconds(rand(360, 540) * cooldownScale() / dreadChance(p)));
     return true;
   }
   return false;
@@ -217,6 +218,7 @@ function update(): void {
         worldSound(dim, SND.mireErupt, e.location, 1.0);
         particle(dim, PARTICLE.bubbles, add(e.location, { x: 0, y: 1, z: 0 }));
         accent(prey, SND.stingerLow, 2);
+        frighten(prey, 20);
       }
       continue;
     }

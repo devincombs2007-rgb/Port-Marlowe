@@ -6,6 +6,7 @@ import { hollowDay, now, tod } from "../core/time";
 import { getCustomState, holdingLight, inLitArea } from "../core/world";
 import { lanternNear, wardNear } from "../items/blocks";
 import { noiseDescription } from "./noise";
+import { dreadOf, dreadReasons, dreadStageName } from "./dread";
 
 interface FieldNotes { body: string; recipe: string }
 
@@ -55,18 +56,31 @@ export function fieldNotes(p: Player, has: (id: string) => boolean): FieldNotes 
   } else if (has("craft_lens")) {
     recipe = "craft_lens";
     next = carried.has(ITEM.lens)
-      ? "Use your Hollow Lens to investigate fresh tracks and suspicious animals. Each scan wears the lens."
-      : "You have learned the Hollow Lens recipe. Craft it to investigate tracks and suspicious animals.";
+      ? "Use your Seer's Glass to investigate fresh tracks and suspicious animals. Each look wears the glass."
+      : "You have learned to make a Seer's Glass. Craft it to investigate tracks and suspicious animals.";
   } else if (has("watcher1")) {
     recipe = "craft_ward";
     next = "Read your discovered Watcher notes. Improve the shelter and learn its warnings before venturing out.";
+  }
+  if (settings().dread && dreadOf(p) >= 50) {
+    next = "Your nerve is going. Get to light and a roof, find company, or drink Hearth Tea. " +
+      "Frightened people draw them in, and see things that aren't there.";
+    if (has("craft_tea") && !carried.has(ITEM.tea)) recipe = "craft_tea";
   }
   if (!has(recipe)) recipe = "";
   return {
     body: `§7Day ${hollowDay() + 1} · ${phase} · ${terrain}\n` +
       `§7Light: ${light}\n§7Equipment: ${protection}\n§7Movement: ${noiseDescription(p)}\n` +
       `§7Pacing: ${pacing}\n` +
+      (settings().dread ? `§7Nerve: ${nerve(p)}\n` : "") +
       `\n§lNext step§r\n${next}\n\n§8Local checks are not a guarantee of safety. Refresh after moving.`,
     recipe,
   };
+}
+
+function nerve(p: Player): string {
+  const name = dreadStageName(p);
+  const colour = ["§a", "§e", "§6", "§c"][["Calm", "Uneasy", "Frightened", "Terrified"].indexOf(name)] ?? "§7";
+  const why = dreadReasons(p).slice(0, 3).join(", ");
+  return `${colour}${name}§7 (${Math.round(dreadOf(p))}/100)${why ? `§8 · ${why}` : ""}`;
 }

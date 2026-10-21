@@ -1010,6 +1010,11 @@ export class Sim {
       this.components.block.get(name)?.onPlayerBreak?.({ block: b, player: p, dimension: b.dimension, brokenBlockPermutation: perm });
     }
   }
+  consumeItem(p) {
+    const item = p.getComponent("minecraft:equippable").getEquipment("Mainhand");
+    const def = ITEM_DEFS.get(item?.typeId);
+    for (const name of Object.keys(def?.components ?? {})) this.components.item.get(name)?.onConsume?.({ source: p, itemStack: item });
+  }
   useItem(p) {
     const item = p.getComponent("minecraft:equippable").getEquipment("Mainhand");
     const def = ITEM_DEFS.get(item?.typeId);

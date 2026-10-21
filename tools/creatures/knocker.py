@@ -29,6 +29,12 @@ def build():
     m.bone("head", "neck", pivot=(0, 39, -1), rotation=(-12, 0, 16))
     m.cube("head", (-2.5, 39, -3.5), (5, 7, 5), "porcelain")
     m.cube("head", (-2, 46, -3), (4, 1, 4), "porcelain")
+    # a rag hood hanging over the back of the porcelain head
+    m.cube("head", (-2.9, 40.6, -0.9), (5.8, 6.9, 3.4), "cloth", inflate=0.1)
+    m.cube("head", (-2.6, 37.4, 0.4), (5.2, 3.0, 2.2), "cloth")
+    # nails driven through the porcelain where eyes should be
+    for nx, ny in ((-1.2, 44.0), (1.3, 43.6)):
+        m.cube("head", (nx - 0.3, ny - 0.3, -4.2), (0.6, 0.6, 0.9), "nail")
     # rags hanging from the torso
     for i, (x, z, ln) in enumerate(((-3.5, -2.8, 9), (-0.5, -2.8, 12), (2.5, -2.8, 7), (3.6, 1.0, 10), (-3.8, 1.2, 8))):
         m.cube("torso", (x - 0.75, 23 - ln + 3, z), (1.5, ln, 0.3), "cloth")
@@ -66,11 +72,15 @@ def build():
 
 def materials():
     return {
-        "cloth": Material(CLOTH, base=0.48, noise=(0.5, 0.3, 3), streak=(2.5, 0.2, 2.5, 0.35), speckle=(0.08, 0.15),
-                          ao=0.3, mers=(0, 0, 250, 30), height_strength=0.9),
-        "skin": Material(SKIN, base=0.5, noise=(0.55, 0.25, 2), speckle=(0.07, -0.18), ao=0.25, mers=(0, 0, 200, 90)),
-        "porcelain": Material(PORCELAIN, base=0.6, noise=(0.7, 0.15, 2), speckle=(0.04, -0.3), ao=0.05, edge=0.03,
-                              mers=(0, 0, 60, 30), height_strength=0.3),
+        "cloth": Material(CLOTH, base=0.5, noise=(0.5, 0.28, 3), streak=(2.5, 0.2, 2.5, 0.35), speckle=(0.08, 0.15),
+                          detail=0.08, fissure=dict(scale=0.9, stretch=(0.2, 1.0, 0.2), threshold=0.975, delta=-0.25),
+                          grime=dict(color="#0a0807", strength=0.35), ao=0.2, mers=(0, 0, 250, 30), height_strength=0.9),
+        "skin": Material(SKIN, base=0.5, noise=(0.55, 0.22, 2), speckle=(0.07, -0.18), ao=0.2, detail=0.06,
+                         veins=dict(scale=0.35, threshold=0.982, ramp=ramp("#3a332c", "#443c34"), mers=(0, 0, 190, 140)),
+                         grime=dict(color="#1d1814", strength=0.55), bevel=0.05, mers=(0, 0, 195, 110)),
+        "porcelain": Material(PORCELAIN, base=0.62, noise=(0.7, 0.12, 2), speckle=(0.03, -0.3), ao=0.05, edge=0.03,
+                              cells=dict(scale=0.7, mode="crack", edge=0.045, edge_delta=-0.35), bevel=0.06,
+                              grime=dict(color="#3a342c", strength=0.8), mers=(0, 0, 45, 30), height_strength=0.4),
         "nail": Material(NAIL, base=0.5, noise=(0.9, 0.2, 1), mers=(120, 0, 110, 0), ao=0.0),
     }
 
@@ -96,7 +106,7 @@ POSES = [None, {"right_arm": {"rot": (-80, 0, -10)}, "right_forearm": {"rot": (-
 
 def main():
     m = build()
-    export_entity("knocker", m, Painter(m, materials(), features(), seed=44), previews=POSES)
+    export_entity("knocker", m, Painter(m, materials(), features(), seed=44, scale=2, ao_rays=24, ao_dist=6.0), previews=POSES)
 
 
 if __name__ == "__main__":

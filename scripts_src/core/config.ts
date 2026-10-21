@@ -27,6 +27,9 @@ export interface WorldSettings {
   bossScaling: boolean;
   /** Rare, harmless one-off events (once per world each). */
   rareEvents: boolean;
+  /** Dread: fear builds in the dark and alone; frightened players draw encounters and may see
+   * things that are not there. Off = no fear meter, no hallucinations, normal encounter odds. */
+  dread: boolean;
 }
 
 export const WORLD_DEFAULTS: WorldSettings = {
@@ -44,6 +47,7 @@ export const WORLD_DEFAULTS: WorldSettings = {
   sites: true,
   bossScaling: true,
   rareEvents: true,
+  dread: true,
 };
 
 /** Per-player comfort preferences. Every player can change their own. */
@@ -58,9 +62,11 @@ export interface PlayerPrefs {
   hints: boolean;
   /** THE HOLLOW's own music cues (night, cave, shrine, boss, dawn). */
   music: boolean;
+  /** Dread effects: heartbeat, breathing, the closing-in fog and hallucinations. */
+  dreadFx: boolean;
 }
 
-export const PREF_DEFAULTS: PlayerPrefs = { ambience: 80, accents: 1, visualFx: true, hints: true, music: true };
+export const PREF_DEFAULTS: PlayerPrefs = { ambience: 80, accents: 1, visualFx: true, hints: true, music: true, dreadFx: true };
 
 let worldCache: WorldSettings | undefined;
 const prefCache = new Map<string, PlayerPrefs>();
@@ -104,7 +110,7 @@ function sanitizeWorld(s: WorldSettings): WorldSettings {
   out.graceDays = numberSetting(s.graceDays, out.graceDays, 0, 10);
   out.knockerNight = numberSetting(s.knockerNight, out.knockerNight, 1, 20);
   for (const key of ["watcher", "borrowed", "hollowed", "knocker", "mirebound", "destructive",
-    "sleepDisturbance", "sites", "bossScaling", "rareEvents"] as const) {
+    "sleepDisturbance", "sites", "bossScaling", "rareEvents", "dread"] as const) {
     if (typeof s[key] === "boolean") out[key] = s[key];
   }
   return out;
@@ -121,6 +127,7 @@ function sanitizePrefs(p: PlayerPrefs): PlayerPrefs {
     visualFx: typeof p.visualFx === "boolean" ? p.visualFx : PREF_DEFAULTS.visualFx,
     hints: typeof p.hints === "boolean" ? p.hints : PREF_DEFAULTS.hints,
     music: typeof p.music === "boolean" ? p.music : PREF_DEFAULTS.music,
+    dreadFx: typeof p.dreadFx === "boolean" ? p.dreadFx : PREF_DEFAULTS.dreadFx,
   };
 }
 

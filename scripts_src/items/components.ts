@@ -1,3 +1,4 @@
+import { drinkTea } from "../systems/dread";
 import { Entity, EquipmentSlot, GameMode, ItemStack, Player, StartupEvent, system, world } from "@minecraft/server";
 import { ui } from "../core/audio";
 import { notice } from "../core/fx";
@@ -129,9 +130,9 @@ function useLens(p: Player): void {
     const d = Math.round(dist(head, e.location));
     const dy = e.location.y - p.location.y;
     const vert = dy > 6 ? ", above you" : dy < -6 ? ", below you" : "";
-    lines.push(`§7The lens clouds: ${name}, ${compass(p.location, e.location)}, ~${d} blocks${vert}.`);
+    lines.push(`§7The glass clouds: ${name}, ${compass(p.location, e.location)}, ~${d} blocks${vert}.`);
   } else if (borrowed.length === 0) {
-    lines.push("§7The lens stays clear. Nothing of theirs within 48 blocks.");
+    lines.push("§7The glass stays clear. Nothing of theirs within 48 blocks.");
   }
 
   // 3. Fresh tracks nearby.
@@ -185,6 +186,14 @@ export function registerItemComponents(ev: StartupEvent): void {
     },
   });
 
+  ev.itemComponentRegistry.registerCustomComponent("hollow:tea", {
+    // Hearth Tea: drinking it calms Dread sharply and steadies the nerves for two minutes.
+    onConsume(e) {
+      const p = e.source;
+      if (p instanceof Player) system.run(() => p.isValid && drinkTea(p));
+    },
+  });
+
   ev.itemComponentRegistry.registerCustomComponent("hollow:material", {
     // Crafting materials: using one re-reads its hint (pickup teaches the recipe, see below).
     onUse(e) {
@@ -196,10 +205,10 @@ export function registerItemComponents(ev: StartupEvent): void {
 }
 
 const MATERIAL_HINTS: Record<string, [string, string]> = {
-  [ITEM.paleResin]: ["craft_lens", "§7Pale Resin: sticky, faintly warm. A lens could be set with it."],
-  [ITEM.hollowFang]: ["craft_heartseeker", "§7Hollow Fang: it hums, faintly, toward the ground."],
-  [ITEM.borrowedHide]: ["craft_offering", "§7Borrowed Hide: it is still slightly warm, and it isn't wool."],
-  [ITEM.knockerNail]: ["craft_offering", "§7Knocker's Nail: cold iron, bent like a beckoning finger."],
+  [ITEM.paleResin]: ["craft_lens", "§7Weeping Sap: sticky, faintly warm, and it never quite dries. A glass could be set with it."],
+  [ITEM.hollowFang]: ["craft_heartseeker", "§7Echo Fang: it hums, faintly, toward the ground."],
+  [ITEM.borrowedHide]: ["craft_offering", "§7False Fleece: still warm, and it isn't wool. It isn't anything."],
+  [ITEM.knockerNail]: ["craft_offering", "§7Doorstep Nail: cold iron, bent like a beckoning finger."],
   [ITEM.mirePearl]: ["craft_offering", "§7Mire Pearl: something in it turns over when you look away."],
   [ITEM.stilledHeart]: ["craft_lantern", "§7Stilled Heart: it does not beat. Set it in a lantern."],
 };

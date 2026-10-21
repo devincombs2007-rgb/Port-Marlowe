@@ -53,13 +53,13 @@ GROUPS = {
 # These values describe inputs, never measured screen brightness or visibility.
 STYLE = {
     # sun scale, moon peak, day/night ambient, day/night sky, saturation, contrast, midtone gain
-    "wild":   (0.68, 0.16, 0.016, 0.010, 0.70, 0.34, 0.84, 1.10, 0.86),
-    "cold":   (0.70, 0.15, 0.016, 0.010, 0.65, 0.34, 0.80, 1.08, 0.85),
-    "swamp":  (0.62, 0.13, 0.015, 0.010, 0.62, 0.30, 0.78, 1.09, 0.85),
-    "cave":   (0.68, 0.15, 0.010, 0.010, 0.25, 0.25, 0.82, 1.06, 0.90),
-    "canopy": (0.62, 0.13, 0.015, 0.010, 0.62, 0.30, 0.78, 1.10, 0.85),
-    "arid":   (0.70, 0.16, 0.016, 0.011, 0.70, 0.36, 0.82, 1.08, 0.86),
-    "coast":  (0.70, 0.17, 0.016, 0.011, 0.72, 0.38, 0.82, 1.08, 0.86),
+    "wild":   (0.68, 0.16, 0.016, 0.009, 0.64, 0.24, 0.82, 1.14, 0.86),
+    "cold":   (0.70, 0.17, 0.016, 0.009, 0.62, 0.26, 0.78, 1.12, 0.85),
+    "swamp":  (0.62, 0.13, 0.015, 0.009, 0.56, 0.22, 0.76, 1.13, 0.85),
+    "cave":   (0.68, 0.15, 0.010, 0.010, 0.20, 0.20, 0.80, 1.10, 0.90),
+    "canopy": (0.60, 0.12, 0.015, 0.009, 0.54, 0.20, 0.76, 1.14, 0.85),
+    "arid":   (0.70, 0.16, 0.016, 0.010, 0.66, 0.28, 0.80, 1.12, 0.86),
+    "coast":  (0.70, 0.17, 0.016, 0.010, 0.68, 0.28, 0.80, 1.12, 0.86),
 }
 
 DAY_SKY = {
@@ -104,13 +104,15 @@ def lighting(group):
     # Author every colour stop: the previous generator retained vanilla's highly orange
     # daytime stops and only replaced its final key. Start/end now match exactly.
     noon = [224, 232, 231] if group not in ("swamp", "arid") else [234, 230, 214]
-    sun["color"] = cycle(noon, [196, 161, 139], [151, 164, 177])
+    # Dusk is the warning hour: the sun sinks blood-orange through the trees, then the night
+    # turns a cold moonlit blue.
+    sun["color"] = cycle(noon, [214, 122, 86], [151, 164, 177])
     sun["illuminance"] = {k: round(v * sun_scale, 6) for k, v in sun["illuminance"].items()}
     moon["illuminance"] = {k: (moon_peak if v > 0 else 0.0) for k, v in moon["illuminance"].items()}
-    moon["color"] = {"0.0": [175, 194, 218], "1.0": [175, 194, 218]}
+    moon["color"] = {"0.0": [152, 178, 226], "1.0": [152, 178, 226]}
     ls["ambient"] = {
         "illuminance": cycle(day_ambient, round((day_ambient + night_ambient) / 2, 4), night_ambient),
-        "color": cycle([225, 233, 233], [209, 221, 228], [190, 207, 222]),
+        "color": cycle([225, 233, 233], [214, 206, 214], [172, 192, 222]),
     }
     ls["sky"] = {"intensity": cycle(day_sky, round((day_sky + night_sky) / 2, 3), night_sky)}
     ls["emissive"] = {"desaturation": 0.0}
@@ -125,11 +127,11 @@ def atmospherics(group):
     a = base["minecraft:atmosphere_settings"]
     a["description"]["identifier"] = ID("atmospherics", group)
     a["sky_zenith_color"] = cycle(DAY_SKY[group], [35, 41, 47], [12, 17, 24])
-    a["sky_horizon_color"] = cycle(DAY_HORIZON[group], [125, 99, 91], [31, 40, 49])
-    # Reduce inherited sunset glare rather than turning the world black to hide it.
-    a["sun_mie_strength"] = cycle(0.0, 0.22, 0.0)
-    a["moon_mie_strength"] = cycle(0.0, 0.025, 0.10)
-    a["sun_glare_shape"] = cycle(0.0, 0.025, 0.0)
+    a["sky_horizon_color"] = cycle(DAY_HORIZON[group], [146, 84, 66], [26, 34, 46])
+    # A hazy, swollen sun at dusk and a faint halo around the moon; no midday glare.
+    a["sun_mie_strength"] = cycle(0.0, 0.32, 0.0)
+    a["moon_mie_strength"] = cycle(0.0, 0.03, 0.14)
+    a["sun_glare_shape"] = cycle(0.0, 0.04, 0.0)
     return base
 
 
@@ -138,7 +140,7 @@ def grading(group):
     *_, sat, con, midtone_gain = STYLE[group]
     temp = {"wild": 6250, "cold": 6100, "swamp": 6300, "cave": 6350,
             "canopy": 6250, "arid": 6500, "coast": 6200}[group]
-    shadow_gain = [0.90, 0.94, 0.97] if group not in ("swamp", "canopy") else [0.91, 0.95, 0.92]
+    shadow_gain = [0.86, 0.93, 1.0] if group not in ("swamp", "canopy") else [0.88, 0.95, 0.93]
     return {
         "format_version": "1.21.90",
         "minecraft:color_grading_settings": {
@@ -148,7 +150,7 @@ def grading(group):
                 "midtones": {"contrast": [con] * 3, "gain": [midtone_gain] * 3, "gamma": [2.2] * 3, "offset": [0.0] * 3, "saturation": [sat] * 3},
                 "shadows": {"enabled": True, "shadowsMax": 0.6, "gain": shadow_gain, "saturation": [round(sat * 0.95, 4)] * 3,
                             "contrast": [1.0] * 3, "gamma": [2.2] * 3, "offset": [0.0] * 3},
-                "highlights": {"enabled": True, "highlightsMin": 1.4, "gain": [0.88, 0.85, 0.81], "saturation": [1.0] * 3,
+                "highlights": {"enabled": True, "highlightsMin": 1.4, "gain": [0.92, 0.86, 0.78], "saturation": [1.05] * 3,
                                "contrast": [1.0] * 3, "gamma": [2.2] * 3, "offset": [0.0] * 3},
                 "temperature": {"enabled": True, "temperature": temp, "type": "color_temperature"},
             },
@@ -215,7 +217,10 @@ def fog_for(biome, group, vanilla_fog_id):
         else {"max_density": dens, "uniform": True}
     vol.setdefault("density", {})["air"] = air
     vol.setdefault("media_coefficients", {})["air"] = {"scattering": scat, "absorption": [0.006, 0.006, 0.007]}
-    vol.setdefault("henyey_greenstein_g", {})["air"] = {"henyey_greenstein_g": 0.6}
+    # Strong forward scattering: light shafts through the canopy at dawn and dusk, and halos
+    # around torches and lanterns at night, without thicker fog.
+    g = {"wild": 0.76, "canopy": 0.8, "swamp": 0.78, "cold": 0.7, "cave": 0.72, "arid": 0.62, "coast": 0.68}[group]
+    vol.setdefault("henyey_greenstein_g", {})["air"] = {"henyey_greenstein_g": g}
     fog["format_version"] = "1.21.90"
     return fog
 
@@ -229,7 +234,7 @@ def main():
     available = {os.path.basename(p).split(".")[0] for p in glob.glob(os.path.join(SRC, "biomes", "*.json"))}
     assert len(assigned) == len(set(assigned)), "duplicate visual biome assignment"
     assert set(assigned) == available - EXCLUDED, f"biome coverage mismatch: {set(assigned) ^ (available - EXCLUDED)}"
-    for d in ("biomes", "fogs", "lighting", "atmospherics", "color_grading", "water", "local_lighting"):
+    for d in ("biomes", "fogs", "lighting", "atmospherics", "color_grading", "water", "local_lighting", "shadows"):
         p = os.path.join(VP, d)
         if os.path.isdir(p):
             for f in glob.glob(os.path.join(p, "*.json")):
@@ -259,13 +264,26 @@ def main():
                 comps["minecraft:sky_color"] = {"sky_color": SKY[group]}
             write(f"biomes/{biome}.client_biome.json", doc)
             count += 1
-    # Warm shelter light: torches and lanterns a touch warmer; Hollow blocks get their own colours.
+    # Soft, smoothly filtered sun/moon shadows with a soft falloff at their edges (rather than
+    # shadows snapped to the 16x16 texel grid). Soft is the engine default, but stating it keeps
+    # the look even if another pack in the stack asks for blocky shadows.
+    write("shadows/global.json", {
+        "format_version": "1.21.80",
+        "minecraft:shadow_settings": {"shadow_style": "soft_shadows"},
+    })
+    # Warm shelter light: torches, lanterns and candles cast warm, dynamic point-light shadows;
+    # soul light stays an eerie cold cyan; Hollow blocks get their own colours.
     write("local_lighting/local_lighting.json", {
         "format_version": "1.21.120",
         "minecraft:local_light_settings": {
             "minecraft:torch": {"light_color": "#FFB46B", "light_type": "point_light"},
             "minecraft:lantern": {"light_color": "#E8873A", "light_type": "point_light"},
+            "minecraft:candle": {"light_color": "#FFB36A", "light_type": "point_light"},
+            "minecraft:soul_torch": {"light_color": "#4FD8D2", "light_type": "point_light"},
+            "minecraft:soul_lantern": {"light_color": "#4FD8D2", "light_type": "point_light"},
             "minecraft:campfire": {"light_color": "#FF9A4A", "light_type": "static_light"},
+            "minecraft:soul_campfire": {"light_color": "#3FC6C0", "light_type": "static_light"},
+            "minecraft:lit_pumpkin": {"light_color": "#FF9A3C", "light_type": "static_light"},
             "hollow:heartwood_lantern": {"light_color": "#FF6A3D", "light_type": "point_light"},
             "hollow:rowan_ward": {"light_color": "#FF8A3A", "light_type": "static_light"},
         },

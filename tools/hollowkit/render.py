@@ -19,9 +19,26 @@ def _look(yaw, pitch):
     return fwd, right, up
 
 
+def bounds(model, pose=None):
+    """Centre and radius of the posed geometry (to keep a camera fixed across frames)."""
+    mats = model.bone_matrices(pose)
+    pts = []
+    for c in model.all_cubes():
+        M = mats[c.bone] @ c.cube_matrix()
+        x0, y0, z0, x1, y1, z1 = c.corners()
+        for x in (x0, x1):
+            for y in (y0, y1):
+                for z in (z0, z1):
+                    pts.append(M[:3, :3] @ np.array([x, y, z]) + M[:3, 3])
+    P = np.array(pts)
+    lo, hi = P.min(0), P.max(0)
+    return ((lo + hi) / 2).tolist(), float(np.linalg.norm(hi - lo) / 2)
+
+
 def render(model, atlas, pose=None, yaw=25, pitch=12, size=512, fov=32, light=(-0.4, 0.8, -0.6),
            bg=((38, 44, 52), (16, 18, 22)), dist_scale=1.0, ambient=0.45, focus=None):
     H, W = atlas.shape[:2]
+    k = W / float(model.atlas_width)  # texels per atlas unit (texel_scale)
     mats = model.bone_matrices(pose)
     # gather quads
     quads = []
@@ -100,8 +117,8 @@ def render(model, atlas, pose=None, yaw=25, pitch=12, size=512, fov=32, light=(-
             z = 1 / iz
             fu = (w0 * uv[0, 0] / p[0, 2] + w1 * uv[1, 0] / p[1, 2] + w2 * uv[2, 0] / p[2, 2]) * z
             fvv = (w0 * uv[0, 1] / p[0, 2] + w1 * uv[1, 1] / p[1, 2] + w2 * uv[2, 1] / p[2, 2]) * z
-            tx = np.clip((u0 + np.clip(fu, 0, 0.9999) * fw).astype(int), 0, W - 1)
-            ty = np.clip((v0 + np.clip(fvv, 0, 0.9999) * fh).astype(int), 0, H - 1)
+            tx = np.clip(((u0 + np.clip(fu, 0, 0.9999) * fw) * k).astype(int), 0, W - 1)
+            ty = np.clip(((v0 + np.clip(fvv, 0, 0.9999) * fh) * k).astype(int), 0, H - 1)
             texel = atlas[ty, tx]
             m &= texel[..., 3] > 127
             yy = (ys[m] - 0.5).astype(int)

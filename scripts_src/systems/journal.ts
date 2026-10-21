@@ -163,7 +163,7 @@ async function openJournalMenu(p: Player): Promise<void> {
     form.button(`${ch.title}${unreadIn(ch.id) ? " §6(new)" : ""}\n§8${count} entries`, ch.icon);
   }
   form.button("Settings\n§8comfort & world rules", "textures/ui/hollow/settings");
-  form.button("Field conditions & next steps\n§8local checks and a suggested recipe", "textures/items/hollow/field_journal");
+  form.button("Field conditions & next steps\n§8your nerve, local checks and a suggested recipe", "textures/ui/hollow/journal/conditions");
   const r = await showForm(p, form);
   if (!r || r.canceled || r.selection === undefined) return;
   if (r.selection < CHAPTERS.length) await openChapter(p, CHAPTERS[r.selection].id);
@@ -175,7 +175,7 @@ async function openFieldNotes(p: Player): Promise<void> {
   while (p.isValid) {
     const report = fieldNotes(p, (id) => hasEntry(p, id));
     const form = new ActionFormData().title("§lField Conditions").body(report.body);
-    form.button("Refresh", "textures/items/hollow/field_journal");
+    form.button("Refresh", "textures/ui/hollow/journal/refresh");
     if (report.recipe) form.button("Read suggested recipe", ENTRY_BY_ID.get(report.recipe)!.icon);
     form.button("§8Back", "textures/ui/hollow/back");
     const r = await showForm(p, form);

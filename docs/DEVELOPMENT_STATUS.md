@@ -1,4 +1,47 @@
-# THE HOLLOW development checkpoint — 1.0.6
+# THE HOLLOW development checkpoint — 1.1.0
+
+## Latest: 1.1.0 — art, animation, visuals, icons, names and Dread (Claude)
+
+- **Names** (display only; item IDs unchanged so existing worlds keep their items): Pale Resin →
+  Weeping Sap, Borrowed Hide → False Fleece, Hollow Fang → Echo Fang, Knocker's Nail → Doorstep
+  Nail, Hollow Lens → Seer's Glass, Hollow Chime → Telltale Chime, Offering of Silence → Hush Offering.
+- **Creature art:** every creature repainted at 2x via an upgraded painter (`hollowkit/paint.py`):
+  ray-cast baked ambient occlusion, worley cells (wool curls, crazed porcelain, scales), vein
+  networks with their own PBR, bark fissures, grime in crevices, wet roughness, bevel wear.
+  Watcher and Hollowed geometry rebuilt (mask with hinged jaw, chest hollow, antler crown,
+  jointed fingers; long neck, ribs, sealed eye pits, needle teeth, three-part tail). The Borrowed
+  gained flank ribs and an inner jaw; the Knocker a hood and nails; the Mirebound weed strands.
+- **Animations:** `tools/packgen/animations.py` now generates all five creatures (the Watcher's
+  former hand-written JSON included) with twitches, breathing, secondary motion, a patient
+  "creep" gait, a 1.6 s Borrowed transformation that lengthens its legs, and additive attacks.
+  `tools/hollowkit/molang.py` parses every expression during the build;
+  `tools/packgen/anim_previews.py` renders contact sheets/GIFs of each clip on the real models.
+- **Visuals:** explicit soft shadows, blood dusk, cold moonlight, split-tone grading, stronger
+  volumetric scattering, more warm point lights (see VISUAL_TUNING.md).
+- **Icons:** all 16 item sprites redrawn; 45 ink-on-parchment journal illustrations
+  (`tools/art/journal_art.py`): creature portraits rendered from the models, places, chapters,
+  menu buttons and pinned item specimens.
+- **Dread:** `systems/dread.ts` + `core/fear.ts`. Fear meter, stages, heartbeat/breath audio,
+  personal fog, private hallucinations (phantom entity with per-player visibility override,
+  footsteps, whispers, false knocks), fear draws encounters (chance ×, cooldown ÷ up to 1.4),
+  Hollowed hear a terrified heart, Hearth Tea item, journal entries, Field Conditions readout,
+  comfort toggle and world rule, test-kit commands. Five new simulation scenarios.
+- **Sounds:** `tools/sounds/dread.py` synthesizes 11 new files (heartbeat, breath, whisper,
+  vanish, calm) and merges them into sound_definitions.json.
+
+Verification: strict TypeScript, static validation 0/0, visual verification, 93/93 simulations.
+Not verified in Minecraft: animation playback, texture appearance in VV, shadow style, sound mix.
+
+## Next: 2.0 — island story (planned with the user)
+
+The user wants the forest story replaced by an island story: a 1950s nuclear test site, present-day
+government researchers, a helicopter crash start, AI companion Trevor (shared by all players,
+FIFO order queue from any player, gathers/chops/builds/fights, non-permanent death by default with
+a setting), basic guns, radiation research (Geiger, green radioactive crater water that poisons),
+cinematic flashback (bomber, drop, airburst, white-out, mushroom cloud, delayed boom, fires),
+delivered as a prebuilt world file.
+
+## Previous checkpoint — 1.0.6
 
 ## Latest continuation: 1.0.6 — creature movement and encounter variations
 

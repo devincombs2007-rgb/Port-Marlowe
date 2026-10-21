@@ -1,4 +1,25 @@
-# THE HOLLOW horror visuals — 1.0.5
+# THE HOLLOW horror visuals — 1.1.0
+
+## Changes in 1.1.0
+
+- **Soft shadows:** `shadows/global.json` asks for `soft_shadows` (smoothly filtered sun and moon
+  shadows with soft edges instead of texel-snapped blocky ones). Soft is the engine default; the
+  file keeps it if another pack in the stack requests blocky shadows.
+- **Dusk is the warning hour:** the setting sun is blood-orange (sun colour `[214,122,86]`), the
+  horizon reddens and the sun's Mie haze swells. Nights turn to cold blue moonlight `[152,178,226]`.
+- **Deeper shadows:** sky-fill intensity at night drops to 0.20–0.28 (was 0.30–0.38) and to
+  0.54–0.68 by day, so shade under trees reads darker without lowering the ambient floor.
+- **Split-tone grading:** cooler shadow gain `[0.86,0.93,1.0]`, warmer highlight gain
+  `[0.92,0.86,0.78]`, midtone contrast 1.10–1.14: torches and lanterns glow warm against the cold.
+- **Light shafts:** volumetric Henyey-Greenstein g raised to 0.62–0.80 per look (was 0.6
+  everywhere) for strong forward scattering: god rays at dawn and dusk and halos around lights.
+- **Warm point lights:** candles join torches and lanterns as dynamic point lights; soul lights
+  and soul campfires glow an eerie cyan; jack o'lanterns are static warm light.
+- Creature textures are now 2x resolution with baked ambient occlusion, wet roughness, subsurface
+  skin, emissive eyes/veins/echo-sacs and heightmaps; custom blocks were repainted the same way.
+- **Dread fog** (resource pack, all graphics modes): when a player is Frightened, a personal fog
+  closes the view distance and adds uniform volumetric haze; it lifts as they calm down.
+
 
 The direction is quiet survival horror: steel and olive shadows, subdued earth colours, dim
 moonlight, readable silhouettes and amber shelter lights. Daylight stays useful for building

@@ -1,0 +1,24 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "hollow:phantom",
+      "materials": {
+        "default": "entity_alphatest"
+      },
+      "textures": {
+        "watcher": "textures/entity/hollow/watcher",
+        "hollowed": "textures/entity/hollow/hollowed",
+        "knocker": "textures/entity/hollow/knocker"
+      },
+      "geometry": {
+        "watcher": "geometry.hollow.watcher",
+        "hollowed": "geometry.hollow.hollowed",
+        "knocker": "geometry.hollow.knocker"
+      },
+      "render_controllers": [
+        "controller.render.hollow.phantom"
+      ]
+    }
+  }
+}

@@ -38,7 +38,7 @@ models. They are **not in-game screenshots**.
 | Animations | idle sway, walk, look_at_target, stare (head tilt), seen (flinch), lunge; locomotion and mood controllers. |
 | Sounds | step, creak, seen, retreat, lunge, hurt, death (+ forest hush, distant stinger). |
 | Stats | 40 HP, 5 melee damage (vanilla difficulty scaling), speed 0.30 direct / 0.19 patient; 0 while lurking. |
-| Drops | Pale Resin 1–2 (+Looting), sticks. Staring it down also leaves 1 Pale Resin (once per player per night; 2 on Nightmare). |
+| Drops | Weeping Sap 1–2 (+Looting), sticks. Staring it down also leaves 1 Weeping Sap (once per player per night; 2 on Nightmare). |
 
 **Spawn rules:**
 - Overworld, **forest-group biome or adjacent open/shore forest edge**, dusk to dawn (time 12400–23400), player on the surface, not roofed and not in water.
@@ -80,7 +80,7 @@ models. They are **not in-game screenshots**.
 | Animations | disguise (no grazing, pacing), idle, walk, exposed scramble/run, look_at_target, reveal, revealed, attack, form, strike. |
 | Sounds | baa, baa_wrong (bleat ending in a click), reveal, attack, hurt, death, step. |
 | Stats | 24 HP, 5 damage, speed 0.23 disguised / 0.32 revealed / 0.34 fleeing. |
-| Drops | Borrowed Hide 1–2 (+Looting), bone 50%. |
+| Drops | False Fleece 1–2 (+Looting), bone 50%. |
 
 **Spawn rules:**
 - Hollow day ≥1, Overworld surface.
@@ -94,7 +94,7 @@ models. They are **not in-game screenshots**.
   its head tilt becomes more pronounced while watching. Existing wrong-bleat timing is unchanged.
 - It's revealed by: **shears** (custom `interact` → `hollow:sheared` event), being **hurt**, a **Rowan Ward** within
   10 blocks, or at night a player within 4 blocks, in the dark, without a light, for 2 s.
-- The **Hollow Lens** reveals it *visually* to the lens user only (`setPropertyOverrideForEntity`). That's an
+- The **Seer's Glass** reveals it *visually* to the lens user only (`setPropertyOverrideForEntity`). That's an
   investigation reveal and doesn't trigger the hunt.
 - `revealing`: stationary, non-attacking for at least 28 ticks (1.4 seconds); the 10-tick update
   cadence can extend the window slightly. Afterwards it hunts at night or flees in daylight. Wards
@@ -118,7 +118,7 @@ models. They are **not in-game screenshots**.
 | Animations | idle, walk, click (throat), investigate (head sweep), attack, strike. |
 | Sounds | click (echolocation), alert, sniff, step, attack, hurt, death; cave breath and shift ambience. |
 | Stats | 26 HP, 6 damage, speed 0.26 / 0.30 investigating. Juveniles (boss minions): 10 HP, 3 damage. |
-| Drops | Hollow Fang 1 (+Looting), bones 0–2. |
+| Drops | Echo Fang 1 (+Looting), bones 0–2. |
 
 **Exactly what it detects** (`systems/noise.ts`). Only supported, observable game events are used.
 
@@ -168,7 +168,7 @@ Within 3 blocks it finds a player regardless (`nearest_attackable_target` with a
 | Animations | idle, walk, knock (arm swing synced to the knock timeline), hunt, attack, look_at_target, strike. |
 | Sounds | knock (modal wood, three-knock pattern), scratch (stick-slip), breath, step, lunge, hurt, death, leave. |
 | Stats | 60 HP, 7 damage, speed 0.22 / 0.27 hunting. |
-| Drops | Knocker's Nail 2–3 (+Looting), iron nuggets 2–5, string 50%. Leaving unanswered drops 1 Nail on the step. |
+| Drops | Doorstep Nail 2–3 (+Looting), iron nuggets 2–5, string 50%. Leaving unanswered drops 1 Nail on the step. |
 
 **Spawn rules:**
 - **Each night is decided once**, at sunset: eligible if the Knocker is enabled, night ≥ *First Knocker night*
@@ -239,7 +239,7 @@ Within 3 blocks it finds a player regardless (`nearest_attackable_target` with a
 | Stats | 300 HP; 480 / 660 / 840 with 2 / 3 / 4+ players. Veins 30 HP (45 with 3+ players). Boss bar via `minecraft:boss`. |
 | Drops | Every participant: 1 Stilled Heart + 150 XP (once per kill). Shared: diamonds 2–4, gold 4–8, golden apple, XP bottles 3–6. |
 
-**Awakening:** only by a player using an **Offering of Silence** on the shrine altar. It doesn't respond while the
+**Awakening:** only by a player using a **Hush Offering** on the shrine altar. It doesn't respond while the
 altar rests (3 days after a kill). The heart spawns 6 s after the offering, with fog and a title.
 
 **Attacks** (all telegraphed, all avoidable):

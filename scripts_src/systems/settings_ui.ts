@@ -29,6 +29,7 @@ async function openPrefs(p: Player): Promise<void> {
     .toggle("Visual effects (fog shifts, soft fades)", { defaultValue: cur.visualFx })
     .toggle("Action-bar hints", { defaultValue: cur.hints })
     .toggle("Music (night, cave, shrine and boss tracks)", { defaultValue: cur.music })
+    .toggle("Dread effects (heartbeat, breathing, closing fog, hallucinations)", { defaultValue: cur.dreadFx })
     .submitButton("Save");
   const r = await showForm(p, f);
   if (!r || r.canceled || !r.formValues) return;
@@ -39,9 +40,10 @@ async function openPrefs(p: Player): Promise<void> {
     visualFx: Boolean(v[2]),
     hints: Boolean(v[3]),
     music: Boolean(v[4]),
+    dreadFx: v[5] === undefined ? cur.dreadFx : Boolean(v[5]),
   };
   savePrefs(p, next);
-  if (!next.visualFx) clearAllFog(p);
+  if (!next.visualFx || !next.dreadFx) clearAllFog(p);
   notice(p, "§7Comfort settings saved.");
 }
 
@@ -63,6 +65,7 @@ async function openWorld(p: Player): Promise<void> {
     .toggle("Place cabins, camps, towers, lean-tos and the shrine", { defaultValue: s.sites })
     .toggle("Scale the Heart Below with player count", { defaultValue: s.bossScaling })
     .toggle("Rare one-off events (harmless, once per world)", { defaultValue: s.rareEvents })
+    .toggle("Dread: fear, hallucinations, and fear drawing them closer", { defaultValue: s.dread })
     .submitButton("Save");
   const r = await showForm(p, f);
   if (!r || r.canceled || !r.formValues || !isOperator(p)) return;
@@ -83,6 +86,7 @@ async function openWorld(p: Player): Promise<void> {
     sites: Boolean(v[11]),
     bossScaling: Boolean(v[12]),
     rareEvents: Boolean(v[13]),
+    dread: v[14] === undefined ? s.dread : Boolean(v[14]),
   };
   saveSettings(next);
   notice(p, "§7World rules saved.");

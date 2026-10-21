@@ -15,7 +15,7 @@
               "walking": "query.modified_move_speed > 0.06"
             }
           ],
-          "blend_transition": 0.25
+          "blend_transition": 0.3
         },
         "walking": {
           "animations": [
@@ -28,7 +28,7 @@
               "idle": "query.modified_move_speed < 0.03"
             }
           ],
-          "blend_transition": 0.25
+          "blend_transition": 0.3
         }
       }
     },

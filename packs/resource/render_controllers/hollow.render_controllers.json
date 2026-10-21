@@ -147,6 +147,38 @@
         "b": 0.02,
         "a": "variable.shielded ? 0.35 : 0.0"
       }
+    },
+    "controller.render.hollow.phantom": {
+      "arrays": {
+        "geometries": {
+          "Array.forms": [
+            "Geometry.watcher",
+            "Geometry.hollowed",
+            "Geometry.knocker"
+          ]
+        },
+        "textures": {
+          "Array.skins": [
+            "Texture.watcher",
+            "Texture.hollowed",
+            "Texture.knocker"
+          ]
+        }
+      },
+      "geometry": "Array.forms[query.property('hollow:form')]",
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "textures": [
+        "Array.skins[query.property('hollow:form')]"
+      ],
+      "part_visibility": [
+        {
+          "*": "query.property('hollow:visible')"
+        }
+      ]
     }
   }
 }

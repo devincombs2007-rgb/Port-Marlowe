@@ -1,3 +1,4 @@
+import { dreadChance, frighten } from "../core/fear";
 import { Dimension, Entity, Player, Vector3, world } from "@minecraft/server";
 import { worldSound } from "../core/audio";
 import { chanceScale, cooldownScale, dayReached, settings } from "../core/config";
@@ -65,7 +66,7 @@ export function tryStartHollowed(p: Player): boolean {
   let nearCount = 0;
   for (const h of hs.values()) if (h.dim === p.dimension.id && distSq(h.pos, p.location) < 48 * 48) nearCount++;
   if (nearCount >= (s.intensity === 2 ? 3 : 2) || hs.size >= 6) return false;
-  if (!chance(0.15 * chanceScale())) return false;
+  if (!chance(0.15 * chanceScale() * dreadChance(p))) return false;
 
   const dim = p.dimension;
   const head = p.getHeadLocation();
@@ -89,7 +90,7 @@ export function tryStartHollowed(p: Player): boolean {
     }
     e.setDynamicProperty(DP.owner, p.id);
     track(e, false);
-    setCooldown(p, "hollowed", seconds(rand(150, 240) * cooldownScale()));
+    setCooldown(p, "hollowed", seconds(rand(150, 240) * cooldownScale() / dreadChance(p)));
     return true;
   }
   return false;
@@ -164,6 +165,8 @@ function hear(n: Noise): void {
     if (now() - h.alertAt > 80) {
       h.alertAt = now();
       worldSound(e.dimension, SND.hollowedAlert, e.location, 1.0, 0.95 + Math.random() * 0.1);
+      // The shriek that answers your footstep is the worst sound in the dark.
+      if (n.source && dist(n.source.location, h.pos) < 20) frighten(n.source, 9);
     }
     if (h.state !== "investigate") {
       try {

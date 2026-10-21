@@ -35,6 +35,8 @@ import { forceEvent, forgetEventTarget, startEvents } from "./systems/events";
 import { startAmbience } from "./systems/ambience";
 import { startCleanup, sweepLoaded, trackType } from "./systems/cleanup";
 import { addStarter, startDirector } from "./systems/director";
+import { dreadSummary, forcePhantom, forgetDread, isPhantomTracked, resetDread, setDread, startDread } from "./systems/dread";
+import { frighten } from "./core/fear";
 import { cancelJournalNotices, ensureJournal, forgetJournal, openJournal, unlock, unlockAll } from "./systems/journal";
 import { forgetNoise, startNoiseEvents } from "./systems/noise";
 import { forceSite, forgetSites, startSites } from "./systems/sites";
@@ -57,6 +59,7 @@ function init(): void {
   trackType(ENT.lure, isLureTracked);
   trackType(ENT.knocker, isKnockerTracked);
   trackType(ENT.mirebound, isMireboundTracked);
+  trackType(ENT.phantom, isPhantomTracked);
   // Major encounters (one at a time per player), in priority order; cave and flock spawns are independent.
   addStarter({ key: "mirebound", tryStart: tryStartMirebound });
   addStarter({ key: "watcher", tryStart: tryStartWatcher });
@@ -66,6 +69,7 @@ function init(): void {
   startCleanup();
   startNoiseEvents();
   startDirector();
+  startDread();
   startAmbience();
   startBlockSystems();
   startMaterialPickups();
@@ -104,6 +108,7 @@ world.afterEvents.playerSpawn.subscribe((ev) => safe("playerSpawn", () => {
   } else {
     rt(p).diedAt = now();
     rt(p).ctx = undefined;
+    resetDread(p);
     forgetEncounters(p.id);
     later("journalBack", 20, () => p.isValid && ensureJournal(p));
   }
@@ -131,6 +136,7 @@ world.beforeEvents.playerLeave.subscribe((ev) => {
     forgetJournal(id);
     forgetNoise(id);
     forgetMusic(id);
+    forgetDread(id);
   }));
 });
 
@@ -153,6 +159,7 @@ world.afterEvents.entityHurt.subscribe((ev) => safe("entityHurt", () => {
     case ENT.mirebound: onMireboundHurt(hurt, by); break;
   }
   if (hurt instanceof Player && by?.typeId === ENT.watcher) onWatcherStruck(by, hurt);
+  if (hurt instanceof Player && by?.typeId.startsWith("hollow:")) frighten(hurt, 8);
   if (hurt.typeId === ENT.heart || hurt.typeId === ENT.vein) onBossHurt(hurt, ev.damage, by);
 }));
 
@@ -203,6 +210,7 @@ function testCommand(p: Player, arg: string): string {
         ["hollow:heartseeker", 1], ["hollow:offering_of_silence", 2], ["hollow:pale_resin", 2], ["hollow:hollow_fang", 2],
         ["hollow:borrowed_hide", 2], ["hollow:knocker_nail", 2], ["hollow:mire_pearl", 2], ["hollow:stilled_heart", 1],
         ["minecraft:torch", 16], ["minecraft:shears", 1], ["minecraft:wheat", 8], ["minecraft:snowball", 16],
+        ["hollow:hearth_tea", 2],
       ];
       for (const [id, n] of kit) giveOrDrop(p, new ItemStack(id, n));
       ensureJournal(p);
@@ -220,8 +228,14 @@ function testCommand(p: Player, arg: string): string {
     case "lantern":
     case "roof":
       return forceEvent(p, arg);
+    case "phantom":
+      return forcePhantom(p);
     default:
-      return "usage: /scriptevent hollow:test on|off|night|midnight|day|kit|journal|knocker|boss2|boss3|eye|lantern|roof";
+      if (arg.startsWith("dread")) {
+        const v = Number(arg.slice(5).trim());
+        return Number.isFinite(v) ? setDread(p, v) : "usage: /scriptevent hollow:test dread <0-100>";
+      }
+      return "usage: /scriptevent hollow:test on|off|night|midnight|day|kit|journal|knocker|boss2|boss3|eye|lantern|roof|phantom|dread <0-100>";
   }
 }
 
@@ -250,7 +264,8 @@ system.afterEvents.scriptEventReceive.subscribe((ev) => safe("scriptevent", () =
       if (!isOperator(p)) return;
       p.sendMessage(
         `§7[hollow] day ${hollowDay()} · watcher ${watcherCount()} · borrowed ${borrowedCount()} · hollowed ${hollowedCount()} · ` +
-        `mirebound ${mireboundCount()} · knocker ${knockerActive() ? 1 : 0} · heart ${bossSummary()} · failures: ${failureReport()}`,
+        `mirebound ${mireboundCount()} · knocker ${knockerActive() ? 1 : 0} · heart ${bossSummary()} · dread ${dreadSummary()} · ` +
+        `failures: ${failureReport()}`,
       );
       return;
     case "hollow:debug":

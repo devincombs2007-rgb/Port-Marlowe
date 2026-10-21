@@ -17,6 +17,7 @@ BELLY = ramp("#4a4636", "#5d5844", "#716b54", "#858066")
 MOSS = ramp("#26361d", "#304626", "#3c5830", "#4a6b3a", "#5a7f45")
 REED = ramp("#4f4426", "#665833", "#7f6e41", "#98854f")
 PAD = ramp("#1f3a1f", "#2a4e28", "#386531")
+WEED = ramp("#1c2a14", "#24361a", "#2e4421", "#3a5329")
 MOUTH = ramp("#1a0f0b", "#2b1712", "#3f221a")
 TOOTH = ramp("#8f876f", "#aaa286", "#c4bc9f")
 
@@ -57,16 +58,31 @@ def build():
     m.cube("tail", (-2.5, 2, 10), (5, 3, 6), "hide")
     m.bone("tail2", "tail", pivot=(0, 3.5, 16))
     m.cube("tail2", (-1.5, 2.5, 16), (3, 2, 6), "hide")
+    # hanging weed strands from the jaw, arms and hump so it reads as drift until it moves
+    for x, z, ln in ((-3.5, -15.0, 2.6), (-0.5, -15.6, 3.2), (2.6, -14.2, 2.2)):
+        m.cube("jaw", (x - 0.25, 1.5 - ln, z), (0.5, ln, 0.5), "weed")
+    for side, sx in (("arm_l", 1), ("arm_r", -1)):
+        m.cube(side, (sx * 6.4 - 0.25, 0.2, -9.5), (0.5, 2.2, 0.5), "weed")
+    for x, z in ((-5.4, -3.0), (5.2, 2.0), (-4.8, 5.5)):
+        m.cube("hump", (x - 0.25, 4.6, z), (0.5, 2.8, 0.5), "weed")
+    # brow knobs over the amber eyes
+    m.cube("head", (-3.8, 7.6, -12.0), (2.6, 0.8, 1.2), "hide")
+    m.cube("head", (1.2, 7.6, -12.0), (2.6, 0.8, 1.2), "hide")
     m.locator("head", "mouth", (0, 3.5, -16))
     return m
 
 
 def materials():
     return {
-        "hide": Material(HIDE, base=0.5, noise=(0.45, 0.3, 3), speckle=(0.08, 0.15), ao=0.3,
-                         spots=dict(scale=0.5, threshold=0.55, ramp=MOSS), mers=(0, 0, 80, 60), rough_var=35, height_strength=0.9),
+        "hide": Material(HIDE, base=0.5, noise=(0.45, 0.26, 3), speckle=(0.08, 0.15), ao=0.25, detail=0.07,
+                         cells=dict(scale=0.85, mode="crack", edge=0.06, edge_delta=-0.22),
+                         spots=dict(scale=0.5, threshold=0.55, ramp=MOSS), grime=dict(color="#0c0f08", strength=0.6),
+                         wet=60, bevel=0.05, mers=(0, 0, 70, 70), rough_var=35, height_strength=1.0),
         "belly": Material(BELLY, base=0.5, noise=(0.6, 0.2, 2), mers=(0, 0, 110, 120), ao=0.0),
-        "moss": Material(MOSS, base=0.55, noise=(0.6, 0.35, 3), speckle=(0.12, 0.2), ao=0.15, mers=(0, 0, 240, 150), height_strength=1.0),
+        "moss": Material(MOSS, base=0.55, noise=(0.6, 0.3, 3), speckle=(0.12, 0.2), ao=0.15, detail=0.08,
+                         cells=dict(scale=1.1, mode="bulge", weight=0.3), grime=dict(color="#11180c", strength=0.5),
+                         mers=(0, 0, 240, 160), height_strength=1.0),
+        "weed": Material(WEED, base=0.5, noise=(0.9, 0.3, 2), ao=0.0, edge=0.0, mers=(0, 0, 200, 180), height_strength=0.3),
         "reed": Material(REED, base=0.55, noise=(0.8, 0.2, 1), streak=(3, 0.2, 3, 0.3), mers=(0, 0, 230, 120), ao=0.0, edge=0.0),
         "pad": Material(PAD, base=0.5, noise=(0.9, 0.2, 1), mers=(0, 0, 120, 170), ao=0.0, edge=0.0),
         "mouth": Material(MOUTH, base=0.4, noise=(1.0, 0.2, 1), mers=(0, 0, 70, 130), ao=0.0, edge=0.0),
@@ -90,7 +106,7 @@ POSES = [None, {"head": {"rot": (-30, 0, 0)}, "jaw": {"rot": (40, 0, 0)}, "body"
 
 def main():
     m = build()
-    export_entity("mirebound", m, Painter(m, materials(), features(), seed=55), previews=POSES)
+    export_entity("mirebound", m, Painter(m, materials(), features(), seed=55, scale=2, ao_rays=24, ao_dist=6.0), previews=POSES)
 
 
 if __name__ == "__main__":

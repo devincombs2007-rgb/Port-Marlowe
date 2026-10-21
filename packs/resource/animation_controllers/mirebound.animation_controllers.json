@@ -18,7 +18,8 @@
             {
               "swimming": "variable.state == 'retreat'"
             }
-          ]
+          ],
+          "blend_transition": 0.3
         },
         "erupting": {
           "animations": [

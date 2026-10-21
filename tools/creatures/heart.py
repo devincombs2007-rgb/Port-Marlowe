@@ -127,12 +127,17 @@ def spike_model():
 
 def materials():
     return {
-        "flesh": Material(FLESH, base=0.5, noise=(0.18, 0.32, 3), streak=(0.3, 1.2, 0.3, 0.2), speckle=(0.06, 0.15), ao=0.15, edge=0.0,
-                          spots=dict(scale=0.25, threshold=0.55, ramp=SCAR), mers=(0, 0, 70, 200), rough_var=40, height_strength=1.2),
+        "flesh": Material(FLESH, base=0.5, noise=(0.18, 0.3, 3), streak=(0.3, 1.2, 0.3, 0.2), speckle=(0.06, 0.15), ao=0.12, edge=0.0,
+                          detail=0.07, spots=dict(scale=0.25, threshold=0.55, ramp=SCAR),
+                          veins=dict(scale=0.11, threshold=0.972, ramp=VEIN, mers=(0, 150, 60, 200), height=50),
+                          grime=dict(color="#120505", strength=0.35), wet=50,
+                          mers=(0, 0, 70, 210), rough_var=40, height_strength=1.2),
         "vein": Material(VEIN, base=0.6, noise=(0.6, 0.3, 2), ao=0.0, edge=0.0, mers=(0, 160, 60, 160)),
         "scar": Material(SCAR, base=0.5, noise=(0.4, 0.3, 2), speckle=(0.08, 0.2), ao=0.1, mers=(0, 0, 90, 150), height_strength=1.0),
         "core": Material(CORE, base=0.7, noise=(0.5, 0.3, 2), ao=0.0, edge=0.0, mers=(0, 255, 120, 200)),
-        "root": Material(ROOT, base=0.5, noise=(0.4, 0.25, 2), streak=(2, 0.25, 2, 0.35), ao=0.2, mers=(0, 0, 230, 60), height_strength=0.9),
+        "root": Material(ROOT, base=0.5, noise=(0.4, 0.25, 2), streak=(2, 0.25, 2, 0.35), ao=0.2, detail=0.06,
+                         fissure=dict(scale=0.6, stretch=(1.0, 0.2, 1.0), threshold=0.97, delta=-0.25), bevel=0.05,
+                         grime=dict(color="#120d09", strength=0.5), mers=(0, 0, 230, 60), height_strength=0.9),
         "bark": Material(BARK, base=0.5, noise=(0.4, 0.25, 2), streak=(2, 0.25, 2, 0.35), ao=0.2, mers=(0, 0, 240, 0)),
     }
 
@@ -140,13 +145,13 @@ def materials():
 def main():
     mats = materials()
     hm = heart_model()
-    export_entity("heart_below", hm, Painter(hm, mats, [], seed=66),
+    export_entity("heart_below", hm, Painter(hm, mats, [], seed=66, scale=2, ao_rays=16, ao_dist=8.0, ao_strength=0.35),
                   previews=[None, {"lid_l": {"rot": (0, 72, 0)}, "lid_r": {"rot": (0, -72, 0)}}],
                   preview_views=((20, 15), (90, 10), (200, 20), (-30, 40)))
     vm = vein_model()
-    export_entity("heart_vein", vm, Painter(vm, mats, [], seed=67))
+    export_entity("heart_vein", vm, Painter(vm, mats, [], seed=67, scale=2, ao_rays=20, ao_dist=5.0))
     sm = spike_model()
-    export_entity("root_spike", sm, Painter(sm, mats, [], seed=68))
+    export_entity("root_spike", sm, Painter(sm, mats, [], seed=68, scale=2, ao_rays=20, ao_dist=5.0))
 
 
 if __name__ == "__main__":

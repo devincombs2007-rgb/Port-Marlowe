@@ -19,8 +19,8 @@ PACKS = {"behavior": "THE_HOLLOW_BP", "resource": "THE_HOLLOW_RP", "visuals": "T
 
 ASSET_STEPS = [
     "creatures/watcher.py", "creatures/borrowed.py", "creatures/hollowed.py", "creatures/knocker.py",
-    "creatures/mirebound.py", "creatures/heart.py", "blocks/blocks.py", "art/icons.py", "art/particles.py",
-    "art/pack_icon.py", "sounds/sourced.py", "structures/build_structures.py", "visuals/build_visuals.py",
+    "creatures/mirebound.py", "creatures/heart.py", "blocks/blocks.py", "art/icons.py", "art/journal_art.py", "art/particles.py",
+    "art/pack_icon.py", "sounds/sourced.py", "sounds/dread.py", "structures/build_structures.py", "visuals/build_visuals.py",
 ]
 CONTENT_STEPS = ["packgen/content.py", "packgen/registry.py", "packgen/animations.py"]
 

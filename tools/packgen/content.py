@@ -22,15 +22,15 @@ ITEMS = [
         "minecraft:hover_text_color": "gray"}, "items"),
     ("torn_page", "Torn Page", "torn_page", {
         "minecraft:max_stack_size": 16, "minecraft:interact_button": "Read", "hollow:torn_page": {}}, "items"),
-    ("pale_resin", "Pale Resin", "pale_resin", {"hollow:material": {}, "minecraft:interact_button": "Inspect"}, "items"),
-    ("borrowed_hide", "Borrowed Hide", "borrowed_hide", {"hollow:material": {}, "minecraft:interact_button": "Inspect"}, "items"),
-    ("hollow_fang", "Hollow Fang", "hollow_fang", {"hollow:material": {}, "minecraft:interact_button": "Inspect"}, "items"),
-    ("knocker_nail", "Knocker's Nail", "knocker_nail", {"hollow:material": {}, "minecraft:interact_button": "Inspect"}, "items"),
+    ("pale_resin", "Weeping Sap", "pale_resin", {"hollow:material": {}, "minecraft:interact_button": "Inspect"}, "items"),
+    ("borrowed_hide", "False Fleece", "borrowed_hide", {"hollow:material": {}, "minecraft:interact_button": "Inspect"}, "items"),
+    ("hollow_fang", "Echo Fang", "hollow_fang", {"hollow:material": {}, "minecraft:interact_button": "Inspect"}, "items"),
+    ("knocker_nail", "Doorstep Nail", "knocker_nail", {"hollow:material": {}, "minecraft:interact_button": "Inspect"}, "items"),
     ("mire_pearl", "Mire Pearl", "mire_pearl", {"hollow:material": {}, "minecraft:interact_button": "Inspect"}, "items"),
     ("stilled_heart", "Stilled Heart", "stilled_heart", {
         "hollow:material": {}, "minecraft:max_stack_size": 16, "minecraft:rarity": {"value": "epic"},
         "minecraft:interact_button": "Inspect"}, "items"),
-    ("hollow_lens", "Hollow Lens", "hollow_lens", {
+    ("hollow_lens", "Seer's Glass", "hollow_lens", {
         "minecraft:max_stack_size": 1, "minecraft:interact_button": "Look", "hollow:lens": {},
         "minecraft:durability": {"max_durability": 64},
         "minecraft:repairable": {"repair_items": [{"items": ["minecraft:copper_ingot"], "repair_amount": 16}]},
@@ -39,13 +39,19 @@ ITEMS = [
         "minecraft:max_stack_size": 1, "minecraft:interact_button": "Listen", "hollow:heartseeker": {},
         "minecraft:cooldown": {"category": "hollow_heartseeker", "duration": 2.0},
         "minecraft:rarity": {"value": "uncommon"}}, "equipment"),
-    ("offering_of_silence", "Offering of Silence", "offering_of_silence", {
+    ("hearth_tea", "Hearth Tea", "hearth_tea", {
+        "minecraft:max_stack_size": 16, "hollow:tea": {},
+        "minecraft:food": {"nutrition": 2, "saturation_modifier": 0.6, "can_always_eat": True,
+                           "using_converts_to": "minecraft:bowl"},
+        "minecraft:use_animation": "drink",
+        "minecraft:use_modifiers": {"use_duration": 1.6, "movement_modifier": 0.35}}, "items"),
+    ("offering_of_silence", "Hush Offering", "offering_of_silence", {
         "minecraft:max_stack_size": 1, "minecraft:rarity": {"value": "rare"}, "minecraft:glint": True}, "items"),
 ]
 
 # Block items reuse the block identifier and place the block (vanilla pattern, e.g. red_shrub).
 BLOCK_ITEMS = [
-    ("hollow_chime", "Hollow Chime", "hollow_chime"),
+    ("hollow_chime", "Telltale Chime", "hollow_chime"),
     ("rowan_ward", "Rowan Ward", "rowan_ward"),
     ("heartwood_lantern", "Heartwood Lantern", "heartwood_lantern"),
 ]
@@ -240,7 +246,7 @@ BLOCKS = {
 }
 
 BLOCK_NAMES = {
-    "hollow_chime": "Hollow Chime", "rowan_ward": "Rowan Ward", "heartwood_lantern": "Heartwood Lantern",
+    "hollow_chime": "Telltale Chime", "rowan_ward": "Rowan Ward", "heartwood_lantern": "Heartwood Lantern",
     "heart_altar": "Heart Altar", "hollow_roots": "Hollow Roots", "tracks": "Tracks",
 }
 
@@ -306,6 +312,10 @@ RECIPES = {
                                   {"F": "hollow:hollow_fang", "R": "hollow:pale_resin", "H": "hollow:borrowed_hide",
                                    "G": "minecraft:gold_ingot", "N": "hollow:knocker_nail", "P": "hollow:mire_pearl"},
                                   "hollow:offering_of_silence", unlock=["hollow:mire_pearl", "hollow:knocker_nail", "hollow:borrowed_hide"]),
+    "hearth_tea": shapeless("hearth_tea", [("minecraft:bowl", 1), ("minecraft:sugar", 1), ("minecraft:sweet_berries", 1)],
+                            "hollow:hearth_tea", unlock=["minecraft:sweet_berries", "minecraft:sugar"]),
+    "hearth_tea_apple": shapeless("hearth_tea_apple", [("minecraft:bowl", 1), ("minecraft:sugar", 1), ("minecraft:apple", 1)],
+                                  "hollow:hearth_tea", unlock=["minecraft:apple", "minecraft:sugar"]),
     "heartwood_lantern": shapeless("heartwood_lantern", [("hollow:stilled_heart", 1), ("minecraft:lantern", 1)],
                                    "hollow:heartwood_lantern", unlock=["hollow:stilled_heart"]),
 }
@@ -320,6 +330,8 @@ LANG_EXTRA = {
     "entity.hollow:heart_vein.name": "Heart Vein",
     "entity.hollow:root_spike.name": "Root",
     "entity.hollow:lure.name": "Noise",
+    "entity.hollow:phantom.name": "Nothing",
+    "item.spawn_egg.entity.hollow:phantom.name": "Spawn Nothing",
     "item.spawn_egg.entity.hollow:watcher.name": "Spawn The Watcher",
     "item.spawn_egg.entity.hollow:borrowed.name": "Spawn The Borrowed",
     "item.spawn_egg.entity.hollow:hollowed.name": "Spawn The Hollowed",

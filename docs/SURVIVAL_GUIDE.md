@@ -55,28 +55,53 @@ Operators can change the pacing in **Journal → Settings → World rules** (see
 
 ---
 
+## Dread (1.1)
+
+Fear is now a survival resource. Your **nerve** is shown on the journal's *Field Conditions* page.
+
+| Raises it | Lowers it |
+|---|---|
+| Night, especially in the woods or a swamp | Daylight |
+| Darkness underground; dark water | A torch or lantern in your hand |
+| Being alone | Friends within 16 blocks |
+| Being badly hurt | A lit room with a roof; placed light |
+| A creature showing itself, shrieking, knocking or grabbing you | A campfire; a Heartwood Lantern; sleep |
+| | **Hearth Tea** (fast, and steadies you for two minutes) |
+
+- **Uneasy (25+):** a quiet warning; the journal explains Dread.
+- **Frightened (50+):** heartbeat episodes; the dark closes in (fog, if Visual effects are on);
+  hallucinations become possible.
+- **Terrified (75+):** a racing heart and ragged breathing; more hallucinations; and in deep
+  tunnels **the Hollowed can hear your heart** from about 4 blocks away.
+- **Fear draws them.** Above 40, natural encounters become likelier and come back sooner (up to
+  about 1.4x at full terror). Calm, lit, sheltered players play by the normal rules.
+- **Hallucinations** are seen and heard only by the frightened player: footsteps behind you that
+  stop when you stop, a whisper at your ear, a knock at the door, or a tall figure at the edge of
+  your vision that is gone when you look straight at it. They never touch you.
+- Death resets Dread. It is off for newcomers' first 10 minutes, in Creative/Spectator and on Peaceful.
+
 ## The progression loop
 
 ```
  signs ─▶ investigate ─▶ materials + journal entries ─▶ craft tools ─▶ dangerous places ─▶ wake the boss ─▶ rewards
 ```
 
-1. **Survive the first days.** Build a shelter with a door. Craft a **Hollow Chime** and a **Rowan Ward**.
+1. **Survive the first days.** Build a shelter with a door. Craft a **Telltale Chime** and a **Rowan Ward**.
    Both recipes are in your journal from the start.
 2. **Learn each creature.** Meeting one unlocks its journal pages. Its counterplay earns you its **material**:
    | Creature | Material | Main way to get it |
    |---|---|---|
-   | Watcher | **Pale Resin** | Stare it down: it leaves resin where it stood (1 per night; 2 on Nightmare). Killing it drops 1–2. |
-   | Borrowed | **Borrowed Hide** | Expose it and kill it (1–2). |
-   | Hollowed | **Hollow Fang** | Kill one (1 each). |
-   | Knocker | **Knocker's Nail** | Don't answer: it leaves one on the step. Killing it drops 2–3. |
+   | Watcher | **Weeping Sap** | Stare it down: it leaves resin where it stood (1 per night; 2 on Nightmare). Killing it drops 1–2. |
+   | Borrowed | **False Fleece** | Expose it and kill it (1–2). |
+   | Hollowed | **Echo Fang** | Kill one (1 each). |
+   | Knocker | **Doorstep Nail** | Don't answer: it leaves one on the step. Killing it drops 2–3. |
    | Mirebound | **Mire Pearl** | Kill it (1). |
 3. **Explore the places.** **Ranger cabins** in forests and **ruined campsites** in the open appear
    56–80 blocks from players exploring away from spawn. Their chests hold supplies, **Torn Pages**
    (story) and sometimes creature materials.
-4. **Craft the Hollow Lens** (Pale Resin) to investigate, then the **Heartseeker** (Pale Resin + Fangs)
+4. **Craft the Seer's Glass** (Weeping Sap) to investigate, then the **Heartseeker** (Weeping Sap + Fangs)
    to find the shrine.
-5. **Craft the Offering of Silence** (one of each material), go down to the **Underground Shrine** and
+5. **Craft the Hush Offering** (one of each material), go down to the **Underground Shrine** and
    place it in the altar.
 6. **Still the Heart Below.** Each participant receives a **Stilled Heart**, which makes a
    **Heartwood Lantern**: permanent protection for your home.
@@ -97,7 +122,7 @@ If it's ever missing, you get a new one on respawn (or craft one).
 Hold it and press **Use**: chapters are *Field Notes*, *Threats*, *Equipment* and *Places*, plus **Settings**.
 New entries are marked **(new)**. It works fully with a controller.
 
-### Hollow Chime: warning device
+### Telltale Chime: warning device
 ```
   .      String       .
 Nugget   Copper Ingot  Nugget
@@ -125,11 +150,11 @@ Nugget   Stick     Nugget
 - It does **not** stop the Hollowed, the Mirebound or the Heart Below.
 - Up to 32 active wards per world.
 
-### Hollow Lens: investigation tool
+### Seer's Glass: investigation tool
 ```
   .      Copper Ingot  .
 Copper   Glass Pane    Copper
-  .      Pale Resin    .
+  .      Weeping Sap    .
 ```
 **Use** it to:
 - **reveal every Borrowed within 24 blocks** for 10 s (only *you* see it; other players aren't spoiled);
@@ -139,19 +164,24 @@ Copper   Glass Pane    Copper
 It has **64 uses** and a 3 s cooldown, and you **repair it with Copper Ingots** at an anvil (16 uses per ingot).
 
 ### Heartseeker: boss progression
-*Shapeless: Compass + Pale Resin + 2 Hollow Fangs.*
+*Shapeless: Compass + Weeping Sap + 2 Echo Fangs.*
 **Use** it to feel the shrine's direction, distance and depth. It also adds a red star to your
 **locator bar**. If no shrine exists yet, the first use forms one **32–48 blocks away, deep below**
 (about 40 blocks under you where the world is deep enough, never above Y −12), and never in water, lava or
 anything built. Works in the Overworld only, with a 2 s cooldown.
 
-### Offering of Silence: wakes the boss
+### Hush Offering: wakes the boss
 ```
-Fang           Pale Resin   Fang
-Borrowed Hide  Gold Ingot   Knocker's Nail
+Fang           Weeping Sap   Fang
+False Fleece  Gold Ingot   Doorstep Nail
   .            Mire Pearl   .
 ```
 Place it in the **altar** at the centre of the shrine.
+
+### Hearth Tea: steady nerves
+*Shapeless: Bowl + Sugar + Sweet Berries (or an Apple).*
+Drink it to drop Dread sharply. For two minutes afterwards fear rises at half speed and can't pass
+Uneasy. It's a little food too, and you can drink it while full. The bowl comes back.
 
 ### Heartwood Lantern: the reward
 *Shapeless: Stilled Heart + Lantern.*
@@ -171,7 +201,7 @@ show a message and provide light only.
 - **What happens if you ignore it:** after ~3 s unwatched it creeps closer, tree by tree. Within 10 blocks you
   hear a **twig snap behind you**: that's your warning. Within 5 blocks, in the dark, it lunges for one strike, then leaves.
 - **Counterplay:**
-  - **Look at it** for about a second and it withdraws, leaving **Pale Resin**.
+  - **Look at it** for about a second and it withdraws, leaving **Weeping Sap**.
   - **Hold a torch or lantern**: it won't strike you.
   - Stand near placed light; it won't approach a lit place.
   - A charged **Rowan Ward** holds it back.
@@ -181,7 +211,7 @@ show a message and provide light only.
 - **Signs:** one sheep that **never grazes**, stands still while the flock wanders, **faces you**, and has a bleat
   that is a little too low and **ends in a click**. At night its eyes catch the light.
 - **Tests:** hold **wheat** (real sheep come, it doesn't); try to **shear** it (the wool peels instead);
-  look through the **Hollow Lens**.
+  look through the **Seer's Glass**.
 - **Rule:** disguised, it's harmless. It's revealed by shears, by being hurt, by a ward, or **at night if you stand within
   4 blocks of it in the dark for 2 s without a light**. Revealed at night, it hunts; by day it only flees.
   It flees below 40% health.
@@ -209,7 +239,7 @@ show a message and provide light only.
 - **Rule:** it only visits a player who is **inside a roofed shelter with a door**, never before night 4, rarely, and
   never where a Heartwood Lantern burns. **It can't open doors.**
 - **Counterplay:**
-  - **Don't answer.** It gives up, leaves, and drops a **Knocker's Nail** on the step.
+  - **Don't answer.** It gives up, leaves, and drops a **Doorstep Nail** on the step.
   - A charged **Rowan Ward** within 10 blocks of the door sends it away before it knocks.
   - If you *do* open the door, it comes in. It's slow but strong (60 HP). Fight it in the light, back through a
     doorway, or shut the door between you. It leaves after 90 s, when badly hurt, or at daybreak.
@@ -235,7 +265,7 @@ See the next section.
 Bring a way back to the surface.
 
 1. Follow the **Heartseeker** down to the shrine: a root-choked chamber with four pillars and an altar.
-2. **Use** the altar with the **Offering of Silence**. The room darkens, and a few seconds later the Heart rises from the roots.
+2. **Use** the altar with the **Hush Offering**. The room darkens, and a few seconds later the Heart rises from the roots.
 3. **Phase 1 (100–60%).** The Heart is **shielded** while its **four veins** glow on the pillars. **Break every vein**,
    then hit the Heart.
    - **Root bursts:** dust and a rumble mark the ground under you for 1.2 s, then roots erupt (6 damage).
@@ -270,6 +300,7 @@ Open **Journal → Settings**.
 | Encounter accents | Subtle | Short musical stingers when something is noticed. Off / Subtle / Full. |
 | Visual effects | On | Encounter fog shifts and brief soft fades. There's no camera shake and no flashes in any mode. |
 | Action-bar hints | On | One-line explanations of what just happened ("a twig snaps behind you"). |
+| Dread effects | On | Heartbeat, breathing, the closing-in fog and hallucinations (your own fear meter still works). |
 
 ### World rules (operators only: Realm owner and operators)
 | Setting | Default | What it does |
@@ -283,6 +314,8 @@ Open **Journal → Settings**.
 | Rare bedtime knocking | on | A harmless knock while you sleep, about one night in six after the Knocker's first night. Never blocks sleep. |
 | Place sites | on | Cabins, campsites and the shrine. |
 | Scale the Heart Below | on | Boss health and pressure scale with player count. |
+| Rare one-off events | on | Harmless set pieces, once per world each. |
+| Dread | on | The fear meter, hallucinations, and fear drawing encounters closer. Off = normal odds, no meter. |
 
 ### What Minecraft controls (not the add-on)
 Minecraft's own **Settings → Video** controls Graphics Mode (Vibrant Visuals or standard), render distance,
@@ -309,5 +342,7 @@ On **Peaceful** the add-on's creatures don't spawn.
 | `/scriptevent hollow:status` | Day, active creatures, boss state and any script failures. |
 | `/scriptevent hollow:debug` | Toggle debug logging. |
 | `/scriptevent hollow:site cabin` (or `camp`, `shrine`) | Place a site near you for testing. |
+| `/scriptevent hollow:test dread 80` | Set your Dread (0-100) to test its stages. |
+| `/scriptevent hollow:test phantom` | Put a phantom at the edge of your vision now. |
 
 Spawn eggs exist for creative testing only. An egg-spawned creature has no encounter logic (it won't stalk, knock or grab) and is removed the next time its chunk loads.

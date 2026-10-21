@@ -1,3 +1,4 @@
+import { dreadChance, frighten } from "../core/fear";
 import { Entity, Player, world } from "@minecraft/server";
 import { accent, worldSound } from "../core/audio";
 import { chanceScale, cooldownScale, dayReached, settings } from "../core/config";
@@ -20,7 +21,7 @@ import { TrackKind, trail } from "../systems/tracks";
 //  * Revealed by shears, by being hurt, by a Rowan Ward (it flees), or at night when a player
 //    stands within 4 blocks of it in the dark for 2 seconds without a light in hand.
 //  * Revealed at night it hunts; by day it only flees. Below 40% health it flees.
-//  * The Hollow Lens shows its true shape to the user only (property override), safely.
+//  * The Seer's Glass shows its true shape to the user only (property override), safely.
 
 type State = "disguised" | "revealing" | "revealed" | "fleeing";
 
@@ -74,7 +75,10 @@ function reveal(e: Entity, enc: Enc, why: string, by?: Player): void {
   setState(e, enc, "revealing");
   enc.pauseUntil = 0;
   teach(e, true);
-  for (const p of playersNear(e, 32)) accent(p, SND.stingerLow, 2);
+  for (const p of playersNear(e, 32)) {
+    accent(p, SND.stingerLow, 2);
+    frighten(p, dist(p.location, e.location) < 12 ? 22 : 10);
+  }
   if (by) hint(by, why === "shears" ? "§7The wool doesn't shear. It peels away in one wet sheet." : "§7That was never a sheep.");
 }
 
@@ -89,7 +93,7 @@ export function tryStartBorrowed(p: Player): boolean {
   if (encs.size >= Math.min(2, Math.max(1, onlinePlayers().length))) return false;
   for (const enc of encs.values()) if (enc.target === p.id) return false;
   const base = isDarkHours() ? 0.12 : 0.04;
-  if (!chance(base * chanceScale())) return false;
+  if (!chance(base * chanceScale() * dreadChance(p))) return false;
   if (lanternNear(p.dimension, p.location)) return false;
 
   const dim = p.dimension;
@@ -114,7 +118,7 @@ export function tryStartBorrowed(p: Player): boolean {
   }
   e.setDynamicProperty(DP.owner, p.id);
   encs.set(e.id, { id: e.id, target: p.id, born: now(), state: "disguised", stateAt: now(), close: 0, noticed: new Set(), nextWrong: now() + seconds(30), pauseUntil: 0, nextPause: now() + seconds(rand(8, 16)) });
-  setCooldown(p, "borrowed", seconds(rand(600, 900) * cooldownScale()));
+  setCooldown(p, "borrowed", seconds(rand(600, 900) * cooldownScale() / dreadChance(p)));
   return true;
 }
 

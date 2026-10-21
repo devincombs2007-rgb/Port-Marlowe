@@ -13,6 +13,7 @@ export const ENT = {
   vein: "hollow:heart_vein",
   rootSpike: "hollow:root_spike",
   lure: "hollow:lure",
+  phantom: "hollow:phantom",
 } as const;
 
 export const ITEM = {
@@ -30,6 +31,7 @@ export const ITEM = {
   chime: "hollow:hollow_chime",
   ward: "hollow:rowan_ward",
   lantern: "hollow:heartwood_lantern",
+  tea: "hollow:hearth_tea",
 } as const;
 
 export const BLOCK = {
@@ -53,6 +55,8 @@ export const PROP = {
   phase: "hollow:phase",
   shielded: "hollow:shielded",
   variant: "hollow:variant",
+  form: "hollow:form",
+  visible: "hollow:visible",
 } as const;
 
 export const SND = {
@@ -112,6 +116,14 @@ export const SND = {
   heartVeinBreak: "hollow.heart.vein_break",
   heartSpawn: "hollow.heart.spawn",
   heartDeath: "hollow.heart.death",
+  heartbeat: "hollow.dread.heartbeat",
+  breath: "hollow.dread.breath",
+  whisper: "hollow.dread.whisper",
+  vanish: "hollow.dread.vanish",
+  teaSip: "hollow.dread.calm",
+  stepLeaves: "hollow.watcher.step",
+  stepHeavy: "hollow.knocker.step",
+  stepClaws: "hollow.hollowed.step",
 } as const;
 
 export const PARTICLE = {
@@ -132,6 +144,7 @@ export const FOG = {
   watched: "hollow:fog_watched",
   heart: "hollow:fog_heart",
   mire: "hollow:fog_mire",
+  dread: "hollow:fog_dread",
 } as const;
 
 export const DP = {
@@ -155,6 +168,7 @@ export const DP = {
   tracks: "hollow:track_list",
   events: "hollow:events_done",
   lantern: "hollow:event_lantern",
+  dread: "hollow:dread",
   // entity
   owner: "hollow:owner",
   fight: "hollow:fight",

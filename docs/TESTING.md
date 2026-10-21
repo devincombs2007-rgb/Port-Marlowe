@@ -21,11 +21,11 @@ includes a `failures:` count, which should stay `none`.
 
 | # | Where / how | Check |
 |---|---|---|
-| 1 | Forest, `/scriptevent hollow:test night`, look around | A tall figure appears 30–50 blocks away **outside your view**, you hear the hush, and subtitles show. Stare at it: it withdraws and a **Pale Resin** glints where it stood. Turn your back with no torch: you hear a twig snap behind you, then one strike. Hold a torch: no strike. |
+| 1 | Forest, `/scriptevent hollow:test night`, look around | A tall figure appears 30–50 blocks away **outside your view**, you hear the hush, and subtitles show. Stare at it: it withdraws and a **Weeping Sap** glints where it stood. Turn your back with no torch: you hear a twig snap behind you, then one strike. Hold a torch: no strike. |
 | 2 | Near a flock of ≥2 sheep, at night | One "sheep" never grazes. Its low bleat shows the subtitle "A sheep bleats, too low". Shears reveal it, and so does the **Lens** (only for you). It hunts at night and flees by day. |
 | 3 | Dig or find a cave below Y 0 | **Clicking** in the dark, and it emerges out of sight. **Sneak**: it ignores you. **Sprint**: it comes. Throw a **snowball** away from you: it goes to the impact. |
 | 4 | Swamp or river shallows | Bubbles, gurgles and a mossy hump. Wade close: it rears up (a short windup), then **grabs you**. **Press Sneak**: you break free. Note whether the grab actually seats you. If not, you should get a bite and slowness instead. |
-| 5 | Build a 5×5 roofed hut with a door, stand inside, `/scriptevent hollow:test knocker`, then `hollow:test night` | Within a few minutes: the chime rings, then **three knocks**, scratching and breathing. Don't open: about 45 s later it leaves and a **Knocker's Nail** is on the step. Next time, place a **Rowan Ward** by the door: it should be turned away (Use the ward: 3/4). Open the door during a visit: it comes in. |
+| 5 | Build a 5×5 roofed hut with a door, stand inside, `/scriptevent hollow:test knocker`, then `hollow:test night` | Within a few minutes: the chime rings, then **three knocks**, scratching and breathing. Don't open: about 45 s later it leaves and a **Doorstep Nail** is on the step. Next time, place a **Rowan Ward** by the door: it should be turned away (Use the ward: 3/4). Open the door during a visit: it comes in. |
 
 ## Places and boss (8 min)
 6. Hold the **Heartseeker** and press Use: the subtitle "Heartseeker beats" shows, a direction and distance appear, and a red star appears on the locator bar. Dig to it. The shrine should be intact: 4 pillars, an altar and candles. The shrine music starts.
@@ -110,3 +110,19 @@ actual device. No Minecraft visual result or performance measurement exists from
 Follow [MOVEMENT_TESTING.md](MOVEMENT_TESTING.md) for the new Watcher rhythms/forest edges,
 Borrowed transformation and watching pauses, and Hollowed search/listen behavior. Keep the
 existing clicking sound as the audio reference; no audio polish or lore expansion is included.
+
+## THE HOLLOW 1.1 checks
+
+1. **Looks:** in Vibrant Visuals, check shadow edges are soft at noon under a tree; watch a sunset
+   in a forest (blood-orange sun, light shafts through leaves); stand by a torch at night (warm halo).
+2. **Creatures:** `/scriptevent hollow:test on`, then meet each creature. Look for: the Watcher's
+   head slowly tilting then snapping upright while you stare, its jaw dropping on the lunge, the
+   crouched creep in patient encounters; the Borrowed's ribs cracking outward, head splitting and
+   legs lengthening as it rises; the Hollowed's long-neck sweeps, breathing ribs and tail;
+   the Knocker's dragging leg and overhead slam. Report any limb that floats, sinks or flips.
+3. **Dread:** stand alone in a forest at night with no light (~1-2 min). Expect "Something feels
+   wrong", then a heartbeat and closing fog. `/scriptevent hollow:test dread 90` and
+   `/scriptevent hollow:test phantom`: a figure at the edge of your view should vanish when you
+   look straight at it, and a second player should never see it. Drink Hearth Tea and watch the
+   Field Conditions nerve readout drop.
+4. **Journal:** every button should show an ink illustration; creature pages show portraits.

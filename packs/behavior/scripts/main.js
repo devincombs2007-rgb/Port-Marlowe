@@ -1,5 +1,5 @@
 // ../../scripts_src/main.ts
-import { ItemStack as ItemStack9, Player as Player21, system as system6, world as world19 } from "@minecraft/server";
+import { ItemStack as ItemStack9, Player as Player22, system as system7, world as world20 } from "@minecraft/server";
 
 // ../../scripts_src/core/config.ts
 import { PlayerPermissionLevel } from "@minecraft/server";
@@ -14,7 +14,8 @@ var ENT = {
   heart: "hollow:heart_below",
   vein: "hollow:heart_vein",
   rootSpike: "hollow:root_spike",
-  lure: "hollow:lure"
+  lure: "hollow:lure",
+  phantom: "hollow:phantom"
 };
 var ITEM = {
   journal: "hollow:field_journal",
@@ -30,7 +31,8 @@ var ITEM = {
   stilledHeart: "hollow:stilled_heart",
   chime: "hollow:hollow_chime",
   ward: "hollow:rowan_ward",
-  lantern: "hollow:heartwood_lantern"
+  lantern: "hollow:heartwood_lantern",
+  tea: "hollow:hearth_tea"
 };
 var BLOCK = {
   chime: "hollow:hollow_chime",
@@ -50,7 +52,9 @@ var PROP = {
   revealed: "hollow:revealed",
   phase: "hollow:phase",
   shielded: "hollow:shielded",
-  variant: "hollow:variant"
+  variant: "hollow:variant",
+  form: "hollow:form",
+  visible: "hollow:visible"
 };
 var SND = {
   watcherSeen: "hollow.watcher.seen",
@@ -108,7 +112,15 @@ var SND = {
   heartPhase: "hollow.heart.phase",
   heartVeinBreak: "hollow.heart.vein_break",
   heartSpawn: "hollow.heart.spawn",
-  heartDeath: "hollow.heart.death"
+  heartDeath: "hollow.heart.death",
+  heartbeat: "hollow.dread.heartbeat",
+  breath: "hollow.dread.breath",
+  whisper: "hollow.dread.whisper",
+  vanish: "hollow.dread.vanish",
+  teaSip: "hollow.dread.calm",
+  stepLeaves: "hollow.watcher.step",
+  stepHeavy: "hollow.knocker.step",
+  stepClaws: "hollow.hollowed.step"
 };
 var PARTICLE = {
   shed: "hollow:watcher_shed",
@@ -126,7 +138,8 @@ var PARTICLE = {
 var FOG = {
   watched: "hollow:fog_watched",
   heart: "hollow:fog_heart",
-  mire: "hollow:fog_mire"
+  mire: "hollow:fog_mire",
+  dread: "hollow:fog_dread"
 };
 var DP = {
   // world
@@ -149,6 +162,7 @@ var DP = {
   tracks: "hollow:track_list",
   events: "hollow:events_done",
   lantern: "hollow:event_lantern",
+  dread: "hollow:dread",
   // entity
   owner: "hollow:owner",
   fight: "hollow:fight",
@@ -236,9 +250,10 @@ var WORLD_DEFAULTS = {
   sleepDisturbance: true,
   sites: true,
   bossScaling: true,
-  rareEvents: true
+  rareEvents: true,
+  dread: true
 };
-var PREF_DEFAULTS = { ambience: 80, accents: 1, visualFx: true, hints: true, music: true };
+var PREF_DEFAULTS = { ambience: 80, accents: 1, visualFx: true, hints: true, music: true, dreadFx: true };
 var worldCache;
 var prefCache = /* @__PURE__ */ new Map();
 var testMode = false;
@@ -279,7 +294,8 @@ function sanitizeWorld(s) {
     "sleepDisturbance",
     "sites",
     "bossScaling",
-    "rareEvents"
+    "rareEvents",
+    "dread"
   ]) {
     if (typeof s[key] === "boolean") out[key] = s[key];
   }
@@ -294,7 +310,8 @@ function sanitizePrefs(p) {
     accents: numberSetting(p.accents, PREF_DEFAULTS.accents, 0, 2),
     visualFx: typeof p.visualFx === "boolean" ? p.visualFx : PREF_DEFAULTS.visualFx,
     hints: typeof p.hints === "boolean" ? p.hints : PREF_DEFAULTS.hints,
-    music: typeof p.music === "boolean" ? p.music : PREF_DEFAULTS.music
+    music: typeof p.music === "boolean" ? p.music : PREF_DEFAULTS.music,
+    dreadFx: typeof p.dreadFx === "boolean" ? p.dreadFx : PREF_DEFAULTS.dreadFx
   };
 }
 function prefs(player) {
@@ -421,7 +438,7 @@ function worldSound(dim, sound, at, volume = 1, pitch = 1) {
 
 // ../../scripts_src/core/fx.ts
 import { MolangVariableMap } from "@minecraft/server";
-var FOG_TAGS = ["hollow_watch", "hollow_heart", "hollow_mire"];
+var FOG_TAGS = ["hollow_watch", "hollow_heart", "hollow_mire", "hollow_dread"];
 function pushFog(p, fogId, tag) {
   if (!prefs(p).visualFx) return;
   try {
@@ -850,6 +867,13 @@ function underground(player) {
 function isOverworld(dim) {
   return dim.id === "minecraft:overworld";
 }
+function nearbyPlayers(dim, loc, radius) {
+  try {
+    return dim.getPlayers({ location: loc, maxDistance: radius });
+  } catch {
+    return [];
+  }
+}
 function getCustomState(perm, name) {
   try {
     return perm.getState(name);
@@ -962,403 +986,49 @@ function failureReport() {
   return parts.join(", ") || "none";
 }
 
+// ../../scripts_src/core/fear.ts
+var pending = /* @__PURE__ */ new Map();
+var reader = () => 0;
+function frighten(p, amount) {
+  if (!p || !p.isValid || amount <= 0) return;
+  pending.set(p.id, Math.min(60, (pending.get(p.id) ?? 0) + amount));
+}
+function takeFright(playerId) {
+  const v = pending.get(playerId) ?? 0;
+  pending.delete(playerId);
+  return v;
+}
+function forgetFright(playerId) {
+  pending.delete(playerId);
+}
+function setDreadReader(fn) {
+  reader = fn;
+}
+function dreadLevel(p) {
+  return reader(p);
+}
+function dreadChance(p) {
+  const d = reader(p);
+  return d <= 40 ? 1 : 1 + (Math.min(100, d) - 40) / 150;
+}
+
 // ../../scripts_src/creatures/borrowed.ts
-import { Player as Player16, world as world14 } from "@minecraft/server";
+import { Player as Player17, world as world15 } from "@minecraft/server";
 
 // ../../scripts_src/items/blocks.ts
 import {
   BlockPermutation as BlockPermutation3,
   EquipmentSlot as EquipmentSlot4,
-  GameMode as GameMode5,
+  GameMode as GameMode6,
   ItemStack as ItemStack5,
-  world as world13
+  world as world14
 } from "@minecraft/server";
 
 // ../../scripts_src/creatures/heart.ts
-import { EntityDamageCause, EquipmentSlot as EquipmentSlot3, GameMode as GameMode4, ItemStack as ItemStack4, Player as Player14, world as world12 } from "@minecraft/server";
+import { EntityDamageCause, EquipmentSlot as EquipmentSlot3, GameMode as GameMode5, ItemStack as ItemStack4, Player as Player15, world as world13 } from "@minecraft/server";
 
-// ../../scripts_src/items/components.ts
-import { EquipmentSlot as EquipmentSlot2, GameMode as GameMode3, Player as Player12, system as system5, world as world10 } from "@minecraft/server";
-
-// ../../scripts_src/systems/journal.ts
-import { ItemLockMode, ItemStack, system as system4 } from "@minecraft/server";
-import { ActionFormData as ActionFormData2, FormCancelationReason as FormCancelationReason2 } from "@minecraft/server-ui";
-
-// ../../scripts_src/content/journal.ts
-var P = "§r\n\n";
-var ENTRIES = [
-  // ------------------------------------------------------------------ NOTES
-  {
-    id: "intro",
-    chapter: "notes",
-    title: "Ranger Marlowe's Field Journal",
-    icon: "textures/items/hollow/field_journal",
-    body: "§oIf you are reading this, the station is empty and the journal found you instead of me.§r" + P + "These woods are beautiful. Fish the rivers, mine the hills, raise your house. But something here is wrong, and it is patient." + P + "§lThe first day is safe.§r Use it. Gather wood, find food, build walls and a §lclosed door§r." + P + "This journal fills itself in as you learn. When something new happens, look here first. Hold it and press §lUse§r to read. It stays with you when you fall."
-  },
-  {
-    id: "shelter",
-    chapter: "notes",
-    title: "On Shelter",
-    icon: "textures/items/hollow/rowan_ward",
-    body: "Rules I keep:" + P + "§l1.§r A roof and a §lclosed door§r. Nothing out there opens doors." + P + "§l2.§r Light keeps the tall one back. Carry a torch or lantern after dusk." + P + "§l3.§r Hang a §lHollow Chime§r. It rings when one of them comes near, long before you would hear it yourself." + P + "§l4.§r A §lRowan Ward§r by the door turns visitors away. It burns down with use; feed it charcoal." + P + "§l5.§r Sleep is still safe. If you hear knocking from bed, stay in bed."
-  },
-  {
-    id: "lore1",
-    chapter: "notes",
-    lore: 1,
-    title: "Torn Page: Arrival",
-    icon: "textures/items/hollow/torn_page",
-    body: "§oDay 3 at the station.§r" + P + 'The previous ranger left in a hurry. Coffee still in the pot. Boots by the door. The logbook ends mid-sentence: §o"it stood at the edge of the clearing all night and when I"§r' + P + "I have decided the previous ranger was a dramatic person."
-  },
-  {
-    id: "lore2",
-    chapter: "notes",
-    lore: 2,
-    title: "Torn Page: The Count",
-    icon: "textures/items/hollow/torn_page",
-    body: "§oDay 9.§r" + P + "Counted the Hobbs flock at dusk. Thirty-one. Counted again at dawn. Thirty-one. But I only ever sold them thirty." + P + "One of them doesn't graze. It just stands at the back and watches the house."
-  },
-  {
-    id: "lore3",
-    chapter: "notes",
-    lore: 3,
-    title: "Torn Page: Underfoot",
-    icon: "textures/items/hollow/torn_page",
-    body: "§oDay 14.§r" + P + "The miners at the east camp say the deep tunnels §oclick§r, like someone tapping a tongue against their teeth. They say if you stand very still, it goes away." + P + "They moved camp the next day. Nobody told me where."
-  },
-  {
-    id: "lore4",
-    chapter: "notes",
-    lore: 4,
-    title: "Torn Page: Visitors",
-    icon: "textures/items/hollow/torn_page",
-    body: "§oDay 22.§r" + P + "Three knocks after midnight. I almost answered. There are no neighbours for miles." + P + "In the morning there was a long iron nail on the step, bent like a finger beckoning."
-  },
-  {
-    id: "lore_prints",
-    chapter: "notes",
-    lore: 5,
-    title: "Torn Page: Prints",
-    icon: "textures/items/hollow/torn_page",
-    body: "§oDay 17.§r" + P + "Bare footprints in the frost this morning, from the tree line straight to my door. Long feet. Too long. They stop at the step." + P + "There are no prints going back."
-  },
-  {
-    id: "lore_tower",
-    chapter: "notes",
-    lore: 6,
-    title: "Torn Page: Fire Watch",
-    icon: "textures/items/hollow/torn_page",
-    body: "§oDay 25, from the tower.§r" + P + "From up here you can count the lights in the valley. Mine, the Hobbs farm, the camp by the river." + P + "Tonight there was a fourth. It moved when I looked away, and it went out when I looked at it."
-  },
-  {
-    id: "lore_eye",
-    chapter: "notes",
-    lore: 7,
-    title: "Torn Page: The Flock",
-    icon: "textures/items/hollow/torn_page",
-    body: "§oDay 27.§r" + P + "Every animal in the meadow stopped at once and turned to look at me. Cows, sheep, the chickens. Nobody moved for a long breath. Then they went back to grazing as if nothing happened." + P + "Something was looking out through them."
-  },
-  {
-    id: "lore5",
-    chapter: "notes",
-    lore: 8,
-    title: "Torn Page: The Shrine",
-    icon: "textures/items/hollow/torn_page",
-    body: "§oDay 30.§r" + P + "Found an old map in the cabin floor. Beneath these hills there is a room older than any of us, where the roots of the forest meet. Something sleeps in it and §ldreams§r them all: the watcher, the borrowed things, the clickers, the knocker, the thing in the mire." + P + "They are not five monsters. They are one heart, thinking in five directions."
-  },
-  {
-    id: "lore6",
-    chapter: "notes",
-    lore: 9,
-    title: "Torn Page: Last Entry",
-    icon: "textures/items/hollow/torn_page",
-    body: "§oDay 41.§r" + P + "A piece from each of them, laid on the altar, wakes it. An offering of silence." + P + "I have them all now. If I'm right, I can still it. If I'm wrong, whoever reads this: do not go alone. Bring light, bring friends, and §lbreak the veins first§r."
-  },
-  {
-    id: "tracks",
-    chapter: "notes",
-    title: "Reading Tracks",
-    icon: "textures/items/hollow/hollow_lens",
-    body: "The ground keeps what the night won't tell you. Prints fade within a day." + P + "§lThin, root-toed prints§r, far apart: the Watcher. Where there are two side by side, it stood still there a long time, looking at something." + P + "§lLong bare feet§r with a dragging heel: the Knocker. They come out of the trees and stop at a door." + P + "§lA wet smear§r from the bank into the shallows: something was dragged. Walk the banks." + P + "§lSheep hooves that turn into claws§r halfway along: a Borrowed stopped pretending." + P + "§7A Hollow Lens names fresh tracks within 8 blocks."
-  },
-  {
-    id: "event_eye",
-    chapter: "notes",
-    title: "Every Eye",
-    icon: "textures/items/hollow/pale_resin",
-    body: "Every animal around me stopped, turned, and looked at me. For a long breath nothing moved. Then it let them go." + P + "It didn't hurt anyone. It wanted me to know it can look through anything that has eyes."
-  },
-  {
-    id: "event_lantern",
-    chapter: "notes",
-    title: "The Lantern",
-    icon: "textures/items/hollow/heartwood_lantern",
-    body: "A lantern burning on a stump, deep in the trees, with nobody near it. When I got close it went out." + P + "Someone left a page under it. Someone wanted it found."
-  },
-  {
-    id: "event_roof",
-    chapter: "notes",
-    title: "On the Roof",
-    icon: "textures/items/hollow/knocker_nail",
-    body: "Footsteps on the roof. Slow, heavy, from one end to the other. Then nothing." + P + "It never came in. Things that can't open doors can still climb."
-  },
-  {
-    id: "after",
-    chapter: "notes",
-    title: "Afterward",
-    icon: "textures/items/hollow/stilled_heart",
-    body: "The Heart is still." + P + "The forest will never be entirely quiet; things that were dreamed do not stop at once. But the dark is a little smaller now, and you made it so." + P + "§7Place a §lHeartwood Lantern§r§7 at home. Nothing that remains will cross its light."
-  },
-  // ------------------------------------------------------------------ THREATS
-  {
-    id: "watcher1",
-    chapter: "threats",
-    title: "The Watcher",
-    icon: "textures/items/hollow/pale_resin",
-    body: "A tall shape at the treeline. I took it for a dead sapling until the pale face turned to follow me." + P + "§lSigns:§r a pale face in the forest at dusk or night, far away. The woods go quiet first." + P + "It only appears in wooded country. It has not followed me into the open."
-  },
-  {
-    id: "watcher2",
-    chapter: "threats",
-    title: "The Watcher: Staring Back",
-    icon: "textures/items/hollow/pale_resin",
-    body: "§lIt does not like being watched back.§r" + P + "Hold your gaze on it for a breath or two and it steps back into the trees and is gone. Where it stood you will find §lPale Resin§r, bleeding from the bark it scraped." + P + "Resin glints faintly at night. It's the base of the §lHollow Lens§r."
-  },
-  {
-    id: "watcher3",
-    chapter: "threats",
-    title: "The Watcher: Turned Backs",
-    icon: "textures/items/hollow/pale_resin",
-    body: "§lIt only moves while nobody is looking at it.§r" + P + "Ignore it and it creeps closer, tree by tree. In the dark it will close the last few steps and strike." + P + "§lCounterplay:§r turn and look at it; hold a torch or lantern; stay near placed lights. It will not approach a lit place, and it won't strike someone holding a light."
-  },
-  {
-    id: "borrowed1",
-    chapter: "threats",
-    title: "The Borrowed",
-    icon: "textures/items/hollow/borrowed_hide",
-    body: "One of the sheep is not a sheep." + P + "§lSigns:§r it never lowers its head to graze; its bleat is a little too low and ends in a soft §oclick§r; at night its eyes catch the light; it stands still when the others wander, and it faces you." + P + "By day it is harmless if left alone."
-  },
-  {
-    id: "borrowed2",
-    chapter: "threats",
-    title: "The Borrowed: Tests",
-    icon: "textures/items/hollow/borrowed_hide",
-    body: "§lHow to tell:§r" + P + "• Hold §lwheat§r. Real sheep come to you. It does not move toward the wheat. It just watches you.§r\n• Try to §lshear§r it. The wool doesn't come off. It peels.§r\n• Look through a §lHollow Lens§r. It cannot hold its shape.§r" + P + "Once revealed it hunts until hurt badly, then flees. At night, don't let it get close in the dark. Fight with your back to a wall. It drops §lBorrowed Hide§r."
-  },
-  {
-    id: "hollowed1",
-    chapter: "threats",
-    title: "The Hollowed",
-    icon: "textures/items/hollow/hollow_fang",
-    body: "Deep tunnels, darkness, and a rapid §oclick-click-click§r ahead of me. It hunts by sound. It has no eyes at all." + P + "§lSigns:§r echolocation clicks, distant breathing, scraping on stone."
-  },
-  {
-    id: "hollowed2",
-    chapter: "threats",
-    title: "The Hollowed: What It Hears",
-    icon: "textures/items/hollow/hollow_fang",
-    body: "§lIt hears:§r sprinting (16 blocks), walking (6), jumping and landing (8), breaking blocks (12), placing blocks (8), doors, trapdoors, levers, buttons, pressure plates and chests (10), fighting (14), explosions (40), and things you throw landing nearby (12)." + P + "§lIt cannot hear:§r sneaking, and anyone walking on §lwool§r or §lcarpet§r." + P + "§lCounterplay:§r crouch past it. Throw a snowball, egg or arrow away from you; it goes to the sound. Within 3 blocks it finds you anyway, so keep your distance."
-  },
-  {
-    id: "hollowed3",
-    chapter: "threats",
-    title: "The Hollowed: Fangs",
-    icon: "textures/items/hollow/hollow_fang",
-    body: "They die like anything else. Their fangs are hollow and hum faintly when held near running water. §lHollow Fangs§r go into the §lHeartseeker§r."
-  },
-  {
-    id: "knocker1",
-    chapter: "threats",
-    title: "The Knocker",
-    icon: "textures/items/hollow/knocker_nail",
-    body: "§lThree knocks at the door, after dark.§r" + P + "It only comes to occupied shelters with a door, never before the fourth night, and rarely. Your Chime will ring as it approaches."
-  },
-  {
-    id: "knocker2",
-    chapter: "threats",
-    title: "The Knocker: Don't Answer",
-    icon: "textures/items/hollow/knocker_nail",
-    body: "§lDo not open the door.§r It cannot open doors. It knocks, scratches, breathes against the wood. Then it gives up and leaves." + P + "When it leaves, it leaves a §lKnocker's Nail§r on the step." + P + "A §lRowan Ward§r near the door sends it away before it knocks."
-  },
-  {
-    id: "knocker3",
-    chapter: "threats",
-    title: "The Knocker: I Opened It",
-    icon: "textures/items/hollow/knocker_nail",
-    body: "I answered. It was waiting with its arms already reaching." + P + "If you open the door while it's there, it comes in. It's slow but strong. Fight it in the light, step back through a doorway, or close the door again between you."
-  },
-  {
-    id: "mirebound1",
-    chapter: "threats",
-    title: "The Mirebound",
-    icon: "textures/items/hollow/mire_pearl",
-    body: "In the swamps and along riverbanks there is a mossy hump in the shallows that wasn't there yesterday." + P + "§lSigns:§r bubbles rising where no fish swim, a low gurgle, two dull lights just under the surface at night."
-  },
-  {
-    id: "mirebound2",
-    chapter: "threats",
-    title: "The Mirebound: Breaking Free",
-    icon: "textures/items/hollow/mire_pearl",
-    body: "It waits until you're close, then grabs you and drags you toward deeper water." + P + "§lPress Sneak (crouch) to wrench free.§r Hitting it also makes it let go. It can't hold you for long, and it can't follow you onto dry land for more than a few steps." + P + "Walk the banks, not the shallows. It drops a §lMire Pearl§r."
-  },
-  {
-    id: "heart1",
-    chapter: "threats",
-    title: "The Heart Below",
-    icon: "textures/items/hollow/heartseeker",
-    body: "Something huge beneath the hills, rooted into stone, beating slow." + P + "§lIt is shielded§r while its §lveins§r pulse around the chamber. Break every vein to expose it. Watch the ground: roots burst where dust rises, and its pulse ring can be jumped."
-  },
-  {
-    id: "heart2",
-    chapter: "threats",
-    title: "The Heart Below: Phases",
-    icon: "textures/items/hollow/heartseeker",
-    body: "§lFirst:§r root bursts (dust warns you) and slow pulses." + P + "§lSecond:§r the veins regrow once; young hollowed crawl out. Kill them first, they hunt by sound." + P + "§lLast:§r it opens. The bursts come faster and its gaze sweeps the room. Break line of sight behind the pillars." + P + "It grows stronger with every person in the chamber. Everyone who fights earns a share."
-  },
-  // ------------------------------------------------------------------ CRAFTING
-  {
-    id: "craft_chime",
-    chapter: "craft",
-    title: "Hollow Chime",
-    icon: "textures/items/hollow/hollow_chime",
-    body: "§lWarning device.§r Hang it under a ceiling, a porch roof or a beam. It rings softly when one of the Hollow comes within 14 blocks, at most once every few seconds. Use it to silence or unsilence it." + P + "§7Recipe (crafting table):§r\n  [   ] [String] [   ]\n  [Iron Nugget] [Copper Ingot] [Iron Nugget]\n  [   ] [Iron Nugget] [   ]" + P + "§7No fuel. Up to 32 chimes per world are active at once."
-  },
-  {
-    id: "craft_ward",
-    chapter: "craft",
-    title: "Rowan Ward",
-    icon: "textures/items/hollow/rowan_ward",
-    body: "§lLimited protection.§r A charm of iron and smouldering charcoal. Within 10 blocks:" + P + "• the Knocker turns back before it reaches your door\n• the Watcher will not step closer\n• the Borrowed reveal themselves and flee§r" + P + "§lCharges:§r 4. One charge burns each time it turns something away (at most one per creature per night). Use §lcharcoal§r on it to add a charge back." + P + "§7Recipe:§r\n  [   ] [String] [   ]\n  [Iron Nugget] [Charcoal] [Iron Nugget]\n  [Iron Nugget] [Stick] [Iron Nugget]" + P + "§7It does not stop the Hollowed underground, the Mirebound, or the Heart."
-  },
-  {
-    id: "craft_lens",
-    chapter: "craft",
-    title: "Hollow Lens",
-    icon: "textures/items/hollow/hollow_lens",
-    body: "§lInvestigation tool.§r Use it to:" + P + "• reveal any Borrowed within 24 blocks (only you see it)\n• show the direction and distance of the nearest Hollow creature within 48 blocks\n• show how loud you are right now to the Hollowed§r" + P + "§l64 uses§r, 3 s cooldown. Repair with copper ingots at an anvil." + P + "§7Recipe:§r\n  [   ] [Copper Ingot] [   ]\n  [Copper Ingot] [Glass Pane] [Copper Ingot]\n  [   ] [Pale Resin] [   ]"
-  },
-  {
-    id: "craft_heartseeker",
-    chapter: "craft",
-    title: "Heartseeker",
-    icon: "textures/items/hollow/heartseeker",
-    body: "§lBoss progression.§r A compass that beats instead of points. Use it to feel the direction, distance and depth of the shrine. It also marks the shrine on your locator bar." + P + "If no shrine has formed in this world yet, the first use draws one up from the deep beneath the hills nearby." + P + "§7Recipe (shapeless):§r Compass + Pale Resin + 2 Hollow Fangs"
-  },
-  {
-    id: "craft_offering",
-    chapter: "craft",
-    title: "Offering of Silence",
-    icon: "textures/items/hollow/offering_of_silence",
-    body: "§lBoss progression.§r A piece of each of them. Place it in the altar at the shrine to wake the Heart Below." + P + "§7Recipe:§r\n  [Hollow Fang] [Pale Resin] [Hollow Fang]\n  [Borrowed Hide] [Gold Ingot] [Knocker's Nail]\n  [   ] [Mire Pearl] [   ]" + P + "§7Cabin and campsite chests sometimes hold components. If a creature is switched off in World Rules, every new site chest holds its component instead."
-  },
-  {
-    id: "craft_lantern",
-    chapter: "craft",
-    title: "Heartwood Lantern",
-    icon: "textures/items/hollow/heartwood_lantern",
-    body: "§lReward.§r Crafted from a Stilled Heart and a lantern. A permanent light: within 24 blocks no Hollow creature is drawn to you, the Knocker never visits, and nothing of theirs spawns." + P + "§7Recipe (shapeless):§r Stilled Heart + Lantern"
-  },
-  // ------------------------------------------------------------------ PLACES
-  {
-    id: "place_cabin",
-    chapter: "places",
-    title: "The Ranger Cabin",
-    icon: "textures/items/hollow/torn_page",
-    body: "A spruce cabin in the woods with a cold stove and a chest of supplies. Rangers kept spare notes here. Look for §lTorn Pages§r." + P + "§7Cabins appear in forests, well away from where you've built."
-  },
-  {
-    id: "place_camp",
-    chapter: "places",
-    title: "The Ruined Campsite",
-    icon: "textures/items/hollow/torn_page",
-    body: "Two collapsed tents and a dead fire. Whoever camped here left in the night and didn't take their pack. Check the barrel." + P + "§7Campsites appear on open ground and at forest edges."
-  },
-  {
-    id: "place_tower",
-    chapter: "places",
-    title: "The Fire Watch Tower",
-    icon: "textures/items/hollow/torn_page",
-    body: "A spruce fire-watch tower above the trees. Its lantern is still lit. Nobody has climbed it in months." + P + "§7Towers stand in forests. Climb for the view, and check the lookout's chest."
-  },
-  {
-    id: "place_leanto",
-    chapter: "places",
-    title: "The Lean-to",
-    icon: "textures/items/hollow/torn_page",
-    body: `A hunter's lean-to: bedroll turned back, fire cold, a note on a stake: §o"went to check the noise"§r.` + P + "§7Lean-tos appear at forest edges and in open country."
-  },
-  {
-    id: "place_shrine",
-    chapter: "places",
-    title: "The Underground Shrine",
-    icon: "textures/items/hollow/heartseeker",
-    body: "A root-choked chamber deep below the hills, lit by old candles. The altar at its centre takes the §lOffering of Silence§r." + P + "§7Follow the Heartseeker. Dig down carefully and bring a way back up."
-  }
-];
-var ENTRY_BY_ID = new Map(ENTRIES.map((e) => [e.id, e]));
-var LORE_PAGES = ENTRIES.filter((e) => e.lore !== void 0).sort((a, b) => (a.lore ?? 0) - (b.lore ?? 0));
-var CHAPTERS = [
-  { id: "notes", title: "Field Notes", icon: "textures/items/hollow/field_journal" },
-  { id: "threats", title: "Threats", icon: "textures/items/hollow/pale_resin" },
-  { id: "craft", title: "Equipment", icon: "textures/items/hollow/rowan_ward" },
-  { id: "places", title: "Places", icon: "textures/items/hollow/torn_page" }
-];
-
-// ../../scripts_src/systems/settings_ui.ts
-import { ActionFormData, ModalFormData } from "@minecraft/server-ui";
-async function openSettings(p, op) {
-  const menu = new ActionFormData().title("§lSettings").body("§7Comfort settings are yours alone. World rules affect everyone and need operator permission.\n\n§8Brightness, render distance, graphics mode (Vibrant Visuals), the sound sliders (Music, Ambient/Environment, Hostile Creatures) and Subtitles are in Minecraft's own Settings menu.").button("My comfort settings", "textures/ui/hollow/settings");
-  if (op) menu.button("World rules §8(operator)", "textures/ui/hollow/world");
-  const r = await showForm(p, menu);
-  if (!r || r.canceled || r.selection === void 0) return;
-  if (r.selection === 0) return openPrefs(p);
-  if (r.selection === 1 && isOperator(p)) return openWorld(p);
-}
-async function openPrefs(p) {
-  const cur = prefs(p);
-  const f = new ModalFormData().title("§lMy comfort settings").slider("Ambience volume (script cues)", 0, 100, { defaultValue: cur.ambience, valueStep: 10 }).dropdown("Encounter accents (short stingers)", ["Off", "Subtle", "Full"], { defaultValueIndex: cur.accents }).toggle("Visual effects (fog shifts, soft fades)", { defaultValue: cur.visualFx }).toggle("Action-bar hints", { defaultValue: cur.hints }).toggle("Music (night, cave, shrine and boss tracks)", { defaultValue: cur.music }).submitButton("Save");
-  const r = await showForm(p, f);
-  if (!r || r.canceled || !r.formValues) return;
-  const v = r.formValues;
-  const next = {
-    ambience: Number(v[0]),
-    accents: Number(v[1]),
-    visualFx: Boolean(v[2]),
-    hints: Boolean(v[3]),
-    music: Boolean(v[4])
-  };
-  savePrefs(p, next);
-  if (!next.visualFx) clearAllFog(p);
-  notice(p, "§7Comfort settings saved.");
-}
-async function openWorld(p) {
-  const s = rawSettings();
-  const f = new ModalFormData().title("§lWorld rules").dropdown("Horror intensity", ["Calm: rarer, no ambush strikes", "Standard", "Nightmare: frequent, bolder"], { defaultValueIndex: s.intensity }).slider("Encounter frequency (%)", 25, 200, { defaultValue: s.frequency, valueStep: 25 }).slider("Grace days before creatures hunt", 0, 10, { defaultValue: s.graceDays, valueStep: 1 }).slider("First night the Knocker may visit", 1, 20, { defaultValue: s.knockerNight, valueStep: 1 }).toggle("Creature: The Watcher", { defaultValue: s.watcher }).toggle("Creature: The Borrowed", { defaultValue: s.borrowed }).toggle("Creature: The Hollowed", { defaultValue: s.hollowed }).toggle("Creature: The Knocker", { defaultValue: s.knocker }).toggle("Creature: The Mirebound", { defaultValue: s.mirebound }).toggle("Destructive Knocker (may break wooden doors on Hard)", { defaultValue: s.destructive }).toggle("Rare bedtime knocking (harmless, never blocks sleep)", { defaultValue: s.sleepDisturbance }).toggle("Place cabins, camps, towers, lean-tos and the shrine", { defaultValue: s.sites }).toggle("Scale the Heart Below with player count", { defaultValue: s.bossScaling }).toggle("Rare one-off events (harmless, once per world)", { defaultValue: s.rareEvents }).submitButton("Save");
-  const r = await showForm(p, f);
-  if (!r || r.canceled || !r.formValues || !isOperator(p)) return;
-  const v = r.formValues;
-  const next = {
-    intensity: Number(v[0]),
-    frequency: Number(v[1]),
-    graceDays: Number(v[2]),
-    knockerNight: Number(v[3]),
-    watcher: Boolean(v[4]),
-    borrowed: Boolean(v[5]),
-    hollowed: Boolean(v[6]),
-    knocker: Boolean(v[7]),
-    mirebound: Boolean(v[8]),
-    destructive: Boolean(v[9]),
-    sleepDisturbance: Boolean(v[10]),
-    sites: Boolean(v[11]),
-    bossScaling: Boolean(v[12]),
-    rareEvents: Boolean(v[13])
-  };
-  saveSettings(next);
-  notice(p, "§7World rules saved.");
-}
-
-// ../../scripts_src/systems/field_notes.ts
-import { Difficulty as Difficulty2, GameMode as GameMode2, world as world7 } from "@minecraft/server";
+// ../../scripts_src/systems/dread.ts
+import { GameMode as GameMode3, system as system5, world as world8 } from "@minecraft/server";
 
 // ../../scripts_src/systems/noise.ts
 import { Player as Player7, world as world6 } from "@minecraft/server";
@@ -1386,15 +1056,15 @@ function movementNoise(p, observeOnly = false) {
   if (p.isSneaking) return { radius: 0, kind: "move" };
   const v = p.getVelocity();
   const speed = Math.hypot(v.x, v.z);
-  const st3 = { ...moveState.get(p.id) ?? { airborne: false, lastLand: -999 } };
-  const wasAir = st3.airborne;
-  st3.airborne = !p.isOnGround;
+  const st4 = { ...moveState.get(p.id) ?? { airborne: false, lastLand: -999 } };
+  const wasAir = st4.airborne;
+  st4.airborne = !p.isOnGround;
   let landed = false;
-  if (wasAir && p.isOnGround && now() - st3.lastLand > 10) {
+  if (wasAir && p.isOnGround && now() - st4.lastLand > 10) {
     landed = true;
-    st3.lastLand = now();
+    st4.lastLand = now();
   }
-  if (!observeOnly) moveState.set(p.id, st3);
+  if (!observeOnly) moveState.set(p.id, st4);
   if (quietFloor(p)) return { radius: 0, kind: "move" };
   if (p.isSprinting && speed > 0.05) return { radius: 16, kind: "sprint" };
   if (landed || p.isJumping) return { radius: 8, kind: "jump" };
@@ -1441,7 +1111,408 @@ function startNoiseEvents() {
   });
 }
 
+// ../../scripts_src/systems/journal.ts
+import { ItemLockMode, ItemStack, system as system4 } from "@minecraft/server";
+import { ActionFormData as ActionFormData2, FormCancelationReason as FormCancelationReason2 } from "@minecraft/server-ui";
+
+// ../../scripts_src/content/journal.ts
+var P = "§r\n\n";
+var ENTRIES = [
+  // ------------------------------------------------------------------ NOTES
+  {
+    id: "intro",
+    chapter: "notes",
+    title: "Ranger Marlowe's Field Journal",
+    icon: "textures/ui/hollow/journal/item_field_journal",
+    body: "§oIf you are reading this, the station is empty and the journal found you instead of me.§r" + P + "These woods are beautiful. Fish the rivers, mine the hills, raise your house. But something here is wrong, and it is patient." + P + "§lThe first day is safe.§r Use it. Gather wood, find food, build walls and a §lclosed door§r." + P + "This journal fills itself in as you learn. When something new happens, look here first. Hold it and press §lUse§r to read. It stays with you when you fall."
+  },
+  {
+    id: "shelter",
+    chapter: "notes",
+    title: "On Shelter",
+    icon: "textures/ui/hollow/journal/shelter",
+    body: "Rules I keep:" + P + "§l1.§r A roof and a §lclosed door§r. Nothing out there opens doors." + P + "§l2.§r Light keeps the tall one back. Carry a torch or lantern after dusk." + P + "§l3.§r Hang a §lTelltale Chime§r. It rings when one of them comes near, long before you would hear it yourself." + P + "§l4.§r A §lRowan Ward§r by the door turns visitors away. It burns down with use; feed it charcoal." + P + "§l5.§r Sleep is still safe. If you hear knocking from bed, stay in bed."
+  },
+  {
+    id: "lore1",
+    chapter: "notes",
+    lore: 1,
+    title: "Torn Page: Arrival",
+    icon: "textures/ui/hollow/journal/page",
+    body: "§oDay 3 at the station.§r" + P + 'The previous ranger left in a hurry. Coffee still in the pot. Boots by the door. The logbook ends mid-sentence: §o"it stood at the edge of the clearing all night and when I"§r' + P + "I have decided the previous ranger was a dramatic person."
+  },
+  {
+    id: "lore2",
+    chapter: "notes",
+    lore: 2,
+    title: "Torn Page: The Count",
+    icon: "textures/ui/hollow/journal/page",
+    body: "§oDay 9.§r" + P + "Counted the Hobbs flock at dusk. Thirty-one. Counted again at dawn. Thirty-one. But I only ever sold them thirty." + P + "One of them doesn't graze. It just stands at the back and watches the house."
+  },
+  {
+    id: "lore3",
+    chapter: "notes",
+    lore: 3,
+    title: "Torn Page: Underfoot",
+    icon: "textures/ui/hollow/journal/page",
+    body: "§oDay 14.§r" + P + "The miners at the east camp say the deep tunnels §oclick§r, like someone tapping a tongue against their teeth. They say if you stand very still, it goes away." + P + "They moved camp the next day. Nobody told me where."
+  },
+  {
+    id: "lore4",
+    chapter: "notes",
+    lore: 4,
+    title: "Torn Page: Visitors",
+    icon: "textures/ui/hollow/journal/page",
+    body: "§oDay 22.§r" + P + "Three knocks after midnight. I almost answered. There are no neighbours for miles." + P + "In the morning there was a long iron nail on the step, bent like a finger beckoning."
+  },
+  {
+    id: "lore_prints",
+    chapter: "notes",
+    lore: 5,
+    title: "Torn Page: Prints",
+    icon: "textures/ui/hollow/journal/page",
+    body: "§oDay 17.§r" + P + "Bare footprints in the frost this morning, from the tree line straight to my door. Long feet. Too long. They stop at the step." + P + "There are no prints going back."
+  },
+  {
+    id: "lore_tower",
+    chapter: "notes",
+    lore: 6,
+    title: "Torn Page: Fire Watch",
+    icon: "textures/ui/hollow/journal/page",
+    body: "§oDay 25, from the tower.§r" + P + "From up here you can count the lights in the valley. Mine, the Hobbs farm, the camp by the river." + P + "Tonight there was a fourth. It moved when I looked away, and it went out when I looked at it."
+  },
+  {
+    id: "lore_eye",
+    chapter: "notes",
+    lore: 7,
+    title: "Torn Page: The Flock",
+    icon: "textures/ui/hollow/journal/page",
+    body: "§oDay 27.§r" + P + "Every animal in the meadow stopped at once and turned to look at me. Cows, sheep, the chickens. Nobody moved for a long breath. Then they went back to grazing as if nothing happened." + P + "Something was looking out through them."
+  },
+  {
+    id: "lore5",
+    chapter: "notes",
+    lore: 8,
+    title: "Torn Page: The Shrine",
+    icon: "textures/ui/hollow/journal/page",
+    body: "§oDay 30.§r" + P + "Found an old map in the cabin floor. Beneath these hills there is a room older than any of us, where the roots of the forest meet. Something sleeps in it and §ldreams§r them all: the watcher, the borrowed things, the clickers, the knocker, the thing in the mire." + P + "They are not five monsters. They are one heart, thinking in five directions."
+  },
+  {
+    id: "lore6",
+    chapter: "notes",
+    lore: 9,
+    title: "Torn Page: Last Entry",
+    icon: "textures/ui/hollow/journal/page",
+    body: "§oDay 41.§r" + P + "A piece from each of them, laid on the altar, wakes it. An offering of silence." + P + "I have them all now. If I'm right, I can still it. If I'm wrong, whoever reads this: do not go alone. Bring light, bring friends, and §lbreak the veins first§r."
+  },
+  {
+    id: "tracks",
+    chapter: "notes",
+    title: "Reading Tracks",
+    icon: "textures/ui/hollow/journal/tracks",
+    body: "The ground keeps what the night won't tell you. Prints fade within a day." + P + "§lThin, root-toed prints§r, far apart: the Watcher. Where there are two side by side, it stood still there a long time, looking at something." + P + "§lLong bare feet§r with a dragging heel: the Knocker. They come out of the trees and stop at a door." + P + "§lA wet smear§r from the bank into the shallows: something was dragged. Walk the banks." + P + "§lSheep hooves that turn into claws§r halfway along: a Borrowed stopped pretending." + P + "§7A Seer's Glass names fresh tracks within 8 blocks."
+  },
+  {
+    id: "event_eye",
+    chapter: "notes",
+    title: "Every Eye",
+    icon: "textures/ui/hollow/journal/event_eye",
+    body: "Every animal around me stopped, turned, and looked at me. For a long breath nothing moved. Then it let them go." + P + "It didn't hurt anyone. It wanted me to know it can look through anything that has eyes."
+  },
+  {
+    id: "event_lantern",
+    chapter: "notes",
+    title: "The Lantern",
+    icon: "textures/ui/hollow/journal/event_lantern",
+    body: "A lantern burning on a stump, deep in the trees, with nobody near it. When I got close it went out." + P + "Someone left a page under it. Someone wanted it found."
+  },
+  {
+    id: "event_roof",
+    chapter: "notes",
+    title: "On the Roof",
+    icon: "textures/ui/hollow/journal/event_roof",
+    body: "Footsteps on the roof. Slow, heavy, from one end to the other. Then nothing." + P + "It never came in. Things that can't open doors can still climb."
+  },
+  {
+    id: "dread1",
+    chapter: "notes",
+    title: "On Fear",
+    icon: "textures/ui/hollow/journal/dread",
+    body: "My hands are shaking as I write this. Good. Fear is information. Learn to read it." + P + "§lIt builds§r in the dark, underground, in the woods and the swamp after sunset, when you are alone, and when you are hurt. Every one of them leaves some behind when it shows itself." + P + "§lIt eases§r with daylight, a light in your hand, a lit room with a roof, a campfire, friends close by, a Heartwood Lantern, and sleep. A bowl of §lHearth Tea§r takes the edge off quickly." + P + "§lIt draws them.§r When I am frightened, more of them come. When I'm calm and lit, they keep to the usual rules." + P + "At its worst you will hear your own heart, and the dark will seem to close in. Down in the deep tunnels, the blind ones can hear that heart too." + P + "§7Your current nerve is on the Field Conditions page."
+  },
+  {
+    id: "dread2",
+    chapter: "notes",
+    title: "Things That Aren't There",
+    icon: "textures/ui/hollow/journal/phantom",
+    body: "Footsteps behind me that stopped when I stopped. A tall shape at the corner of my eye that was gone when I turned. A voice right at my ear." + P + "§lNone of it touched me.§r If it vanishes when you look straight at it, it was never there. If it doesn't vanish, it was." + P + "Nobody standing beside me ever saw them. Calm down, find light, and they stop."
+  },
+  {
+    id: "after",
+    chapter: "notes",
+    title: "Afterward",
+    icon: "textures/ui/hollow/journal/after",
+    body: "The Heart is still." + P + "The forest will never be entirely quiet; things that were dreamed do not stop at once. But the dark is a little smaller now, and you made it so." + P + "§7Place a §lHeartwood Lantern§r§7 at home. Nothing that remains will cross its light."
+  },
+  // ------------------------------------------------------------------ THREATS
+  {
+    id: "watcher1",
+    chapter: "threats",
+    title: "The Watcher",
+    icon: "textures/ui/hollow/journal/watcher",
+    body: "A tall shape at the treeline. I took it for a dead sapling until the pale face turned to follow me." + P + "§lSigns:§r a pale face in the forest at dusk or night, far away. The woods go quiet first." + P + "It only appears in wooded country. It has not followed me into the open."
+  },
+  {
+    id: "watcher2",
+    chapter: "threats",
+    title: "The Watcher: Staring Back",
+    icon: "textures/ui/hollow/journal/watcher",
+    body: "§lIt does not like being watched back.§r" + P + "Hold your gaze on it for a breath or two and it steps back into the trees and is gone. Where it stood you will find §lWeeping Sap§r, bleeding from the bark it scraped." + P + "Sap glints faintly at night. It's the base of the §lSeer's Glass§r."
+  },
+  {
+    id: "watcher3",
+    chapter: "threats",
+    title: "The Watcher: Turned Backs",
+    icon: "textures/ui/hollow/journal/watcher",
+    body: "§lIt only moves while nobody is looking at it.§r" + P + "Ignore it and it creeps closer, tree by tree. In the dark it will close the last few steps and strike." + P + "§lCounterplay:§r turn and look at it; hold a torch or lantern; stay near placed lights. It will not approach a lit place, and it won't strike someone holding a light."
+  },
+  {
+    id: "borrowed1",
+    chapter: "threats",
+    title: "The Borrowed",
+    icon: "textures/ui/hollow/journal/borrowed",
+    body: "One of the sheep is not a sheep." + P + "§lSigns:§r it never lowers its head to graze; its bleat is a little too low and ends in a soft §oclick§r; at night its eyes catch the light; it stands still when the others wander, and it faces you." + P + "By day it is harmless if left alone."
+  },
+  {
+    id: "borrowed2",
+    chapter: "threats",
+    title: "The Borrowed: Tests",
+    icon: "textures/ui/hollow/journal/borrowed",
+    body: "§lHow to tell:§r" + P + "• Hold §lwheat§r. Real sheep come to you. It does not move toward the wheat. It just watches you.§r\n• Try to §lshear§r it. The wool doesn't come off. It peels.§r\n• Look through a §lSeer's Glass§r. It cannot hold its shape.§r" + P + "Once revealed it hunts until hurt badly, then flees. At night, don't let it get close in the dark. Fight with your back to a wall. It drops §lFalse Fleece§r."
+  },
+  {
+    id: "hollowed1",
+    chapter: "threats",
+    title: "The Hollowed",
+    icon: "textures/ui/hollow/journal/hollowed",
+    body: "Deep tunnels, darkness, and a rapid §oclick-click-click§r ahead of me. It hunts by sound. It has no eyes at all." + P + "§lSigns:§r echolocation clicks, distant breathing, scraping on stone."
+  },
+  {
+    id: "hollowed2",
+    chapter: "threats",
+    title: "The Hollowed: What It Hears",
+    icon: "textures/ui/hollow/journal/hollowed",
+    body: "§lIt hears:§r sprinting (16 blocks), walking (6), jumping and landing (8), breaking blocks (12), placing blocks (8), doors, trapdoors, levers, buttons, pressure plates and chests (10), fighting (14), explosions (40), and things you throw landing nearby (12)." + P + "§lIt cannot hear:§r sneaking, and anyone walking on §lwool§r or §lcarpet§r." + P + "§lCounterplay:§r crouch past it. Throw a snowball, egg or arrow away from you; it goes to the sound. Within 3 blocks it finds you anyway, so keep your distance."
+  },
+  {
+    id: "hollowed3",
+    chapter: "threats",
+    title: "The Hollowed: Fangs",
+    icon: "textures/ui/hollow/journal/hollowed",
+    body: "They die like anything else. Their fangs are hollow and hum faintly when held near running water. §lEcho Fangs§r go into the §lHeartseeker§r."
+  },
+  {
+    id: "knocker1",
+    chapter: "threats",
+    title: "The Knocker",
+    icon: "textures/ui/hollow/journal/knocker",
+    body: "§lThree knocks at the door, after dark.§r" + P + "It only comes to occupied shelters with a door, never before the fourth night, and rarely. Your Chime will ring as it approaches."
+  },
+  {
+    id: "knocker2",
+    chapter: "threats",
+    title: "The Knocker: Don't Answer",
+    icon: "textures/ui/hollow/journal/knocker",
+    body: "§lDo not open the door.§r It cannot open doors. It knocks, scratches, breathes against the wood. Then it gives up and leaves." + P + "When it leaves, it leaves a §lDoorstep Nail§r on the step." + P + "A §lRowan Ward§r near the door sends it away before it knocks."
+  },
+  {
+    id: "knocker3",
+    chapter: "threats",
+    title: "The Knocker: I Opened It",
+    icon: "textures/ui/hollow/journal/knocker",
+    body: "I answered. It was waiting with its arms already reaching." + P + "If you open the door while it's there, it comes in. It's slow but strong. Fight it in the light, step back through a doorway, or close the door again between you."
+  },
+  {
+    id: "mirebound1",
+    chapter: "threats",
+    title: "The Mirebound",
+    icon: "textures/ui/hollow/journal/mirebound",
+    body: "In the swamps and along riverbanks there is a mossy hump in the shallows that wasn't there yesterday." + P + "§lSigns:§r bubbles rising where no fish swim, a low gurgle, two dull lights just under the surface at night."
+  },
+  {
+    id: "mirebound2",
+    chapter: "threats",
+    title: "The Mirebound: Breaking Free",
+    icon: "textures/ui/hollow/journal/mirebound",
+    body: "It waits until you're close, then grabs you and drags you toward deeper water." + P + "§lPress Sneak (crouch) to wrench free.§r Hitting it also makes it let go. It can't hold you for long, and it can't follow you onto dry land for more than a few steps." + P + "Walk the banks, not the shallows. It drops a §lMire Pearl§r."
+  },
+  {
+    id: "heart1",
+    chapter: "threats",
+    title: "The Heart Below",
+    icon: "textures/ui/hollow/journal/heart_below",
+    body: "Something huge beneath the hills, rooted into stone, beating slow." + P + "§lIt is shielded§r while its §lveins§r pulse around the chamber. Break every vein to expose it. Watch the ground: roots burst where dust rises, and its pulse ring can be jumped."
+  },
+  {
+    id: "heart2",
+    chapter: "threats",
+    title: "The Heart Below: Phases",
+    icon: "textures/ui/hollow/journal/heart_below",
+    body: "§lFirst:§r root bursts (dust warns you) and slow pulses." + P + "§lSecond:§r the veins regrow once; young hollowed crawl out. Kill them first, they hunt by sound." + P + "§lLast:§r it opens. The bursts come faster and its gaze sweeps the room. Break line of sight behind the pillars." + P + "It grows stronger with every person in the chamber. Everyone who fights earns a share."
+  },
+  // ------------------------------------------------------------------ CRAFTING
+  {
+    id: "craft_chime",
+    chapter: "craft",
+    title: "Telltale Chime",
+    icon: "textures/ui/hollow/journal/item_hollow_chime",
+    body: "§lWarning device.§r Hang it under a ceiling, a porch roof or a beam. It rings softly when one of the Hollow comes within 14 blocks, at most once every few seconds. Use it to silence or unsilence it." + P + "§7Recipe (crafting table):§r\n  [   ] [String] [   ]\n  [Iron Nugget] [Copper Ingot] [Iron Nugget]\n  [   ] [Iron Nugget] [   ]" + P + "§7No fuel. Up to 32 chimes per world are active at once."
+  },
+  {
+    id: "craft_ward",
+    chapter: "craft",
+    title: "Rowan Ward",
+    icon: "textures/ui/hollow/journal/item_rowan_ward",
+    body: "§lLimited protection.§r A charm of iron and smouldering charcoal. Within 10 blocks:" + P + "• the Knocker turns back before it reaches your door\n• the Watcher will not step closer\n• the Borrowed reveal themselves and flee§r" + P + "§lCharges:§r 4. One charge burns each time it turns something away (at most one per creature per night). Use §lcharcoal§r on it to add a charge back." + P + "§7Recipe:§r\n  [   ] [String] [   ]\n  [Iron Nugget] [Charcoal] [Iron Nugget]\n  [Iron Nugget] [Stick] [Iron Nugget]" + P + "§7It does not stop the Hollowed underground, the Mirebound, or the Heart."
+  },
+  {
+    id: "craft_lens",
+    chapter: "craft",
+    title: "Seer's Glass",
+    icon: "textures/ui/hollow/journal/item_hollow_lens",
+    body: "§lInvestigation tool.§r Use it to:" + P + "• reveal any Borrowed within 24 blocks (only you see it)\n• show the direction and distance of the nearest Hollow creature within 48 blocks\n• show how loud you are right now to the Hollowed§r" + P + "§l64 uses§r, 3 s cooldown. Repair with copper ingots at an anvil." + P + "§7Recipe:§r\n  [   ] [Copper Ingot] [   ]\n  [Copper Ingot] [Glass Pane] [Copper Ingot]\n  [   ] [Weeping Sap] [   ]"
+  },
+  {
+    id: "craft_heartseeker",
+    chapter: "craft",
+    title: "Heartseeker",
+    icon: "textures/ui/hollow/journal/item_heartseeker",
+    body: "§lBoss progression.§r A compass that beats instead of points. Use it to feel the direction, distance and depth of the shrine. It also marks the shrine on your locator bar." + P + "If no shrine has formed in this world yet, the first use draws one up from the deep beneath the hills nearby." + P + "§7Recipe (shapeless):§r Compass + Weeping Sap + 2 Echo Fangs"
+  },
+  {
+    id: "craft_offering",
+    chapter: "craft",
+    title: "Hush Offering",
+    icon: "textures/ui/hollow/journal/item_offering_of_silence",
+    body: "§lBoss progression.§r A piece of each of them. Place it in the altar at the shrine to wake the Heart Below." + P + "§7Recipe:§r\n  [Echo Fang] [Weeping Sap] [Echo Fang]\n  [False Fleece] [Gold Ingot] [Doorstep Nail]\n  [   ] [Mire Pearl] [   ]" + P + "§7Cabin and campsite chests sometimes hold components. If a creature is switched off in World Rules, every new site chest holds its component instead."
+  },
+  {
+    id: "craft_lantern",
+    chapter: "craft",
+    title: "Heartwood Lantern",
+    icon: "textures/ui/hollow/journal/item_heartwood_lantern",
+    body: "§lReward.§r Crafted from a Stilled Heart and a lantern. A permanent light: within 24 blocks no Hollow creature is drawn to you, the Knocker never visits, and nothing of theirs spawns." + P + "§7Recipe (shapeless):§r Stilled Heart + Lantern"
+  },
+  {
+    id: "craft_tea",
+    chapter: "craft",
+    title: "Hearth Tea",
+    icon: "textures/ui/hollow/journal/item_hearth_tea",
+    body: "§7Recipe (shapeless):§r Bowl + Sugar + Sweet Berries §8(or an Apple)§r" + P + "Drink it when your nerve is going. It lowers Dread sharply and steadies you for two minutes: fear can still rise, but only half as fast and never past uneasy." + P + "§7It is also a little food. You can drink it even when you're full."
+  },
+  // ------------------------------------------------------------------ PLACES
+  {
+    id: "place_cabin",
+    chapter: "places",
+    title: "The Ranger Cabin",
+    icon: "textures/ui/hollow/journal/place_cabin",
+    body: "A spruce cabin in the woods with a cold stove and a chest of supplies. Rangers kept spare notes here. Look for §lTorn Pages§r." + P + "§7Cabins appear in forests, well away from where you've built."
+  },
+  {
+    id: "place_camp",
+    chapter: "places",
+    title: "The Ruined Campsite",
+    icon: "textures/ui/hollow/journal/place_camp",
+    body: "Two collapsed tents and a dead fire. Whoever camped here left in the night and didn't take their pack. Check the barrel." + P + "§7Campsites appear on open ground and at forest edges."
+  },
+  {
+    id: "place_tower",
+    chapter: "places",
+    title: "The Fire Watch Tower",
+    icon: "textures/ui/hollow/journal/place_tower",
+    body: "A spruce fire-watch tower above the trees. Its lantern is still lit. Nobody has climbed it in months." + P + "§7Towers stand in forests. Climb for the view, and check the lookout's chest."
+  },
+  {
+    id: "place_leanto",
+    chapter: "places",
+    title: "The Lean-to",
+    icon: "textures/ui/hollow/journal/place_leanto",
+    body: `A hunter's lean-to: bedroll turned back, fire cold, a note on a stake: §o"went to check the noise"§r.` + P + "§7Lean-tos appear at forest edges and in open country."
+  },
+  {
+    id: "place_shrine",
+    chapter: "places",
+    title: "The Underground Shrine",
+    icon: "textures/ui/hollow/journal/place_shrine",
+    body: "A root-choked chamber deep below the hills, lit by old candles. The altar at its centre takes the §lHush Offering§r." + P + "§7Follow the Heartseeker. Dig down carefully and bring a way back up."
+  }
+];
+var ENTRY_BY_ID = new Map(ENTRIES.map((e) => [e.id, e]));
+var LORE_PAGES = ENTRIES.filter((e) => e.lore !== void 0).sort((a, b) => (a.lore ?? 0) - (b.lore ?? 0));
+var CHAPTERS = [
+  { id: "notes", title: "Field Notes", icon: "textures/ui/hollow/journal/chapter_notes" },
+  { id: "threats", title: "Threats", icon: "textures/ui/hollow/journal/chapter_threats" },
+  { id: "craft", title: "Equipment", icon: "textures/ui/hollow/journal/chapter_craft" },
+  { id: "places", title: "Places", icon: "textures/ui/hollow/journal/chapter_places" }
+];
+
+// ../../scripts_src/systems/settings_ui.ts
+import { ActionFormData, ModalFormData } from "@minecraft/server-ui";
+async function openSettings(p, op) {
+  const menu = new ActionFormData().title("§lSettings").body("§7Comfort settings are yours alone. World rules affect everyone and need operator permission.\n\n§8Brightness, render distance, graphics mode (Vibrant Visuals), the sound sliders (Music, Ambient/Environment, Hostile Creatures) and Subtitles are in Minecraft's own Settings menu.").button("My comfort settings", "textures/ui/hollow/settings");
+  if (op) menu.button("World rules §8(operator)", "textures/ui/hollow/world");
+  const r = await showForm(p, menu);
+  if (!r || r.canceled || r.selection === void 0) return;
+  if (r.selection === 0) return openPrefs(p);
+  if (r.selection === 1 && isOperator(p)) return openWorld(p);
+}
+async function openPrefs(p) {
+  const cur = prefs(p);
+  const f = new ModalFormData().title("§lMy comfort settings").slider("Ambience volume (script cues)", 0, 100, { defaultValue: cur.ambience, valueStep: 10 }).dropdown("Encounter accents (short stingers)", ["Off", "Subtle", "Full"], { defaultValueIndex: cur.accents }).toggle("Visual effects (fog shifts, soft fades)", { defaultValue: cur.visualFx }).toggle("Action-bar hints", { defaultValue: cur.hints }).toggle("Music (night, cave, shrine and boss tracks)", { defaultValue: cur.music }).toggle("Dread effects (heartbeat, breathing, closing fog, hallucinations)", { defaultValue: cur.dreadFx }).submitButton("Save");
+  const r = await showForm(p, f);
+  if (!r || r.canceled || !r.formValues) return;
+  const v = r.formValues;
+  const next = {
+    ambience: Number(v[0]),
+    accents: Number(v[1]),
+    visualFx: Boolean(v[2]),
+    hints: Boolean(v[3]),
+    music: Boolean(v[4]),
+    dreadFx: v[5] === void 0 ? cur.dreadFx : Boolean(v[5])
+  };
+  savePrefs(p, next);
+  if (!next.visualFx || !next.dreadFx) clearAllFog(p);
+  notice(p, "§7Comfort settings saved.");
+}
+async function openWorld(p) {
+  const s = rawSettings();
+  const f = new ModalFormData().title("§lWorld rules").dropdown("Horror intensity", ["Calm: rarer, no ambush strikes", "Standard", "Nightmare: frequent, bolder"], { defaultValueIndex: s.intensity }).slider("Encounter frequency (%)", 25, 200, { defaultValue: s.frequency, valueStep: 25 }).slider("Grace days before creatures hunt", 0, 10, { defaultValue: s.graceDays, valueStep: 1 }).slider("First night the Knocker may visit", 1, 20, { defaultValue: s.knockerNight, valueStep: 1 }).toggle("Creature: The Watcher", { defaultValue: s.watcher }).toggle("Creature: The Borrowed", { defaultValue: s.borrowed }).toggle("Creature: The Hollowed", { defaultValue: s.hollowed }).toggle("Creature: The Knocker", { defaultValue: s.knocker }).toggle("Creature: The Mirebound", { defaultValue: s.mirebound }).toggle("Destructive Knocker (may break wooden doors on Hard)", { defaultValue: s.destructive }).toggle("Rare bedtime knocking (harmless, never blocks sleep)", { defaultValue: s.sleepDisturbance }).toggle("Place cabins, camps, towers, lean-tos and the shrine", { defaultValue: s.sites }).toggle("Scale the Heart Below with player count", { defaultValue: s.bossScaling }).toggle("Rare one-off events (harmless, once per world)", { defaultValue: s.rareEvents }).toggle("Dread: fear, hallucinations, and fear drawing them closer", { defaultValue: s.dread }).submitButton("Save");
+  const r = await showForm(p, f);
+  if (!r || r.canceled || !r.formValues || !isOperator(p)) return;
+  const v = r.formValues;
+  const next = {
+    intensity: Number(v[0]),
+    frequency: Number(v[1]),
+    graceDays: Number(v[2]),
+    knockerNight: Number(v[3]),
+    watcher: Boolean(v[4]),
+    borrowed: Boolean(v[5]),
+    hollowed: Boolean(v[6]),
+    knocker: Boolean(v[7]),
+    mirebound: Boolean(v[8]),
+    destructive: Boolean(v[9]),
+    sleepDisturbance: Boolean(v[10]),
+    sites: Boolean(v[11]),
+    bossScaling: Boolean(v[12]),
+    rareEvents: Boolean(v[13]),
+    dread: v[14] === void 0 ? s.dread : Boolean(v[14])
+  };
+  saveSettings(next);
+  notice(p, "§7World rules saved.");
+}
+
 // ../../scripts_src/systems/field_notes.ts
+import { Difficulty as Difficulty2, GameMode as GameMode2, world as world7 } from "@minecraft/server";
 function fieldNotes(p, has) {
   const c = ctx(p, 0);
   const s = settings();
@@ -1477,10 +1548,14 @@ function fieldNotes(p, has) {
     if (!s.sites) next += " New shrine placement is disabled in World rules.";
   } else if (has("craft_lens")) {
     recipe = "craft_lens";
-    next = carried.has(ITEM.lens) ? "Use your Hollow Lens to investigate fresh tracks and suspicious animals. Each scan wears the lens." : "You have learned the Hollow Lens recipe. Craft it to investigate tracks and suspicious animals.";
+    next = carried.has(ITEM.lens) ? "Use your Seer's Glass to investigate fresh tracks and suspicious animals. Each look wears the glass." : "You have learned to make a Seer's Glass. Craft it to investigate tracks and suspicious animals.";
   } else if (has("watcher1")) {
     recipe = "craft_ward";
     next = "Read your discovered Watcher notes. Improve the shelter and learn its warnings before venturing out.";
+  }
+  if (settings().dread && dreadOf(p) >= 50) {
+    next = "Your nerve is going. Get to light and a roof, find company, or drink Hearth Tea. Frightened people draw them in, and see things that aren't there.";
+    if (has("craft_tea") && !carried.has(ITEM.tea)) recipe = "craft_tea";
   }
   if (!has(recipe)) recipe = "";
   return {
@@ -1489,13 +1564,20 @@ function fieldNotes(p, has) {
 §7Equipment: ${protection}
 §7Movement: ${noiseDescription(p)}
 §7Pacing: ${pacing}
-
+` + (settings().dread ? `§7Nerve: ${nerve(p)}
+` : "") + `
 §lNext step§r
 ${next}
 
 §8Local checks are not a guarantee of safety. Refresh after moving.`,
     recipe
   };
+}
+function nerve(p) {
+  const name = dreadStageName(p);
+  const colour = ["§a", "§e", "§6", "§c"][["Calm", "Uneasy", "Frightened", "Terrified"].indexOf(name)] ?? "§7";
+  const why = dreadReasons(p).slice(0, 3).join(", ");
+  return `${colour}${name}§7 (${Math.round(dreadOf(p))}/100)${why ? `§8 · ${why}` : ""}`;
 }
 
 // ../../scripts_src/systems/journal.ts
@@ -1520,8 +1602,8 @@ function forgetJournal(playerId) {
   cache.delete(playerId);
 }
 function cancelJournalNotices(playerId) {
-  const pending = discoveries.get(playerId);
-  if (pending) system4.clearRun(pending.run);
+  const pending2 = discoveries.get(playerId);
+  if (pending2) system4.clearRun(pending2.run);
   discoveries.delete(playerId);
 }
 function hasEntry(p, id) {
@@ -1534,8 +1616,8 @@ function unlock(p, id, quiet = false) {
   d.u.push(id);
   save(p, d);
   if (!quiet) {
-    const pending = discoveries.get(p.id);
-    if (pending) pending.ids.add(id);
+    const pending2 = discoveries.get(p.id);
+    if (pending2) pending2.ids.add(id);
     else {
       const ids = /* @__PURE__ */ new Set([id]);
       const run = system4.runTimeout(() => {
@@ -1618,7 +1700,7 @@ async function openJournalMenu(p) {
 §8${count} entries`, ch.icon);
   }
   form.button("Settings\n§8comfort & world rules", "textures/ui/hollow/settings");
-  form.button("Field conditions & next steps\n§8local checks and a suggested recipe", "textures/items/hollow/field_journal");
+  form.button("Field conditions & next steps\n§8your nerve, local checks and a suggested recipe", "textures/ui/hollow/journal/conditions");
   const r = await showForm(p, form);
   if (!r || r.canceled || r.selection === void 0) return;
   if (r.selection < CHAPTERS.length) await openChapter(p, CHAPTERS[r.selection].id);
@@ -1629,7 +1711,7 @@ async function openFieldNotes(p) {
   while (p.isValid) {
     const report = fieldNotes(p, (id) => hasEntry(p, id));
     const form = new ActionFormData2().title("§lField Conditions").body(report.body);
-    form.button("Refresh", "textures/items/hollow/field_journal");
+    form.button("Refresh", "textures/ui/hollow/journal/refresh");
     if (report.recipe) form.button("Read suggested recipe", ENTRY_BY_ID.get(report.recipe).icon);
     form.button("§8Back", "textures/ui/hollow/back");
     const r = await showForm(p, form);
@@ -1672,6 +1754,407 @@ async function openEntry(p, id, back) {
   await openChapter(p, back);
 }
 
+// ../../scripts_src/systems/dread.ts
+var STAGE_NAMES = ["Calm", "Uneasy", "Frightened", "Terrified"];
+var UP = [25, 50, 75];
+var HYST = 5;
+var PERIOD = 40;
+var states = /* @__PURE__ */ new Map();
+function st2(p) {
+  let s = states.get(p.id);
+  if (!s) {
+    const saved2 = getNum(p, DP.dread, 0);
+    s = {
+      v: Math.max(0, Math.min(100, Number.isFinite(saved2) ? saved2 : 0)),
+      stage: 0,
+      steadyUntil: -1,
+      nextHallucination: now() + 2400,
+      episodeUntil: -1,
+      nextEpisode: -1,
+      saveIn: 5,
+      fog: false,
+      reasons: [],
+      hallucinating: false
+    };
+    s.stage = stageFor(s.v, 0);
+    states.set(p.id, s);
+  }
+  return s;
+}
+function stageFor(v, current) {
+  let stage = current;
+  while (stage < 3 && v >= UP[stage]) stage++;
+  while (stage > 0 && v < UP[stage - 1] - HYST) stage--;
+  return stage;
+}
+function dreadOf(p) {
+  return states.get(p.id)?.v ?? 0;
+}
+function dreadStageName(p) {
+  return STAGE_NAMES[states.get(p.id)?.stage ?? 0];
+}
+function dreadReasons(p) {
+  return states.get(p.id)?.reasons ?? [];
+}
+function forgetDread(playerId) {
+  states.delete(playerId);
+  forgetFright(playerId);
+  for (const [id, ph] of phantoms) if (ph.playerId === playerId) removePhantom(id, false);
+}
+function resetDread(p) {
+  const s = st2(p);
+  s.v = 0;
+  s.stage = 0;
+  s.episodeUntil = -1;
+  setFog(p, s, false);
+  setNum(p, DP.dread, 0);
+}
+function enabledFor(p) {
+  if (!settings().dread || !huntable(p)) return false;
+  if (isNewcomer(p) && !isTestMode()) return false;
+  try {
+    const gm = p.getGameMode();
+    return gm === GameMode3.Survival || gm === GameMode3.Adventure;
+  } catch {
+    return false;
+  }
+}
+function target(p, reasons) {
+  const c = ctx(p);
+  const dark = isDarkHours();
+  let t = 4;
+  const lit = holdingLight(p);
+  const placed = inLitArea(p, 6);
+  if (c.underground) {
+    t = 30;
+    let block2 = 15;
+    try {
+      block2 = p.dimension.getLightLevel(p.getHeadLocation());
+    } catch {
+    }
+    if (block2 < 7 && !lit) {
+      t += 22;
+      reasons.push("+ darkness underground");
+    } else reasons.push("+ deep underground");
+  } else if (dark && c.overworld) {
+    t = 28;
+    if (c.biome === "forest" || c.biome === "swamp") {
+      t += 14;
+      reasons.push(c.biome === "forest" ? "+ the woods at night" : "+ the swamp at night");
+    } else reasons.push("+ night");
+    if (!lit && !placed) {
+      t += 14;
+      reasons.push("+ no light");
+    }
+  }
+  if (c.inWater && dark) {
+    t += 8;
+    reasons.push("+ dark water");
+  }
+  const company = nearbyPlayers(p.dimension, p.location, 16).filter((o) => o.id !== p.id).length;
+  if (company > 0) {
+    t -= 16;
+    reasons.push("- company");
+  } else if (t > 10) {
+    t += 8;
+    reasons.push("+ alone");
+  }
+  try {
+    const hp = p.getComponent("minecraft:health")?.currentValue ?? 20;
+    if (hp <= 6) {
+      t += 14;
+      reasons.push("+ badly hurt");
+    }
+  } catch {
+  }
+  if (lit && t > 8) {
+    t -= 14;
+    reasons.push("- light in hand");
+  }
+  if (placed && (c.roofed || c.underground) && t > 8) {
+    t -= 14;
+    reasons.push("- lit shelter");
+  } else if (placed && t > 8) {
+    t -= 8;
+    reasons.push("- placed light");
+  }
+  if (t > 6 && hasBlockNear(p.dimension, p.location, ["minecraft:campfire", "minecraft:soul_campfire"], 5, 2, 5)) {
+    t -= 18;
+    reasons.push("- campfire");
+  }
+  if (lanternNear(p.dimension, p.location)) {
+    t = Math.min(t, 6);
+    reasons.push("- Heartwood Lantern");
+  }
+  if (p.isSleeping) {
+    t = 0;
+    reasons.push("- sleep");
+  }
+  return Math.max(0, Math.min(100, t));
+}
+function setFog(p, s, on) {
+  const want = on && prefs(p).dreadFx;
+  if (want === s.fog) return;
+  s.fog = want;
+  if (want) pushFog(p, FOG.dread, "hollow_dread");
+  else popFog(p, "hollow_dread");
+}
+function personal(p, sound, volume, pitch = 1, at) {
+  const pr = prefs(p);
+  if (!pr.dreadFx) return;
+  try {
+    p.playSound(sound, { location: at, volume: volume * Math.max(0.25, pr.ambience / 100), pitch });
+  } catch {
+  }
+}
+function heartbeat(p, s) {
+  if (s.stage < 2 || p.isSleeping) return;
+  const t = now();
+  if (s.stage === 2) {
+    if (t >= s.nextEpisode && t >= s.episodeUntil) {
+      s.episodeUntil = t + 200;
+      s.nextEpisode = t + 200 + Math.round(rand(300, 600));
+    }
+    if (t >= s.episodeUntil) return;
+  }
+  const interval = s.stage === 3 ? 13 : 19;
+  const vol = s.stage === 3 ? 0.75 : 0.5;
+  for (let k = 0; k * interval < PERIOD; k++) {
+    later("dread.beat", 1 + k * interval, () => {
+      if (!p.isValid || (states.get(p.id)?.stage ?? 0) < 2) return;
+      personal(p, SND.heartbeat, vol, s.stage === 3 ? 1.08 : 1);
+    });
+  }
+  if (s.stage === 3 && chance(0.22)) later("dread.breath", 10, () => p.isValid && personal(p, SND.breath, 0.6));
+}
+function onStageChange(p, s, from) {
+  if (s.stage > from) {
+    if (s.stage >= 1) {
+      unlock(p, "dread1");
+      unlock(p, "craft_tea", true);
+    }
+    if (s.stage === 1) hint(p, "§8Something feels wrong.");
+    if (s.stage === 2) hint(p, "§8Your heart is pounding. The dark is closing in.");
+    if (s.stage === 3) hint(p, "§8You can't stop shaking. Find light. Find people.");
+  } else if (s.stage === 0) {
+    hint(p, "§8Your breathing slows.");
+  }
+  setFog(p, s, s.stage >= 2 && prefs(p).visualFx);
+}
+function update(p) {
+  const s = st2(p);
+  const spike = takeFright(p.id);
+  if (!enabledFor(p)) {
+    if (s.v > 0 || s.stage > 0) {
+      s.v = Math.max(0, s.v - 6);
+      const from2 = s.stage;
+      s.stage = stageFor(s.v, s.stage);
+      if (s.stage !== from2) onStageChange(p, s, from2);
+      setNum(p, DP.dread, Math.round(s.v));
+    }
+    setFog(p, s, false);
+    return;
+  }
+  const reasons = [];
+  const goal = target(p, reasons);
+  s.reasons = reasons;
+  const steady = now() < s.steadyUntil;
+  if (spike) s.v += steady ? spike * 0.5 : spike;
+  const rate = goal > s.v ? 0.05 : p.isSleeping ? 0.35 : 0.09;
+  s.v += (goal - s.v) * rate;
+  if (steady) s.v = Math.min(s.v, 30);
+  s.v = Math.max(0, Math.min(100, s.v));
+  const from = s.stage;
+  s.stage = stageFor(s.v, s.stage);
+  if (s.stage !== from) onStageChange(p, s, from);
+  else setFog(p, s, s.stage >= 2 && prefs(p).visualFx);
+  heartbeat(p, s);
+  if (s.stage === 3 && ctx(p).underground) {
+    emitNoise({ dim: p.dimension, at: p.location, radius: 4, kind: "move", source: p });
+  }
+  maybeHallucinate(p, s);
+  if (--s.saveIn <= 0) {
+    s.saveIn = 5;
+    setNum(p, DP.dread, Math.round(s.v));
+  }
+}
+function drinkTea(p) {
+  const s = st2(p);
+  s.v = Math.max(0, s.v - 45);
+  s.steadyUntil = now() + 2400;
+  const from = s.stage;
+  s.stage = stageFor(s.v, s.stage);
+  if (s.stage !== from) onStageChange(p, s, from);
+  try {
+    p.playSound(SND.teaSip, { volume: 0.8 });
+  } catch {
+  }
+  hint(p, "§7Warmth spreads through your chest. Your hands are steady.");
+}
+var phantoms = /* @__PURE__ */ new Map();
+function isPhantomTracked(id) {
+  return phantoms.has(id);
+}
+function maybeHallucinate(p, s) {
+  if (s.stage < 2 || s.hallucinating || !prefs(p).dreadFx) return;
+  const t = now();
+  if (t < s.nextHallucination) return;
+  if (rt(p).encounter || hollowDay() < settings().graceDays) return;
+  const c = ctx(p);
+  if (!c.overworld) return;
+  if (!chance(s.stage === 3 ? 0.16 : 0.08)) return;
+  const options = ["steps", "whisper"];
+  if (c.underground || isDarkHours() && !c.roofed) options.push("phantom", "phantom");
+  if (c.roofed && isDarkHours() && settings().knocker && hollowNight() >= settings().knockerNight) options.push("knock");
+  const kind = pick(options);
+  const ok = kind === "phantom" ? spawnPhantom(p, c.underground) : kind === "steps" ? followSteps(p, s) : kind === "whisper" ? whisper(p) : falseKnock(p);
+  if (ok) s.nextHallucination = t + Math.round(rand(2400, 5400) * (s.stage === 3 ? 0.6 : 1));
+}
+function behind(p, d) {
+  const v = p.getViewDirection();
+  const flat = norm({ x: v.x, y: 0, z: v.z });
+  return add(p.location, add(scale(flat, -d), { x: 0, y: 0.2, z: 0 }));
+}
+function followSteps(p, s) {
+  const c = ctx(p);
+  const sound = c.underground ? SND.stepClaws : c.roofed ? SND.stepHeavy : SND.stepLeaves;
+  s.hallucinating = true;
+  let last = { ...p.location };
+  let played = 0;
+  for (let k = 1; k <= 10; k++) {
+    later("dread.steps", k * 9, () => {
+      if (!p.isValid) return;
+      const moved = dist(last, p.location) > 0.6;
+      last = { ...p.location };
+      if (moved && played < 6) {
+        played++;
+        personal(p, sound, 0.55, rand(0.85, 0.95), behind(p, rand(5, 7)));
+      }
+      if (k === 10) {
+        s.hallucinating = false;
+        if (played >= 2) unlock(p, "dread2");
+      }
+    });
+  }
+  return true;
+}
+function whisper(p) {
+  personal(p, SND.whisper, 0.45, rand(0.9, 1.05), behind(p, 1.6));
+  later("dread.whisper", 60, () => p.isValid && unlock(p, "dread2"));
+  return true;
+}
+function falseKnock(p) {
+  const d = yawDir(rand(0, 360));
+  personal(p, SND.bedtimeKnock, 0.7, 0.95, add(p.location, scale(d, 6)));
+  return true;
+}
+var FORM_WATCHER = 0;
+var FORM_HOLLOWED = 1;
+var FORM_KNOCKER = 2;
+function spawnPhantom(p, underground2) {
+  if (phantoms.size >= 8) return false;
+  const dim = p.dimension;
+  const view = p.getViewDirection();
+  const yaw = yawOf(norm({ x: view.x, y: 0, z: view.z }));
+  const form = underground2 ? FORM_HOLLOWED : ctx(p).biome === "forest" ? FORM_WATCHER : pick([FORM_WATCHER, FORM_KNOCKER]);
+  const head = p.getHeadLocation();
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const side = chance(0.5) ? 1 : -1;
+    const dir = yawDir(yaw + side * rand(38, 58));
+    const r = underground2 ? rand(10, 18) : rand(22, 34);
+    const guess = add(p.location, scale(dir, r));
+    const g = groundNear(dim, guess.x, p.location.y, guess.z, underground2 ? 4 : 8, form === FORM_HOLLOWED ? 2 : 3);
+    if (!g) continue;
+    const eye = add(g, { x: 0, y: form === FORM_HOLLOWED ? 0.6 : 2.2, z: 0 });
+    if (!clearLine(dim, head, eye)) continue;
+    let e;
+    try {
+      e = dim.spawnEntity(ENT.phantom, g);
+    } catch {
+      return false;
+    }
+    if (!e) return false;
+    try {
+      e.setProperty(PROP.form, form);
+      e.setRotation({ x: 0, y: yawOf(norm(sub(p.location, g))) });
+      p.setPropertyOverrideForEntity(e, PROP.visible, true);
+    } catch {
+      try {
+        e.remove();
+      } catch {
+      }
+      return false;
+    }
+    phantoms.set(e.id, { playerId: p.id, dim: dim.id, born: now(), form });
+    return true;
+  }
+  return false;
+}
+function removePhantom(id, seen) {
+  const ph = phantoms.get(id);
+  phantoms.delete(id);
+  const e = world8.getEntity(id);
+  if (!e || !e.isValid) return;
+  if (seen && ph) {
+    const p = world8.getAllPlayers().find((o) => o.id === ph.playerId);
+    if (p) {
+      personal(p, SND.vanish, 0.7, 1, e.location);
+      particle(e.dimension, PARTICLE.shed, add(e.location, { x: 0, y: ph.form === FORM_HOLLOWED ? 0.5 : 1.6, z: 0 }));
+      unlock(p, "dread2");
+    }
+  }
+  try {
+    e.remove();
+  } catch {
+  }
+}
+function observedBy(p, e, form) {
+  const head = p.getHeadLocation();
+  const at = add(e.location, { x: 0, y: form === FORM_HOLLOWED ? 0.5 : 1.8, z: 0 });
+  const to = sub(at, head);
+  const d = Math.max(1e-3, Math.hypot(to.x, to.y, to.z));
+  const cos = dot(norm(p.getViewDirection()), scale(to, 1 / d));
+  return cos > Math.cos(Math.max(9, Math.atan(1.2 / d) * 180 / Math.PI) * Math.PI / 180);
+}
+function tickPhantoms() {
+  const t = now();
+  for (const [id, ph] of phantoms) {
+    const e = world8.getEntity(id);
+    const p = world8.getAllPlayers().find((o) => o.id === ph.playerId);
+    if (!e || !e.isValid || !p || !p.isValid || p.dimension.id !== ph.dim) {
+      removePhantom(id, false);
+      continue;
+    }
+    const d = dist(p.location, e.location);
+    if (observedBy(p, e, ph.form) || d < 9) removePhantom(id, true);
+    else if (t - ph.born > 240 || d > 64) removePhantom(id, false);
+  }
+}
+function startDread() {
+  setDreadReader((p) => settings().dread ? dreadOf(p) : 0);
+  everyPlayer("dread", PERIOD, update);
+  system5.runInterval(() => safe("dread.phantoms", tickPhantoms), 4);
+}
+function setDread(p, v) {
+  const s = st2(p);
+  s.v = Math.max(0, Math.min(100, v));
+  const from = s.stage;
+  s.stage = stageFor(s.v, s.stage);
+  if (s.stage !== from) onStageChange(p, s, from);
+  return `dread ${Math.round(s.v)} (${STAGE_NAMES[s.stage]})`;
+}
+function forcePhantom(p) {
+  return spawnPhantom(p, ctx(p).underground) ? "a phantom stands at the edge of your vision" : "no spot in view for a phantom";
+}
+function dreadSummary() {
+  const parts = [];
+  for (const p of world8.getAllPlayers()) parts.push(`${p.name}:${Math.round(dreadLevel(p))}`);
+  return parts.join(" ") || "-";
+}
+
+// ../../scripts_src/items/components.ts
+import { EquipmentSlot as EquipmentSlot2, GameMode as GameMode4, Player as Player13, system as system6, world as world11 } from "@minecraft/server";
+
 // ../../scripts_src/systems/sites.ts
 import {
   BlockVolume as BlockVolume2,
@@ -1679,7 +2162,7 @@ import {
   LocationWaypoint,
   StructureRotation,
   WaypointTexture,
-  world as world8
+  world as world9
 } from "@minecraft/server";
 var DEFS = {
   cabin: { structures: ["hollow:cabin", "hollow:cabin_collapsed"], size: [11, 9, 11], sink: 1, spacing: 320, cap: 8, lootTable: "hollow/sites/cabin", journal: "place_cabin" },
@@ -1750,7 +2233,7 @@ function place(dim, t, origin) {
   const rot = pick([StructureRotation.None, StructureRotation.Rotate90, StructureRotation.Rotate180, StructureRotation.Rotate270]);
   const o = { x: Math.floor(origin.x), y: Math.floor(origin.y) - def.sink, z: Math.floor(origin.z) };
   try {
-    world8.structureManager.place(pick(def.structures), dim, o, { rotation: rot, includeEntities: false, waterlogged: false });
+    world9.structureManager.place(pick(def.structures), dim, o, { rotation: rot, includeEntities: false, waterlogged: false });
   } catch (e) {
     console.warn(`[hollow] could not place ${def.structures[0]}: ${e}`);
     return void 0;
@@ -1779,7 +2262,7 @@ function fill(dim, s) {
   const c = { x: s.x + Math.floor(s.sx / 2), y: s.y + 2, z: s.z + Math.floor(s.sz / 2) };
   const r = Math.max(s.sx, s.sz);
   const containers = findBlocks(dim, c, ["minecraft:chest", "minecraft:barrel"], Math.ceil(r / 2), s.sy, Math.ceil(r / 2), 4);
-  const mgr = world8.getLootTableManager();
+  const mgr = world9.getLootTableManager();
   const table = mgr.getLootTable(def.lootTable);
   for (const loc of containers) {
     const b = block(dim, loc);
@@ -1811,7 +2294,7 @@ function trySurfaceSite(p) {
   if (!c.overworld || c.underground || c.inWater || c.roofed) return;
   if (!chance(0.3)) return;
   const dim = p.dimension;
-  const spawn = world8.getDefaultSpawnLocation();
+  const spawn = world9.getDefaultSpawnLocation();
   if (distXZ(p.location, spawn) < 96) return;
   const bed = p.getSpawnPoint();
   if (c.biome !== "forest" && c.biome !== "open") return;
@@ -1923,7 +2406,7 @@ function startSites() {
     for (const s of [...allSites()]) {
       let dim;
       try {
-        dim = world8.getDimension(s.d);
+        dim = world9.getDimension(s.d);
       } catch {
         continue;
       }
@@ -1956,7 +2439,7 @@ function forceSite(p, t) {
 }
 
 // ../../scripts_src/systems/tracks.ts
-import { BlockPermutation as BlockPermutation2, world as world9 } from "@minecraft/server";
+import { BlockPermutation as BlockPermutation2, world as world10 } from "@minecraft/server";
 var CAP = 96;
 var LIFETIME = 24e3;
 var GROUND = /* @__PURE__ */ new Set([
@@ -2001,7 +2484,7 @@ function pressTrack(dim, at, kind, facing) {
   } catch {
     return false;
   }
-  l.push({ d: dim.id, x: cell.x, y: cell.y, z: cell.z, t: world9.getAbsoluteTime() });
+  l.push({ d: dim.id, x: cell.x, y: cell.y, z: cell.z, t: world10.getAbsoluteTime() });
   persist();
   return true;
 }
@@ -2025,7 +2508,7 @@ function standingPrints(e, kind) {
 function removeAt(t) {
   let dim;
   try {
-    dim = world9.getDimension(t.d);
+    dim = world10.getDimension(t.d);
     if (!dim.isChunkLoaded(t)) return false;
   } catch {
     return false;
@@ -2051,7 +2534,7 @@ function removeOldest() {
 function expire() {
   const l = list();
   if (l.length === 0) return;
-  const now2 = world9.getAbsoluteTime();
+  const now2 = world10.getAbsoluteTime();
   let changed = false;
   for (let i = l.length - 1; i >= 0; i--) {
     if (now2 - l[i].t < LIFETIME) continue;
@@ -2099,7 +2582,7 @@ var CREATURE_NAMES = {
 };
 function survivalish(p) {
   const gm = p.getGameMode();
-  return gm === GameMode3.Survival || gm === GameMode3.Adventure;
+  return gm === GameMode4.Survival || gm === GameMode4.Adventure;
 }
 function wearHeld(p, typeId) {
   if (!survivalish(p)) return;
@@ -2133,7 +2616,7 @@ function forgetItemEffects(playerId) {
   itemSessions.delete(playerId);
   for (const [key, reveal2] of revealTimers) {
     if (reveal2.player.id !== playerId) continue;
-    system5.clearRun(reveal2.run);
+    system6.clearRun(reveal2.run);
     revealTimers.delete(key);
     try {
       if (reveal2.player.isValid && reveal2.entity.isValid) {
@@ -2150,7 +2633,7 @@ function queueUse(p, typeId, action) {
     itemSessions.set(p.id, token);
   }
   const dim = p.dimension.id;
-  system5.run(() => {
+  system6.run(() => {
     if (!p.isValid || itemSessions.get(p.id) !== token || p.dimension.id !== dim || heldItem(p) !== typeId) return;
     const hp = p.getComponent("minecraft:health");
     if (hp && hp.currentValue <= 0) return;
@@ -2170,8 +2653,8 @@ function useLens(p) {
       p.spawnParticle("hollow:lens_reveal", { x: b.location.x, y: b.location.y + 1.2, z: b.location.z });
       const key = `${p.id}|${b.id}`;
       const old = revealTimers.get(key);
-      if (old) system5.clearRun(old.run);
-      const run = system5.runTimeout(() => {
+      if (old) system6.clearRun(old.run);
+      const run = system6.runTimeout(() => {
         revealTimers.delete(key);
         try {
           if (p.isValid && b.isValid) p.removePropertyOverrideForEntity(b, PROP.revealed);
@@ -2195,9 +2678,9 @@ function useLens(p) {
     const d = Math.round(dist(head, e.location));
     const dy = e.location.y - p.location.y;
     const vert = dy > 6 ? ", above you" : dy < -6 ? ", below you" : "";
-    lines.push(`§7The lens clouds: ${name}, ${compass(p.location, e.location)}, ~${d} blocks${vert}.`);
+    lines.push(`§7The glass clouds: ${name}, ${compass(p.location, e.location)}, ~${d} blocks${vert}.`);
   } else if (borrowed.length === 0) {
-    lines.push("§7The lens stays clear. Nothing of theirs within 48 blocks.");
+    lines.push("§7The glass stays clear. Nothing of theirs within 48 blocks.");
   }
   const prints = tracksNear(dim, p.location, 8);
   if (prints.length > 0) {
@@ -2242,6 +2725,13 @@ function registerItemComponents(ev) {
       queueUse(p, ITEM.heartseeker, () => useHeartseeker(p));
     }
   });
+  ev.itemComponentRegistry.registerCustomComponent("hollow:tea", {
+    // Hearth Tea: drinking it calms Dread sharply and steadies the nerves for two minutes.
+    onConsume(e) {
+      const p = e.source;
+      if (p instanceof Player13) system6.run(() => p.isValid && drinkTea(p));
+    }
+  });
   ev.itemComponentRegistry.registerCustomComponent("hollow:material", {
     // Crafting materials: using one re-reads its hint (pickup teaches the recipe, see below).
     onUse(e) {
@@ -2252,10 +2742,10 @@ function registerItemComponents(ev) {
   });
 }
 var MATERIAL_HINTS = {
-  [ITEM.paleResin]: ["craft_lens", "§7Pale Resin: sticky, faintly warm. A lens could be set with it."],
-  [ITEM.hollowFang]: ["craft_heartseeker", "§7Hollow Fang: it hums, faintly, toward the ground."],
-  [ITEM.borrowedHide]: ["craft_offering", "§7Borrowed Hide: it is still slightly warm, and it isn't wool."],
-  [ITEM.knockerNail]: ["craft_offering", "§7Knocker's Nail: cold iron, bent like a beckoning finger."],
+  [ITEM.paleResin]: ["craft_lens", "§7Weeping Sap: sticky, faintly warm, and it never quite dries. A glass could be set with it."],
+  [ITEM.hollowFang]: ["craft_heartseeker", "§7Echo Fang: it hums, faintly, toward the ground."],
+  [ITEM.borrowedHide]: ["craft_offering", "§7False Fleece: still warm, and it isn't wool. It isn't anything."],
+  [ITEM.knockerNail]: ["craft_offering", "§7Doorstep Nail: cold iron, bent like a beckoning finger."],
   [ITEM.mirePearl]: ["craft_offering", "§7Mire Pearl: something in it turns over when you look away."],
   [ITEM.stilledHeart]: ["craft_lantern", "§7Stilled Heart: it does not beat. Set it in a lantern."]
 };
@@ -2267,9 +2757,9 @@ function describeMaterial(p, id) {
   notice(p, h[1]);
 }
 function startMaterialPickups() {
-  world10.afterEvents.entityItemPickup.subscribe((ev) => {
+  world11.afterEvents.entityItemPickup.subscribe((ev) => {
     const p = ev.entity;
-    if (!(p instanceof Player12)) return;
+    if (!(p instanceof Player13)) return;
     for (const stack of ev.items) {
       const h = MATERIAL_HINTS[stack.typeId];
       if (h && !hasEntry(p, h[0])) describeMaterial(p, stack.typeId);
@@ -2283,7 +2773,7 @@ function giveOrDrop(p, stack) {
 }
 
 // ../../scripts_src/creatures/hollowed.ts
-import { Player as Player13, world as world11 } from "@minecraft/server";
+import { Player as Player14, world as world12 } from "@minecraft/server";
 var hs = /* @__PURE__ */ new Map();
 var lures = /* @__PURE__ */ new Map();
 var hollowedCount = () => hs.size;
@@ -2314,7 +2804,7 @@ function tryStartHollowed(p) {
   let nearCount = 0;
   for (const h of hs.values()) if (h.dim === p.dimension.id && distSq(h.pos, p.location) < 48 * 48) nearCount++;
   if (nearCount >= (s.intensity === 2 ? 3 : 2) || hs.size >= 6) return false;
-  if (!chance(0.15 * chanceScale())) return false;
+  if (!chance(0.15 * chanceScale() * dreadChance(p))) return false;
   const dim = p.dimension;
   const head = p.getHeadLocation();
   for (let k = 0; k < 6; k++) {
@@ -2337,7 +2827,7 @@ function tryStartHollowed(p) {
     }
     e.setDynamicProperty(DP.owner, p.id);
     track(e, false);
-    setCooldown(p, "hollowed", seconds(rand(150, 240) * cooldownScale()));
+    setCooldown(p, "hollowed", seconds(rand(150, 240) * cooldownScale() / dreadChance(p)));
     return true;
   }
   return false;
@@ -2355,7 +2845,7 @@ function spawnJuvenile(dim, at) {
 function placeLure(dim, at) {
   for (const l of lures.values()) {
     if (l.dim === dim.id && distSq(l.at, at) < 16) {
-      const e = world11.getEntity(l.id);
+      const e = world12.getEntity(l.id);
       if (e?.isValid) {
         try {
           e.teleport(at);
@@ -2381,7 +2871,7 @@ function placeLure(dim, at) {
 }
 function removeLure(l) {
   lures.delete(l.id);
-  const e = world11.getEntity(l.id);
+  const e = world12.getEntity(l.id);
   if (e?.isValid) {
     try {
       e.remove();
@@ -2396,12 +2886,13 @@ function hear(n) {
     if (h.dim !== n.dim.id) continue;
     const d = dist(h.pos, n.at);
     if (d > n.radius) continue;
-    const e = world11.getEntity(h.id);
+    const e = world12.getEntity(h.id);
     if (!e?.isValid) continue;
     heard = true;
     if (now() - h.alertAt > 80) {
       h.alertAt = now();
       worldSound(e.dimension, SND.hollowedAlert, e.location, 1, 0.95 + Math.random() * 0.1);
+      if (n.source && dist(n.source.location, h.pos) < 20) frighten(n.source, 9);
     }
     if (h.state !== "investigate") {
       try {
@@ -2428,11 +2919,11 @@ function pollMovement(p) {
   const { radius, kind } = movementNoise(p);
   if (radius > 0) emitNoise({ dim: p.dimension, at: p.location, radius, kind, source: p });
 }
-function update() {
+function update2() {
   const t = now();
   for (const l of [...lures.values()]) if (t - l.born > 200) removeLure(l);
   for (const h of [...hs.values()]) {
-    const e = world11.getEntity(h.id);
+    const e = world12.getEntity(h.id);
     if (!e?.isValid) {
       hs.delete(h.id);
       continue;
@@ -2492,12 +2983,12 @@ function update() {
 }
 function onHollowedDied(id, killer) {
   hs.delete(id);
-  if (killer instanceof Player13) unlock(killer, "hollowed3");
+  if (killer instanceof Player14) unlock(killer, "hollowed3");
 }
 function startHollowed() {
   setListenerCheck(listenersNear);
   onNoise(hear);
-  every("hollowed.update", 20, update, 5);
+  every("hollowed.update", 20, update2, 5);
   everyPlayer("hollowed.steps", 10, pollMovement);
 }
 
@@ -2563,7 +3054,7 @@ function arenaLoaded(dim) {
 }
 function dimOf() {
   try {
-    return world12.getDimension(boss.dim);
+    return world13.getDimension(boss.dim);
   } catch {
     return void 0;
   }
@@ -2579,7 +3070,7 @@ function arenaPlayers() {
 }
 function survival(p) {
   const gm = p.getGameMode();
-  return gm === GameMode4.Survival || gm === GameMode4.Adventure;
+  return gm === GameMode5.Survival || gm === GameMode5.Adventure;
 }
 function veinSpots(c) {
   const out = [];
@@ -2615,7 +3106,7 @@ function useAltar(p, altar) {
     return;
   }
   if (held?.typeId !== ITEM.offering) {
-    notice(p, "§7A socket of old roots. It waits for an §fOffering of Silence§7.");
+    notice(p, "§7A socket of old roots. It waits for a §fHush Offering§7.");
     unlock(p, "craft_offering");
     return;
   }
@@ -2658,6 +3149,7 @@ function awaken(dim, center, altar) {
     unlock(p, "heart2");
     try {
       p.onScreenDisplay.setTitle("§4The Heart Below", { subtitle: "§7wakes", fadeInDuration: 20, stayDuration: 50, fadeOutDuration: 30 });
+      frighten(p, 20);
     } catch {
     }
   }
@@ -2764,11 +3256,11 @@ function pulse(dim, heart, players) {
 }
 function gaze(dim, heart, players) {
   if (players.length === 0) return;
-  const target = players[Math.floor(Math.random() * players.length)];
+  const target2 = players[Math.floor(Math.random() * players.length)];
   const core = add(heart.location, { x: 0, y: 1.3, z: 0 });
   worldSound(dim, SND.heartDrone, core, 1);
   particle(dim, PARTICLE.spores, core);
-  const start = norm(sub(target.location, core));
+  const start = norm(sub(target2.location, core));
   const dir0 = { x: start.x, y: 0, z: start.z };
   const sweep = Math.random() < 0.5 ? -1 : 1;
   for (let k = 0; k <= 12; k++) {
@@ -2831,7 +3323,7 @@ function toPhase(dim, heart, phase) {
   }
   save2();
 }
-function update2() {
+function update3() {
   if (!load().active) return;
   const dim = dimOf();
   if (!dim) return;
@@ -2858,7 +3350,7 @@ function update2() {
   }
   missingSince = -1;
   for (const p of players) pushFog(p, FOG.heart, "hollow_heart");
-  boss.veins = boss.veins.filter((id) => world12.getEntity(id)?.isValid);
+  boss.veins = boss.veins.filter((id) => world13.getEntity(id)?.isValid);
   if (boss.veins.length === 0 && heart.getProperty("hollow:shielded") === true) rebindVeins(dim);
   if (boss.veins.length === 0 && boss.phase < 3 && heart.getProperty("hollow:shielded") === true) {
     try {
@@ -2895,7 +3387,7 @@ function update2() {
   }
 }
 function findHeart(dim) {
-  const byId = world12.getEntity(boss.heartId);
+  const byId = world13.getEntity(boss.heartId);
   if (byId?.isValid) return byId;
   try {
     for (const e of dim.getEntities({ type: ENT.heart, location: boss.center, maxDistance: 24 })) {
@@ -2922,7 +3414,7 @@ function rebindVeins(dim) {
 }
 function clearMinions() {
   for (const id of [...boss.veins, ...minions]) {
-    const e = world12.getEntity(id);
+    const e = world13.getEntity(id);
     if (e?.isValid) {
       try {
         e.remove();
@@ -2955,7 +3447,7 @@ function dormant(dim) {
   save2();
 }
 function onBossHurt(hurtEntity, amount, by) {
-  if (!isBossEntity(hurtEntity.id) || !(by instanceof Player14)) return;
+  if (!isBossEntity(hurtEntity.id) || !(by instanceof Player15)) return;
   boss.participants[by.id] = (boss.participants[by.id] ?? 0) + amount;
 }
 function onShieldHit(heart) {
@@ -2973,7 +3465,7 @@ function onHeartDied(id) {
   const winners = new Set(Object.keys(boss.participants));
   for (const p of arenaPlayers()) winners.add(p.id);
   for (const pid of winners) {
-    const p = world12.getEntity(pid);
+    const p = world13.getEntity(pid);
     if (!p?.isValid) continue;
     giveOrDrop(p, new ItemStack4(ITEM.stilledHeart, 1));
     p.addExperience(150);
@@ -2995,7 +3487,7 @@ function forgetBossPlayer(p) {
 }
 function forceBossPhase(phase) {
   if (!load().active || !boss.heartId) return "no Heart is awake (use the altar first)";
-  const heart = world12.getEntity(boss.heartId);
+  const heart = world13.getEntity(boss.heartId);
   const h = heart?.getComponent("minecraft:health");
   if (!heart || !h) return "the Heart is not loaded; stand in the arena";
   const set = (f) => h.setCurrentValue(Math.max(1, Math.floor(h.effectiveMax * f)));
@@ -3010,7 +3502,7 @@ function forceBossPhase(phase) {
 }
 function startHeart() {
   load();
-  every("heart.update", 5, update2, 13);
+  every("heart.update", 5, update3, 13);
 }
 function bossSummary() {
   if (!load().active) return boss.restUntilDay > hollowDay() ? `resting until day ${boss.restUntilDay + 1}` : "dormant";
@@ -3040,7 +3532,7 @@ function register(key, b, limit) {
   for (const s of [...l]) {
     let dim;
     try {
-      dim = world13.getDimension(s.d);
+      dim = world14.getDimension(s.d);
     } catch {
       continue;
     }
@@ -3142,7 +3634,7 @@ function ringChimes() {
   for (const s of [...l]) {
     let dim;
     try {
-      dim = world13.getDimension(s.d);
+      dim = world14.getDimension(s.d);
     } catch {
       continue;
     }
@@ -3170,7 +3662,7 @@ function ringChimes() {
 }
 function isSurvivalish(p) {
   const gm = p.getGameMode();
-  return gm === GameMode5.Survival || gm === GameMode5.Adventure;
+  return gm === GameMode6.Survival || gm === GameMode6.Adventure;
 }
 function registerBlockComponents(ev) {
   ev.blockComponentRegistry.registerCustomComponent("hollow:chime", {
@@ -3309,7 +3801,10 @@ function reveal(e, enc, why, by) {
   setState(e, enc, "revealing");
   enc.pauseUntil = 0;
   teach(e, true);
-  for (const p of playersNear(e, 32)) accent(p, SND.stingerLow, 2);
+  for (const p of playersNear(e, 32)) {
+    accent(p, SND.stingerLow, 2);
+    frighten(p, dist(p.location, e.location) < 12 ? 22 : 10);
+  }
   if (by) hint(by, why === "shears" ? "§7The wool doesn't shear. It peels away in one wet sheet." : "§7That was never a sheep.");
 }
 function tryStartBorrowed(p) {
@@ -3321,7 +3816,7 @@ function tryStartBorrowed(p) {
   if (encs.size >= Math.min(2, Math.max(1, onlinePlayers().length))) return false;
   for (const enc of encs.values()) if (enc.target === p.id) return false;
   const base = isDarkHours() ? 0.12 : 0.04;
-  if (!chance(base * chanceScale())) return false;
+  if (!chance(base * chanceScale() * dreadChance(p))) return false;
   if (lanternNear(p.dimension, p.location)) return false;
   const dim = p.dimension;
   let flock;
@@ -3345,7 +3840,7 @@ function tryStartBorrowed(p) {
   }
   e.setDynamicProperty(DP.owner, p.id);
   encs.set(e.id, { id: e.id, target: p.id, born: now(), state: "disguised", stateAt: now(), close: 0, noticed: /* @__PURE__ */ new Set(), nextWrong: now() + seconds(30), pauseUntil: 0, nextPause: now() + seconds(rand(8, 16)) });
-  setCooldown(p, "borrowed", seconds(rand(600, 900) * cooldownScale()));
+  setCooldown(p, "borrowed", seconds(rand(600, 900) * cooldownScale() / dreadChance(p)));
   return true;
 }
 function vanish(e, enc) {
@@ -3361,11 +3856,11 @@ function hpFraction2(e) {
   const h = e.getComponent("minecraft:health");
   return h ? h.currentValue / Math.max(1, h.effectiveMax) : 1;
 }
-function update3() {
+function update4() {
   if (encs.size === 0) return;
   const t = now();
   for (const enc of [...encs.values()]) {
-    const e = world14.getEntity(enc.id);
+    const e = world15.getEntity(enc.id);
     if (!e || !e.isValid) {
       encs.delete(enc.id);
       continue;
@@ -3461,27 +3956,27 @@ function onBorrowedSheared(e, by) {
 function onBorrowedHurt(e, by) {
   const enc = encs.get(e.id);
   if (!enc) return;
-  if (enc.state === "disguised") reveal(e, enc, "hurt", by instanceof Player16 ? by : void 0);
+  if (enc.state === "disguised") reveal(e, enc, "hurt", by instanceof Player17 ? by : void 0);
   else if (enc.state === "revealed" && hpFraction2(e) < 0.4) setState(e, enc, "fleeing");
 }
 function onBorrowedDied(id, killer) {
   encs.delete(id);
-  if (killer instanceof Player16) {
+  if (killer instanceof Player17) {
     unlock(killer, "borrowed1");
     unlock(killer, "borrowed2");
   }
 }
 function forgetBorrowedTarget(playerId) {
   for (const enc of [...encs.values()]) {
-    if (enc.target === playerId && (enc.state === "disguised" || enc.state === "revealing")) vanish(world14.getEntity(enc.id), enc);
+    if (enc.target === playerId && (enc.state === "disguised" || enc.state === "revealing")) vanish(world15.getEntity(enc.id), enc);
   }
 }
 function startBorrowed() {
-  every("borrowed.update", 10, update3, 3);
+  every("borrowed.update", 10, update4, 3);
 }
 
 // ../../scripts_src/creatures/knocker.ts
-import { Difficulty as Difficulty3, ItemStack as ItemStack6, Player as Player17, world as world15 } from "@minecraft/server";
+import { Difficulty as Difficulty3, ItemStack as ItemStack6, Player as Player18, world as world16 } from "@minecraft/server";
 var visit;
 var SAVE = DP.knocker;
 var knockerActive = () => !!visit;
@@ -3539,7 +4034,7 @@ function doorOpen(dim, door) {
 }
 function insidePlayers(v) {
   try {
-    return world15.getDimension(v.dim).getPlayers({ location: v.door, maxDistance: 18 });
+    return world16.getDimension(v.dim).getPlayers({ location: v.door, maxDistance: 18 });
   } catch {
     return [];
   }
@@ -3571,8 +4066,8 @@ function tryVisit() {
       const r = rand(18, 26);
       const side = { x: out.z, y: 0, z: -out.x };
       const lateral = rand(-6, 6);
-      const target = add(add(door, scale(out, r)), scale(side, lateral));
-      const g = groundNear(dim, target.x, door.y, target.z, 8, 3);
+      const target2 = add(add(door, scale(out, r)), scale(side, lateral));
+      const g = groundNear(dim, target2.x, door.y, target2.z, 8, 3);
       if (!g || lanternNear(dim, g)) continue;
       if (clearLine(dim, p.getHeadLocation(), add(g, { x: 0, y: 2, z: 0 }))) continue;
       let e;
@@ -3632,7 +4127,7 @@ var SCRIPT = [
 ];
 var KNOCK_END = 900;
 var nextTry = 0;
-function update4() {
+function update5() {
   const v = visit;
   if (!v) {
     if (now() < nextTry) return;
@@ -3640,7 +4135,7 @@ function update4() {
     tryVisit();
     return;
   }
-  const e = world15.getEntity(v.id);
+  const e = world16.getEntity(v.id);
   if (!e?.isValid) {
     visit = void 0;
     return;
@@ -3667,6 +4162,7 @@ function update4() {
     }
     if (d <= 2.4) {
       setPhase(e, v, "knock");
+      for (const p of insidePlayers(v)) frighten(p, 16);
       standingPrints(e, 1 /* Knocker */);
     } else if (inState > seconds(70) || daybreak) setPhase(e, v, "leave");
     confront(e, v);
@@ -3689,7 +4185,7 @@ function update4() {
       return;
     }
     const cfg = settings();
-    if (!v.broke && cfg.destructive && world15.getDifficulty() === Difficulty3.Hard && inState >= 600 && chance(0.05)) {
+    if (!v.broke && cfg.destructive && world16.getDifficulty() === Difficulty3.Hard && inState >= 600 && chance(0.05)) {
       v.broke = true;
       try {
         e.triggerEvent("hollow:break_in");
@@ -3739,6 +4235,7 @@ function answered(e, v) {
     unlock(p, "knocker1");
     unlock(p, "knocker3");
     accent(p, SND.stingerLow, 2, true);
+    frighten(p, 22);
   }
 }
 function leaveWithNail(e, v, inside) {
@@ -3764,19 +4261,19 @@ function onKnockerHurt(e, by) {
   const v = visit;
   if (!v || v.id !== e.id) return;
   if (v.phase === "knock" || v.phase === "approach") {
-    if (by instanceof Player17) answered(e, v);
+    if (by instanceof Player18) answered(e, v);
   }
 }
 function onKnockerDied(id, killer) {
   if (visit?.id === id) visit = void 0;
-  if (killer instanceof Player17) {
+  if (killer instanceof Player18) {
     unlock(killer, "knocker1");
     unlock(killer, "knocker3");
   }
 }
 function forgetKnockerTarget(playerId) {
   if (visit?.target === playerId && (visit.phase === "approach" || visit.phase === "knock")) {
-    const e = world15.getEntity(visit.id);
+    const e = world16.getEntity(visit.id);
     if (e) setPhase(e, visit, "leave");
   }
 }
@@ -3788,11 +4285,11 @@ function forceKnockerTonight() {
   return t < 13300 || t > 21500 ? "planned: it comes after dusk (time 13300-21500) to a player indoors with a door" : "planned: stay indoors near a door";
 }
 function startKnocker() {
-  every("knocker.update", 10, update4, 9);
+  every("knocker.update", 10, update5, 9);
 }
 
 // ../../scripts_src/creatures/mirebound.ts
-import { EntityDamageCause as EntityDamageCause2, Player as Player18, world as world16 } from "@minecraft/server";
+import { EntityDamageCause as EntityDamageCause2, Player as Player19, world as world17 } from "@minecraft/server";
 var ms = /* @__PURE__ */ new Map();
 var mireboundCount = () => ms.size;
 var isMireboundTracked = (id) => ms.has(id);
@@ -3850,7 +4347,7 @@ function tryStartMirebound(p) {
   if (!huntable(p) || rt(p).encounter || !cooldownReady(p, "mirebound")) return false;
   if (ms.size >= Math.min(3, Math.max(1, onlinePlayers().length))) return false;
   const base = isDarkHours() ? 0.12 : 0.03;
-  if (!chance(base * chanceScale())) return false;
+  if (!chance(base * chanceScale() * dreadChance(p))) return false;
   if (protectedSpot(p.dimension, p.location)) return false;
   const dim = p.dimension;
   const yaw = yawOf(p.getViewDirection());
@@ -3868,17 +4365,17 @@ function tryStartMirebound(p) {
     e.setDynamicProperty(DP.owner, p.id);
     ms.set(e.id, { id: e.id, target: p.id, born: now(), state: "lurk", stateAt: now(), grabs: 0, nextCue: now() + 40, lastPlayer: now(), dmgAt: 0, seatTries: 0 });
     rt(p).encounter = "mirebound";
-    setCooldown(p, "mirebound", seconds(rand(360, 540) * cooldownScale()));
+    setCooldown(p, "mirebound", seconds(rand(360, 540) * cooldownScale() / dreadChance(p)));
     return true;
   }
   return false;
 }
 function release(m) {
   ms.delete(m.id);
-  const p = world16.getEntity(m.target);
+  const p = world17.getEntity(m.target);
   if (p?.isValid && rt(p).encounter === "mirebound") rt(p).encounter = void 0;
   if (m.victim) {
-    const v = world16.getEntity(m.victim);
+    const v = world17.getEntity(m.victim);
     if (v?.isValid) popFog(v, "hollow_mire");
   }
 }
@@ -3900,7 +4397,7 @@ function riding(p, e) {
   }
 }
 function letGo(e, m, why) {
-  const v = m.victim ? world16.getEntity(m.victim) : void 0;
+  const v = m.victim ? world17.getEntity(m.victim) : void 0;
   try {
     e.getComponent("minecraft:rideable")?.ejectRiders();
   } catch {
@@ -3914,11 +4411,11 @@ function letGo(e, m, why) {
   worldSound(e.dimension, SND.mireRelease, e.location);
   setState2(e, m, "retreat");
 }
-function update5() {
+function update6() {
   if (ms.size === 0) return;
   const t = now();
   for (const m of [...ms.values()]) {
-    const e = world16.getEntity(m.id);
+    const e = world17.getEntity(m.id);
     if (!e?.isValid) {
       release(m);
       continue;
@@ -3952,12 +4449,13 @@ function update5() {
         worldSound(dim, SND.mireErupt, e.location, 1);
         particle(dim, PARTICLE.bubbles, add(e.location, { x: 0, y: 1, z: 0 }));
         accent(prey, SND.stingerLow, 2);
+        frighten(prey, 20);
       }
       continue;
     }
     if (m.state === "erupt") {
       if (inState < 12) continue;
-      const v = m.victim ? world16.getEntity(m.victim) : void 0;
+      const v = m.victim ? world17.getEntity(m.victim) : void 0;
       if (!v?.isValid || dist(v.location, e.location) > 3.2 || !huntable(v) || protectedSpot(dim, v.location)) {
         m.victim = void 0;
         if (v?.isValid) notice(v, "§7It snaps at empty water. Get to dry land.");
@@ -3976,7 +4474,7 @@ function update5() {
       continue;
     }
     if (m.state === "grab") {
-      const v = m.victim ? world16.getEntity(m.victim) : void 0;
+      const v = m.victim ? world17.getEntity(m.victim) : void 0;
       if (!v?.isValid || v.getComponent("minecraft:health")?.currentValue === 0) {
         letGo(e, m, "death");
         continue;
@@ -4023,30 +4521,30 @@ function update5() {
 function onMireboundHurt(e, by) {
   const m = ms.get(e.id);
   if (!m) return;
-  if (m.state === "grab" && by instanceof Player18) letGo(e, m, "hit");
+  if (m.state === "grab" && by instanceof Player19) letGo(e, m, "hit");
   else if (m.state === "lurk") setState2(e, m, "retreat");
 }
 function onMireboundDied(id, killer) {
   const m = ms.get(id);
   if (m) release(m);
-  if (killer instanceof Player18) {
+  if (killer instanceof Player19) {
     unlock(killer, "mirebound1");
     unlock(killer, "mirebound2");
   }
 }
 function forgetMireboundTarget(playerId) {
   for (const m of [...ms.values()]) {
-    const e = world16.getEntity(m.id);
+    const e = world17.getEntity(m.id);
     if (m.victim === playerId && e?.isValid) letGo(e, m, "death");
     if (m.target === playerId && m.state === "lurk") vanish2(e, m);
   }
 }
 function startMirebound() {
-  every("mirebound.update", 2, update5, 11);
+  every("mirebound.update", 2, update6, 11);
 }
 
 // ../../scripts_src/creatures/watcher.ts
-import { EntityDamageCause as EntityDamageCause3, ItemStack as ItemStack7, Player as Player19, world as world17 } from "@minecraft/server";
+import { EntityDamageCause as EntityDamageCause3, ItemStack as ItemStack7, Player as Player20, world as world18 } from "@minecraft/server";
 
 // ../../scripts_src/systems/daily.ts
 function dailyCount(p, key) {
@@ -4086,13 +4584,13 @@ function headOf(e) {
 }
 function looking(p, e) {
   const head = p.getHeadLocation();
-  const target = headOf(e);
-  const d = dist(head, target);
+  const target2 = headOf(e);
+  const d = dist(head, target2);
   if (d > 72) return false;
   const tol = Math.max(8, Math.atan(1.6 / Math.max(d, 0.1)) * 180 / Math.PI);
-  if (angleTo(p.getViewDirection(), head, target) > tol) return false;
+  if (angleTo(p.getViewDirection(), head, target2) > tol) return false;
   const dim = p.dimension;
-  return clearLine(dim, head, target) || clearLine(dim, head, add(e.location, { x: 0, y: 1.4, z: 0 }));
+  return clearLine(dim, head, target2) || clearLine(dim, head, add(e.location, { x: 0, y: 1.4, z: 0 }));
 }
 function observers(e) {
   const out = [];
@@ -4119,7 +4617,7 @@ function tryStartWatcher(p) {
   if (!c.overworld || !["forest", "open", "shore"].includes(c.biome) || c.underground || c.inWater || c.roofed) return false;
   if (!huntable(p) || rt(p).encounter || !cooldownReady(p, "watcher")) return false;
   if (encounters.size >= Math.min(3, Math.max(1, onlinePlayers().length))) return false;
-  if (!chance(0.1 * chanceScale())) return false;
+  if (!chance(0.1 * chanceScale() * dreadChance(p))) return false;
   if (protectedSpot(p.dimension, p.location)) return false;
   const dim = p.dimension;
   const view = p.getViewDirection();
@@ -4169,7 +4667,7 @@ function tryStartWatcher(p) {
     };
     encounters.set(e.id, enc);
     rt(p).encounter = "watcher";
-    setCooldown(p, "watcher", seconds(rand(240, 420) * cooldownScale()));
+    setCooldown(p, "watcher", seconds(rand(240, 420) * cooldownScale() / dreadChance(p)));
     ambient(p, SND.hush, { volume: 0.7, minGap: 0, cueGap: 1200 });
     pushFog(p, FOG.watched, "hollow_watch");
     return true;
@@ -4178,7 +4676,7 @@ function tryStartWatcher(p) {
 }
 function release2(enc) {
   encounters.delete(enc.id);
-  const p = world17.getEntity(enc.target);
+  const p = world18.getEntity(enc.target);
   if (p && p.isValid) {
     if (rt(p).encounter === "watcher") rt(p).encounter = void 0;
     popFog(p, "hollow_watch");
@@ -4202,8 +4700,8 @@ function withdraw(e, enc, reason, by) {
   later("watcher.retreat", 12, () => {
     if (e.isValid) worldSound(dim, SND.watcherRetreat, e.location, 0.8);
   });
-  const target = world17.getEntity(enc.target);
-  if (target) popFog(target, "hollow_watch");
+  const target2 = world18.getEntity(enc.target);
+  if (target2) popFog(target2, "hollow_watch");
   if (reason === "stared" && by) {
     for (const p of dim.getPlayers({ location: e.location, maxDistance: 72 })) unlock(p, "watcher2");
     if (!enc.resin && dailyCount(by, "resin") < (settings().intensity === 2 ? 2 : 1)) {
@@ -4221,16 +4719,16 @@ function withdraw(e, enc, reason, by) {
     }
   }
 }
-function update6() {
+function update7() {
   if (encounters.size === 0) return;
   const t = now();
   for (const enc of [...encounters.values()]) {
-    const e = world17.getEntity(enc.id);
+    const e = world18.getEntity(enc.id);
     if (!e || !e.isValid) {
       release2(enc);
       continue;
     }
-    const p = world17.getEntity(enc.target);
+    const p = world18.getEntity(enc.target);
     if (!p || !p.isValid || p.dimension.id !== e.dimension.id) {
       vanish3(e, enc);
       continue;
@@ -4260,6 +4758,7 @@ function update6() {
         for (const o of obs) {
           unlock(o, "watcher1");
           accent(o, SND.stingerDistant, 1);
+          frighten(o, 14);
         }
       }
       if (enc.state === "stalk") setState3(e, enc, "lurk");
@@ -4299,6 +4798,7 @@ function update6() {
         enc.closeCue = true;
         worldSound(e.dimension, "hollow.watcher.step", e.location, 1, 0.8);
         hint(p, "§8...a twig snaps behind you.");
+        frighten(p, 12);
         unlock(p, "watcher3", true);
       }
       if (d <= 5) {
@@ -4316,7 +4816,7 @@ function onWatcherHurt(hurt2, cause, by) {
   const enc = encounters.get(hurt2.id);
   if (!enc) return;
   if (cause === EntityDamageCause3.fall) return;
-  withdraw(hurt2, enc, "hurt", by instanceof Player19 ? by : void 0);
+  withdraw(hurt2, enc, "hurt", by instanceof Player20 ? by : void 0);
 }
 function onWatcherStruck(watcher, victim) {
   const enc = encounters.get(watcher.id);
@@ -4334,7 +4834,7 @@ function onWatcherStruck(watcher, victim) {
 function onWatcherDied(id, killer) {
   const enc = encounters.get(id);
   if (enc) release2(enc);
-  if (killer instanceof Player19) {
+  if (killer instanceof Player20) {
     unlock(killer, "watcher1");
     unlock(killer, "watcher2");
   }
@@ -4342,17 +4842,17 @@ function onWatcherDied(id, killer) {
 function forgetWatcherTarget(playerId) {
   for (const enc of [...encounters.values()]) {
     if (enc.target !== playerId) continue;
-    vanish3(world17.getEntity(enc.id), enc);
+    vanish3(world18.getEntity(enc.id), enc);
   }
 }
 function startWatcher() {
-  every("watcher.update", 4, update6, 1);
+  every("watcher.update", 4, update7, 1);
 }
 
 // ../../scripts_src/systems/music.ts
 var LOOPING = ["boss", "shrine"];
 var state2 = /* @__PURE__ */ new Map();
-function st2(p) {
+function st3(p) {
   let s = state2.get(p.id);
   if (!s) {
     s = { startedAt: -1, lastAny: -99999, lastCave: -99999, nightPlayed: -1, nightHadEncounter: -1, dawnPlayed: -1, nextNight: 0 };
@@ -4387,7 +4887,7 @@ function nearShrine(p) {
 }
 function tick(p) {
   const fresh = !state2.has(p.id);
-  const s = st2(p);
+  const s = st3(p);
   if (fresh) {
     try {
       p.stopMusic();
@@ -4683,7 +5183,7 @@ function startAmbience() {
 }
 
 // ../../scripts_src/systems/cleanup.ts
-import { world as world18 } from "@minecraft/server";
+import { world as world19 } from "@minecraft/server";
 var trackers = /* @__PURE__ */ new Map();
 function trackType(typeId, isTracked) {
   trackers.set(typeId, isTracked);
@@ -4711,14 +5211,14 @@ function cleanEntity(e) {
 function sweepLoaded() {
   for (const id of ["minecraft:overworld", "minecraft:nether", "minecraft:the_end"]) {
     try {
-      const dim = world18.getDimension(id);
+      const dim = world19.getDimension(id);
       for (const e of dim.getEntities({ families: [FAMILY.any] })) cleanEntity(e);
     } catch {
     }
   }
 }
 function startCleanup() {
-  world18.afterEvents.entityLoad.subscribe((ev) => {
+  world19.afterEvents.entityLoad.subscribe((ev) => {
     const e = ev.entity;
     if (e.typeId.startsWith("hollow:")) cleanEntity(e);
   });
@@ -4729,9 +5229,9 @@ var starters = [];
 function addStarter(s) {
   starters.push(s);
 }
-var PERIOD = 100;
+var PERIOD2 = 100;
 function evaluate(p) {
-  addPlayTime(p, PERIOD);
+  addPlayTime(p, PERIOD2);
   if (!huntable(p) || isNewcomer(p) && !isTestMode()) return;
   let major = false;
   for (const s of starters) {
@@ -4744,11 +5244,11 @@ function evaluate(p) {
   }
 }
 function startDirector() {
-  everyPlayer("director", PERIOD, evaluate);
+  everyPlayer("director", PERIOD2, evaluate);
 }
 
 // ../../scripts_src/main.ts
-system6.beforeEvents.startup.subscribe((ev) => {
+system7.beforeEvents.startup.subscribe((ev) => {
   registerItemComponents(ev);
   registerBlockComponents(ev);
 });
@@ -4763,6 +5263,7 @@ function init() {
   trackType(ENT.lure, isLureTracked);
   trackType(ENT.knocker, isKnockerTracked);
   trackType(ENT.mirebound, isMireboundTracked);
+  trackType(ENT.phantom, isPhantomTracked);
   addStarter({ key: "mirebound", tryStart: tryStartMirebound });
   addStarter({ key: "watcher", tryStart: tryStartWatcher });
   addStarter({ key: "borrowed", tryStart: tryStartBorrowed, independent: true });
@@ -4770,6 +5271,7 @@ function init() {
   startCleanup();
   startNoiseEvents();
   startDirector();
+  startDread();
   startAmbience();
   startBlockSystems();
   startMaterialPickups();
@@ -4786,8 +5288,8 @@ function init() {
   later("sweep", 40, sweepLoaded);
   console.warn(`[hollow] THE HOLLOW initialised (day ${hollowDay()}).`);
 }
-world19.afterEvents.worldLoad.subscribe(() => safe("init", init));
-world19.afterEvents.playerSpawn.subscribe((ev) => safe("playerSpawn", () => {
+world20.afterEvents.worldLoad.subscribe(() => safe("init", init));
+world20.afterEvents.playerSpawn.subscribe((ev) => safe("playerSpawn", () => {
   const p = ev.player;
   clearAllFog(p);
   if (ev.initialSpawn) {
@@ -4804,6 +5306,7 @@ world19.afterEvents.playerSpawn.subscribe((ev) => safe("playerSpawn", () => {
   } else {
     rt(p).diedAt = now();
     rt(p).ctx = void 0;
+    resetDread(p);
     forgetEncounters(p.id);
     later("journalBack", 20, () => p.isValid && ensureJournal(p));
   }
@@ -4819,9 +5322,9 @@ function forgetEncounters(playerId) {
   forgetMireboundTarget(playerId);
   forgetKnockerTarget(playerId);
 }
-world19.beforeEvents.playerLeave.subscribe((ev) => {
+world20.beforeEvents.playerLeave.subscribe((ev) => {
   const id = ev.player.id;
-  system6.run(() => safe("playerLeave", () => {
+  system7.run(() => safe("playerLeave", () => {
     forgetEncounters(id);
     forgetRuntime(id);
     forgetAudio(id);
@@ -4829,15 +5332,16 @@ world19.beforeEvents.playerLeave.subscribe((ev) => {
     forgetJournal(id);
     forgetNoise(id);
     forgetMusic(id);
+    forgetDread(id);
   }));
 });
-world19.afterEvents.playerDimensionChange.subscribe((ev) => safe("dimChange", () => {
+world20.afterEvents.playerDimensionChange.subscribe((ev) => safe("dimChange", () => {
   rt(ev.player).ctx = void 0;
   forgetEncounters(ev.player.id);
   forgetBossPlayer(ev.player);
   clearAllFog(ev.player);
 }));
-world19.afterEvents.entityHurt.subscribe((ev) => safe("entityHurt", () => {
+world20.afterEvents.entityHurt.subscribe((ev) => safe("entityHurt", () => {
   const hurt2 = ev.hurtEntity;
   const by = ev.damageSource.damagingEntity;
   switch (hurt2.typeId) {
@@ -4854,10 +5358,11 @@ world19.afterEvents.entityHurt.subscribe((ev) => safe("entityHurt", () => {
       onMireboundHurt(hurt2, by);
       break;
   }
-  if (hurt2 instanceof Player21 && by?.typeId === ENT.watcher) onWatcherStruck(by, hurt2);
+  if (hurt2 instanceof Player22 && by?.typeId === ENT.watcher) onWatcherStruck(by, hurt2);
+  if (hurt2 instanceof Player22 && by?.typeId.startsWith("hollow:")) frighten(hurt2, 8);
   if (hurt2.typeId === ENT.heart || hurt2.typeId === ENT.vein) onBossHurt(hurt2, ev.damage, by);
 }));
-world19.afterEvents.entityDie.subscribe((ev) => safe("entityDie", () => {
+world20.afterEvents.entityDie.subscribe((ev) => safe("entityDie", () => {
   const dead = ev.deadEntity;
   const killer = ev.damageSource.damagingEntity;
   switch (dead.typeId) {
@@ -4887,7 +5392,7 @@ world19.afterEvents.entityDie.subscribe((ev) => safe("entityDie", () => {
       break;
   }
 }));
-world19.afterEvents.dataDrivenEntityTrigger.subscribe((ev) => safe("ddTrigger", () => {
+world20.afterEvents.dataDrivenEntityTrigger.subscribe((ev) => safe("ddTrigger", () => {
   if (ev.eventId === "hollow:watcher_struck") onWatcherStruck(ev.entity, nearestPlayer(ev.entity, 5));
   else if (ev.eventId === "hollow:sheared") onBorrowedSheared(ev.entity, nearestPlayer(ev.entity, 6));
   else if (ev.eventId === "hollow:shield_hit") onShieldHit(ev.entity);
@@ -4901,13 +5406,13 @@ function testCommand(p, arg) {
       setTestMode(false);
       return "test mode off: normal rules";
     case "night":
-      world19.setTimeOfDay(13e3);
+      world20.setTimeOfDay(13e3);
       return "dusk (13000)";
     case "midnight":
-      world19.setTimeOfDay(18e3);
+      world20.setTimeOfDay(18e3);
       return "midnight (18000)";
     case "day":
-      world19.setTimeOfDay(1e3);
+      world20.setTimeOfDay(1e3);
       return "morning (1000)";
     case "kit": {
       const kit = [
@@ -4926,7 +5431,8 @@ function testCommand(p, arg) {
         ["minecraft:torch", 16],
         ["minecraft:shears", 1],
         ["minecraft:wheat", 8],
-        ["minecraft:snowball", 16]
+        ["minecraft:snowball", 16],
+        ["hollow:hearth_tea", 2]
       ];
       for (const [id, n] of kit) giveOrDrop(p, new ItemStack9(id, n));
       ensureJournal(p);
@@ -4944,8 +5450,14 @@ function testCommand(p, arg) {
     case "lantern":
     case "roof":
       return forceEvent(p, arg);
+    case "phantom":
+      return forcePhantom(p);
     default:
-      return "usage: /scriptevent hollow:test on|off|night|midnight|day|kit|journal|knocker|boss2|boss3|eye|lantern|roof";
+      if (arg.startsWith("dread")) {
+        const v = Number(arg.slice(5).trim());
+        return Number.isFinite(v) ? setDread(p, v) : "usage: /scriptevent hollow:test dread <0-100>";
+      }
+      return "usage: /scriptevent hollow:test on|off|night|midnight|day|kit|journal|knocker|boss2|boss3|eye|lantern|roof|phantom|dread <0-100>";
   }
 }
 function nearestPlayer(e, r) {
@@ -4955,9 +5467,9 @@ function nearestPlayer(e, r) {
     return void 0;
   }
 }
-system6.afterEvents.scriptEventReceive.subscribe((ev) => safe("scriptevent", () => {
+system7.afterEvents.scriptEventReceive.subscribe((ev) => safe("scriptevent", () => {
   const p = ev.sourceEntity;
-  if (!(p instanceof Player21)) return;
+  if (!(p instanceof Player22)) return;
   switch (ev.id) {
     case "hollow:journal":
       void openJournal(p);
@@ -4965,7 +5477,7 @@ system6.afterEvents.scriptEventReceive.subscribe((ev) => safe("scriptevent", () 
     case "hollow:status":
       if (!isOperator(p)) return;
       p.sendMessage(
-        `§7[hollow] day ${hollowDay()} · watcher ${watcherCount()} · borrowed ${borrowedCount()} · hollowed ${hollowedCount()} · mirebound ${mireboundCount()} · knocker ${knockerActive() ? 1 : 0} · heart ${bossSummary()} · failures: ${failureReport()}`
+        `§7[hollow] day ${hollowDay()} · watcher ${watcherCount()} · borrowed ${borrowedCount()} · hollowed ${hollowedCount()} · mirebound ${mireboundCount()} · knocker ${knockerActive() ? 1 : 0} · heart ${bossSummary()} · dread ${dreadSummary()} · failures: ${failureReport()}`
       );
       return;
     case "hollow:debug":

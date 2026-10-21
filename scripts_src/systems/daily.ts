@@ -3,7 +3,7 @@ import { DP } from "../core/ids";
 import { readEntity, writeEntity } from "../core/store";
 import { nightKey } from "../core/time";
 
-// Per-player counters that reset every night. Used to cap rewards (Pale Resin, Knocker's Nail)
+// Per-player counters that reset every night. Used to cap rewards (Weeping Sap, Doorstep Nail)
 // so they can't be farmed, and to keep encounter pacing honest across relogs.
 
 interface Daily {

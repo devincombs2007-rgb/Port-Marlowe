@@ -22,13 +22,19 @@
         "seen": "animation.hollow.watcher.seen",
         "lunge": "animation.hollow.watcher.lunge",
         "locomotion": "controller.animation.hollow.watcher.locomotion",
-        "mood": "controller.animation.hollow.watcher.mood"
+        "mood": "controller.animation.hollow.watcher.mood",
+        "creep": "animation.hollow.watcher.creep"
       },
       "scripts": {
         "pre_animation": [
-          "variable.state = query.property('hollow:state');"
+          "variable.state = query.property('hollow:state');",
+          "variable.patient = query.property('hollow:patient');"
         ],
-        "animate": ["look_at_target", "locomotion", "mood"]
+        "animate": [
+          "look_at_target",
+          "locomotion",
+          "mood"
+        ]
       },
       "render_controllers": [
         "controller.render.hollow.default",

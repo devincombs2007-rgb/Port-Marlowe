@@ -6,21 +6,47 @@
       "bones": {
         "torso": {
           "rotation": [
-            "math.sin(query.anim_time * 30) * 1.5",
+            "math.sin(query.life_time * 26 + 0) * 2.2",
             0,
-            "math.sin(query.anim_time * 21) * 2"
+            "math.sin(query.life_time * 17 + 0) * 2"
+          ],
+          "scale": [
+            "1 + math.sin(query.life_time * 26 + 90) * 0.02",
+            1,
+            "1 + math.sin(query.life_time * 26 + 90) * 0.03"
+          ]
+        },
+        "neck": {
+          "rotation": [
+            "math.sin(query.life_time * 13 + 0) * 4",
+            0,
+            "math.sin(query.life_time * 9 + 0) * 6"
+          ]
+        },
+        "head": {
+          "rotation": [
+            "math.pow(math.max(0, math.sin(query.life_time * 31 + 0)), 30) * 12",
+            0,
+            "math.sin(query.life_time * 9 + 40) * 5 - math.pow(math.max(0, math.sin(query.life_time * 31 + 0)), 30) * 14"
+          ]
+        },
+        "right_arm": {
+          "rotation": [
+            "math.sin(query.life_time * 26 + 0) * 2",
+            0,
+            0
           ]
         },
         "right_hand": {
           "rotation": [
-            "math.sin(query.anim_time * 80) * 5",
+            "math.sin(query.life_time * 160 + 0) * 6 * math.max(0, math.sin(query.life_time * 20))",
             0,
             0
           ]
         },
         "left_hand": {
           "rotation": [
-            "math.sin(query.anim_time * 70 + 40) * 4",
+            "math.sin(query.life_time * 70 + 40) * 4",
             0,
             0
           ]
@@ -32,49 +58,68 @@
       "bones": {
         "right_leg": {
           "rotation": [
-            "math.cos(query.modified_distance_moved * 26) * 22",
+            "math.cos(query.modified_distance_moved * 24) * 26",
             0,
             0
           ]
         },
         "left_leg": {
           "rotation": [
-            "-math.cos(query.modified_distance_moved * 26) * 22",
+            "-math.cos(query.modified_distance_moved * 24) * 14 + 6",
             0,
-            0
+            3
           ]
         },
         "right_leg_shin": {
           "rotation": [
-            "math.max(0, math.sin(query.modified_distance_moved * 26)) * 25",
+            "math.max(0, math.sin(query.modified_distance_moved * 24)) * 30",
             0,
             0
           ]
         },
         "left_leg_shin": {
           "rotation": [
-            "math.max(0, -math.sin(query.modified_distance_moved * 26)) * 25",
+            "math.max(0, -math.sin(query.modified_distance_moved * 24)) * 10",
             0,
             0
           ]
         },
-        "torso": {
+        "body": {
+          "position": [
+            0,
+            "-math.abs(math.cos(query.modified_distance_moved * 24)) * 0.6",
+            0
+          ],
           "rotation": [
             0,
             0,
-            "math.sin(query.modified_distance_moved * 26) * 4"
+            "math.sin(query.modified_distance_moved * 24) * 5"
+          ]
+        },
+        "torso": {
+          "rotation": [
+            "math.abs(math.sin(query.modified_distance_moved * 24)) * 4",
+            0,
+            "math.sin(query.modified_distance_moved * 24) * 4"
+          ]
+        },
+        "neck": {
+          "rotation": [
+            0,
+            0,
+            "-math.sin(query.modified_distance_moved * 24 - 40) * 6"
           ]
         },
         "right_arm": {
           "rotation": [
-            "-math.cos(query.modified_distance_moved * 26) * 8",
+            "-math.cos(query.modified_distance_moved * 24 - 60) * 10",
             0,
             0
           ]
         },
         "left_arm": {
           "rotation": [
-            "math.cos(query.modified_distance_moved * 26) * 8",
+            "math.cos(query.modified_distance_moved * 24 - 60) * 6",
             0,
             0
           ]
@@ -98,35 +143,49 @@
       "bones": {
         "right_arm": {
           "rotation": [
-            -72,
+            -74,
             0,
             -6
           ]
         },
         "right_forearm": {
           "rotation": [
-            "-35 + (math.mod(query.anim_time, 8.0) < 1.0 ? math.sin(math.mod(query.anim_time, 8.0) * 530) * 14 : 0)",
+            "-35 + (math.mod(query.anim_time, 8.0) < 1.0 ? math.max(0, math.sin(math.mod(query.anim_time, 8.0) * 540)) * 22 : 0)",
+            0,
+            0
+          ]
+        },
+        "right_hand": {
+          "rotation": [
+            "math.mod(query.anim_time, 8.0) < 1.0 ? math.max(0, math.sin(math.mod(query.anim_time, 8.0) * 540)) * 10 : 0",
             0,
             0
           ]
         },
         "torso": {
           "rotation": [
-            8,
+            "8 + (math.mod(query.anim_time, 8.0) > 1.5 && math.mod(query.anim_time, 8.0) < 7.0 ? 6 : 0)",
             0,
             0
           ]
         },
         "head": {
           "rotation": [
-            "math.mod(query.anim_time, 8.0) > 1.5 && math.mod(query.anim_time, 8.0) < 7.0 ? 10 : 0",
+            "math.mod(query.anim_time, 8.0) > 1.5 && math.mod(query.anim_time, 8.0) < 7.0 ? 12 : 0",
             0,
-            "math.mod(query.anim_time, 8.0) > 1.5 && math.mod(query.anim_time, 8.0) < 7.0 ? 24 : 0"
+            "math.mod(query.anim_time, 8.0) > 1.5 && math.mod(query.anim_time, 8.0) < 7.0 ? 28 : 0"
+          ]
+        },
+        "left_arm": {
+          "rotation": [
+            "math.mod(query.anim_time, 8.0) > 3.0 && math.mod(query.anim_time, 8.0) < 5.5 ? -60 : -6",
+            0,
+            0
           ]
         },
         "left_hand": {
           "rotation": [
-            "math.mod(query.anim_time, 8.0) > 3.0 && math.mod(query.anim_time, 8.0) < 5.0 ? math.sin(query.anim_time * 300) * 10 : 0",
+            "math.mod(query.anim_time, 8.0) > 3.0 && math.mod(query.anim_time, 8.0) < 5.5 ? math.sin(query.anim_time * 320) * 12 : 0",
             0,
             0
           ]
@@ -139,21 +198,35 @@
       "bones": {
         "right_arm": {
           "rotation": [
-            -78,
+            "-82 + math.sin(query.life_time * 90 + 0) * 4",
             0,
-            -4
+            -6
           ]
         },
         "left_arm": {
           "rotation": [
-            -70,
+            "-70 + math.sin(query.life_time * 90 + 60) * 4",
             0,
-            4
+            6
+          ]
+        },
+        "right_hand": {
+          "rotation": [
+            -10,
+            0,
+            0
           ]
         },
         "torso": {
           "rotation": [
-            10,
+            12,
+            0,
+            0
+          ]
+        },
+        "neck": {
+          "rotation": [
+            -14,
             0,
             0
           ]
@@ -166,35 +239,64 @@
         "right_arm": {
           "rotation": {
             "0.0": [
-              -120,
+              0,
               0,
               0
             ],
-            "0.2": [
-              -20,
-              0,
-              0
-            ],
-            "0.5": [
-              -78,
+            "0.18": [
+              -68,
               0,
               -4
+            ],
+            "0.3": [
+              64,
+              0,
+              6
+            ],
+            "0.55": [
+              0,
+              0,
+              0
             ]
           }
         },
         "right_forearm": {
           "rotation": {
             "0.0": [
-              -30,
-              0,
-              0
-            ],
-            "0.2": [
               0,
               0,
               0
             ],
-            "0.5": [
+            "0.18": [
+              -40,
+              0,
+              0
+            ],
+            "0.3": [
+              0,
+              0,
+              0
+            ]
+          }
+        },
+        "torso": {
+          "rotation": {
+            "0.0": [
+              0,
+              0,
+              0
+            ],
+            "0.18": [
+              -16,
+              0,
+              0
+            ],
+            "0.3": [
+              14,
+              0,
+              0
+            ],
+            "0.55": [
               0,
               0,
               0
@@ -202,7 +304,7 @@
           }
         }
       },
-      "animation_length": 0.5
+      "animation_length": 0.55
     }
   }
 }

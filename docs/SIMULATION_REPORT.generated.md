@@ -4,7 +4,7 @@ The real bundled behavior-pack scripts run against a fake Minecraft API (`tools/
 This checks script logic: scheduling, events, persistence, reloads, state machines, caps, cooldowns and rewards.
 It is **not** an in-game test: there is no engine pathfinding, melee, physics, rendering or audio.
 
-Result: **88/88 scenarios passed**
+Result: **93/93 scenarios passed**
 
 | Scenario | Result |
 |---|---|
@@ -30,7 +30,7 @@ Result: **88/88 scenarios passed**
 | day 1 is safe: nothing hunts; the Watcher can only be glimpsed | pass |
 | newcomers, creative and peaceful players are never targeted | pass |
 | watcher appears out of view, 34-50 blocks away | pass |
-| watcher: staring makes it withdraw and leave one Pale Resin (once per night) | pass |
+| watcher: staring makes it withdraw and leave one Weeping Sap (once per night) | pass |
 | watcher: consecutive successful encounters alternate direct and patient stalking | pass |
 | watcher: patient stalking pauses at distance and observation removes both movement groups | pass |
 | watcher: may watch an open forest edge but still requires forest spawn ground | pass |
@@ -95,7 +95,13 @@ Result: **88/88 scenarios passed**
 | test kit: operator-only; test mode removes waiting; never persists; boss/knocker shortcuts | pass |
 | test kit: kit, journal, boss2/boss3 and knocker shortcuts work | pass |
 | grace: extended grace days apply to Borrowed, Mirebound and Knocker, not just the Watcher | pass |
+| dread: builds alone in the dark woods at night; light, a roof and company bring it down | pass |
+| dread: newcomers, daylight, Creative and the World rule keep it at zero | pass |
+| dread: Hearth Tea drops it sharply and caps it for two minutes | pass |
+| dread: a phantom is seen only by the frightened player and vanishes when looked at | pass |
+| dread: death resets it; a frightened player draws encounters (Watcher) | pass |
 | load: 8 players, all creatures, Nightmare 200% for a full day - caps hold | pass |
 
-- music: 1 night track(s) over 4 nights; 43 ticks of night music while a Watcher was stalking
-- load: peak creature counts {"hollow:borrowed":2,"hollow:watcher":3}; script time per tick avg 0.040 ms, p99 0.545 ms, max 50.36 ms (Node on a dev machine against the fake world - not an Xbox measurement)
+- music: 3 night track(s) over 4 nights; 129 ticks of night music while a Watcher was stalking
+- dread draw: watcher encounters over twelve nights - calm 25, terrified 29
+- load: peak creature counts {"hollow:borrowed":2,"hollow:watcher":3,"hollow:phantom":2}; script time per tick avg 0.153 ms, p99 1.163 ms, max 6.29 ms (Node on a dev machine against the fake world - not an Xbox measurement)

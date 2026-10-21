@@ -1249,6 +1249,84 @@
           "volume": 0.7
         }
       ]
+    },
+    "hollow.dread.heartbeat": {
+      "category": "player",
+      "sounds": [
+        {
+          "name": "sounds/hollow/dread/heartbeat_1",
+          "volume": 0.9
+        },
+        {
+          "name": "sounds/hollow/dread/heartbeat_2",
+          "volume": 0.9
+        },
+        {
+          "name": "sounds/hollow/dread/heartbeat_3",
+          "volume": 0.9
+        }
+      ],
+      "subtitle": "subtitles.hollow.dread.heartbeat"
+    },
+    "hollow.dread.breath": {
+      "category": "player",
+      "sounds": [
+        {
+          "name": "sounds/hollow/dread/breath_1",
+          "volume": 0.6
+        },
+        {
+          "name": "sounds/hollow/dread/breath_2",
+          "volume": 0.6
+        }
+      ],
+      "subtitle": "subtitles.hollow.dread.breath"
+    },
+    "hollow.dread.whisper": {
+      "category": "ambient",
+      "sounds": [
+        {
+          "name": "sounds/hollow/dread/whisper_1",
+          "volume": 0.55
+        },
+        {
+          "name": "sounds/hollow/dread/whisper_2",
+          "volume": 0.55
+        },
+        {
+          "name": "sounds/hollow/dread/whisper_3",
+          "volume": 0.55
+        }
+      ],
+      "subtitle": "subtitles.hollow.dread.whisper",
+      "min_distance": 1.0,
+      "max_distance": 8.0
+    },
+    "hollow.dread.vanish": {
+      "category": "ambient",
+      "sounds": [
+        {
+          "name": "sounds/hollow/dread/vanish_1",
+          "volume": 0.6
+        },
+        {
+          "name": "sounds/hollow/dread/vanish_2",
+          "volume": 0.6
+        }
+      ],
+      "subtitle": "subtitles.hollow.dread.vanish",
+      "min_distance": 2.0,
+      "max_distance": 48.0
+    },
+    "hollow.dread.calm": {
+      "category": "player",
+      "sounds": [
+        {
+          "name": "sounds/hollow/dread/calm_1",
+          "volume": 0.7
+        }
+      ],
+      "subtitle": "subtitles.hollow.dread.calm"
     }
   }
 }

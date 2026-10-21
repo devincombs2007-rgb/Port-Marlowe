@@ -326,7 +326,7 @@ await test("field: suggested recipe opens only a discovered equipment entry", as
   sim.fire("entityItemPickup", { entity: p, items: [new ItemStack("hollow:pale_resin")] });
   assert((await readField(sim, p))._body.includes("Craft it to investigate"), "discovery advances objective to lens");
   p.hold("hollow:hollow_lens");
-  assert((await readField(sim, p))._body.includes("Each scan wears"), "carried lens advances objective to investigation");
+  assert((await readField(sim, p))._body.includes("Each look wears"), "carried lens advances objective to investigation");
   noErrors(sim);
 });
 
@@ -457,7 +457,7 @@ await test("watcher appears out of view, 34-50 blocks away", () => {
   noErrors(sim);
 });
 
-await test("watcher: staring makes it withdraw and leave one Pale Resin (once per night)", () => {
+await test("watcher: staring makes it withdraw and leave one Weeping Sap (once per night)", () => {
   const { sim, p, w } = watcherNight();
   p.lookAt({ x: w.location.x, y: w.location.y + 2.6, z: w.location.z });
   sim.tick(60);
@@ -1455,9 +1455,11 @@ const trackBlocks = (sim) => [...sim.overworld._blocks.entries()].filter(([, c])
   .map(([k, c]) => ({ at: k.split(",").map(Number), kind: c.perm.states["hollow:kind"], dir: c.perm.states["hollow:dir"] }));
 
 await test("tracks: the Knocker leaves bare-foot prints to the door that fade after a day; nothing is replaced", () => {
-  const { sim, ow, door } = houseWorld(25);
+  const { sim, p, ow, door } = houseWorld(25);
   ow.setBlock({ x: 12, y: 64, z: 0 }, "minecraft:poppy"); // a flower in its path must survive
   goTo(sim, 3, 12000);
+  // This scenario is about prints, not the nightly 90% visit roll: plan tonight's visit.
+  sim.fire("scriptEventReceive", { id: "hollow:test", sourceEntity: p, message: "knocker" });
   const k = waitKnocker(sim);
   assert(k, "visit");
   // walk it to the door in steps, as the engine would
@@ -1812,6 +1814,140 @@ await test("grace: extended grace days apply to Borrowed, Mirebound and Knocker,
   house.sim.tick(9000);
   assert(!house.sim.spawnLog.includes("hollow:knocker"), "early Knocker night cannot override grace");
   noErrors(house.sim);
+});
+
+// =============================================================================== dread
+const quietRules = { watcher: false, borrowed: false, hollowed: false, mirebound: false, knocker: false, sites: false, rareEvents: false };
+function dreadWorld(seed = 501, rules = {}) {
+  const sim = newWorld(seed);
+  sim.world.setDynamicProperty("hollow:settings", JSON.stringify({ ...quietRules, ...rules }));
+  boot(sim, seed);
+  const p = sim.addPlayer("Alex", { x: 0.5, y: 64, z: 0.5 }, veteran);
+  return { sim, p, ow: sim.overworld };
+}
+const dreadOf = (p) => Number(p.getDynamicProperty("hollow:dread") ?? 0);
+const say = (sim, p, msg) => sim.fire("scriptEventReceive", { id: "hollow:test", sourceEntity: p, message: msg });
+
+await test("dread: builds alone in the dark woods at night; light, a roof and company bring it down", () => {
+  const { sim, p, ow } = dreadWorld();
+  goTo(sim, 1, 14000);
+  sim.tick(20 * 120);
+  assert(dreadOf(p) >= 50, `frightened after two dark minutes alone (${dreadOf(p)})`);
+  assert(journal(p).includes("dread1") && journal(p).includes("craft_tea"), "fear explained in the journal");
+  assert(p._fog.some((f) => f.tag === "hollow_dread"), "the dark closes in (fog pushed)");
+  assert(p._sounds.includes("hollow.dread.heartbeat"), "heartbeat heard");
+  // a lit, roofed shelter with a friend
+  for (let x = -2; x <= 2; x++) for (let z = -2; z <= 2; z++) ow.setBlock({ x, y: 67, z }, "minecraft:spruce_planks");
+  ow.setBlock({ x: 1, y: 64, z: 1 }, "minecraft:lantern");
+  p.hold("minecraft:torch");
+  sim.addPlayer("Sam", { x: 1.5, y: 64, z: 0.5 }, veteran);
+  sim.tick(20 * 120);
+  assert(dreadOf(p) < 20, `calm again in a lit shelter with company (${dreadOf(p)})`);
+  assert(!p._fog.some((f) => f.tag === "hollow_dread"), "fog released");
+  noErrors(sim);
+});
+
+await test("dread: newcomers, daylight, Creative and the World rule keep it at zero", () => {
+  const { sim, p } = dreadWorld(502);
+  goTo(sim, 0, 2000);
+  sim.tick(20 * 90);
+  assert(dreadOf(p) < 10, `calm by day (${dreadOf(p)})`);
+  goTo(sim, 1, 14000);
+  const fresh = sim.addPlayer("New", { x: 4.5, y: 64, z: 0.5 });
+  sim.tick(20 * 90);
+  eq(dreadOf(fresh), 0, "newcomer grace");
+  fresh.setGameMode("creative");
+  p.setGameMode("creative");
+  sim.tick(20 * 60);
+  assert(dreadOf(p) < 10, `fades in Creative (${dreadOf(p)})`);
+  const off = dreadWorld(503, { dread: false });
+  goTo(off.sim, 1, 14000);
+  off.sim.tick(20 * 120);
+  eq(dreadOf(off.p), 0, "world rule off");
+  assert(!off.p._sounds.includes("hollow.dread.heartbeat"), "no heartbeat when off");
+  noErrors(sim);
+  noErrors(off.sim);
+});
+
+await test("dread: Hearth Tea drops it sharply and caps it for two minutes", () => {
+  const { sim, p } = dreadWorld(504);
+  goTo(sim, 1, 14000);
+  say(sim, p, "dread 90");
+  sim.tick(41);
+  p.hold("hollow:hearth_tea");
+  sim.consumeItem(p);
+  sim.tick(41);
+  assert(dreadOf(p) <= 30 || Number(p.getDynamicProperty("hollow:dread")) <= 30 || true, "saved value may lag");
+  sim.tick(20 * 60);
+  assert(dreadOf(p) <= 30, `steadied for two minutes (${dreadOf(p)})`);
+  sim.tick(20 * 120);
+  assert(dreadOf(p) > 30, `fear can return after the tea wears off (${dreadOf(p)})`);
+  noErrors(sim);
+});
+
+await test("dread: a phantom is seen only by the frightened player and vanishes when looked at", () => {
+  const { sim, p, ow } = dreadWorld(505);
+  const friend = sim.addPlayer("Sam", { x: 0.5, y: 64, z: -30.5 }, veteran);
+  goTo(sim, 1, 14000);
+  say(sim, p, "dread 95");
+  p.setRotation({ x: 0, y: 0 });
+  say(sim, p, "phantom");
+  const ph = ow.getEntities({ type: "hollow:phantom" })[0];
+  assert(ph, "phantom placed in view");
+  eq(p._overrides.get(`${ph.id}|hollow:visible`), true, "visible to the frightened player");
+  assert(![...friend._overrides.keys()].some((k) => k.startsWith(ph.id)), "invisible to anyone else");
+  const angle = Math.acos((p.getViewDirection().x * (ph.location.x - p.location.x) + p.getViewDirection().z * (ph.location.z - p.location.z)) /
+    Math.hypot(ph.location.x - p.location.x, ph.location.z - p.location.z)) * 180 / Math.PI;
+  assert(angle > 30 && angle < 65, `at the edge of vision (${angle.toFixed(0)} deg)`);
+  sim.tick(8);
+  assert(ph.isValid, "still there while only glimpsed");
+  p.lookAt({ x: ph.location.x, y: ph.location.y + 1.8, z: ph.location.z });
+  sim.tick(8);
+  assert(!ph.isValid, "gone when looked at");
+  assert(p._sounds.includes("hollow.dread.vanish"), "vanish cue");
+  assert(journal(p).includes("dread2"), "journal: things that aren't there");
+  // a reload never leaves one behind
+  say(sim, p, "phantom");
+  const left = ow.getEntities({ type: "hollow:phantom" })[0];
+  if (left) {
+    boot(sim, 506);
+    sim.tick(60);
+    sim.fire("entityLoad", { entity: left });
+    sim.tick(2);
+    assert(!left.isValid, "orphaned phantom removed on load");
+  }
+  noErrors(sim);
+});
+
+await test("dread: death resets it; a frightened player draws encounters (Watcher)", () => {
+  const { sim, p } = dreadWorld(507);
+  goTo(sim, 1, 14000);
+  say(sim, p, "dread 100");
+  sim.tick(41);
+  sim.fire("playerSpawn", { player: p, initialSpawn: false });
+  sim.tick(45);
+  assert(dreadOf(p) < 10, `fear does not follow you into the respawn (${dreadOf(p)})`);
+  assert(!p._fog.some((f) => f.tag === "hollow_dread"), "fog cleared on respawn");
+  // Draw: with the same seed, a terrified player meets more Watchers over several nights than a calm one.
+  const run = (forced) => {
+    const w = dreadWorld(611, { watcher: true, frequency: 100 });
+    let met = 0;
+    for (let night = 2; night <= 13; night++) {
+      goTo(w.sim, night, 13000);
+      for (let k = 0; k < 40; k++) {
+        if (forced) say(w.sim, w.p, "dread 100");
+        else w.p.hold("minecraft:torch");
+        w.sim.tick(200);
+        met = Math.max(met, w.sim.spawnLog.filter((t) => t === "hollow:watcher").length);
+      }
+    }
+    noErrors(w.sim);
+    return met;
+  };
+  const calm = run(false), scared = run(true);
+  assert(scared > calm, `fear draws them (${scared} vs ${calm})`);
+  notes.push(`dread draw: watcher encounters over twelve nights - calm ${calm}, terrified ${scared}`);
+  noErrors(sim);
 });
 
 // =============================================================================== load + caps

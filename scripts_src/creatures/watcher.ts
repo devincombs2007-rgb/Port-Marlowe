@@ -1,3 +1,4 @@
+import { dreadChance, frighten } from "../core/fear";
 import { Entity, EntityDamageCause, ItemStack, Player, Vector3, world } from "@minecraft/server";
 import { accent, ambient, worldSound } from "../core/audio";
 import { chanceScale, cooldownScale, settings } from "../core/config";
@@ -16,7 +17,7 @@ import { TrackKind, standingPrints, trail } from "../systems/tracks";
 // THE WATCHER
 // Rules (all discoverable, all documented in the journal):
 //  1. Appears only in wooded biomes, from dusk to dawn, 34-50 blocks away, just outside view.
-//  2. Hold your gaze on it for ~1.2 s and it withdraws, leaving Pale Resin (1 per player per night).
+//  2. Hold your gaze on it for ~1.2 s and it withdraws, leaving Weeping Sap (1 per player per night).
 //  3. It only moves while nobody is looking at it. Ignore it and it creeps closer.
 //  4. It will not approach lit places, wards or Heartwood Lanterns, and it never strikes anyone
 //     holding a light. In darkness, unobserved and within 5 blocks, it strikes once and withdraws.
@@ -111,7 +112,7 @@ export function tryStartWatcher(p: Player): boolean {
   if (!c.overworld || !["forest", "open", "shore"].includes(c.biome) || c.underground || c.inWater || c.roofed) return false;
   if (!huntable(p) || rt(p).encounter || !cooldownReady(p, "watcher")) return false;
   if (encounters.size >= Math.min(3, Math.max(1, onlinePlayers().length))) return false;
-  if (!chance(0.1 * chanceScale())) return false;
+  if (!chance(0.1 * chanceScale() * dreadChance(p))) return false;
   if (protectedSpot(p.dimension, p.location)) return false;
 
   const dim = p.dimension;
@@ -152,7 +153,7 @@ export function tryStartWatcher(p: Player): boolean {
     };
     encounters.set(e.id, enc);
     rt(p).encounter = "watcher";
-    setCooldown(p, "watcher", seconds(rand(240, 420) * cooldownScale()));
+    setCooldown(p, "watcher", seconds(rand(240, 420) * cooldownScale() / dreadChance(p)));
     // The forest holds its breath: a near-subliminal hush just before it is noticed.
     ambient(p, SND.hush, { volume: 0.7, minGap: 0, cueGap: 1200 });
     pushFog(p, FOG.watched, "hollow_watch");
@@ -256,6 +257,7 @@ function update(): void {
         for (const o of obs) {
           unlock(o, "watcher1");
           accent(o, SND.stingerDistant, 1);
+          frighten(o, 14);
         }
       }
       if (enc.state === "stalk") setState(e, enc, "lurk");
@@ -301,6 +303,7 @@ function update(): void {
         // A twig snaps right behind you: the readable warning before any strike.
         worldSound(e.dimension, "hollow.watcher.step", e.location, 1.0, 0.8);
         hint(p, "§8...a twig snaps behind you.");
+        frighten(p, 12);
         unlock(p, "watcher3", true);
       }
       if (d <= 5) {

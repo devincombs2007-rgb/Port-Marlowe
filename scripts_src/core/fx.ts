@@ -4,7 +4,7 @@ import { prefs } from "./config";
 // Visual effects are always optional (player preference "Visual effects"). We never force
 // camera shake or flashing; fades are slow and short.
 
-const FOG_TAGS = ["hollow_watch", "hollow_heart", "hollow_mire"];
+const FOG_TAGS = ["hollow_watch", "hollow_heart", "hollow_mire", "hollow_dread"];
 
 export function pushFog(p: Player, fogId: string, tag: string): void {
   if (!prefs(p).visualFx) return;

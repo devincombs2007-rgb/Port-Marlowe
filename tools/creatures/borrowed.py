@@ -9,7 +9,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from hollowkit.model import Model
+from hollowkit.model import Model, add_segment
 from hollowkit.paint import Material, Feature, Painter, ramp
 from hollowkit.export import export_entity
 
@@ -20,6 +20,7 @@ HOOF = ramp("#231d18", "#2f2721", "#3c322a")
 FLESH = ramp("#5c2f2b", "#7a3c36", "#9b5048", "#b86a5f", "#d08b7e")
 BONE = ramp("#9f9583", "#b8ad98", "#d0c6b0", "#e6ddc8")
 MOUTH = ramp("#1a0d0c", "#2a1311", "#3d1b18")
+TOOTH = ramp("#a59d86", "#c1b9a1", "#dcd4bd")
 
 
 def build():
@@ -33,6 +34,15 @@ def build():
     m.bone("spines", "body", pivot=(0, 20, 0))
     for i, z in enumerate((-4, 0, 4)):
         m.cube("spines", (-0.5, 20, z - 0.5), (1, 9 - i, 1), "bone", pivot=(0, 20, z), rotation=(0, 0, (-1) ** i * 12))
+    # flank ribs (true form): curved bone hooks folded flat inside the wool until revealed
+    for side, sx in (("ribs_l", 1), ("ribs_r", -1)):
+        m.bone(side, "body", pivot=(sx * 4.5, 17, 0))
+        for i, z in enumerate((-4.5, -1.0, 2.5)):
+            base = (sx * 4.5, 17.5 - i * 0.4, z)
+            mid = (sx * 9.0, 15.0 - i * 0.4, z - 1.0)
+            tip = (sx * 10.0, 11.0 - i * 0.6, z - 2.6)
+            add_segment(m, side, base, mid, 0.9, "bone")
+            add_segment(m, side, mid, tip, 0.6, "bone")
     # neck + head halves
     m.bone("neck", "body", pivot=(0, 18, -7))
     m.cube("neck", (-3, 14.5, -11.5), (6, 6, 5.5), "wool")
@@ -47,10 +57,16 @@ def build():
     m.cube("head_r", (-5, 18, -12), (2, 1, 3), "skin", pivot=(-3, 18.5, -10.5), rotation=(0, 0, 20))
     # the inner skull: long, pale, toothed - scaled to 0 while disguised
     m.bone("inner", "head", pivot=(0, 17, -10))
-    m.cube("inner", (-1.5, 14.5, -20), (3, 4, 10), "bone")
-    m.cube("inner", (-1.5, 13.5, -19.5), (3, 1, 8), "mouth")
-    for i in range(4):
-        m.cube("inner", (-1.2 + i * 0.8, 13.0, -19 + i * 0.4), (0.4, 1.2, 0.4), "bone")
+    m.cube("inner", (-1.6, 14.6, -21.5), (3.2, 3.6, 11.5), "bone")       # long, horse-like skull
+    m.cube("inner", (-1.2, 18.2, -17.5), (2.4, 0.8, 6.0), "bone")        # crest
+    m.cube("inner", (-1.4, 13.6, -21.0), (2.8, 1.0, 9.5), "mouth")
+    for i in range(7):                                                     # a row of flat, human-looking teeth
+        for sx in (-1, 1):
+            m.cube("inner", (sx * 1.2 - 0.25, 13.3, -20.8 + i * 1.2), (0.5, 1.4, 0.6), "tooth")
+    m.bone("inner_jaw", "inner", pivot=(0, 14.2, -11))
+    m.cube("inner_jaw", (-1.4, 12.2, -20.8), (2.8, 1.2, 9.8), "bone")
+    for i in range(6):
+        m.cube("inner_jaw", (-0.9 + (i % 2) * 1.4, 13.3, -20.4 + i * 1.4), (0.45, 0.9, 0.5), "tooth")
     # legs: a little long for a sheep
     for name, x, z in (("leg_fl", -2.6, -5.0), ("leg_fr", 2.6, -5.0), ("leg_bl", -2.6, 5.5), ("leg_br", 2.6, 5.5)):
         m.bone(name, "root", pivot=(x, 13, z))
@@ -62,17 +78,24 @@ def build():
 
 
 def materials(revealed=False):
-    wool = Material(WOOL, base=0.62, noise=(0.55, 0.28, 3), speckle=(0.1, -0.15), ao=0.25,
-                    spots=dict(scale=0.35, threshold=0.62, ramp=WOOL_WRONG), mers=(0, 0, 250, 90), height_strength=1.0, edge=0.04)
+    wool = Material(WOOL, base=0.62, noise=(0.55, 0.2, 3), speckle=(0.08, -0.12), ao=0.2, detail=0.05,
+                    cells=dict(scale=0.75, mode="bulge", weight=0.32),
+                    spots=dict(scale=0.35, threshold=0.66, ramp=WOOL_WRONG), grime=dict(color="#4a4339", strength=0.55),
+                    mers=(0, 0, 250, 110), height_strength=1.0, edge=0.03)
     if revealed:
-        wool = Material(WOOL, base=0.5, noise=(0.55, 0.35, 3), speckle=(0.12, -0.25), ao=0.25,
-                        spots=dict(scale=0.3, threshold=0.25, ramp=FLESH), mers=(0, 0, 200, 140), height_strength=1.0)
+        wool = Material(WOOL, base=0.5, noise=(0.55, 0.3, 3), speckle=(0.12, -0.25), ao=0.25,
+                        cells=dict(scale=0.75, mode="bulge", weight=0.25),
+                        spots=dict(scale=0.3, threshold=0.18, ramp=FLESH), grime=dict(color="#2a0f0d", strength=0.8),
+                        veins=dict(scale=0.3, threshold=0.982, ramp=ramp("#3a1210", "#521a16"), mers=(0, 0, 120, 220)),
+                        mers=(0, 0, 150, 190), wet=80, height_strength=1.0)
     return {
         "wool": wool,
         "skin": Material(SKIN, base=0.5, noise=(0.6, 0.18, 2), speckle=(0.05, -0.15), ao=0.2, mers=(0, 0, 210, 110)),
         "hoof": Material(HOOF, base=0.5, noise=(0.8, 0.2, 1), mers=(0, 0, 160, 0)),
-        "bone": Material(BONE, base=0.6, noise=(0.7, 0.2, 2), speckle=(0.08, -0.25), mers=(0, 0, 150, 40)),
+        "bone": Material(BONE, base=0.6, noise=(0.7, 0.2, 2), speckle=(0.08, -0.25), bevel=0.05,
+                         grime=dict(color="#4a2018", strength=0.7), mers=(0, 0, 140, 60)),
         "mouth": Material(MOUTH, base=0.4, noise=(1.0, 0.2, 1), mers=(0, 0, 90, 160), ao=0.0, edge=0.0),
+        "tooth": Material(TOOTH, base=0.6, noise=(1.0, 0.2, 1), mers=(0, 0, 80, 40), ao=0.0, edge=0.0),
     }
 
 
@@ -98,19 +121,21 @@ def features():
     ]
 
 
+SKIP = ("inner", "spines", "ribs_l", "ribs_r")
 REVEAL = {"head_l": {"rot": (0, -38, 0)}, "head_r": {"rot": (0, 38, 0)}, "neck": {"pos": (0, 3, -3)},
-          "inner": {"scale": 1.0}, "spines": {"rot": (0, 0, 0)}}
-DISGUISE = {"inner": {"scale": 0.0}, "spines": {"scale": 0.0}}
+          "inner": {"scale": 1.0}, "inner_jaw": {"rot": (24, 0, 0)}, "spines": {"rot": (0, 0, 0)},
+          "ribs_l": {"rot": (0, 0, 0)}, "ribs_r": {"rot": (0, 0, 0)}}
+DISGUISE = {"inner": {"scale": 0.0}, "spines": {"scale": 0.0}, "ribs_l": {"scale": 0.0}, "ribs_r": {"scale": 0.0}}
 
 
 def main():
     m = build()
-    export_entity("borrowed", m, Painter(m, materials(), features(), seed=21), previews=[DISGUISE, REVEAL])
+    export_entity("borrowed", m, Painter(m, materials(), features(), seed=21, scale=2, ao_rays=24, ao_dist=6.0, ao_skip=SKIP), previews=[DISGUISE, REVEAL])
     # revealed texture variant (raw, flayed wool) shares the geometry
     from hollowkit.paint import save_rgba, save_l
     from hollowkit import RP
     import json
-    color, mers, height = Painter(m, materials(revealed=True), features(), seed=21).paint()
+    color, mers, height = Painter(m, materials(revealed=True), features(), seed=21, scale=2, ao_rays=24, ao_dist=6.0, ao_skip=SKIP).paint()
     d = os.path.join(RP, "textures", "entity", "hollow")
     save_rgba(color, os.path.join(d, "borrowed_true.png"))
     save_rgba(mers, os.path.join(d, "borrowed_true_mers.png"))
