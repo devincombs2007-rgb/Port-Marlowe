@@ -1,5 +1,5 @@
 // ../../scripts_src/main.ts
-import { ItemStack as ItemStack15, Player as Player33, system as system18, world as world31 } from "@minecraft/server";
+import { ItemStack as ItemStack15, Player as Player34, system as system18, world as world32 } from "@minecraft/server";
 
 // ../../scripts_src/core/config.ts
 import { PlayerPermissionLevel } from "@minecraft/server";
@@ -164,6 +164,10 @@ var SND = {
   stepHeavy: "hollow.knocker.step",
   stepClaws: "hollow.hollowed.step",
   pistol: "hollow.gun.pistol",
+  rifle: "hollow.gun.rifle",
+  shotgun: "hollow.gun.shotgun",
+  cineFlash: "hollow.cine.flash",
+  cineAlarm: "hollow.cine.alarm",
   distantShot: "hollow.gun.distant",
   dryFire: "hollow.gun.dry",
   reload: "hollow.gun.reload",
@@ -193,7 +197,9 @@ var PARTICLE = {
   pulseRing: "hollow:pulse_ring",
   lensReveal: "hollow:lens_reveal",
   tracks: "hollow:pale_tracks",
-  veinMote: "hollow:vein_mote"
+  veinMote: "hollow:vein_mote",
+  nukePuff: "hollow:nuke_puff",
+  nukeGlow: "hollow:nuke_glow"
 };
 var FOG = {
   watched: "hollow:fog_watched",
@@ -1735,6 +1741,14 @@ var ISLAND_ENTRIES = [
     title: "The Bunkers",
     icon: `${J}shelter`,
     body: "Concrete portals in the hillsides, iron doors (press the button beside them), stairs down to corridors and rooms. Three of them, the Seer says. One is sealed." + P + "§8Bring a light. And a counter."
+  },
+  {
+    id: "mutants",
+    chapter: "threats",
+    island: true,
+    title: "The Island's Animals",
+    icon: `${J}tracks`,
+    body: "Everything that lives here is wrong. Cows with open sores and bald, raw patches. Pigs with tumours like fists. Sheep losing their wool in clumps. Little points of green light in the skin, like the crater water." + P + "The things that walk at night are worse than the mainland's: §lfaster, and they hit harder§r." + P + "§cThe meat is hot.§r Cooked, it adds a little to your dose; raw, a lot. Rations and fish are safer." + P + "§8Seventy years of fallout, generation after generation."
   }
 ];
 
@@ -2127,8 +2141,8 @@ var CRASH_SMOKE = [{ "x": -22, "y": 63, "z": 256 }, { "x": -30, "y": 65, "z": 26
 var CRASH_CONTAINERS = [{ "x": -18, "y": 65, "z": 271 }, { "x": -32, "y": 65, "z": 258 }, { "x": -15, "y": 65, "z": 260 }];
 var CREW_BODIES = [{ "x": -20, "y": 65, "z": 265 }, { "x": -29, "y": 65, "z": 261 }, { "x": -23, "y": 65, "z": 270 }];
 var LOOT_CONTAINERS = [{ "x": -68, "y": 75, "z": 67, "loot": "store_shelf" }, { "x": -78, "y": 75, "z": 67, "loot": "store_wire" }, { "x": -52, "y": 75, "z": 18, "loot": "police_armory" }, { "x": 37, "y": 69, "z": -39, "loot": "pens_shed" }, { "x": 165, "y": 77, "z": -13, "loot": "station1_log" }, { "x": 21, "y": 70, "z": -19, "loot": "station2_log" }, { "x": -63, "y": 75, "z": 17, "loot": "station3_log" }, { "x": -185, "y": 80, "z": 11, "loot": "station4_log" }, { "x": 237, "y": 64, "z": 69, "loot": "station5_log" }, { "x": 19, "y": 158, "z": -207, "loot": "station6_log" }, { "x": 76, "y": 58, "z": -113, "loot": "bunker1_armory" }, { "x": 67, "y": 58, "z": -120, "loot": "bunker1_records" }, { "x": 76, "y": 58, "z": -133, "loot": "bunker1_lab" }, { "x": 67, "y": 58, "z": -134, "loot": "bunker1_bunks" }, { "x": -122, "y": 63, "z": -53, "loot": "bunker2_tubes" }, { "x": -126, "y": 63, "z": -65, "loot": "bunker2_records" }, { "x": -133, "y": 63, "z": -53, "loot": "bunker2_bunks" }, { "x": 184, "y": 59, "z": -171, "loot": "bunker3_lab" }, { "x": 169, "y": 59, "z": -178, "loot": "bunker3_generator" }, { "x": 187, "y": 59, "z": -179, "loot": "bunker3_records" }, { "x": 15, "y": 163, "z": -226, "loot": "tower_hut" }, { "x": 187, "y": 65, "z": 260, "loot": "dock_battery" }, { "x": -149, "y": 75, "z": -180, "loot": "shrine_offerings" }, { "x": -150, "y": 68, "z": -184, "loot": "shrine_vault" }, { "x": -128, "y": 79, "z": -167, "loot": "hut0" }, { "x": -141, "y": 79, "z": -156, "loot": "hut1" }, { "x": -158, "y": 79, "z": -157, "loot": "hut2" }, { "x": -168, "y": 79, "z": -170, "loot": "hut3" }, { "x": -165, "y": 79, "z": -187, "loot": "hut4" }, { "x": -151, "y": 79, "z": -196, "loot": "hut5" }, { "x": -135, "y": 79, "z": -192, "loot": "hut6" }, { "x": 227, "y": 65, "z": 31, "loot": "mangrove_hut" }, { "x": 267, "y": 60, "z": 58, "loot": "landing_craft" }];
-var CONSOLES = { "station1": { "x": 164, "y": 76, "z": -12 }, "station2": { "x": 20, "y": 69, "z": -18 }, "station3": { "x": -64, "y": 74, "z": 18 }, "station4": { "x": -186, "y": 79, "z": 12 }, "station5": { "x": 236, "y": 63, "z": 70 }, "station6": { "x": 18, "y": 157, "z": -206 }, "tower": { "x": 18, "y": 163, "z": -224 }, "generator": { "x": 9, "y": 164, "z": -233 } };
-var POINTS = { "mannequin": [{ "x": -97, "y": 75, "z": 35 }, { "x": -95, "y": 75, "z": 35 }, { "x": -92, "y": 75, "z": 34 }, { "x": -84, "y": 75, "z": 35 }, { "x": -82, "y": 75, "z": 35 }, { "x": -50, "y": 75, "z": 35 }, { "x": -48, "y": 75, "z": 35 }, { "x": -37, "y": 75, "z": 35 }, { "x": -35, "y": 75, "z": 35 }, { "x": -32, "y": 75, "z": 34 }, { "x": -97, "y": 75, "z": 53 }, { "x": -95, "y": 75, "z": 53 }, { "x": -84, "y": 75, "z": 53 }, { "x": -82, "y": 75, "z": 53 }, { "x": -50, "y": 75, "z": 53 }, { "x": -48, "y": 75, "z": 53 }, { "x": -45, "y": 75, "z": 52 }, { "x": -37, "y": 75, "z": 53 }, { "x": -35, "y": 75, "z": 53 }, { "x": -76, "y": 75, "z": 20 }, { "x": -74, "y": 75, "z": 20 }, { "x": -58, "y": 75, "z": 68 }, { "x": -56, "y": 75, "z": 68 }, { "x": -53, "y": 75, "z": 67 }, { "x": -71, "y": 75, "z": 70 }, { "x": 64, "y": 58, "z": -136 }, { "x": -136, "y": 63, "z": -55 }], "town_square": [{ "x": -64, "y": 74, "z": 44 }], "pen": [{ "x": 11, "y": 69, "z": -45 }, { "x": 27, "y": 69, "z": -45 }, { "x": 11, "y": 69, "z": -31 }, { "x": 27, "y": 69, "z": -31 }], "station": [{ "x": 164, "y": 76, "z": -12 }, { "x": 20, "y": 69, "z": -18 }, { "x": -64, "y": 74, "z": 18 }, { "x": -186, "y": 79, "z": 12 }, { "x": 236, "y": 63, "z": 70 }, { "x": 18, "y": 157, "z": -206 }], "sealed_lab": [{ "x": 76, "y": 58, "z": -130 }, { "x": 184, "y": 59, "z": -168 }], "cave_mouth": [{ "x": 86, "y": 56, "z": -159 }, { "x": -197, "y": 81, "z": -76 }, { "x": 199, "y": 57, "z": -206 }], "bunker1_inside": [{ "x": 70, "y": 58, "z": -114 }], "bunker_deep": [{ "x": 70, "y": 58, "z": -137 }, { "x": -143, "y": 63, "z": -62 }, { "x": 178, "y": 59, "z": -189 }], "bunker1_door": [{ "x": 70, "y": 71, "z": -98 }], "bunker2_sinkhole": [{ "x": -197, "y": 80, "z": -76 }], "bunker2_inside": [{ "x": -120, "y": 63, "z": -62 }], "bunker2_door": [{ "x": -104, "y": 76, "z": -62 }], "bunker3_inside": [{ "x": 178, "y": 59, "z": -166 }], "bunker3_door": [{ "x": 178, "y": 72, "z": -150 }], "tower_lamp": [{ "x": 18, "y": 193, "z": -232 }], "tower_top": [{ "x": 18, "y": 197, "z": -232 }], "tower_hut": [{ "x": 18, "y": 163, "z": -225 }], "generator": [{ "x": 9, "y": 163, "z": -232 }], "dock_end": [{ "x": 192, "y": 64, "z": 290 }], "boathouse": [{ "x": 184, "y": 65, "z": 258 }], "cult_gate": [{ "x": -150, "y": 75, "z": -144 }], "shrine": [{ "x": -150, "y": 75, "z": -178 }], "hierophant": [{ "x": -150, "y": 75, "z": -174 }], "vault_shaft": [{ "x": -150, "y": 71, "z": -182 }], "cult_home": [{ "x": -130, "y": 79, "z": -169 }, { "x": -143, "y": 79, "z": -158 }, { "x": -160, "y": 79, "z": -159 }, { "x": -170, "y": 79, "z": -172 }, { "x": -167, "y": 79, "z": -189 }, { "x": -153, "y": 79, "z": -198 }, { "x": -137, "y": 79, "z": -194 }, { "x": 226, "y": 65, "z": 32 }, { "x": 240, "y": 65, "z": 26 }, { "x": 232, "y": 65, "z": 50 }], "garden": [{ "x": -162, "y": 75, "z": -182 }, { "x": -138, "y": 75, "z": -180 }], "cult_post": [{ "x": -149, "y": 75, "z": -165 }, { "x": -153, "y": 75, "z": -165 }, { "x": -153, "y": 75, "z": -190 }, { "x": -139, "y": 75, "z": -186 }, { "x": -151, "y": 75, "z": -190 }, { "x": -139, "y": 75, "z": -185 }, { "x": 236, "y": 65, "z": 38 }], "landing_craft": [{ "x": 264, "y": 60, "z": 58 }], "watcher_seat": [{ "x": -163, "y": 75, "z": 11 }, { "x": -162, "y": 76, "z": 12 }, { "x": -161, "y": 77, "z": 13 }, { "x": -160, "y": 78, "z": 14 }, { "x": -163, "y": 75, "z": 15 }], "bleachers": [{ "x": -160, "y": 74, "z": 14 }], "heart_arena": [{ "x": 112, "y": 13, "z": -12 }], "gz_shaft": [{ "x": 112, "y": 75, "z": -62 }] };
+var CONSOLES = { "station1": { "x": 164, "y": 76, "z": -12 }, "station2": { "x": 20, "y": 69, "z": -18 }, "station3": { "x": -64, "y": 74, "z": 18 }, "station4": { "x": -186, "y": 79, "z": 12 }, "station5": { "x": 236, "y": 63, "z": 70 }, "station6": { "x": 18, "y": 157, "z": -206 }, "tower": { "x": 18, "y": 163, "z": -224 }, "generator": { "x": 9, "y": 164, "z": -233 }, "pro_hut1": { "x": 2431, "y": 67, "z": 0 }, "pro_hut2": { "x": 2385, "y": 67, "z": 26 }, "pro_hut3": { "x": 2385, "y": 67, "z": -26 }, "pro_tower": { "x": 2404, "y": 68, "z": 0 } };
+var POINTS = { "mannequin": [{ "x": -97, "y": 75, "z": 35 }, { "x": -95, "y": 75, "z": 35 }, { "x": -92, "y": 75, "z": 34 }, { "x": -84, "y": 75, "z": 35 }, { "x": -82, "y": 75, "z": 35 }, { "x": -50, "y": 75, "z": 35 }, { "x": -48, "y": 75, "z": 35 }, { "x": -37, "y": 75, "z": 35 }, { "x": -35, "y": 75, "z": 35 }, { "x": -32, "y": 75, "z": 34 }, { "x": -97, "y": 75, "z": 53 }, { "x": -95, "y": 75, "z": 53 }, { "x": -84, "y": 75, "z": 53 }, { "x": -82, "y": 75, "z": 53 }, { "x": -50, "y": 75, "z": 53 }, { "x": -48, "y": 75, "z": 53 }, { "x": -45, "y": 75, "z": 52 }, { "x": -37, "y": 75, "z": 53 }, { "x": -35, "y": 75, "z": 53 }, { "x": -76, "y": 75, "z": 20 }, { "x": -74, "y": 75, "z": 20 }, { "x": -58, "y": 75, "z": 68 }, { "x": -56, "y": 75, "z": 68 }, { "x": -53, "y": 75, "z": 67 }, { "x": -71, "y": 75, "z": 70 }, { "x": 64, "y": 58, "z": -136 }, { "x": -136, "y": 63, "z": -55 }, { "x": 2359, "y": 67, "z": -14 }, { "x": 2361, "y": 67, "z": -14 }, { "x": 2359, "y": 67, "z": 4 }, { "x": 2361, "y": 67, "z": 4 }, { "x": 2373, "y": 68, "z": 22 }, { "x": 2375, "y": 68, "z": 22 }], "town_square": [{ "x": -64, "y": 74, "z": 44 }], "pen": [{ "x": 11, "y": 69, "z": -45 }, { "x": 27, "y": 69, "z": -45 }, { "x": 11, "y": 69, "z": -31 }, { "x": 27, "y": 69, "z": -31 }], "station": [{ "x": 164, "y": 76, "z": -12 }, { "x": 20, "y": 69, "z": -18 }, { "x": -64, "y": 74, "z": 18 }, { "x": -186, "y": 79, "z": 12 }, { "x": 236, "y": 63, "z": 70 }, { "x": 18, "y": 157, "z": -206 }], "sealed_lab": [{ "x": 76, "y": 58, "z": -130 }, { "x": 184, "y": 59, "z": -168 }], "cave_mouth": [{ "x": 86, "y": 56, "z": -159 }, { "x": -197, "y": 81, "z": -76 }, { "x": 199, "y": 57, "z": -206 }], "bunker1_inside": [{ "x": 70, "y": 58, "z": -114 }], "bunker_deep": [{ "x": 70, "y": 58, "z": -137 }, { "x": -143, "y": 63, "z": -62 }, { "x": 178, "y": 59, "z": -189 }], "bunker1_door": [{ "x": 70, "y": 71, "z": -98 }], "bunker2_sinkhole": [{ "x": -197, "y": 80, "z": -76 }], "bunker2_inside": [{ "x": -120, "y": 63, "z": -62 }], "bunker2_door": [{ "x": -104, "y": 76, "z": -62 }], "bunker3_inside": [{ "x": 178, "y": 59, "z": -166 }], "bunker3_door": [{ "x": 178, "y": 72, "z": -150 }], "tower_lamp": [{ "x": 18, "y": 193, "z": -232 }], "tower_top": [{ "x": 18, "y": 197, "z": -232 }], "tower_hut": [{ "x": 18, "y": 163, "z": -225 }], "generator": [{ "x": 9, "y": 163, "z": -232 }], "dock_end": [{ "x": 192, "y": 64, "z": 290 }], "boathouse": [{ "x": 184, "y": 65, "z": 258 }], "cult_gate": [{ "x": -150, "y": 75, "z": -144 }], "shrine": [{ "x": -150, "y": 75, "z": -178 }], "hierophant": [{ "x": -150, "y": 75, "z": -174 }], "vault_shaft": [{ "x": -150, "y": 71, "z": -182 }], "cult_home": [{ "x": -130, "y": 79, "z": -169 }, { "x": -143, "y": 79, "z": -158 }, { "x": -160, "y": 79, "z": -159 }, { "x": -170, "y": 79, "z": -172 }, { "x": -167, "y": 79, "z": -189 }, { "x": -153, "y": 79, "z": -198 }, { "x": -137, "y": 79, "z": -194 }, { "x": 226, "y": 65, "z": 32 }, { "x": 240, "y": 65, "z": 26 }, { "x": 232, "y": 65, "z": 50 }], "garden": [{ "x": -162, "y": 75, "z": -182 }, { "x": -138, "y": 75, "z": -180 }], "cult_post": [{ "x": -149, "y": 75, "z": -165 }, { "x": -153, "y": 75, "z": -165 }, { "x": -153, "y": 75, "z": -190 }, { "x": -139, "y": 75, "z": -186 }, { "x": -151, "y": 75, "z": -190 }, { "x": -139, "y": 75, "z": -185 }, { "x": 236, "y": 65, "z": 38 }], "landing_craft": [{ "x": 264, "y": 60, "z": 58 }], "watcher_seat": [{ "x": -163, "y": 75, "z": 11 }, { "x": -162, "y": 76, "z": 12 }, { "x": -161, "y": 77, "z": 13 }, { "x": -160, "y": 78, "z": 14 }, { "x": -163, "y": 75, "z": 15 }], "bleachers": [{ "x": -160, "y": 74, "z": 14 }], "heart_arena": [{ "x": 112, "y": 13, "z": -12 }], "gz_shaft": [{ "x": 112, "y": 75, "z": -62 }], "pro_bunker": [{ "x": 2400, "y": 66, "z": 42 }], "pro_slit": [{ "x": 2400, "y": 68, "z": 39 }], "pro_start": [{ "x": 2394, "y": 66, "z": -40 }], "pro_ship": [{ "x": 2478, "y": 65, "z": -50 }, { "x": 2316, "y": 65, "z": 58 }] };
 
 // ../../scripts_src/island/mode.ts
 var cached;
@@ -2426,7 +2440,7 @@ function fieldNotes(p, has) {
   const c = ctx(p, 0);
   const s = settings();
   const t = tod();
-  const phase = t < 12e3 ? "daylight" : t < 13e3 ? "dusk" : t < 23200 ? "night" : "dawn";
+  const phase2 = t < 12e3 ? "daylight" : t < 13e3 ? "dusk" : t < 23200 ? "night" : "dawn";
   const carried2 = /* @__PURE__ */ new Set();
   const inv = p.getComponent("minecraft:inventory")?.container;
   if (inv) for (let i = 0; i < inv.size; i++) {
@@ -2468,7 +2482,7 @@ function fieldNotes(p, has) {
   }
   if (!has(recipe)) recipe = "";
   return {
-    body: `§7Day ${hollowDay() + 1} · ${phase} · ${terrain}
+    body: `§7Day ${hollowDay() + 1} · ${phase2} · ${terrain}
 §7Light: ${light}
 §7Equipment: ${protection}
 §7Movement: ${noiseDescription(p)}
@@ -3138,8 +3152,8 @@ var GUNS = {
     range: 90,
     falloffFrom: 60,
     reloadTicks: 48,
-    sound: SND.pistol,
-    pitch: 0.7,
+    sound: SND.rifle,
+    pitch: 1,
     noise: 64,
     shake: 0.4,
     journal: "gear_rifle"
@@ -3155,8 +3169,8 @@ var GUNS = {
     range: 22,
     falloffFrom: 8,
     reloadTicks: 40,
-    sound: SND.pistol,
-    pitch: 0.55,
+    sound: SND.shotgun,
+    pitch: 1,
     noise: 56,
     shake: 0.45,
     journal: "gear_shotgun"
@@ -3608,12 +3622,12 @@ function clearMarker(a) {
   }
   a.marker = void 0;
 }
-function travel(e, a, to, phase) {
+function travel(e, a, to, phase2) {
   clearMarker(a);
   const g = groundNear(dim(), to.x, to.y, to.z, 6, 2) ?? to;
   const spot = { x: Math.floor(g.x), y: Math.floor(g.y), z: Math.floor(g.z) };
   a.target = spot;
-  a.phase = phase;
+  a.phase = phase2;
   a.since = world10.getAbsoluteTime();
   a.arrived = false;
   try {
@@ -4009,7 +4023,7 @@ function begin(e, o) {
   }
   save3();
 }
-function endJob(done2) {
+function endJob(done3) {
   const s = st3();
   const a = s.cur;
   if (!a) return;
@@ -4018,7 +4032,7 @@ function endJob(done2) {
   save3();
   const e = trevorEntity();
   if (e) e.triggerEvent("hollow:job_stop");
-  if (done2 && s.queue.length === 0) {
+  if (done3 && s.queue.length === 0) {
     const owner = world10.getAllPlayers().find((p) => p.id === a.order.by);
     if (owner && a.order.kind !== "goto" && a.order.kind !== "camp") orderFollow(owner, true);
     else orderHold(void 0, true);
@@ -4114,8 +4128,8 @@ function gatherStep(e, a, phaseAge, setPhase2) {
   if (a.phase === "working") {
     work(e);
     if (o.kind === "food" && a.target && phaseAge < 160) return;
-    const done2 = chew(e, a, o.kind === "chop" ? 3 : 2);
-    if (!done2) return;
+    const done3 = chew(e, a, o.kind === "chop" ? 3 : 2);
+    if (!done3) return;
     a.n++;
     setPhase2("search");
   }
@@ -4230,9 +4244,9 @@ function buildStep(e, a, _phaseAge, setPhase2) {
   }
   if (a.phase === "building" && o.at) {
     const origin = { x: Math.floor(o.at.x), y: Math.floor(o.at.y), z: Math.floor(o.at.z) };
-    let done2 = false;
-    for (let i = 0; i < 2 && !done2; i++) done2 = placeNext(a, origin, o.facing ?? 0);
-    if (done2) {
+    let done3 = false;
+    for (let i = 0; i < 2 && !done3; i++) done3 = placeNext(a, origin, o.facing ?? 0);
+    if (done3) {
       st3().stats.built++;
       save3();
       say(pick([`Done. ${PLAN_NAMES[plan2][0].toUpperCase()}${PLAN_NAMES[plan2].slice(1)}. Not pretty, but it'll hold.`, "Finished. Somebody owes me a drink."]));
@@ -6367,11 +6381,11 @@ function hpFraction(e) {
   const h = e.getComponent("minecraft:health");
   return h ? h.currentValue / Math.max(1, h.effectiveMax) : 1;
 }
-function toPhase(dim2, heart, phase) {
-  boss.phase = phase;
+function toPhase(dim2, heart, phase2) {
+  boss.phase = phase2;
   worldSound(dim2, SND.heartPhase, heart.location, 1);
   const players = arenaPlayers();
-  if (phase === 2) {
+  if (phase2 === 2) {
     try {
       heart.triggerEvent("hollow:phase_2");
       heart.triggerEvent("hollow:shield");
@@ -6392,7 +6406,7 @@ function toPhase(dim2, heart, phase) {
       worldSound(dim2, SND.heartSpawn, at, 0.8);
     }
     for (const p of players) hint(p, "§7The veins grow back. Young ones crawl from the roots. They hunt by sound.");
-  } else if (phase === 3) {
+  } else if (phase2 === 3) {
     try {
       heart.triggerEvent("hollow:phase_3");
     } catch {
@@ -6567,20 +6581,20 @@ function onHeartDied(id) {
 function forgetBossPlayer(p) {
   popFog(p, "hollow_heart");
 }
-function forceBossPhase(phase) {
+function forceBossPhase(phase2) {
   if (!load().active || !boss.heartId) return "no Heart is awake (use the altar first)";
   const heart = world17.getEntity(boss.heartId);
   const h = heart?.getComponent("minecraft:health");
   if (!heart || !h) return "the Heart is not loaded; stand in the arena";
   const set = (f) => h.setCurrentValue(Math.max(1, Math.floor(h.effectiveMax * f)));
-  if (phase <= 2) set(0.55);
+  if (phase2 <= 2) set(0.55);
   else if (boss.phase < 2) {
     set(0.55);
     later("test.phase3", 20, () => {
       if (heart.isValid) set(0.2);
     });
   } else set(0.2);
-  return `the Heart drops to phase ${phase}`;
+  return `the Heart drops to phase ${phase2}`;
 }
 function startHeart() {
   load();
@@ -8329,45 +8343,140 @@ function startDirector() {
   everyPlayer("director", PERIOD2, evaluate);
 }
 
+// ../../scripts_src/island/leaves.ts
+import { ItemStack as ItemStack12, system as system13, world as world24 } from "@minecraft/server";
+var LOG2 = (id) => id.endsWith("_log") || id.endsWith("_wood");
+var LEAF2 = (id) => id.endsWith("_leaves");
+var SAPLING = {
+  "minecraft:oak_leaves": "minecraft:oak_sapling",
+  "minecraft:birch_leaves": "minecraft:birch_sapling",
+  "minecraft:spruce_leaves": "minecraft:spruce_sapling",
+  "minecraft:jungle_leaves": "minecraft:jungle_sapling",
+  "minecraft:dark_oak_leaves": "minecraft:dark_oak_sapling",
+  "minecraft:mangrove_leaves": "minecraft:mangrove_propagule"
+};
+function decayAround(at) {
+  const dim2 = world24.getDimension("overworld");
+  const logs = [];
+  const leaves = [];
+  for (let dx = -9; dx <= 9; dx++) for (let dy = -6; dy <= 10; dy++) for (let dz = -9; dz <= 9; dz++) {
+    const p = { x: at.x + dx, y: at.y + dy, z: at.z + dz };
+    let id;
+    try {
+      id = dim2.getBlock(p)?.typeId;
+    } catch {
+      return 0;
+    }
+    if (!id) continue;
+    if (LOG2(id)) logs.push(p);
+    else if (LEAF2(id) && Math.abs(dx) <= 5 && dy >= -3 && dy <= 7 && Math.abs(dz) <= 5) leaves.push(p);
+  }
+  const supported = (p) => logs.some((l) => {
+    const ax = Math.abs(l.x - p.x), ay = Math.abs(l.y - p.y), az = Math.abs(l.z - p.z);
+    return ax <= 4 && ay <= 4 && az <= 4 && ax + ay + az <= 6;
+  });
+  const doomed = leaves.filter((p) => !supported(p)).slice(0, 260);
+  doomed.sort((a, b) => Math.hypot(a.x - at.x, a.z - at.z) - Math.hypot(b.x - at.x, b.z - at.z));
+  let i = 0;
+  const run = system13.runInterval(() => safe("leaves.fall", () => {
+    for (let k = 0; k < 6; k++) {
+      const p = doomed[i++];
+      if (!p) {
+        system13.clearRun(run);
+        return;
+      }
+      const b = dim2.getBlock(p);
+      if (!b || !LEAF2(b.typeId)) continue;
+      const id = b.typeId;
+      b.setType("minecraft:air");
+      const r = Math.random();
+      const drop2 = r < 0.05 ? SAPLING[id] : r < 0.08 ? "minecraft:stick" : r < 0.09 && id === "minecraft:oak_leaves" ? "minecraft:apple" : void 0;
+      if (drop2) dim2.spawnItem(new ItemStack12(drop2, 1), { x: p.x + 0.5, y: p.y + 0.5, z: p.z + 0.5 });
+    }
+  }), 2);
+  return doomed.length;
+}
+function startLeaves() {
+  world24.afterEvents.playerBreakBlock.subscribe((ev) => safe("leaves", () => {
+    if (!isIsland() || ev.dimension.id !== "minecraft:overworld") return;
+    const id = ev.brokenBlockPermutation.type.id;
+    if (!LOG2(id)) return;
+    const at = ev.block.location;
+    system13.runTimeout(() => safe("leaves.decay", () => void decayAround(at)), 30);
+  }));
+}
+
+// ../../scripts_src/island/cult.ts
+import { BlockPermutation as BlockPermutation7, ItemStack as ItemStack13, world as world27 } from "@minecraft/server";
+import { ActionFormData as ActionFormData5 } from "@minecraft/server-ui";
+
+// ../../scripts_src/island/scenes.ts
+import { EasingType as EasingType2, Entity as Entity17, GameMode as GameMode10, system as system15, world as world26 } from "@minecraft/server";
+
 // ../../scripts_src/island/cinematic.ts
 import {
+  BlockVolume as BlockVolume3,
   CameraShakeType,
   EasingType,
   Entity as Entity16,
   GameMode as GameMode9,
   HudVisibility,
   InputPermissionCategory,
-  system as system13,
-  world as world24
+  LocationWaypoint as LocationWaypoint2,
+  MolangVariableMap as MolangVariableMap2,
+  Player as Player27,
+  WaypointTexture as WaypointTexture2,
+  system as system14,
+  world as world25
 } from "@minecraft/server";
 var D = { x: SITES.DIORAMA.x, z: SITES.DIORAMA.z };
 var GROUND2 = 66;
 var BURST = { x: D.x, y: GROUND2 + 65, z: D.z };
 var C = SITES.CRASH;
-var running2 = false;
+var L_SEA = 62;
+var v = (x, y, z) => ({ x, y, z });
+var pt = (k, fallback) => (POINTS[k] ?? [])[0] ?? fallback;
+var START = () => pt("pro_start", v(D.x - 6, GROUND2 + 1, D.z - 40));
+var BUNKER = () => pt("pro_bunker", v(D.x, GROUND2 - 1, D.z + 42));
+var SLIT = () => pt("pro_slit", v(D.x, GROUND2 + 1, D.z + 39));
+var TASKS = [
+  ["pro_hut1", "the dosimeter in the east hut"],
+  ["pro_hut2", "the dosimeter in the south-west hut"],
+  ["pro_hut3", "the dosimeter in the north-west hut"],
+  ["pro_tower", "the firing timer at the foot of the tower"]
+];
+var phase = "idle";
 var tick6 = 0;
+var proTick = 0;
 var crashY = SPAWN_POINT.y - 1;
 var viewers = [];
+var done2 = /* @__PURE__ */ new Set();
 var sneakTicks = /* @__PURE__ */ new Map();
 var skipped = /* @__PURE__ */ new Set();
 var props = /* @__PURE__ */ new Map();
+var marks = /* @__PURE__ */ new Map();
 var onFinish;
+var caption;
+var loop;
 function cinematicRunning() {
-  return running2;
+  return phase !== "idle";
 }
 function cinematicDone() {
-  return world24.getDynamicProperty(DP.cine) === 1;
+  return world25.getDynamicProperty(DP.cine) === 1;
 }
-var v = (x, y, z) => ({ x, y, z });
-function enterScene(p, anchor) {
-  enter(p, anchor);
-}
-function enter(p, anchor) {
+function remember(p) {
+  if (needsRestore(p)) return;
   const r = { gm: p.getGameMode(), x: p.location.x, y: p.location.y, z: p.location.z };
   writeEntity(p, DP.cineRestore, r);
+}
+function enterScene(p, anchor2) {
+  enter(p, anchor2);
+}
+function enter(p, anchor2) {
+  remember(p);
   try {
     p.setGameMode(GameMode9.Spectator);
-    p.teleport(anchor);
+    p.teleport(anchor2);
     p.inputPermissions.setPermissionCategory(InputPermissionCategory.Movement, false);
     p.inputPermissions.setPermissionCategory(InputPermissionCategory.Camera, false);
     p.onScreenDisplay.hideAllExcept([]);
@@ -8382,7 +8491,16 @@ function leave(p, at) {
     p.inputPermissions.setPermissionCategory(InputPermissionCategory.Camera, true);
     p.onScreenDisplay.setHudVisibility(HudVisibility.Reset);
     p.onScreenDisplay.setActionBar(" ");
+    for (const e of ["resistance", "saturation", "weakness"]) p.removeEffect(e);
   } catch {
+  }
+  const m = marks.get(p.id);
+  if (m) {
+    try {
+      p.locatorBar.removeWaypoint(m);
+    } catch {
+    }
+    marks.delete(p.id);
   }
   if (r && typeof r.gm === "string") {
     try {
@@ -8408,7 +8526,8 @@ function each(fn) {
     }
   }
 }
-function cam(location, facing, ease = 0, type = EasingType.Linear) {
+function cam(location, facing, ease = 0, type = EasingType.InOutSine) {
+  if (!facing) return;
   each((p) => {
     const easeOptions = ease > 0 ? { easeTime: ease, easeType: type } : void 0;
     if (facing instanceof Entity16) {
@@ -8421,10 +8540,11 @@ function cam(location, facing, ease = 0, type = EasingType.Linear) {
 function fade(r, g, b, fadeIn, hold, fadeOut) {
   each((p) => p.camera.fade({ fadeColor: { red: r, green: g, blue: b }, fadeTime: { fadeInTime: fadeIn, holdTime: hold, fadeOutTime: fadeOut } }));
 }
-function title(text, sub2, stay = 70) {
-  each((p) => p.onScreenDisplay.setTitle(text, { subtitle: sub2, fadeInDuration: 15, stayDuration: stay, fadeOutDuration: 25 }));
+function title(text, sub2, stay = 100) {
+  each((p) => p.onScreenDisplay.setTitle(text, { subtitle: sub2, fadeInDuration: 20, stayDuration: stay, fadeOutDuration: 30 }));
 }
-function line(text) {
+function say2(text, ticks = 110) {
+  caption = { text, until: tick6 + ticks };
   each((p) => p.onScreenDisplay.setActionBar(text));
 }
 function sound(id, volume = 1, pitch = 1) {
@@ -8439,9 +8559,12 @@ function shake(intensity, seconds2) {
     }
   });
 }
+function anchor(at) {
+  each((p) => p.teleport(at));
+}
 function spawn(key, type, at) {
   try {
-    const e = world24.getDimension("overworld").spawnEntity(type, at);
+    const e = world25.getDimension("overworld").spawnEntity(type, at);
     props.set(key, e);
     return e;
   } catch {
@@ -8464,17 +8587,75 @@ function drop(key) {
   } catch {
   }
 }
-function setFires() {
-  const dim2 = world24.getDimension("overworld");
+function fill3(from, to, block2, only) {
+  try {
+    world25.getDimension("overworld").fillBlocks(
+      new BlockVolume3(from, to),
+      block2,
+      only ? { blockFilter: { includeTypes: only }, ignoreChunkBoundErrors: true } : { ignoreChunkBoundErrors: true }
+    );
+  } catch {
+  }
+}
+var LEAVES = ["minecraft:oak_leaves", "minecraft:jungle_leaves", "minecraft:spruce_leaves", "minecraft:birch_leaves", "minecraft:dark_oak_leaves"];
+var LOGS2 = ["minecraft:oak_log", "minecraft:jungle_log", "minecraft:spruce_log", "minecraft:birch_log", "minecraft:dark_oak_log"];
+var PLANTS = ["minecraft:short_grass", "minecraft:tall_grass", "minecraft:fern", "minecraft:large_fern", "minecraft:poppy", "minecraft:dandelion"];
+function scar() {
+  const R = 24;
+  let col = 0;
+  const cols = [];
+  for (let dx = -R - 6; dx <= R + 6; dx++) {
+    for (let dz = -R - 6; dz <= R + 6; dz++) {
+      const d = Math.hypot(dx, dz);
+      if (d <= R + 6) cols.push([dx, dz, d]);
+    }
+  }
+  fill3(v(D.x - 3, GROUND2 + 1, D.z - 3), v(D.x + 3, GROUND2 + 33, D.z + 3), "minecraft:air");
+  const job = system14.runInterval(() => safe("cine.crater", () => {
+    for (let k = 0; k < 300 && col < cols.length; k++, col++) {
+      const [dx, dz, d] = cols[col];
+      const x = D.x + dx;
+      const z = D.z + dz;
+      if (d < R) {
+        const depth = Math.round(11 * (1 - (d / R) ** 2)) + 1;
+        const floor = GROUND2 - depth;
+        fill3(v(x, floor + 1, z), v(x, GROUND2 + 2, z), "minecraft:air");
+        const glass = d < R * 0.55 ? Math.random() < 0.5 ? "minecraft:green_stained_glass" : "minecraft:lime_stained_glass" : "minecraft:blackstone";
+        fill3(v(x, floor - 1, z), v(x, floor, z), glass);
+      } else {
+        const lip = Math.round(2.5 * (1 - (d - R) / 6));
+        if (lip > 0) fill3(v(x, GROUND2 + 1, z), v(x, GROUND2 + lip, z), Math.random() < 0.6 ? "minecraft:coarse_dirt" : "minecraft:gravel");
+      }
+    }
+    if (col >= cols.length) {
+      system14.clearRun(job);
+      scorch();
+    }
+  }), 1);
+}
+function scorch() {
+  const R = 72;
+  for (let x0 = -R; x0 < R; x0 += 24) {
+    for (let z0 = -R; z0 < R; z0 += 24) {
+      const a = v(D.x + x0, GROUND2 - 6, D.z + z0);
+      const b = v(D.x + x0 + 23, GROUND2 + 6, D.z + z0 + 23);
+      fill3(a, b, "minecraft:coarse_dirt", ["minecraft:grass_block"]);
+      fill3(v(a.x, GROUND2 - 6, a.z), v(b.x, GROUND2 + 30, b.z), "minecraft:air", [...LEAVES, ...PLANTS]);
+      fill3(v(a.x, GROUND2 - 6, a.z), v(b.x, GROUND2 + 30, b.z), "minecraft:basalt", LOGS2);
+    }
+  }
+}
+function setFires(n0) {
+  const dim2 = world25.getDimension("overworld");
   let n = 0;
-  for (let i = 0; i < 360 && n < 260; i++) {
+  for (let i = 0; i < 400 && n < n0; i++) {
     const a = Math.random() * Math.PI * 2;
-    const r = 8 + Math.random() * 58;
+    const r = 26 + Math.random() * 44;
     const x = Math.floor(D.x + Math.cos(a) * r);
     const z = Math.floor(D.z + Math.sin(a) * r);
     try {
       const top = dim2.getTopmostBlock({ x, z });
-      if (!top || top.location.y < 62 || top.isLiquid) continue;
+      if (!top || top.location.y < L_SEA || top.isLiquid) continue;
       const above = dim2.getBlock({ x, y: top.location.y + 1, z });
       if (above?.isAir) {
         above.setType("minecraft:fire");
@@ -8484,180 +8665,386 @@ function setFires() {
     }
   }
 }
-var bomberPath = (t) => v(D.x - 130 + (t - 240) * 1.45, 172, D.z - 26);
-var RELEASE = 300;
+function billow(age) {
+  const dim2 = world25.getDimension("overworld");
+  const px = 2.5;
+  const capY = BURST.y + (-22 + Math.min(22, Math.max(0, age - 1.5) * 1.55)) * px + 22 * px;
+  const capS = age < 1.5 ? 0 : Math.min(1, 0.3 + (age - 1.5) * 0.055);
+  const stemTop = GROUND2 - 1 + Math.min(1, Math.max(0, (age - 2) / 14)) * (capY - GROUND2);
+  const puffs = [];
+  const gray = Math.max(0, Math.min(1, (age - 6) / 20));
+  for (let i = 0; i < 6 && capS > 0; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const r = (8 + Math.random() * 18) * capS * px;
+    const hot = 1 - gray;
+    puffs.push([
+      v(D.x + Math.cos(a) * r, capY + (Math.random() - 0.4) * 9 * capS * px * 0.4, D.z + Math.sin(a) * r),
+      14 + Math.random() * 12,
+      0.85 - 0.25 * hot * Math.random(),
+      0.62 + 0.2 * gray,
+      0.45 + 0.3 * gray,
+      8,
+      0.25
+    ]);
+  }
+  for (let i = 0; i < 3 && age > 2; i++) {
+    const y = GROUND2 + Math.random() * Math.max(1, stemTop - GROUND2);
+    puffs.push([
+      v(D.x + (Math.random() - 0.5) * 12, y, D.z + (Math.random() - 0.5) * 12),
+      10 + Math.random() * 6,
+      0.72,
+      0.68,
+      0.64,
+      7,
+      0.6
+    ]);
+  }
+  if (age > 2 && age < 22) {
+    const a = Math.random() * Math.PI * 2;
+    const r = Math.min(60, 10 + (age - 2) * 4.5);
+    puffs.push([v(D.x + Math.cos(a) * r, GROUND2 + 2, D.z + Math.sin(a) * r), 12, 0.8, 0.78, 0.74, 6, 0.1]);
+  }
+  for (const [at, size, r, g, b, life, rise2] of puffs) {
+    try {
+      const m = new MolangVariableMap2();
+      m.setFloat("variable.size", size);
+      m.setFloat("variable.r", r);
+      m.setFloat("variable.g", g);
+      m.setFloat("variable.b", b);
+      m.setFloat("variable.life", life);
+      m.setFloat("variable.rise", rise2);
+      dim2.spawnParticle(PARTICLE.nukePuff, at, m);
+    } catch {
+    }
+  }
+  if (age < 8) {
+    try {
+      const m = new MolangVariableMap2();
+      m.setFloat("variable.size", 40 - age * 3);
+      m.setFloat("variable.life", 1.5);
+      m.setFloat("variable.rise", 2);
+      dim2.spawnParticle(PARTICLE.nukeGlow, v(BURST.x, BURST.y + Math.max(0, age - 1) * 5.5, BURST.z), m);
+    } catch {
+    }
+  }
+}
+function mark(p, at) {
+  const old = marks.get(p.id);
+  try {
+    if (old) p.locatorBar.removeWaypoint(old);
+  } catch {
+  }
+  marks.delete(p.id);
+  if (!at) return;
+  try {
+    const wp = new LocationWaypoint2(
+      { dimension: p.dimension, x: at.x + 0.5, y: at.y, z: at.z + 0.5 },
+      { textureBoundsList: [{ lowerBound: 0, texture: WaypointTexture2.Circle }] },
+      { red: 1, green: 0.72, blue: 0.15 }
+    );
+    p.locatorBar.addWaypoint(wp);
+    marks.set(p.id, wp);
+  } catch {
+  }
+}
+function nextTask(p) {
+  let best;
+  let d = Infinity;
+  for (const [k, what] of TASKS) {
+    const c = CONSOLES[k];
+    if (!c || done2.has(k)) continue;
+    const dd = Math.hypot(c.x - p.location.x, c.z - p.location.z);
+    if (dd < d) {
+      d = dd;
+      best = [k, what, c];
+    }
+  }
+  return best;
+}
+function tasksLeft() {
+  return TASKS.filter(([k]) => CONSOLES[k] && !done2.has(k)).length;
+}
+function enterPrologue(p) {
+  remember(p);
+  try {
+    p.camera.clear();
+    p.setGameMode(GameMode9.Adventure);
+    p.teleport(START(), { facingLocation: v(D.x, GROUND2 + 20, D.z) });
+    p.addEffect("resistance", 20 * 60 * 20, { amplifier: 255, showParticles: false });
+    p.addEffect("saturation", 20 * 60 * 20, { amplifier: 1, showParticles: false });
+    p.onScreenDisplay.setHudVisibility(HudVisibility.Reset);
+    p.onScreenDisplay.setTitle("§l7 MAY 1957", { subtitle: "§7Varrow Island · Operation SUNLAMP · H minus 40 minutes", fadeInDuration: 20, stayDuration: 120, fadeOutDuration: 30 });
+    p.playSound(SND.cineWind, { volume: 0.9 });
+    p.sendMessage(`§7You are §fDr. ${p.name}§7, radiological safety, Joint Task Force 9.
+§7Check the dosimeters, set the firing timer, then get to the observation bunker on the south shore.`);
+  } catch {
+  }
+}
+var RADIO = [
+  [200, "§7[CONTROL] §fAll stations, Control. H minus forty minutes. Dosimeter checks, please."],
+  [900, "§7[HALE] §fDoc, it's Walter Hale on the tower crew. Timer panel's at the foot of the tower when you're ready."],
+  [1700, "§7[CONTROL] §fH minus twenty. Clear the inner zone. Observers to shelter."],
+  [2600, "§7[CONTROL] §fH minus ten. All personnel into the bunkers. This is not a drill."]
+];
+function prologueFrame() {
+  proTick++;
+  const people = watching();
+  for (const [t, line] of RADIO) {
+    if (proTick === t) {
+      for (const p of people) {
+        p.sendMessage(line);
+        p.playSound(SND.cineRadio, { volume: 0.7 });
+      }
+    }
+  }
+  const allDone = tasksLeft() === 0;
+  const bunker = BUNKER();
+  const inBunker = (p) => Math.hypot(p.location.x - (bunker.x + 0.5), p.location.z - (bunker.z + 0.5)) < 5.5 && Math.abs(p.location.y - bunker.y) < 4;
+  if (proTick % 20 === 0) {
+    for (const p of people) {
+      if (Math.hypot(p.location.x - D.x, p.location.z - D.z) > 88 || p.location.y < L_SEA - 4) {
+        p.teleport(START(), { facingLocation: v(D.x, GROUND2 + 20, D.z) });
+        p.sendMessage("§7[CONTROL] §fYou're outside the test area, Doctor. Back to your post.");
+      }
+      const task = allDone ? void 0 : nextTask(p);
+      const target2 = task ? task[2] : bunker;
+      mark(p, target2);
+      const dist3 = Math.round(Math.hypot(target2.x - p.location.x, target2.z - p.location.z));
+      const text = task ? `§6▶ Check ${task[1]} §7(${dist3} m) §8· ${TASKS.length - tasksLeft()}/${TASKS.length}` : inBunker(p) ? "§6▶ Wait in the bunker. §7Face the slit." : `§6▶ Get to the observation bunker §7(${dist3} m, south shore)`;
+      p.onScreenDisplay.setActionBar(`${text}
+§8Hold Sneak to skip the opening`);
+    }
+  }
+  if (proTick === 20 * 60 * 5 && !allDone) {
+    for (const p of people) p.sendMessage("§7[CONTROL] §fWe're out of time, Doctor. Bunker. Now.");
+    for (const [k] of TASKS) done2.add(k);
+  }
+  const ready2 = people.length > 0 && people.every(inBunker);
+  if (allDone && ready2 || proTick > 20 * 60 * 6) startShot();
+}
+function onButton(p, at) {
+  if (phase !== "prologue") return;
+  for (const [k, what] of TASKS) {
+    const c = CONSOLES[k];
+    if (!c || c.x !== at.x || c.y !== at.y || c.z !== at.z || done2.has(k)) continue;
+    done2.add(k);
+    const left = tasksLeft();
+    for (const q of watching()) {
+      q.playSound("random.click", { volume: 1, pitch: 0.8 });
+      q.sendMessage(k === "pro_tower" ? `§7[HALE] §fTimer's armed. Thanks, Doc. See you on the other side of it. §8(${TASKS.length - left}/${TASKS.length})` : `§7${p.name} checks ${what}: §fbackground normal. §8(${TASKS.length - left}/${TASKS.length})`);
+      if (left === 0) {
+        q.sendMessage("§7[CONTROL] §fAll checks in. Everyone to the observation bunker on the south shore.");
+        q.playSound(SND.cineAlarm, { volume: 0.7 });
+      }
+    }
+  }
+}
+var FLASH = 340;
+var bomberPath = (t) => v(D.x - 180 + (t - 100) * 0.92, 172, D.z - 18);
+var RELEASE = 220;
 var bombPath = (t) => {
-  const u = Math.min(1, (t - RELEASE) / 120);
+  const u = Math.min(1, (t - RELEASE) / (FLASH - RELEASE));
   const start2 = bomberPath(RELEASE);
   return v(start2.x + (BURST.x - start2.x) * (1 - (1 - u) ** 2), start2.y - (start2.y - BURST.y) * u * u, start2.z + (BURST.z - start2.z) * u);
 };
+var H0 = 1265;
 var HELI_FROM = () => v(C.x + 26, crashY + 30, C.z + 175);
 var HELI_TO = () => v(C.x + 6, crashY + 24, C.z + 38);
 var heliPath = (t) => {
-  const u = Math.min(1, (t - 940) / 200);
+  const u = Math.min(1, (t - H0) / 335);
   const a = HELI_FROM();
   const b = HELI_TO();
   return v(a.x + (b.x - a.x) * u, a.y + (b.y - a.y) * u, a.z + (b.z - a.z) * u);
 };
+var EYE = () => {
+  const s = SLIT();
+  return v(s.x + 0.5, s.y + 0.6, s.z + 1.6);
+};
 var STEPS = [
   [1, () => {
-    fade(0, 0, 0, 0, 4, 1.5);
-    title("§l7 MAY 1957", "§7Operation SUNLAMP  ·  Varrow Island", 80);
-    sound(SND.cineWind, 0.9);
+    fade(0, 0, 0, 0.3, 0.6, 1.2);
+    each((p) => {
+      p.onScreenDisplay.hideAllExcept([]);
+      p.inputPermissions.setPermissionCategory(InputPermissionCategory.Movement, false);
+      p.inputPermissions.setPermissionCategory(InputPermissionCategory.Camera, false);
+    });
   }],
-  [80, () => cam(v(D.x + 110, 96, D.z + 95), v(D.x, GROUND2 + 10, D.z))],
-  [82, () => cam(v(D.x + 72, 92, D.z + 112), v(D.x, GROUND2 + 14, D.z), 8, EasingType.InOutSine)],
+  [10, () => {
+    cam(EYE(), v(D.x, GROUND2 + 26, D.z));
+    say2("§7[CONTROL] §fAll stations, H minus two minutes. Goggles down. Face away from the island.");
+    sound(SND.cineRadio, 0.8);
+  }],
+  [70, () => say2("§7[HALE] §fGoggles on, Doc. Here she comes.")],
   [100, () => {
-    sound(SND.cineCountdown, 0.9);
-    line("§7[RADIO] §fSunlamp, this is Control. H minus two minutes. All stations report.");
-  }],
-  [170, () => line("§7[RADIO] §fStation four, cameras running. Goggles down, all hands. Face away from the island.")],
-  [240, () => {
-    spawn("bomber", ENT.bomber, bomberPath(240));
+    spawn("bomber", ENT.bomber, bomberPath(100));
     sound(SND.cineBomber, 1);
-    const b = props.get("bomber");
-    if (b) cam(v(D.x - 70, 150, D.z + 18), b);
-    line("§7[RADIO] §fControl, Sunlamp One. Final run, bomb-bay doors coming open.");
+    say2("§7[SUNLAMP ONE] §fControl, Sunlamp One. Final run. Bomb-bay doors coming open.");
   }],
-  [262, () => {
-    const b = props.get("bomber");
-    if (b) cam(v(D.x - 10, 160, D.z + 24), b, 2.2, EasingType.InOutSine);
-  }],
-  [284, () => props.get("bomber")?.setProperty("hollow:open", true)],
-  [288, () => {
-    const b = props.get("bomber");
-    if (b) cam(v(bomberPath(300).x - 10, 158, D.z - 14), b);
-  }],
+  [112, () => cam(EYE(), props.get("bomber"))],
+  [170, () => props.get("bomber")?.setProperty("hollow:open", true)],
   [RELEASE, () => {
     spawn("bomb", ENT.bomb, bombPath(RELEASE));
-    sound(SND.cineWhistle, 0.8);
-    line("§7[RADIO] §fBomb away. Bomb away.");
+    sound(SND.cineWhistle, 0.9);
+    say2("§7[SUNLAMP ONE] §fBomb away. Bomb away.");
   }],
-  [326, () => {
-    const bomb = props.get("bomb");
-    if (bomb) cam(v(D.x - 34, 178, D.z + 34), bomb);
+  [228, () => cam(EYE(), props.get("bomb"))],
+  [250, () => {
+    sound(SND.cineCountdown, 1);
+    say2("§7[CONTROL] §fYield telemetry coming in...", 60);
   }],
-  [380, () => props.get("bomber")?.setProperty("hollow:open", false)],
-  [405, () => {
-    cam(v(D.x + 92, 104, D.z + 64), BURST);
-    line(" ");
+  [300, () => {
+    sound(SND.cineRadio, 1, 1.1);
+    say2("§c[HALE] §fThose numbers are wrong. That's three times the estimate. §lGet down!", 60);
   }],
-  [420, () => {
+  [FLASH, () => {
     drop("bomb");
-    fade(1, 1, 1, 0.05, 3.2, 5.5);
-    sound(SND.ringing, 0.9);
+    fade(1, 1, 1, 0.02, 5.2, 0.01);
+    sound(SND.cineFlash, 1);
+    shake(0.9, 3.5);
     spawn("cloud", ENT.mushroomCloud, BURST);
-    shake(0.08, 2);
+    say2(" ", 1);
   }],
-  [430, setFires],
-  [436, setFires],
-  [450, () => drop("bomber")],
-  [500, () => cam(v(D.x + 108, 106, D.z + 80), BURST, 9, EasingType.InOutSine)],
-  [540, () => {
+  [346, scar],
+  [352, () => sound(SND.ringing, 1)],
+  [380, () => setFires(180)],
+  [420, () => {
+    fade(0, 0, 0, 1.4, 6.5, 1.6);
+    each((p) => p.onScreenDisplay.setTitle(`§fDr. ${p.name}`, { subtitle: "§7Radiological Safety Officer · died 7 May 1957", fadeInDuration: 30, stayDuration: 110, fadeOutDuration: 30 }));
+  }],
+  [440, () => drop("bomber")],
+  [540, () => title("§7Operation SUNLAMP", "§fPredicted yield: 3 megatons. Actual: 11.", 90)],
+  [600, () => {
+    anchor(v(D.x + 50, 110, D.z - 30));
+    cam(v(D.x + 120, 82, D.z - 92), v(D.x, 138, D.z));
+  }],
+  [602, () => cam(v(D.x + 140, 88, D.z - 60), v(D.x, 142, D.z), 8)],
+  [620, () => {
     sound(SND.cineBoom, 1);
-    shake(0.55, 4.5);
+    shake(0.45, 4);
   }],
-  [640, () => cam(v(D.x + 82, L_SEA + 6, D.z - 46), v(D.x, BURST.y + 20, D.z))],
-  [642, () => cam(v(D.x + 70, L_SEA + 8, D.z - 54), v(D.x, BURST.y + 40, D.z), 6, EasingType.InOutSine)],
-  [760, () => {
-    cam(v(D.x - 26, GROUND2 + 9, D.z + 44), v(D.x, GROUND2 + 4, D.z));
+  [780, () => cam(v(D.x - 150, 70, D.z + 70), v(D.x, 150, D.z))],
+  [782, () => cam(v(D.x - 120, 96, D.z + 118), v(D.x, 150, D.z), 7)],
+  [800, () => title("", "§7as the fleet saw it, nine miles out", 80)],
+  [930, () => {
+    cam(v(D.x + 46, 118, D.z + 56), v(D.x, GROUND2 - 6, D.z));
+    sound(SND.cineFire, 1);
+    setFires(120);
+  }],
+  [932, () => cam(v(D.x - 34, 104, D.z + 50), v(D.x, GROUND2 - 4, D.z), 7)],
+  [960, () => title("§fGround Zero", "§7the crater, and the island burning", 90)],
+  [1080, () => {
+    cam(v(D.x - 30, GROUND2 + 9, D.z + 48), v(D.x, GROUND2 + 4, D.z));
     sound(SND.cineFire, 0.9);
   }],
-  [762, () => cam(v(D.x + 6, GROUND2 + 12, D.z + 40), v(D.x - 4, GROUND2 + 3, D.z), 6, EasingType.InOutSine)],
-  [880, () => {
-    fade(0, 0, 0, 1.2, 3.5, 1.5);
-    title("§l2026", "§7Sixty-nine years later", 70);
+  [1082, () => cam(v(D.x + 6, GROUND2 + 12, D.z + 44), v(D.x - 4, GROUND2 + 3, D.z), 6)],
+  [1190, () => {
+    fade(0, 0, 0, 1.4, 4, 1.6);
+    title("§l2026", "§7Sixty-nine years later", 90);
   }],
-  [905, () => {
+  [1225, () => {
     drop("cloud");
-    each((p) => p.teleport(v(C.x, crashY + 56, C.z + 100)));
+    try {
+      world25.setTimeOfDay(7e3);
+    } catch {
+    }
+    anchor(v(C.x, crashY + 56, C.z + 100));
   }],
-  [930, () => sound(SND.cineRotor, 0.9)],
-  [940, () => {
-    const h = spawn("heli", ENT.helicopter, heliPath(940));
+  [1255, () => sound(SND.cineRotor, 1)],
+  [H0, () => {
+    const h = spawn("heli", ENT.helicopter, heliPath(H0));
     if (h) cam(v(C.x + 44, crashY + 36, C.z + 196), h);
-    line("§7[RADIO] §fMeridian Four-One, island in sight. Coming in from the south, low.");
+    say2("§7[OKAFOR] §fMeridian Four-One, island in sight. Coming in from the south, low.", 120);
   }],
-  [1e3, () => {
+  [1390, () => {
     sound(SND.cineRadio, 0.8);
-    line("§7[OKAFOR] §fThat's the crater. Look at that... the water's green.");
+    say2("§7[OKAFOR] §fThat's the crater. Look at that. The water's green.", 110);
   }],
-  [1060, () => line("§7[HALE] §fSmoke on the north-west shore. Somebody's living down there.")],
-  [1100, () => {
-    cam(v(C.x - 24, crashY + 6, C.z - 14), props.get("heli") ?? v(C.x, crashY + 24, C.z + 40));
-  }],
-  [1112, () => muzzle(0)],
-  [1122, () => muzzle(1)],
-  [1130, () => {
+  [1490, () => say2("§7[HALE] §fSmoke on the north-west shore. Somebody's living down there.", 100)],
+  [1560, () => cam(v(C.x - 24, crashY + 6, C.z - 14), props.get("heli") ?? v(C.x, crashY + 24, C.z + 40))],
+  [1572, () => muzzle(0)],
+  [1584, () => muzzle(1)],
+  [1594, () => {
     muzzle(2);
-    sound("random.glass", 0.9, 0.9);
-    sound(SND.cineRadio, 0.9, 1.15);
-    line("§c[OKAFOR] §fTaking fire! Taking f—");
+    sound("random.glass", 1, 0.9);
+    sound(SND.cineRadio, 1, 1.15);
+    say2("§c[OKAFOR] §fTaking fire! Taking f—", 60);
   }],
-  [1140, () => muzzle(0)],
-  [1152, () => muzzle(1)],
-  [1165, () => line("§c[LINDQVIST] §fDan's hit! I have it, I have the controls! Brace!")],
-  [1180, () => cam(v(C.x + 40, crashY + 8, C.z + 24), props.get("heli") ?? v(C.x, crashY + 10, C.z))],
-  [1268, () => fade(0, 0, 0, 0.1, 4.5, 2.5)],
-  [1276, () => {
+  [1606, () => muzzle(0)],
+  [1618, () => muzzle(1)],
+  [1630, () => {
+    say2("§c[LINDQVIST] §fDan's hit! I have the controls! Brace, brace!", 80);
+    cam(v(C.x + 40, crashY + 8, C.z + 24), props.get("heli") ?? v(C.x, crashY + 10, C.z));
+  }],
+  [1722, () => fade(0, 0, 0, 0.1, 4.5, 2.5)],
+  [1730, () => {
     sound(SND.cineImpact, 1);
     shake(0.7, 1.4);
     drop("heli");
-    line(" ");
+    say2(" ", 1);
   }],
-  [1330, () => finish()]
+  [1790, () => finish()]
 ];
-var L_SEA = 62;
 function muzzle(k) {
   const at = v(C.x - 18 + k * 3, crashY + 3 + k % 2, C.z - 10 - k * 2);
-  const dim2 = world24.getDimension("overworld");
+  const dim2 = world25.getDimension("overworld");
   try {
     dim2.spawnParticle("minecraft:basic_flame_particle", at);
     dim2.spawnParticle("minecraft:basic_smoke_particle", at);
-    dim2.playSound(SND.pistol, at, { volume: 1, pitch: 0.72 });
   } catch {
+  }
+  sound(SND.rifle, 0.9, 0.95 + k * 0.03);
+}
+function shotFrame() {
+  tick6++;
+  for (const [at, fn] of STEPS) if (at === tick6) safe(`cine.${at}`, fn);
+  if (caption && tick6 < caption.until && tick6 % 30 === 0) each((p) => p.onScreenDisplay.setActionBar(caption.text));
+  if (tick6 >= 100 && tick6 <= 440) move("bomber", bomberPath(tick6), -90);
+  if (tick6 > RELEASE && tick6 < FLASH) {
+    const u = (tick6 - RELEASE) / (FLASH - RELEASE);
+    move("bomb", bombPath(tick6), -90, 10 + u * 70);
+  }
+  if (tick6 > FLASH && tick6 < 1225 && tick6 % 6 === 0) safe("cine.billow", () => billow((tick6 - FLASH) / 20));
+  if (tick6 >= H0 && tick6 < 1630) move("heli", heliPath(tick6), 180);
+  if (tick6 >= 1630 && tick6 < 1730) {
+    const u = (tick6 - 1630) / 100;
+    const a = HELI_TO();
+    const p = v(a.x + (C.x - a.x) * u, a.y + (crashY + 2 - a.y) * u * u, a.z + (C.z - a.z) * u);
+    move("heli", p, 180 + (tick6 - 1630) ** 1.35 * 2.2, 8 + u * 10);
+  }
+}
+function startShot() {
+  if (phase !== "prologue") return;
+  phase = "shot";
+  tick6 = 0;
+  for (const p of watching()) {
+    mark(p, void 0);
+    enter(p, EYE());
   }
 }
 function frame() {
-  tick6++;
-  for (const [at, fn] of STEPS) if (at === tick6) safe(`cine.${at}`, fn);
-  if (tick6 >= 240 && tick6 <= 450) {
-    move("bomber", bomberPath(tick6), -90);
-  }
-  if (tick6 > RELEASE && tick6 < 420) {
-    const u = (tick6 - RELEASE) / 120;
-    move("bomb", bombPath(tick6), -90, 10 + u * 70);
-  }
-  if (tick6 >= 940 && tick6 < 1180) move("heli", heliPath(tick6), 180);
-  if (tick6 >= 1180 && tick6 < 1276) {
-    const u = (tick6 - 1180) / 96;
-    const a = HELI_TO();
-    const p = v(a.x + (C.x - a.x) * u, a.y + (crashY + 2 - a.y) * u * u, a.z + (C.z - a.z) * u);
-    move("heli", p, 180 + (tick6 - 1180) ** 1.35 * 2.2, 8 + u * 10);
-  }
   for (const p of watching()) {
-    if (tick6 < 40) continue;
     const n = p.isSneaking ? (sneakTicks.get(p.id) ?? 0) + 1 : 0;
     sneakTicks.set(p.id, n);
-    if (n === 1 && tick6 % 200 < 2) p.onScreenDisplay.setActionBar("§8Hold Sneak to skip");
-    if (n >= 20) {
+    if (n >= 40) {
       skipped.add(p.id);
       leave(p, spawnPoint());
       onFinish?.(p);
     }
   }
-  if (watching().length === 0 && tick6 > 2) finish();
+  if (phase === "prologue") prologueFrame();
+  else if (phase === "shot") shotFrame();
+  if (watching().length === 0 && (phase === "shot" ? tick6 > 2 : proTick > 2)) finish();
 }
 function spawnPoint() {
   return v(SPAWN_POINT.x + 0.5, SPAWN_POINT.y, SPAWN_POINT.z + 0.5);
 }
-var loop;
 function finish() {
-  if (!running2) return;
-  running2 = false;
-  if (loop !== void 0) system13.clearRun(loop);
+  if (phase === "idle") return;
+  phase = "idle";
+  if (loop !== void 0) system14.clearRun(loop);
+  loop = void 0;
   for (const k of [...props.keys()]) drop(k);
-  world24.setDynamicProperty(DP.cine, 1);
+  world25.setDynamicProperty(DP.cine, 1);
   for (const p of watching()) {
     leave(p, spawnPoint());
     onFinish?.(p);
@@ -8665,92 +9052,51 @@ function finish() {
   viewers = [];
 }
 function playCinematic(players, then) {
-  if (running2) return false;
-  running2 = true;
+  if (phase !== "idle") return false;
+  phase = "prologue";
   tick6 = 0;
+  proTick = 0;
+  caption = void 0;
   onFinish = then;
+  done2.clear();
   skipped.clear();
   sneakTicks.clear();
   viewers = players.filter((p) => p.isValid);
-  for (const p of viewers) enter(p, v(D.x, 150, D.z + 40));
-  loop = system13.runInterval(() => safe("cinematic", frame), 1);
+  try {
+    world25.setTimeOfDay(1500);
+  } catch {
+  }
+  for (const p of viewers) enterPrologue(p);
+  loop = system14.runInterval(() => safe("cinematic", frame), 1);
   return true;
 }
+function joinCinematic(p) {
+  if (phase !== "prologue" || !p.isValid) return false;
+  viewers.push(p);
+  enterPrologue(p);
+  return true;
+}
+function skipToShot() {
+  if (phase !== "prologue") return "the opening isn't in its first part";
+  for (const [k] of TASKS) done2.add(k);
+  startShot();
+  return "the shot";
+}
 function replayCinematic(p) {
-  if (running2) return "the cinematic is already playing";
+  if (phase !== "idle") return "the cinematic is already playing";
   playCinematic([p], () => void 0);
   return "playing the opening (hold Sneak to skip)";
 }
-
-// ../../scripts_src/island/leaves.ts
-import { ItemStack as ItemStack12, system as system14, world as world25 } from "@minecraft/server";
-var LOG2 = (id) => id.endsWith("_log") || id.endsWith("_wood");
-var LEAF2 = (id) => id.endsWith("_leaves");
-var SAPLING = {
-  "minecraft:oak_leaves": "minecraft:oak_sapling",
-  "minecraft:birch_leaves": "minecraft:birch_sapling",
-  "minecraft:spruce_leaves": "minecraft:spruce_sapling",
-  "minecraft:jungle_leaves": "minecraft:jungle_sapling",
-  "minecraft:dark_oak_leaves": "minecraft:dark_oak_sapling",
-  "minecraft:mangrove_leaves": "minecraft:mangrove_propagule"
-};
-function decayAround(at) {
-  const dim2 = world25.getDimension("overworld");
-  const logs = [];
-  const leaves = [];
-  for (let dx = -9; dx <= 9; dx++) for (let dy = -6; dy <= 10; dy++) for (let dz = -9; dz <= 9; dz++) {
-    const p = { x: at.x + dx, y: at.y + dy, z: at.z + dz };
-    let id;
-    try {
-      id = dim2.getBlock(p)?.typeId;
-    } catch {
-      return 0;
-    }
-    if (!id) continue;
-    if (LOG2(id)) logs.push(p);
-    else if (LEAF2(id) && Math.abs(dx) <= 5 && dy >= -3 && dy <= 7 && Math.abs(dz) <= 5) leaves.push(p);
-  }
-  const supported = (p) => logs.some((l) => {
-    const ax = Math.abs(l.x - p.x), ay = Math.abs(l.y - p.y), az = Math.abs(l.z - p.z);
-    return ax <= 4 && ay <= 4 && az <= 4 && ax + ay + az <= 6;
-  });
-  const doomed = leaves.filter((p) => !supported(p)).slice(0, 260);
-  doomed.sort((a, b) => Math.hypot(a.x - at.x, a.z - at.z) - Math.hypot(b.x - at.x, b.z - at.z));
-  let i = 0;
-  const run = system14.runInterval(() => safe("leaves.fall", () => {
-    for (let k = 0; k < 6; k++) {
-      const p = doomed[i++];
-      if (!p) {
-        system14.clearRun(run);
-        return;
-      }
-      const b = dim2.getBlock(p);
-      if (!b || !LEAF2(b.typeId)) continue;
-      const id = b.typeId;
-      b.setType("minecraft:air");
-      const r = Math.random();
-      const drop2 = r < 0.05 ? SAPLING[id] : r < 0.08 ? "minecraft:stick" : r < 0.09 && id === "minecraft:oak_leaves" ? "minecraft:apple" : void 0;
-      if (drop2) dim2.spawnItem(new ItemStack12(drop2, 1), { x: p.x + 0.5, y: p.y + 0.5, z: p.z + 0.5 });
-    }
-  }), 2);
-  return doomed.length;
-}
-function startLeaves() {
-  world25.afterEvents.playerBreakBlock.subscribe((ev) => safe("leaves", () => {
-    if (!isIsland() || ev.dimension.id !== "minecraft:overworld") return;
-    const id = ev.brokenBlockPermutation.type.id;
-    if (!LOG2(id)) return;
-    const at = ev.block.location;
-    system14.runTimeout(() => safe("leaves.decay", () => void decayAround(at)), 30);
+function startCinematic() {
+  world25.afterEvents.buttonPush.subscribe((ev) => safe("cine.button", () => {
+    if (ev.source instanceof Player27) onButton(ev.source, ev.block.location);
   }));
 }
-
-// ../../scripts_src/island/cult.ts
-import { BlockPermutation as BlockPermutation7, ItemStack as ItemStack13, world as world27 } from "@minecraft/server";
-import { ActionFormData as ActionFormData5 } from "@minecraft/server-ui";
+function cinematicSummary() {
+  return `cine: ${phase} pro=${proTick} shot=${tick6} tasks=${TASKS.length - tasksLeft()}/${TASKS.length}`;
+}
 
 // ../../scripts_src/island/scenes.ts
-import { EasingType as EasingType2, Entity as Entity17, GameMode as GameMode10, system as system15, world as world26 } from "@minecraft/server";
 var current;
 var queue = [];
 function sceneRunning() {
@@ -9401,7 +9747,7 @@ function openVault(dim2 = world27.getDimension("overworld")) {
 function onRound(e) {
   const dim2 = e.dimension;
   const nearest3 = world27.getAllPlayers().reduce((d, p) => Math.min(d, Math.hypot(p.location.x - e.location.x, p.location.z - e.location.z)), 1e9);
-  if (nearest3 < 40) worldSound(dim2, SND.pistol, e.location, 1, 0.68 + Math.random() * 0.06);
+  if (nearest3 < 40) worldSound(dim2, SND.rifle, e.location, 1, 0.95 + Math.random() * 0.1);
   else worldSound(dim2, SND.distantShot, e.location, 0.9);
   particle(dim2, "minecraft:basic_smoke_particle", e.location);
   emitNoise({ dim: dim2, at: e.location, radius: 48, kind: "gunshot" });
@@ -9694,7 +10040,7 @@ function spawnHeli(at) {
     return void 0;
   }
 }
-function fly(from, to, ticks, yaw, done2) {
+function fly(from, to, ticks, yaw, done3) {
   if (flight !== void 0) system16.clearRun(flight);
   let t = 0;
   flight = system16.runInterval(() => safe("tower.fly", () => {
@@ -9710,7 +10056,7 @@ function fly(from, to, ticks, yaw, done2) {
     if (k >= 1) {
       if (flight !== void 0) system16.clearRun(flight);
       flight = void 0;
-      done2();
+      done3();
     }
   }), 1);
 }
@@ -9902,8 +10248,75 @@ function startTower() {
   every("tower.heli", 10, () => isIsland() && holdLanded(), 5);
 }
 
+// ../../scripts_src/island/mutants.ts
+import { Player as Player31, world as world29 } from "@minecraft/server";
+var HOSTILE = /* @__PURE__ */ new Set([
+  "minecraft:zombie",
+  "minecraft:husk",
+  "minecraft:drowned",
+  "minecraft:skeleton",
+  "minecraft:stray",
+  "minecraft:bogged",
+  "minecraft:spider",
+  "minecraft:cave_spider",
+  "minecraft:creeper",
+  "minecraft:witch",
+  "minecraft:slime",
+  "minecraft:zombie_villager"
+]);
+var MEAT = {
+  "minecraft:beef": 45,
+  "minecraft:porkchop": 45,
+  "minecraft:mutton": 45,
+  "minecraft:chicken": 50,
+  "minecraft:rabbit": 45,
+  "minecraft:cooked_beef": 18,
+  "minecraft:cooked_porkchop": 18,
+  "minecraft:cooked_mutton": 18,
+  "minecraft:cooked_chicken": 20,
+  "minecraft:cooked_rabbit": 18,
+  "minecraft:rabbit_stew": 14,
+  "minecraft:rotten_flesh": 60
+};
+var LONG = 20 * 60 * 60 * 24 * 7;
+var warned = /* @__PURE__ */ new Map();
+function harden(e) {
+  try {
+    e.addEffect("speed", LONG, { amplifier: 0, showParticles: false });
+    e.addEffect("strength", LONG, { amplifier: 0, showParticles: false });
+    if (Math.random() < 0.25) e.addEffect("resistance", LONG, { amplifier: 0, showParticles: false });
+  } catch {
+  }
+}
+function ate(p, id) {
+  const dose = MEAT[id];
+  if (!dose) return;
+  const s = radState(p);
+  setDose(p, s.dose + dose);
+  const last = warned.get(p.id) ?? -99999;
+  if (now() - last > 20 * 60 * 5) {
+    warned.set(p.id, now());
+    notice(p, id.includes("cooked") || id.includes("stew") ? `§eThe counter ticks faster as you eat. §7Island meat is hot, even cooked. (+${dose} mSv)` : `§cRaw island meat. §7The counter chatters. Cook it, or eat rations. (+${dose} mSv)`);
+  }
+  unlock(p, "mutants");
+}
+function startMutants() {
+  world29.afterEvents.entitySpawn.subscribe((ev) => safe("mutants.spawn", () => {
+    if (!isIsland() || !ev.entity.isValid || !HOSTILE.has(ev.entity.typeId)) return;
+    harden(ev.entity);
+  }));
+  world29.afterEvents.itemCompleteUse.subscribe((ev) => safe("mutants.eat", () => {
+    if (!isIsland() || !(ev.source instanceof Player31)) return;
+    ate(ev.source, ev.itemStack.typeId);
+  }));
+  world29.afterEvents.entityDie.subscribe((ev) => safe("mutants.kill", () => {
+    if (!isIsland() || !(ev.damageSource.damagingEntity instanceof Player31)) return;
+    if (ev.deadEntity.typeId.startsWith("minecraft:")) unlock(ev.damageSource.damagingEntity, "mutants");
+  }));
+}
+
 // ../../scripts_src/island/objectives.ts
-import { LocationWaypoint as LocationWaypoint2, WaypointTexture as WaypointTexture2, world as world29 } from "@minecraft/server";
+import { LocationWaypoint as LocationWaypoint3, WaypointTexture as WaypointTexture3, world as world30 } from "@minecraft/server";
 var DEFAULT7 = { talked: false, reachedTower: false, last: "" };
 var state8;
 function st9() {
@@ -9918,7 +10331,7 @@ var point = (key) => (POINTS[key] ?? [])[0];
 var xz = (v3, y = 70) => ({ x: v3.x, y, z: v3.z });
 function carried(id) {
   let n = 0;
-  for (const p of world29.getAllPlayers()) {
+  for (const p of world30.getAllPlayers()) {
     const c = p.getComponent("minecraft:inventory")?.container;
     if (!c) continue;
     for (let i = 0; i < c.size; i++) {
@@ -10037,10 +10450,10 @@ function goalFor(p) {
     trevor: "That's all of it. Let's make the call."
   };
 }
-var marks = /* @__PURE__ */ new Map();
+var marks2 = /* @__PURE__ */ new Map();
 function place2(p, which, at) {
-  const m = marks.get(p.id) ?? {};
-  marks.set(p.id, m);
+  const m = marks2.get(p.id) ?? {};
+  marks2.set(p.id, m);
   const old = which === "main" ? m.main : m.side;
   const oldAt = which === "main" ? m.at : m.sideAt;
   if (at && oldAt && Math.hypot(at.x - oldAt.x, at.z - oldAt.z) < 4 && old?.isValid) return;
@@ -10057,9 +10470,9 @@ function place2(p, which, at) {
   }
   if (!at) return;
   try {
-    const wp = new LocationWaypoint2(
-      { dimension: world29.getDimension("overworld"), x: at.x + 0.5, y: at.y, z: at.z + 0.5 },
-      { textureBoundsList: [{ lowerBound: 0, texture: which === "main" ? WaypointTexture2.Circle : WaypointTexture2.SmallSquare }] },
+    const wp = new LocationWaypoint3(
+      { dimension: world30.getDimension("overworld"), x: at.x + 0.5, y: at.y, z: at.z + 0.5 },
+      { textureBoundsList: [{ lowerBound: 0, texture: which === "main" ? WaypointTexture3.Circle : WaypointTexture3.SmallSquare }] },
       which === "main" ? { red: 1, green: 0.72, blue: 0.15 } : { red: 0.85, green: 0.9, blue: 1 }
     );
     p.locatorBar.addWaypoint(wp);
@@ -10074,11 +10487,11 @@ function place2(p, which, at) {
   }
 }
 function nearestStation(p) {
-  const done2 = surveyState().stations;
+  const done3 = surveyState().stations;
   let best;
   let d = Infinity;
   for (const [k, at] of Object.entries(STATIONS)) {
-    if (done2.includes(k)) continue;
+    if (done3.includes(k)) continue;
     const c = CONSOLES[k] ?? xz(at);
     const k2 = Math.hypot(c.x - p.location.x, c.z - p.location.z);
     if (k2 < d) {
@@ -10097,7 +10510,7 @@ var lastReminder = /* @__PURE__ */ new Map();
 function refresh() {
   if (!isIsland() || cinematicRunning()) return;
   const s = st9();
-  if (!s.reachedTower && world29.getAllPlayers().some((p) => Math.hypot(p.location.x - SITES.TOWER.x, p.location.z - SITES.TOWER.z) < 40)) {
+  if (!s.reachedTower && world30.getAllPlayers().some((p) => Math.hypot(p.location.x - SITES.TOWER.x, p.location.z - SITES.TOWER.z) < 40)) {
     s.reachedTower = true;
     save9();
   }
@@ -10110,7 +10523,7 @@ function refresh() {
     save9();
     const partsOnly = announce.key.startsWith("parts:") && prev.startsWith("parts:");
     if (!first || announce.key !== "talk") {
-      for (const p of world29.getAllPlayers()) {
+      for (const p of world30.getAllPlayers()) {
         if (getNum(p, DP.woke, 0) !== 1) continue;
         const g = goalFor(p);
         if (partsOnly) {
@@ -10130,7 +10543,7 @@ function refresh() {
       }
     }
   }
-  for (const p of world29.getAllPlayers()) {
+  for (const p of world30.getAllPlayers()) {
     if (!p.isValid || getNum(p, DP.woke, 0) !== 1 || p.dimension.id !== "minecraft:overworld") continue;
     const g = goalFor(p);
     place2(p, "main", g.target);
@@ -10158,11 +10571,11 @@ function objectiveSummary() {
   return `objective: ${g.key}`;
 }
 function forgetObjectives(playerId) {
-  marks.delete(playerId);
+  marks2.delete(playerId);
   lastReminder.delete(playerId);
 }
 function startObjectives() {
-  world29.afterEvents.playerInteractWithEntity.subscribe((ev) => safe("obj.talk", () => {
+  world30.afterEvents.playerInteractWithEntity.subscribe((ev) => safe("obj.talk", () => {
     if (ev.target.typeId === ENT.trevor && !st9().talked) {
       st9().talked = true;
       save9();
@@ -10178,7 +10591,7 @@ function startObjectives() {
 }
 
 // ../../scripts_src/island/story.ts
-import { ItemStack as ItemStack14, system as system17, world as world30 } from "@minecraft/server";
+import { ItemStack as ItemStack14, system as system17, world as world31 } from "@minecraft/server";
 var DEFAULT8 = { setup: false, bodies: [], searched: [], intro: false };
 var story;
 function st10() {
@@ -10194,7 +10607,7 @@ var SUPPLIES = [
   [[ITEM.medkit, 1], [ITEM.ration, 3], [ITEM.iodine, 2], [ITEM.round, 7], [ITEM.sampleKit, 3]]
 ];
 function stockCrates() {
-  const dim2 = world30.getDimension("overworld");
+  const dim2 = world31.getDimension("overworld");
   let ok = true;
   CRASH_CONTAINERS.forEach((pos, i) => {
     try {
@@ -10212,7 +10625,7 @@ function stockCrates() {
   return ok;
 }
 function layBodies() {
-  const dim2 = world30.getDimension("overworld");
+  const dim2 = world31.getDimension("overworld");
   const ids = [];
   CREW_BODIES.slice(0, 2).forEach((b, i) => {
     try {
@@ -10228,7 +10641,7 @@ function layBodies() {
 function setupWorld() {
   const s = st10();
   if (s.setup) return;
-  const dim2 = world30.getDimension("overworld");
+  const dim2 = world31.getDimension("overworld");
   if (!dim2.isChunkLoaded({ x: SITES.CRASH.x, y: SPAWN_POINT.y, z: SITES.CRASH.z })) {
     later("story.setup", 40, setupWorld);
     return;
@@ -10341,12 +10754,16 @@ function onIslandSpawn(p, initial) {
   const first = !st10().intro && !anyoneAwake(p);
   if (first && !cinematicDone() && !cinematicRunning()) {
     later("story.cine", 30, () => {
-      const group = world30.getAllPlayers().filter((q) => q.isValid && q.dimension.id === "minecraft:overworld");
+      const group = world31.getAllPlayers().filter((q) => q.isValid && q.dimension.id === "minecraft:overworld");
       if (!playCinematic(group, (q) => wakeUp(q, true))) wakeUp(p, true);
     });
     return;
   }
   if (cinematicRunning()) {
+    if (joinCinematic(p)) {
+      pending2.delete(p.id);
+      return;
+    }
     const wait = () => {
       if (!p.isValid) return;
       if (cinematicRunning()) later("story.wait", 20, wait);
@@ -10358,7 +10775,7 @@ function onIslandSpawn(p, initial) {
   later("story.wake", 20, () => p.isValid && wakeUp(p, first));
 }
 function anyoneAwake(except) {
-  return world30.getAllPlayers().some((q) => q.id !== except.id && getNum(q, DP.woke, 0) === 1);
+  return world31.getAllPlayers().some((q) => q.id !== except.id && getNum(q, DP.woke, 0) === 1);
 }
 function searchBody(p, body) {
   const s = st10();
@@ -10409,7 +10826,7 @@ function places(p) {
   }
 }
 function startStory() {
-  world30.afterEvents.playerInteractWithEntity.subscribe((ev) => safe("story.search", () => {
+  world31.afterEvents.playerInteractWithEntity.subscribe((ev) => safe("story.search", () => {
     if (ev.target.typeId === ENT.crewBody) searchBody(ev.player, ev.target);
   }));
   everyPlayer("story.places", 100, places);
@@ -10473,13 +10890,15 @@ function init() {
   startSurvey();
   startTower();
   startScenes();
+  startCinematic();
+  startMutants();
   startObjectives();
   startStory();
   later("sweep", 40, sweepLoaded);
   console.warn(`[hollow] THE HOLLOW initialised (day ${hollowDay()}).`);
 }
-world31.afterEvents.worldLoad.subscribe(() => safe("init", init));
-world31.afterEvents.playerSpawn.subscribe((ev) => safe("playerSpawn", () => {
+world32.afterEvents.worldLoad.subscribe(() => safe("init", init));
+world32.afterEvents.playerSpawn.subscribe((ev) => safe("playerSpawn", () => {
   const p = ev.player;
   clearAllFog(p);
   const island = isIsland() || ev.initialSpawn && detectIsland(p.dimension);
@@ -10524,7 +10943,7 @@ function forgetEncounters(playerId) {
   forgetTrevorPlayer(playerId);
   forgetObjectives(playerId);
 }
-world31.beforeEvents.playerLeave.subscribe((ev) => {
+world32.beforeEvents.playerLeave.subscribe((ev) => {
   const id = ev.player.id;
   system18.run(() => safe("playerLeave", () => {
     forgetEncounters(id);
@@ -10539,13 +10958,13 @@ world31.beforeEvents.playerLeave.subscribe((ev) => {
     forgetGuns(id);
   }));
 });
-world31.afterEvents.playerDimensionChange.subscribe((ev) => safe("dimChange", () => {
+world32.afterEvents.playerDimensionChange.subscribe((ev) => safe("dimChange", () => {
   rt(ev.player).ctx = void 0;
   forgetEncounters(ev.player.id);
   forgetBossPlayer(ev.player);
   clearAllFog(ev.player);
 }));
-world31.afterEvents.entityHurt.subscribe((ev) => safe("entityHurt", () => {
+world32.afterEvents.entityHurt.subscribe((ev) => safe("entityHurt", () => {
   const hurt2 = ev.hurtEntity;
   const by = ev.damageSource.damagingEntity;
   switch (hurt2.typeId) {
@@ -10562,11 +10981,11 @@ world31.afterEvents.entityHurt.subscribe((ev) => safe("entityHurt", () => {
       onMireboundHurt(hurt2, by);
       break;
   }
-  if (hurt2 instanceof Player33 && by?.typeId === ENT.watcher) onWatcherStruck(by, hurt2);
-  if (hurt2 instanceof Player33 && by?.typeId.startsWith("hollow:")) frighten(hurt2, 8);
+  if (hurt2 instanceof Player34 && by?.typeId === ENT.watcher) onWatcherStruck(by, hurt2);
+  if (hurt2 instanceof Player34 && by?.typeId.startsWith("hollow:")) frighten(hurt2, 8);
   if (hurt2.typeId === ENT.heart || hurt2.typeId === ENT.vein) onBossHurt(hurt2, ev.damage, by);
 }));
-world31.afterEvents.entityDie.subscribe((ev) => safe("entityDie", () => {
+world32.afterEvents.entityDie.subscribe((ev) => safe("entityDie", () => {
   const dead = ev.deadEntity;
   const killer = ev.damageSource.damagingEntity;
   switch (dead.typeId) {
@@ -10596,7 +11015,7 @@ world31.afterEvents.entityDie.subscribe((ev) => safe("entityDie", () => {
       break;
   }
 }));
-world31.afterEvents.dataDrivenEntityTrigger.subscribe((ev) => safe("ddTrigger", () => {
+world32.afterEvents.dataDrivenEntityTrigger.subscribe((ev) => safe("ddTrigger", () => {
   if (ev.eventId === "hollow:watcher_struck") onWatcherStruck(ev.entity, nearestPlayer(ev.entity, 5));
   else if (ev.eventId === "hollow:sheared") onBorrowedSheared(ev.entity, nearestPlayer(ev.entity, 6));
   else if (ev.eventId === "hollow:shield_hit") onShieldHit(ev.entity);
@@ -10610,13 +11029,13 @@ function testCommand(p, arg) {
       setTestMode(false);
       return "test mode off: normal rules";
     case "night":
-      world31.setTimeOfDay(13e3);
+      world32.setTimeOfDay(13e3);
       return "dusk (13000)";
     case "midnight":
-      world31.setTimeOfDay(18e3);
+      world32.setTimeOfDay(18e3);
       return "midnight (18000)";
     case "day":
-      world31.setTimeOfDay(1e3);
+      world32.setTimeOfDay(1e3);
       return "morning (1000)";
     case "kit": {
       const kit = [
@@ -10672,6 +11091,8 @@ function testCommand(p, arg) {
       return replayCinematic(p);
     case "rescue":
       return forceRescue();
+    case "shot":
+      return skipToShot();
     case "cultspawn": {
       const at = p.location;
       for (const t of [ENT.zealot, ENT.faithful, ENT.seer]) p.dimension.spawnEntity(t, { x: at.x + 3, y: at.y, z: at.z + 3 });
@@ -10706,7 +11127,7 @@ function nearestPlayer(e, r) {
 }
 system18.afterEvents.scriptEventReceive.subscribe((ev) => safe("scriptevent", () => {
   const p = ev.sourceEntity;
-  if (!(p instanceof Player33)) return;
+  if (!(p instanceof Player34)) return;
   switch (ev.id) {
     case "hollow:journal":
       void openJournal(p);
@@ -10714,7 +11135,7 @@ system18.afterEvents.scriptEventReceive.subscribe((ev) => safe("scriptevent", ()
     case "hollow:status":
       if (!isOperator(p)) return;
       p.sendMessage(
-        `§7[hollow] day ${hollowDay()} · watcher ${watcherCount()} · borrowed ${borrowedCount()} · hollowed ${hollowedCount()} · mirebound ${mireboundCount()} · knocker ${knockerActive() ? 1 : 0} · heart ${bossSummary()} · dread ${dreadSummary()} · ${storySummary()} · ${trevorSummary()} · ${jobSummary()} · ${cultSummary()} · ${surveySummary()} · ${towerSummary()} · ${objectiveSummary()} · failures: ${failureReport()}`
+        `§7[hollow] day ${hollowDay()} · watcher ${watcherCount()} · borrowed ${borrowedCount()} · hollowed ${hollowedCount()} · mirebound ${mireboundCount()} · knocker ${knockerActive() ? 1 : 0} · heart ${bossSummary()} · dread ${dreadSummary()} · ${storySummary()} · ${trevorSummary()} · ${jobSummary()} · ${cultSummary()} · ${surveySummary()} · ${towerSummary()} · ${objectiveSummary()} · ${cinematicSummary()} · failures: ${failureReport()}`
       );
       return;
     case "hollow:debug":

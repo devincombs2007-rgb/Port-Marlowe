@@ -435,6 +435,10 @@ export class Entity {
   addEffect(id, dur, opts) {
     this._effects.push({ id, dur, opts });
   }
+  removeEffect(id) {
+    this._effects = this._effects.filter((e) => e.id !== id);
+    return true;
+  }
   applyKnockback() {}
   addTag(t) {
     this._tags.add(t);
@@ -630,6 +634,22 @@ export class Dimension {
     this.groundY = 64; // terrain surface: blocks with y < groundY are solid by default
     this.biome = () => "minecraft:forest";
     this.loaded = () => true;
+  }
+  fillBlocks(volume, block, opts = {}) {
+    const id = typeof block === "string" ? block : block.type?.id ?? block.id;
+    const inc = opts.blockFilter?.includeTypes;
+    const a = volume.from ?? volume.min, b = volume.to ?? volume.max;
+    const lo = v3(Math.min(a.x, b.x), Math.min(a.y, b.y), Math.min(a.z, b.z));
+    const hi = v3(Math.max(a.x, b.x), Math.max(a.y, b.y), Math.max(a.z, b.z));
+    if (inc) {
+      for (const [k, c] of [...this._blocks]) {
+        const [x, y, z] = k.split(",").map(Number);
+        if (x >= lo.x && x <= hi.x && y >= lo.y && y <= hi.y && z >= lo.z && z <= hi.z && inc.includes(c.perm.type.id)) this.setBlock(v3(x, y, z), id);
+      }
+      return;
+    }
+    if ((hi.x - lo.x + 1) * (hi.y - lo.y + 1) * (hi.z - lo.z + 1) > 32768) throw new Error("fillBlocks: volume too large");
+    for (let x = lo.x; x <= hi.x; x++) for (let y = lo.y; y <= hi.y; y++) for (let z = lo.z; z <= hi.z; z++) this.setBlock(v3(x, y, z), id);
   }
   getEntitiesFromRay(h, d, o = {}, self = undefined) {
     const max = o.maxDistance ?? 64;

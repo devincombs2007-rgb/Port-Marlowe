@@ -167,6 +167,10 @@ export const SND = {
   stepHeavy: "hollow.knocker.step",
   stepClaws: "hollow.hollowed.step",
   pistol: "hollow.gun.pistol",
+  rifle: "hollow.gun.rifle",
+  shotgun: "hollow.gun.shotgun",
+  cineFlash: "hollow.cine.flash",
+  cineAlarm: "hollow.cine.alarm",
   distantShot: "hollow.gun.distant",
   dryFire: "hollow.gun.dry",
   reload: "hollow.gun.reload",
@@ -198,6 +202,8 @@ export const PARTICLE = {
   lensReveal: "hollow:lens_reveal",
   tracks: "hollow:pale_tracks",
   veinMote: "hollow:vein_mote",
+  nukePuff: "hollow:nuke_puff",
+  nukeGlow: "hollow:nuke_glow",
 } as const;
 
 export const FOG = {

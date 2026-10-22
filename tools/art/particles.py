@@ -125,7 +125,25 @@ def sprite_print():
     return img
 
 
+def sprite_puff(n=32, seed=5):
+    """A soft, lumpy cloud puff for the mushroom cloud (white; tinted per particle)."""
+    rng = np.random.default_rng(seed)
+    y, x = np.mgrid[0:n, 0:n] + 0.5
+    a = np.zeros((n, n))
+    for _ in range(9):                       # a few overlapping blobs make a cauliflower edge
+        cx, cy = rng.uniform(n * 0.3, n * 0.7, 2)
+        r = rng.uniform(n * 0.18, n * 0.32)
+        a = np.maximum(a, np.clip(1 - np.hypot(x - cx, y - cy) / r, 0, 1) ** 0.8)
+    shade = 0.72 + 0.28 * np.clip(1 - (y / n), 0, 1)                    # lit from above
+    noise = rng.uniform(0.85, 1.0, (n, n))
+    img = np.zeros((n, n, 4), np.uint8)
+    img[..., :3] = (np.clip(shade * noise, 0, 1)[..., None] * 255).astype(np.uint8)
+    img[..., 3] = (np.clip(a * 1.25, 0, 1) * 255).astype(np.uint8)
+    return img
+
+
 SPRITES = {
+    "puff": sprite_puff(),
     "mote": sprite_mote(), "flake": sprite_flake(), "ring": sprite_ring(), "bubble": sprite_bubble(),
     "glint": sprite_glint(), "dust": sprite_dust(), "print": sprite_print(),
 }
@@ -154,6 +172,35 @@ def color(r, g, b, a=1.0):
 
 
 EFFECTS = {
+    # the mushroom cloud's billowing surface: one big puff per spawn; size, colour, life and drift
+    # come from the script (variable.size, variable.r/g/b, variable.life, variable.rise)
+    "nuke_puff": effect("hollow:nuke_puff", "puff", "particles_blend", {
+        "minecraft:emitter_rate_instant": {"num_particles": 1},
+        "minecraft:emitter_lifetime_once": {"active_time": 0.05},
+        "minecraft:emitter_shape_point": {},
+        "minecraft:particle_lifetime_expression": {"max_lifetime": "variable.life"},
+        "minecraft:particle_initial_spin": {"rotation": "math.random(0, 360)", "rotation_rate": "math.random(-6, 6)"},
+        "minecraft:particle_motion_dynamic": {"linear_acceleration": [0, "variable.rise", 0], "linear_drag_coefficient": 0.4},
+        "minecraft:particle_appearance_billboard": billboard([
+            "variable.size * (0.7 + 0.5 * variable.particle_age / variable.particle_lifetime)",
+            "variable.size * (0.7 + 0.5 * variable.particle_age / variable.particle_lifetime)"], 32, 32),
+        "minecraft:particle_appearance_tinting": {"color": [
+            "variable.r", "variable.g", "variable.b",
+            "math.min(1, variable.particle_age * 2) * math.clamp((variable.particle_lifetime - variable.particle_age) / 3, 0, 1)"]},
+    }),
+    # the fireball's glare: additive, so it burns bright against the sky
+    "nuke_glow": effect("hollow:nuke_glow", "puff", "particles_add", {
+        "minecraft:emitter_rate_instant": {"num_particles": 1},
+        "minecraft:emitter_lifetime_once": {"active_time": 0.05},
+        "minecraft:emitter_shape_point": {},
+        "minecraft:particle_lifetime_expression": {"max_lifetime": "variable.life"},
+        "minecraft:particle_initial_spin": {"rotation": "math.random(0, 360)", "rotation_rate": "math.random(-20, 20)"},
+        "minecraft:particle_motion_dynamic": {"linear_acceleration": [0, "variable.rise", 0]},
+        "minecraft:particle_appearance_billboard": billboard(["variable.size", "variable.size"], 32, 32),
+        "minecraft:particle_appearance_tinting": {"color": {
+            "interpolant": "variable.particle_age / variable.particle_lifetime",
+            "gradient": {"0.0": color(255, 250, 230), "0.25": color(255, 196, 90), "0.6": color(230, 90, 30, 0.8), "1.0": color(90, 30, 20, 0.0)}}},
+    }),
     "watcher_shed": effect("hollow:watcher_shed", "flake", "particles_alpha", {
         "minecraft:emitter_rate_instant": {"num_particles": 28},
         "minecraft:emitter_lifetime_once": {"active_time": 0.1},

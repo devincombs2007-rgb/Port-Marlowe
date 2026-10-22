@@ -219,6 +219,12 @@
       "materials": [
         {
           "*": "Material.default"
+        },
+        {
+          "fireball": "Material.glow"
+        },
+        {
+          "capglow": "Material.glow"
         }
       ],
       "textures": [
@@ -228,7 +234,7 @@
         "r": "0.16",
         "g": "0.13",
         "b": "0.11",
-        "a": "math.clamp((query.life_time - 9.0) / 14.0, 0.0, 0.55)"
+        "a": "math.clamp((query.life_time - 16.0) / 20.0, 0.0, 0.45)"
       },
       "ignore_lighting": true
     },

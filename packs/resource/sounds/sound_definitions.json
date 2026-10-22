@@ -1,5 +1,5 @@
 {
-  "format_version": "1.26.50",
+  "format_version": "1.20.20",
   "sound_definitions": {
     "hollow.watcher.step": {
       "category": "hostile",
@@ -1346,22 +1346,22 @@
       ],
       "subtitle": "subtitles.hollow.gun.pistol",
       "min_distance": 6.0,
-      "max_distance": 96.0
+      "max_distance": 112.0
     },
     "hollow.gun.distant": {
       "category": "ambient",
       "sounds": [
         {
           "name": "sounds/hollow/island/gun_distant_1",
-          "volume": 0.8
+          "volume": 0.9
         },
         {
           "name": "sounds/hollow/island/gun_distant_2",
-          "volume": 0.8
+          "volume": 0.9
         },
         {
           "name": "sounds/hollow/island/gun_distant_3",
-          "volume": 0.8
+          "volume": 0.9
         }
       ],
       "subtitle": "subtitles.hollow.gun.distant"
@@ -1371,11 +1371,11 @@
       "sounds": [
         {
           "name": "sounds/hollow/island/gun_dry_1",
-          "volume": 0.8
+          "volume": 0.9
         },
         {
           "name": "sounds/hollow/island/gun_dry_2",
-          "volume": 0.8
+          "volume": 0.9
         }
       ],
       "subtitle": "subtitles.hollow.gun.dry",
@@ -1387,7 +1387,7 @@
       "sounds": [
         {
           "name": "sounds/hollow/island/gun_reload_1",
-          "volume": 0.8
+          "volume": 0.9
         }
       ],
       "subtitle": "subtitles.hollow.gun.reload",
@@ -1399,20 +1399,20 @@
       "sounds": [
         {
           "name": "sounds/hollow/island/gun_hit_1",
-          "volume": 0.8
+          "volume": 0.9
         },
         {
           "name": "sounds/hollow/island/gun_hit_2",
-          "volume": 0.8
+          "volume": 0.9
         },
         {
           "name": "sounds/hollow/island/gun_hit_3",
-          "volume": 0.8
+          "volume": 0.9
         }
       ],
       "subtitle": "subtitles.hollow.gun.hit",
       "min_distance": 2.0,
-      "max_distance": 24.0
+      "max_distance": 32.0
     },
     "hollow.geiger.1": {
       "category": "player",
@@ -1515,7 +1515,7 @@
       "subtitle": "subtitles.hollow.story.ringing"
     },
     "hollow.story.title": {
-      "category": "music",
+      "category": "player",
       "sounds": [
         {
           "name": "sounds/hollow/island/story_title_1",
@@ -1528,11 +1528,11 @@
       "sounds": [
         {
           "name": "sounds/hollow/island/story_gasp_1",
-          "volume": 0.8
+          "volume": 0.9
         },
         {
           "name": "sounds/hollow/island/story_gasp_2",
-          "volume": 0.8
+          "volume": 0.9
         }
       ],
       "subtitle": "subtitles.hollow.story.gasp"
@@ -1591,7 +1591,7 @@
       ]
     },
     "hollow.cine.wind": {
-      "category": "ambient",
+      "category": "player",
       "sounds": [
         {
           "name": "sounds/hollow/cinematic/wind_1",
@@ -1601,27 +1601,27 @@
       "subtitle": "subtitles.hollow.cine.wind"
     },
     "hollow.cine.countdown": {
-      "category": "ambient",
+      "category": "player",
       "sounds": [
         {
           "name": "sounds/hollow/cinematic/countdown_1",
-          "volume": 0.8
+          "volume": 1.0
         }
       ],
       "subtitle": "subtitles.hollow.cine.countdown"
     },
     "hollow.cine.bomber": {
-      "category": "ambient",
+      "category": "player",
       "sounds": [
         {
           "name": "sounds/hollow/cinematic/bomber_1",
-          "volume": 0.9
+          "volume": 1.0
         }
       ],
       "subtitle": "subtitles.hollow.cine.bomber"
     },
     "hollow.cine.whistle": {
-      "category": "ambient",
+      "category": "player",
       "sounds": [
         {
           "name": "sounds/hollow/cinematic/whistle_1",
@@ -1631,7 +1631,7 @@
       "subtitle": "subtitles.hollow.cine.whistle"
     },
     "hollow.cine.boom": {
-      "category": "ambient",
+      "category": "player",
       "sounds": [
         {
           "name": "sounds/hollow/cinematic/boom_1",
@@ -1641,17 +1641,17 @@
       "subtitle": "subtitles.hollow.cine.boom"
     },
     "hollow.cine.fire": {
-      "category": "ambient",
+      "category": "player",
       "sounds": [
         {
           "name": "sounds/hollow/cinematic/fire_1",
-          "volume": 0.8
+          "volume": 0.9
         }
       ],
       "subtitle": "subtitles.hollow.cine.fire"
     },
     "hollow.cine.rotor": {
-      "category": "ambient",
+      "category": "player",
       "sounds": [
         {
           "name": "sounds/hollow/cinematic/rotor_1",
@@ -1661,21 +1661,21 @@
       "subtitle": "subtitles.hollow.cine.rotor"
     },
     "hollow.cine.radio": {
-      "category": "ambient",
+      "category": "player",
       "sounds": [
         {
           "name": "sounds/hollow/cinematic/radio_1",
-          "volume": 0.7
+          "volume": 0.8
         },
         {
           "name": "sounds/hollow/cinematic/radio_2",
-          "volume": 0.7
+          "volume": 0.8
         }
       ],
       "subtitle": "subtitles.hollow.cine.radio"
     },
     "hollow.cine.impact": {
-      "category": "ambient",
+      "category": "player",
       "sounds": [
         {
           "name": "sounds/hollow/cinematic/impact_1",
@@ -1683,6 +1683,58 @@
         }
       ],
       "subtitle": "subtitles.hollow.cine.impact"
+    },
+    "hollow.gun.rifle": {
+      "category": "player",
+      "sounds": [
+        {
+          "name": "sounds/hollow/island/gun_rifle_1",
+          "volume": 1.0
+        },
+        {
+          "name": "sounds/hollow/island/gun_rifle_2",
+          "volume": 1.0
+        }
+      ],
+      "subtitle": "subtitles.hollow.gun.rifle",
+      "min_distance": 8.0,
+      "max_distance": 160.0
+    },
+    "hollow.gun.shotgun": {
+      "category": "player",
+      "sounds": [
+        {
+          "name": "sounds/hollow/island/gun_shotgun_1",
+          "volume": 1.0
+        },
+        {
+          "name": "sounds/hollow/island/gun_shotgun_2",
+          "volume": 1.0
+        }
+      ],
+      "subtitle": "subtitles.hollow.gun.shotgun",
+      "min_distance": 6.0,
+      "max_distance": 120.0
+    },
+    "hollow.cine.flash": {
+      "category": "player",
+      "sounds": [
+        {
+          "name": "sounds/hollow/cinematic/flash_1",
+          "volume": 1.0
+        }
+      ],
+      "subtitle": "subtitles.hollow.cine.flash"
+    },
+    "hollow.cine.alarm": {
+      "category": "player",
+      "sounds": [
+        {
+          "name": "sounds/hollow/cinematic/alarm_1",
+          "volume": 0.8
+        }
+      ],
+      "subtitle": "subtitles.hollow.cine.alarm"
     }
   }
 }

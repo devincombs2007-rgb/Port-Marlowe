@@ -19,6 +19,7 @@
       "minecraft:max_stack_size": 1,
       "minecraft:interact_button": "Fire flare",
       "hollow:flare_gun": {},
+      "minecraft:hand_equipped": true,
       "minecraft:durability": {
         "max_durability": 6
       },

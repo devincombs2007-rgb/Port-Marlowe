@@ -90,19 +90,56 @@ def build_diorama():
     bl.walls(cx - 2, CENTER_Y + 28, cz - 2, cx + 2, CENTER_Y + 30, cz + 2, "white_concrete")
     bl.box(cx - 2, CENTER_Y + 31, cz - 2, cx + 2, CENTER_Y + 31, cz + 2, "gray_concrete")
     # instrument huts on a ring
+    gy = lambda x, z: int(h[x - w.x0, z - w.z0]) + 1  # noqa: E731
     for a in range(0, 360, 60):
         hx = int(cx + math.cos(math.radians(a)) * 30)
         hz = int(cz + math.sin(math.radians(a)) * 30)
-        y = int(h[hx - w.x0, hz - w.z0]) + 1
+        y = gy(hx, hz)
+        bl.box(hx - 2, y - 1, hz - 2, hx + 2, y - 1, hz + 2, "light_gray_concrete")
         bl.box(hx - 2, y, hz - 2, hx + 2, y + 2, hz + 2, "light_gray_concrete")
         bl.box(hx - 2, y + 3, hz - 2, hx + 2, y + 3, hz + 2, "smooth_stone_slab", **{"minecraft:vertical_half": "bottom"})
         bl.box(hx + 3, y, hz, hx + 3, y + 8, hz, "iron_bars")
+        if a in (0, 120, 240):
+            # a working instrument hut: hollow, a doorway toward ground zero, a dosimeter on the desk
+            bl.clear(hx - 1, y, hz - 1, hx + 1, y + 1, hz + 1)
+            dx, dz = -math.cos(math.radians(a)), -math.sin(math.radians(a))
+            if abs(dx) > abs(dz):
+                ox, oz, back = (2 if dx > 0 else -2), 0, ((-1 if dx > 0 else 1), 0)
+            else:
+                ox, oz, back = 0, (2 if dz > 0 else -2), (0, (-1 if dz > 0 else 1))
+            bl.clear(hx + ox, y, hz + oz, hx + ox, y + 1, hz + oz)
+            desk = (hx + back[0], y, hz + back[1])
+            bl.set(*desk, "polished_andesite")
+            bl.set(desk[0], y + 1, desk[2], "stone_button", button_pressed_bit=0, facing_direction=1)
+            bl.consoles[f"pro_hut{(a // 120) + 1}"] = (desk[0], y + 1, desk[2])
+            bl.set(hx, y + 2, hz, "lantern", hanging=True)
+    # the timer panel at the foot of the tower
+    bl.set(cx + 4, CENTER_Y + 1, cz, "iron_block")
+    bl.set(cx + 4, CENTER_Y + 2, cz, "stone_button", button_pressed_bit=0, facing_direction=1)
+    bl.consoles["pro_tower"] = (cx + 4, CENTER_Y + 2, cz)
+    # the observation bunker on the south shore: concrete, a viewing slit toward the tower
+    bx, bz = cx, cz + 42
+    by = max(gy(bx + dx_, bz + dz_) for dx_ in (-4, 4) for dz_ in (-2, 2))
+    bl.box(bx - 5, by - 1, bz - 3, bx + 5, by - 1, bz + 3, "stone_bricks")
+    bl.walls(bx - 5, by, bz - 3, bx + 5, by + 3, bz + 3, "gray_concrete")
+    bl.clear(bx - 4, by, bz - 2, bx + 4, by + 3, bz + 2)
+    bl.box(bx - 5, by + 4, bz - 3, bx + 5, by + 4, bz + 3, "gray_concrete")
+    bl.clear(bx - 3, by + 2, bz - 3, bx + 3, by + 2, bz - 3)       # the slit, facing north to the tower
+    bl.clear(bx, by, bz + 3, bx, by + 1, bz + 3)                    # the door, south
+    for k in range(-4, 5, 2):
+        bl.set(bx + k, by + 3, bz, "lantern", hanging=True)
+    bl.point("pro_bunker", bx, by, bz)
+    bl.point("pro_slit", bx, by + 2, bz - 3)
+    sx_, sz_ = cx - 6, cz - 40
+    bl.point("pro_start", sx_, gy(sx_, sz_), sz_)
     # three test houses
     for (dx, dz, f) in ((-38, -14, "south"), (-38, 4, "north"), (-24, 22, "north")):
         bl.house(cx + dx, cz + dz, f, scorched=0.0, variant=dx + dz)
     # the fleet
     for (sx, sz, heading) in ((cx + 78, cz - 50, 1), (cx - 84, cz + 58, -1)):
         _ship(bl, sx, sz, heading)
+        bl.point("pro_ship", sx, L.SEA + 3, sz)
+    w.points, w.consoles = bl.points, bl.consoles
     return w
 
 

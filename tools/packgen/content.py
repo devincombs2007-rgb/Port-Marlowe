@@ -100,7 +100,7 @@ ITEMS = [
         "minecraft:cooldown": {"category": "hollow_shotgun", "duration": 0.9}}, "equipment"),
     ("shotgun_shell", "Shotgun Shells", "shotgun_shell", {"minecraft:max_stack_size": 64}, "equipment"),
     ("flare_gun", "Flare Gun", "flare_gun", {
-        "minecraft:max_stack_size": 1, "minecraft:interact_button": "Fire flare", "hollow:flare_gun": {},
+        "minecraft:max_stack_size": 1, "minecraft:interact_button": "Fire flare", "hollow:flare_gun": {}, "minecraft:hand_equipped": True,
         "minecraft:durability": {"max_durability": 6},
         "minecraft:cooldown": {"category": "hollow_flare", "duration": 4.0}}, "equipment"),
     ("hazmat_hood", "Hazmat Hood", "hazmat_hood", {

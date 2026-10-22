@@ -22,8 +22,8 @@ PROP = ramp("#141414", "#1e1e1e", "#2a2a2a")
 WHITE = ramp("#9aa0a4", "#b9bec1", "#d3d7d8", "#e8ebeb")
 RED = ramp("#5a1410", "#7a1c16", "#9a261e")
 FIRE = ramp("#7a1e04", "#b83a08", "#e8660e", "#ff9a28", "#ffd060", "#fff2b0")
-SMOKE = ramp("#2a2420", "#3e3630", "#544a42", "#6a5e54", "#82766a")
-CAP = ramp("#5a2a10", "#7c3c16", "#9e5622", "#c07a3a", "#d89a5c")
+SMOKE = ramp("#4a423c", "#6a6058", "#8a8078", "#a89e94", "#c4bab0")
+CAP = ramp("#6a3a1c", "#8e5530", "#b07448", "#cc9668", "#e2b890")
 RING = ramp("#b8bcc0", "#d4d8da", "#eceeef")
 
 
@@ -134,55 +134,79 @@ def heli_mats():
     }
 
 
-def cloud():
-    """Built at 1/40 scale around its own origin; the animation scales and moves every part."""
-    m = Model("geometry.hollow.mushroom_cloud", atlas_width=256, visible_bounds=(320, 260, (0, 100, 0)))
-    m.bone("root", pivot=(0, 0, 0))
-    # fireball: a rough sphere of boxes
-    m.bone("fireball", "root", pivot=(0, 0, 0))
-    for (w, h) in ((16, 8), (12, 12), (8, 16)):
-        m.box("fireball", (0, 0, 0), (w, h, w), "fire")
-        m.box("fireball", (0, 0, 0), (w * 0.86, h, w * 1.1), "fire")
-    # stem: a twisting column, wider at the foot
-    m.bone("stem", "root", pivot=(0, 0, 0))
-    for i in range(8):
-        w = 6 - i * 0.35
-        m.box("stem", (((-1) ** i) * 0.3, i * 4 + 2, 0), (w, 4.2, w), "smoke")
-    # cap: a flattened, lumpy dome with an inner glow
-    m.bone("cap", "root", pivot=(0, 34, 0))
-    m.box("cap", (0, 34, 0), (26, 6, 26), "cap")
-    m.box("cap", (0, 39, 0), (22, 6, 22), "cap")
-    m.box("cap", (0, 43, 0), (14, 4, 14), "cap")
-    for a in range(8):
-        import math
-        x, z = math.cos(a * 0.785) * 11, math.sin(a * 0.785) * 11
-        m.box("cap", (x, 36, z), (9, 7, 9), "cap")
-    m.box("cap", (0, 31, 0), (16, 3, 16), "fire")
-    # condensation ring (the Wilson cloud) around the stem
-    m.bone("skirt", "root", pivot=(0, 22, 0))
+def _sphere(m, bone, c, r, mat, squash=1.0, rot=True):
+    """A rough sphere: five stacked slabs, plus three turned 45 degrees to round off the corners."""
     import math
-    for a in range(12):
-        x, z = math.cos(a * 0.5236) * 12, math.sin(a * 0.5236) * 12
-        m.box("skirt", (x, 22, z), (7, 2, 7), "ring")
-    # the shock wave on the water / the base surge
-    m.bone("shock", "root", pivot=(0, -40, 0))
-    for a in range(24):
-        x, z = math.cos(a * 0.2618) * 20, math.sin(a * 0.2618) * 20
-        m.box("shock", (x, -40, z), (6, 0.6, 6), "ring")
-    m.bone("surge", "root", pivot=(0, -40, 0))
-    for a in range(16):
-        x, z = math.cos(a * 0.3927) * 9, math.sin(a * 0.3927) * 9
-        m.box("surge", (x, -38.5, z), (7, 3, 7), "smoke")
+    cx, cy, cz = c
+    for k in (-2, -1, 0, 1, 2):
+        dy = k * r * 0.38 * squash
+        w = 2 * math.sqrt(max(0.0, r * r - (k * r * 0.38) ** 2))
+        m.box(bone, (cx, cy + dy, cz), (w, r * 0.42 * squash, w), mat)
+        if rot and abs(k) <= 1:
+            m.cube(bone, [cx - w / 2, cy + dy - r * 0.21 * squash, cz - w / 2], [w, r * 0.42 * squash, w], mat,
+                   pivot=[cx, cy + dy, cz], rotation=[0, 45, 0])
+
+
+def cloud():
+    """Built at 1/40 scale (1 px = 2.5 blocks) around the burst point; the animation grows every part.
+
+    Final size in the world: a cap ~65 blocks across about 55 blocks above the burst, a stem down to
+    the ground 65 blocks below it, a base surge ring and a shock wave racing out over the water.
+    """
+    import math
+    m = Model("geometry.hollow.mushroom_cloud", atlas_width=512, visible_bounds=(420, 320, (0, 10, 0)))
+    m.bone("root", pivot=(0, 0, 0))
+    # the fireball (emissive)
+    m.bone("fireball", "root", pivot=(0, 0, 0))
+    _sphere(m, "fireball", (0, 0, 0), 7, "fire")
+    _sphere(m, "fireball", (2.5, 1.5, -1.5), 4.5, "fire", rot=False)
+    _sphere(m, "fireball", (-2.5, -1, 2), 4.5, "fire", rot=False)
+    # the stem: a lumpy column from the ground to the cap, flaring at the foot
+    m.bone("stem", "root", pivot=(0, -26, 0))
+    for i in range(15):
+        y = -26 + i * 3
+        r = 3.2 + 2.8 * max(0.0, 1 - i / 3.0) + 0.35 * math.sin(i * 1.7)
+        m.box("stem", (0.4 * math.sin(i * 0.9), y + 1.5, 0.4 * math.cos(i * 1.1)), (r * 2, 3.2, r * 2), "smoke")
+    for i in range(7):
+        a = i * 2.4
+        _sphere(m, "stem", (math.cos(a) * 3.0, -20 + i * 5.5, math.sin(a) * 3.0), 2.4, "smoke", rot=False)
+    # the cap: a rolling torus of billows round a dome, glowing underneath
+    m.bone("cap", "root", pivot=(0, 22, 0))
+    _sphere(m, "cap", (0, 22, 0), 12, "cap", squash=0.5)
+    for i in range(10):
+        a = i * math.tau / 10
+        _sphere(m, "cap", (math.cos(a) * 10.5, 21 + math.sin(i * 1.3) * 0.8, math.sin(a) * 10.5), 4.6, "cap", rot=False)
+    for i in range(6):
+        a = i * math.tau / 6 + 0.4
+        _sphere(m, "cap", (math.cos(a) * 5, 26, math.sin(a) * 5), 4.2, "cap", rot=False)
+    _sphere(m, "cap", (0, 28.5, 0), 4.5, "cap", rot=False)
+    m.bone("capglow", "cap", pivot=(0, 22, 0))
+    m.box("capglow", (0, 17.6, 0), (17, 1.2, 17), "fire")
+    m.cube("capglow", [-8.5, 17.0, -8.5], [17, 1.2, 17], "fire", pivot=[0, 17.6, 0], rotation=[0, 45, 0])
+    # the condensation ring (Wilson cloud) that flashes round the stem in the first seconds
+    m.bone("skirt", "root", pivot=(0, 8, 0))
+    for i in range(14):
+        a = i * math.tau / 14
+        m.box("skirt", (math.cos(a) * 11, 8, math.sin(a) * 11), (6, 1.6, 6), "ring")
+    # the base surge: a low ring of dust and spray rolling out from the foot of the stem
+    m.bone("surge", "root", pivot=(0, -26, 0))
+    for i in range(14):
+        a = i * math.tau / 14
+        _sphere(m, "surge", (math.cos(a) * 8, -24.5, math.sin(a) * 8), 2.6, "smoke", squash=0.7, rot=False)
+    # the shock wave: a thin bright ring skimming the water
+    m.bone("shock", "root", pivot=(0, -27.3, 0))
+    for i in range(36):
+        a = i * math.tau / 36
+        m.cube("shock", [math.cos(a) * 10 - 1.1, -27.4, math.sin(a) * 10 - 0.25], [2.2, 0.25, 0.5], "ring",
+               pivot=[math.cos(a) * 10, -27.3, math.sin(a) * 10], rotation=[0, -math.degrees(a), 0])
     return m
 
 
 def cloud_mats():
     return {
-        "fire": Material(FIRE, base=0.7, noise=(0.8, 0.35, 3), ao=0.0, edge=0.0, mers=(0, 255, 255, 0), height_strength=0.0,
-                         alpha=150),
+        "fire": Material(FIRE, base=0.8, noise=(0.8, 0.35, 3), ao=0.0, edge=0.0, mers=(0, 255, 255, 0), height_strength=0.0),
         "smoke": Material(SMOKE, base=0.5, noise=(0.6, 0.4, 3), ao=0.1, edge=0.0, mers=(0, 0, 255, 120), height_strength=0.3),
-        "cap": Material(CAP, base=0.55, noise=(0.5, 0.45, 3), ao=0.15, edge=0.0, mers=(0, 90, 255, 120), height_strength=0.3,
-                        alpha=210),
+        "cap": Material(CAP, base=0.55, noise=(0.5, 0.45, 3), ao=0.25, edge=0.0, mers=(0, 0, 255, 120), height_strength=0.3),
         "ring": Material(RING, base=0.7, noise=(0.9, 0.2, 2), ao=0.0, edge=0.0, mers=(0, 0, 255, 160), height_strength=0.0),
     }
 
@@ -199,7 +223,7 @@ def main():
     h = helicopter()
     export_entity("helicopter", h, Painter(h, heli_mats(), [], seed=83, scale=1, ao_rays=6, ao_dist=8.0))
     c = cloud()
-    export_entity("mushroom_cloud", c, Painter(c, cloud_mats(), [], seed=84, scale=2, ao_rays=4, ao_dist=4.0))
+    export_entity("mushroom_cloud", c, Painter(c, cloud_mats(), [], seed=84, scale=1, ao_rays=4, ao_dist=6.0))
 
 
 if __name__ == "__main__":

@@ -31,11 +31,20 @@ beyond the island, so you cannot walk off the map):
   **mangrove shallows** on the east coast, open meadows in the north-west and centre, beaches with
   palms, seagrass and kelp offshore, caves and ores underground.
 
-**The opening.** The first time anyone arrives, everyone online watches it together: 1957,
-a bomber over the island, the drop, the airburst, the white-out, the mushroom cloud and the
-delayed boom, the island burning. Then 2026: your helicopter comes in low from the south and is
-shot down from the trees. Hold **sneak** for two seconds to skip. Players who join mid-scene
-wait for it to end; players who join later just get the wake-up.
+**The opening.** The first time anyone arrives, everyone online plays it together:
+
+1. **7 May 1957, playable.** You're Dr. *(your name)*, radiological safety, on the test island an
+   hour before the shot (Adventure mode; nothing can hurt you). Check the dosimeters in three
+   instrument huts and set the firing timer at the foot of the tower (gold marker, task list at the
+   bottom of the screen), then get into the observation bunker on the south shore.
+2. **The shot, through your own eyes** from the bunker's slit: the bomber, the drop, the countdown,
+   the yield coming in three times too high, the flash. You don't survive it.
+3. **What the fleet saw:** the fireball, the mushroom cloud climbing for half a minute, the boom
+   arriving late, the shock wave over the water, the crater where the tower stood, the island burning.
+4. **2026:** your helicopter comes in low from the south and is shot down from the trees.
+
+Hold **Sneak** for two seconds at any point to skip. Anyone who joins during the 1957 morning
+joins it; later than that, they wait for the end. Players who join after it just get the wake-up.
 
 **Finding your way.** The game always tells you the one thing to do next:
 
@@ -146,6 +155,12 @@ below drops for good.
 4. Survive the night. The lamp on the mast is lit and the Children come for it.
 5. At dawn the helicopter sets down at the dock. Stand by it to leave. The ending reflects
    Trevor, the survey, the Heart and the Children. Afterwards you can stay and keep playing.
+
+**The island's animals and monsters are mutated.** The world carries an island-only resource pack
+that repaints every vanilla mob (cows, pigs, sheep, chickens, rabbits, armadillos, horses, zombies,
+skeletons, spiders, creepers and the rest) with sores, tumours, bald patches and glowing pustules.
+The island's hostile mobs are faster and hit harder than the mainland's, and island meat is
+radioactive: cooked it adds a little to your dose, raw a lot. Rations and fish are safe.
 
 **The 1.1 creatures** are all still there and work as before.
 

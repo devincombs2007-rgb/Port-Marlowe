@@ -944,11 +944,18 @@ def render(name):
     return img
 
 
+HELD_LIKE_A_TOOL = {"service_pistol", "flare_gun"}
+
+
 def main():
     items_dir = ensure(os.path.join(RP, "textures", "items", "hollow"))
     sheet = Image.new("RGBA", (len(ICONS) * 72, 72), (24, 24, 28, 255))
     for i, name in enumerate(ICONS):
         img = render(name)
+        if name in HELD_LIKE_A_TOOL:
+            # held items point along the sprite's diagonal (like a sword): turn the handguns so the
+            # muzzle leads to the top-right and the grip sits in the hand
+            img = img.resize((64, 64), Image.NEAREST).rotate(40, resample=Image.NEAREST, center=(32, 32)).resize((16, 16), Image.NEAREST)
         img.save(os.path.join(items_dir, f"{name}.png"))
         big = img.resize((64, 64), Image.NEAREST)
         sheet.paste(big, (i * 72 + 4, 4), big)

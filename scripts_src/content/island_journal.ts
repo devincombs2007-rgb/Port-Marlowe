@@ -516,4 +516,15 @@ export const ISLAND_ENTRIES: Entry[] = [
       "corridors and rooms. Three of them, the Seer says. One is sealed." + P +
       "§8Bring a light. And a counter.",
   },
+  {
+    id: "mutants", chapter: "threats", island: true, title: "The Island's Animals", icon: `${J}tracks`,
+    body:
+      "Everything that lives here is wrong. Cows with open sores and bald, raw patches. Pigs with " +
+      "tumours like fists. Sheep losing their wool in clumps. Little points of green light in the " +
+      "skin, like the crater water." + P +
+      "The things that walk at night are worse than the mainland's: §lfaster, and they hit harder§r." + P +
+      "§cThe meat is hot.§r Cooked, it adds a little to your dose; raw, a lot. Rations and fish " +
+      "are safer."+ P +
+      "§8Seventy years of fallout, generation after generation.",
+  },
 ];

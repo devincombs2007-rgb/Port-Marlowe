@@ -27,6 +27,7 @@ Minecraft's own sheep sounds. Vanilla sounds are referenced, not redistributed.
 
 | Source | Use | Provenance |
 |---|---|---|
+| Varrow Island guns, explosions, radio, countdown, engines, fire (2.0) | Gunshots, the airburst, bomber drone, radio static, the countdown voice, gasps | CC0 recordings from the same collection: 25 CC0 Bang SFX, 100 CC0 SFX, Warfork CC0 weapons/announcer/player sounds, Ben Burnes' Record Fuzzies, Chairmat, Fans and Drones and Samples Vol 4; layered, pitched, filtered and reverberated (`tools/sounds/island_sourced.py`) |
 | Kenney Impact Sounds and RPG Audio | Footsteps, creaks, book and equipment sounds | CC0 packs in the sound collection linked below |
 | Abstraction / Tallbeard Studios (Benjamin Burnes) | Organic foley, pads and music | Source paths and track names retained in `sources_used.json` |
 | rubberduck's CC0 packs on OpenGameArt | Creature, wood, stone, mud and water layers | CC0 packs in the sound collection linked below |
@@ -66,6 +67,7 @@ Preview images in `docs/previews/` are offline software renders, not in-game scr
 | Material | Use | Shipped? | Terms |
 |---|---|---|---|
 | **Mojang `bedrock-samples` v1.26.50.4** | Build-time JSON schemas and vanilla metadata for validation. **Also the base for the Visuals pack**: the 57 `biomes/*.client_biome.json` files, and the per-biome fog water settings, are modified copies of vanilla files; lighting, atmosphere and water start from vanilla keyframes and are then altered. | Visuals pack: yes, as adapted files | © Mojang AB. "By downloading the files in this repository, you agree to the Minecraft End User License Agreement." Adapted files stay under those terms. |
+| **Mojang `bedrock-samples` v1.26.50.4 entity textures** | **Varrow Mutations pack** (island world only): 196 vanilla mob textures repainted by `tools/art/mutants.py` | Island world: yes, as adapted files | © Mojang AB, Minecraft EULA; adapted files stay under those terms |
 | Minecraft Creator documentation (MicrosoftDocs/minecraft-creator) | Reference for formats and APIs | No | Microsoft documentation terms |
 | `@minecraft/server`, `@minecraft/server-ui`, `@minecraft/vanilla-data` (npm) | TypeScript typings at build time; the runtime modules are provided by the game | No | MIT (Microsoft) |
 | TypeScript 5.6.3 | Type-checking | No | Apache-2.0 |

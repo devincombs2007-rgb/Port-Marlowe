@@ -4,7 +4,8 @@
     "description": {
       "identifier": "hollow:mushroom_cloud",
       "materials": {
-        "default": "entity_emissive_alpha"
+        "default": "entity_alphatest",
+        "glow": "entity_emissive"
       },
       "textures": {
         "default": "textures/entity/hollow/mushroom_cloud"

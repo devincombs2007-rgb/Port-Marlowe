@@ -379,7 +379,7 @@ def main():
         catalog[f"music.{mid}"] = {"subtitle": f"{title} - {author}", "category": "music",
                                    "variants": [{"file": f"sounds/hollow/music/{mid}", "seconds": None, "sources": [f"cc0-music/{rel}"]}]}
     with open(os.path.join(RP, "sounds", "sound_definitions.json"), "w") as f:
-        json.dump({"format_version": "1.26.50", "sound_definitions": defs}, f, indent=2)
+        json.dump({"format_version": "1.20.20", "sound_definitions": defs}, f, indent=2)
     with open(os.path.join(os.path.dirname(__file__), "subtitles_generated.json"), "w") as f:
         json.dump(subs, f, indent=2, sort_keys=True)
     with open(os.path.join(os.path.dirname(__file__), "catalog_generated.json"), "w") as f:

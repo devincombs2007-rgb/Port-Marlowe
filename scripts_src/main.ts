@@ -41,13 +41,14 @@ import { cancelJournalNotices, ensureJournal, forgetJournal, openJournal, unlock
 import { forgetNoise, startNoiseEvents } from "./systems/noise";
 import { forceSite, forgetSites, startSites } from "./systems/sites";
 import { forgetGuns, registerGearComponents } from "./island/guns";
-import { replayCinematic } from "./island/cinematic";
 import { jobSummary, startJobs } from "./island/jobs";
 import { startLeaves } from "./island/leaves";
 import { cultSummary, setStanding, startCult } from "./island/cult";
 import { registerSurveyComponents, startSurvey, surveySummary } from "./island/survey";
 import { forceRescue, startTower, towerSummary } from "./island/tower";
 import { startScenes } from "./island/scenes";
+import { startMutants } from "./island/mutants";
+import { cinematicSummary, replayCinematic, skipToShot, startCinematic } from "./island/cinematic";
 import { forgetObjectives, objectiveSummary, startObjectives } from "./island/objectives";
 import { detectIsland, isIsland, setIsland } from "./island/mode";
 import { forgetRadiation, radState, setDose, startRadiation } from "./island/radiation";
@@ -106,6 +107,8 @@ function init(): void {
   startSurvey();
   startTower();
   startScenes();
+  startCinematic();
+  startMutants();
   startObjectives();
   startStory();
   later("sweep", 40, sweepLoaded);
@@ -286,6 +289,8 @@ function testCommand(p: Player, arg: string): string {
       return replayCinematic(p);
     case "rescue":
       return forceRescue();
+    case "shot":
+      return skipToShot();
     case "cultspawn": {
       const at = p.location;
       for (const t of [ENT.zealot, ENT.faithful, ENT.seer]) p.dimension.spawnEntity(t, { x: at.x + 3, y: at.y, z: at.z + 3 });
@@ -338,7 +343,7 @@ system.afterEvents.scriptEventReceive.subscribe((ev) => safe("scriptevent", () =
       p.sendMessage(
         `§7[hollow] day ${hollowDay()} · watcher ${watcherCount()} · borrowed ${borrowedCount()} · hollowed ${hollowedCount()} · ` +
         `mirebound ${mireboundCount()} · knocker ${knockerActive() ? 1 : 0} · heart ${bossSummary()} · dread ${dreadSummary()} · ` +
-        `${storySummary()} · ${trevorSummary()} · ${jobSummary()} · ${cultSummary()} · ${surveySummary()} · ${towerSummary()} · ${objectiveSummary()} · failures: ${failureReport()}`,
+        `${storySummary()} · ${trevorSummary()} · ${jobSummary()} · ${cultSummary()} · ${surveySummary()} · ${towerSummary()} · ${objectiveSummary()} · ${cinematicSummary()} · failures: ${failureReport()}`,
       );
       return;
     case "hollow:debug":

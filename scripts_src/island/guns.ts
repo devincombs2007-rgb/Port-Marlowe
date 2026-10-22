@@ -46,9 +46,9 @@ export const GUNS: Record<string, Gun> = {
   [ITEM.pistol]: { item: ITEM.pistol, ammo: ITEM.round, ammoName: "9mm rounds", mag: 7, damage: 7, pellets: 1, spread: 0, range: 48,
     falloffFrom: 20, reloadTicks: 26, sound: SND.pistol, pitch: 1.0, noise: 48, shake: 0.22, journal: "gear_pistol" },
   [ITEM.rifle]: { item: ITEM.rifle, ammo: ITEM.rifleRound, ammoName: ".30 rifle rounds", mag: 5, damage: 15, pellets: 1, spread: 0,
-    range: 90, falloffFrom: 60, reloadTicks: 48, sound: SND.pistol, pitch: 0.7, noise: 64, shake: 0.4, journal: "gear_rifle" },
+    range: 90, falloffFrom: 60, reloadTicks: 48, sound: SND.rifle, pitch: 1.0, noise: 64, shake: 0.4, journal: "gear_rifle" },
   [ITEM.shotgun]: { item: ITEM.shotgun, ammo: ITEM.shell, ammoName: "shotgun shells", mag: 4, damage: 3, pellets: 7, spread: 5.5,
-    range: 22, falloffFrom: 8, reloadTicks: 40, sound: SND.pistol, pitch: 0.55, noise: 56, shake: 0.45, journal: "gear_shotgun" },
+    range: 22, falloffFrom: 8, reloadTicks: 40, sound: SND.shotgun, pitch: 1.0, noise: 56, shake: 0.45, journal: "gear_shotgun" },
 };
 export const MAG_SIZE = 7;
 const reloading = new Map<string, number>();

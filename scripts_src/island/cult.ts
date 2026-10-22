@@ -533,7 +533,7 @@ export function openVault(dim = world.getDimension("overworld")): boolean {
 function onRound(e: Entity): void {
   const dim = e.dimension;
   const nearest = world.getAllPlayers().reduce((d, p) => Math.min(d, Math.hypot(p.location.x - e.location.x, p.location.z - e.location.z)), 1e9);
-  if (nearest < 40) worldSound(dim, SND.pistol, e.location, 1.0, 0.68 + Math.random() * 0.06);
+  if (nearest < 40) worldSound(dim, SND.rifle, e.location, 1.0, 0.95 + Math.random() * 0.1);
   else worldSound(dim, SND.distantShot, e.location, 0.9);
   particle(dim, "minecraft:basic_smoke_particle", e.location);
   emitNoise({ dim, at: e.location, radius: 48, kind: "gunshot" });

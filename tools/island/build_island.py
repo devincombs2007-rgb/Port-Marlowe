@@ -86,7 +86,8 @@ def package_world():
     out = os.path.join(BUILD, "world")
     man = json.load(open(os.path.join(ROOT, "packs", "behavior", "manifest.json")))
     ver = ".".join(str(v) for v in man["header"]["version"])
-    packs = [("THE_HOLLOW_Visuals", os.path.join(ROOT, "packs", "visuals"), "resource"),
+    packs = [("THE_HOLLOW_Mutations", os.path.join(ROOT, "packs", "varrow_mutations"), "resource"),
+             ("THE_HOLLOW_Visuals", os.path.join(ROOT, "packs", "visuals"), "resource"),
              ("THE_HOLLOW_RP", os.path.join(ROOT, "packs", "resource"), "resource"),
              ("THE_HOLLOW_BP", os.path.join(ROOT, "packs", "behavior"), "behavior")]
     dst = os.path.join(ROOT, "dist", f"THE_HOLLOW_Varrow_Island_v{ver}.mcworld")
@@ -141,6 +142,10 @@ def main(argv):
     if not quick:
         dio = build_diorama()
         dio.save_db(os.path.join(out, "db"), fresh=False)
+        if builder is not None:
+            for k, v in dio.points.items():
+                builder.points.setdefault(k, []).extend(v)
+            builder.consoles.update(dio.consoles)
         log(t0, f"1957 diorama written ({dio.W}x{dio.D} at {L.DIORAMA})")
     level_dat(os.path.join(out, "level.dat"), WORLD_NAME, (sx, sy, sz), L.FLAT_LAYERS, extra={
         "dofiretick": nbt.Byte(0),          # the wreck burns for ever and never takes the forest with it

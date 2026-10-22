@@ -9,7 +9,7 @@ import { getNum, readWorld, setNum, writeWorld } from "../core/store";
 import { groundNear, heldItem } from "../core/world";
 import { giveOrDrop } from "../items/components";
 import { ensureJournal, unlock } from "../systems/journal";
-import { cinematicDone, cinematicRunning, leave, needsRestore, playCinematic } from "./cinematic";
+import { cinematicDone, cinematicRunning, joinCinematic, leave, needsRestore, playCinematic } from "./cinematic";
 import { pistolStack } from "./guns";
 import { detectIsland, isIsland } from "./mode";
 import { suitProtection } from "./radiation";
@@ -216,7 +216,11 @@ export function onIslandSpawn(p: Player, initial: boolean): void {
     return;
   }
   if (cinematicRunning()) {
-    // arrived during the opening: wake when it ends, thrown clear down the beach
+    // arrived during the morning of the shot: join it; later than that, wake when it ends
+    if (joinCinematic(p)) {
+      pending.delete(p.id);
+      return;
+    }
     const wait = () => {
       if (!p.isValid) return;
       if (cinematicRunning()) later("story.wait", 20, wait);

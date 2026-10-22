@@ -113,8 +113,8 @@ Result: **117/117 scenarios passed**
 | trevor: nobody comes - he limps back at dawn; with permanent death on he is gone for good | pass |
 | trevor: anyone can order him; he patches up the badly hurt and won't follow into the crater | pass |
 | island: searching the crew gives their notes once; the forest cabins never appear | pass |
-| cinematic: the first arrival triggers 1957 and the shoot-down for everyone, once | pass |
-| cinematic: hold sneak to skip; quitting mid-scene restores you on return | pass |
+| opening: play the 1957 morning, then the shot through your own eyes, the cloud, the crater and 2026 | pass |
+| opening: hold Sneak to skip; a late joiner joins the morning; quitting mid-scene restores you | pass |
 | jobs: make camp, chop a tree, logs stacked in the camp crate | pass |
 | jobs: building a cabin takes forty logs from the crate and raises it block by block | pass |
 | jobs: orders from different players run first come first served; cancel drops only your own | pass |
@@ -128,4 +128,4 @@ Result: **117/117 scenarios passed**
 
 - music: 3 night track(s) over 4 nights; 129 ticks of night music while a Watcher was stalking
 - dread draw: watcher encounters over twelve nights - calm 25, terrified 29
-- load: peak creature counts {"hollow:borrowed":2,"hollow:watcher":3,"hollow:phantom":1}; script time per tick avg 0.237 ms, p99 1.835 ms, max 6.54 ms (Node on a dev machine against the fake world - not an Xbox measurement)
+- load: peak creature counts {"hollow:borrowed":2,"hollow:watcher":3,"hollow:phantom":2}; script time per tick avg 0.239 ms, p99 2.038 ms, max 7.15 ms (Node on a dev machine against the fake world - not an Xbox measurement)
