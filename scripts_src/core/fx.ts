@@ -1,4 +1,4 @@
-import { Dimension, MolangVariableMap, Player, Vector3 } from "@minecraft/server";
+import { Dimension, MolangVariableMap, Player, Vector3, system } from "@minecraft/server";
 import { prefs } from "./config";
 
 // Visual effects are always optional (player preference "Visual effects"). We never force
@@ -62,7 +62,14 @@ export function hint(p: Player, text: string): void {
 }
 
 /** Action bar text that is shown regardless of the hints preference (rare, important). */
+const lastNotice = new Map<string, number>();
+/** When this player was last shown an action-bar notice (ticks). */
+export function lastNoticeAt(p: Player): number {
+  return lastNotice.get(p.id) ?? -99999;
+}
+
 export function notice(p: Player, text: string): void {
+  lastNotice.set(p.id, system.currentTick);
   try {
     p.onScreenDisplay.setActionBar(text);
   } catch {

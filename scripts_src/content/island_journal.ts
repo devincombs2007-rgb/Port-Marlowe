@@ -405,9 +405,9 @@ export const ISLAND_ENTRIES: Entry[] = [
   {
     id: "seer_way", chapter: "places", island: true, title: "The Back Way", icon: `${J}seer`,
     body:
-      "§o\"The machine-house under the western hill is closed. But the rock has a throat. Walk south " +
-      "of its door, where the ground falls in. Climb down.\"§r" + P +
-      "A sinkhole south of Bunker 2, with a cave that runs into the back of it.",
+      "§o\"The machine-house under the western hill is closed. But the rock has a throat. Walk west " +
+      "from its door, a hundred paces, where the ground falls in. Climb down.\"§r" + P +
+      "A sinkhole about a hundred blocks west of Bunker 2, with a cave that runs into the back of it.",
   },
   {
     id: "hierophant_dead", chapter: "threats", island: true, title: "The Hierophant Is Dead", icon: `${J}hierophant`,

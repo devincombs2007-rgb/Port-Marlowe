@@ -47,6 +47,8 @@ import { startLeaves } from "./island/leaves";
 import { cultSummary, setStanding, startCult } from "./island/cult";
 import { registerSurveyComponents, startSurvey, surveySummary } from "./island/survey";
 import { forceRescue, startTower, towerSummary } from "./island/tower";
+import { startScenes } from "./island/scenes";
+import { forgetObjectives, objectiveSummary, startObjectives } from "./island/objectives";
 import { detectIsland, isIsland, setIsland } from "./island/mode";
 import { forgetRadiation, radState, setDose, startRadiation } from "./island/radiation";
 import { giveIslandKit, onIslandSpawn, startStory, storySummary } from "./island/story";
@@ -103,6 +105,8 @@ function init(): void {
   startCult();
   startSurvey();
   startTower();
+  startScenes();
+  startObjectives();
   startStory();
   later("sweep", 40, sweepLoaded);
   console.warn(`[hollow] THE HOLLOW initialised (day ${hollowDay()}).`);
@@ -157,6 +161,7 @@ function forgetEncounters(playerId: string): void {
   forgetMireboundTarget(playerId);
   forgetKnockerTarget(playerId);
   forgetTrevorPlayer(playerId);
+  forgetObjectives(playerId);
 }
 
 world.beforeEvents.playerLeave.subscribe((ev) => {
@@ -333,7 +338,7 @@ system.afterEvents.scriptEventReceive.subscribe((ev) => safe("scriptevent", () =
       p.sendMessage(
         `§7[hollow] day ${hollowDay()} · watcher ${watcherCount()} · borrowed ${borrowedCount()} · hollowed ${hollowedCount()} · ` +
         `mirebound ${mireboundCount()} · knocker ${knockerActive() ? 1 : 0} · heart ${bossSummary()} · dread ${dreadSummary()} · ` +
-        `${storySummary()} · ${trevorSummary()} · ${jobSummary()} · ${cultSummary()} · ${surveySummary()} · ${towerSummary()} · failures: ${failureReport()}`,
+        `${storySummary()} · ${trevorSummary()} · ${jobSummary()} · ${cultSummary()} · ${surveySummary()} · ${towerSummary()} · ${objectiveSummary()} · failures: ${failureReport()}`,
       );
       return;
     case "hollow:debug":

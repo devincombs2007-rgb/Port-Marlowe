@@ -16,6 +16,7 @@ import { unlock } from "../systems/journal";
 import { emitNoise } from "../systems/noise";
 import { GUNS, onGunshotHook, onShrineKeyHook } from "./guns";
 import { isIsland } from "./mode";
+import { playScene } from "./scenes";
 import { say } from "./trevor";
 
 // THE CHILDREN OF THE SECOND SUN
@@ -335,7 +336,7 @@ async function talkSeer(p: Player, e: Entity): Promise<void> {
     if (s.standing >= 40) {
       options.push(["Is there another way into the sealed bunker?", () => {
         unlock(p, "seer_way");
-        notice(p, "§7The Seer: §f\"The machine-house under the western hill is closed. But the rock has a throat. Walk south of its door, where the ground falls in. Climb down.\"");
+        notice(p, "§7The Seer: §f\"The machine-house under the western hill is closed. But the rock has a throat. Walk west from its door, a hundred paces, where the ground falls in. Climb down.\"");
       }]);
     }
     const form = new ActionFormData().title("§lThe Seer").body(`§o"You smell of the mainland, and of the dead man you carried."\n\n§r§8The Children ${standingWord()}.`);
@@ -419,7 +420,14 @@ function onHurt(hurt: Entity, by?: Entity): void {
       } catch {
         /* ignore */
       }
-      for (const p of world.getAllPlayers()) notice(p, "§c\"You raise your hand against the sun?\"");
+      const near = world.getAllPlayers().filter((p) => Math.hypot(p.location.x - hurt.location.x, p.location.z - hurt.location.z) < 40);
+      const h = hurt.location;
+      const yaw = Math.random() * Math.PI * 2;
+      playScene("hierophant", near, [
+        { t: 1, cam: { at: { x: h.x + Math.cos(yaw) * 5, y: h.y + 2.2, z: h.z + Math.sin(yaw) * 5 }, look: () => hurt } },
+        { t: 4, cam: { at: { x: h.x + Math.cos(yaw) * 3, y: h.y + 1.9, z: h.z + Math.sin(yaw) * 3 }, look: () => hurt, ease: 2.5 } },
+        { t: 10, title: ["§4The Hierophant", "§c\"You raise your hand against the sun?\""], sound: ["mob.evocation_illager.prepare_attack", 1, 0.7] },
+      ], 70);
     }
     const hp = hurt.getComponent("minecraft:health");
     if (hp && hp.currentValue < hp.effectiveMax * 0.5 && !s.wrathSummoned) {

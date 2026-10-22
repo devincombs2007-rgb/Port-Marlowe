@@ -155,6 +155,12 @@ function threatsAwake(): string {
   return lines.join("\n");
 }
 
+let logHeader: ((p: Player) => string) | undefined;
+/** The island's objective tracker puts the current objective at the top of the Research Log. */
+export function setLogHeader(fn: (p: Player) => string): void {
+  logHeader = fn;
+}
+
 export async function openJournal(p: Player): Promise<void> {
   await formSession(p, () => openJournalMenu(p));
 }
@@ -169,7 +175,7 @@ async function openJournalMenu(p: Player): Promise<void> {
   const form = new ActionFormData()
     .title(island ? "§lResearch Log" : "§lField Journal")
     .body(
-      `§7Day §f${hollowDay() + 1}§7 · Entries §f${have}/${total}\n\n` + threatsAwake(),
+      (logHeader?.(p) ?? "") + `§7Day §f${hollowDay() + 1}§7 · Entries §f${have}/${total}\n\n` + threatsAwake(),
     );
   const shown = (e: (typeof ENTRIES)[number]) => entryVisible(e, island) && d.u.includes(e.id);
   const unreadIn = (ch: Chapter) => ENTRIES.some((e) => e.chapter === ch && shown(e) && !d.r.includes(e.id));

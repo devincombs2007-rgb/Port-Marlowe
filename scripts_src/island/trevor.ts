@@ -350,6 +350,12 @@ async function talk(p: Player, e: Entity): Promise<void> {
   unlock(p, "trevor1");
 }
 
+let objectiveVoice: ((p: Player) => string | undefined) | undefined;
+/** The objective tracker gives Trevor something to say about what to do next. */
+export function setObjectiveVoice(fn: (p: Player) => string | undefined): void {
+  objectiveVoice = fn;
+}
+
 /** The order menu: beside him (Use on him) or from anywhere with the field radio. */
 export async function trevorMenu(p: Player, e: Entity | undefined, remote: boolean): Promise<void> {
   const s = st();
@@ -382,7 +388,7 @@ export async function trevorMenu(p: Player, e: Entity | undefined, remote: boole
   }]);
   const form = new ActionFormData()
     .title(remote ? "§lField radio: Trevor" : "§lTrevor Hale")
-    .body(`${statusLine(e)}\n${queueSummary()}\n\n§o"${remote ? "Go ahead, I'm listening." : advice(p)}"`);
+    .body(`${statusLine(e)}\n${queueSummary()}\n\n§o"${remote ? "Go ahead, I'm listening." : objectiveVoice?.(p) ?? advice(p)}"`);
   for (const [label, icon] of actions) form.button(label, icon);
   form.button("§8Close", "textures/ui/hollow/back");
   const r = await showForm(p, form);

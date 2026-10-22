@@ -242,6 +242,8 @@ export const DP = {
   survey: "hollow:survey",
   tower: "hollow:tower",
   reel: "hollow:reel",
+  scenes: "hollow:scenes",
+  objective: "hollow:objective",
   // item
   mag: "hollow:mag",
   // entity

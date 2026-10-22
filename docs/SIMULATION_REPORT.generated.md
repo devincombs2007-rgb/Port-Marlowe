@@ -4,7 +4,7 @@ The real bundled behavior-pack scripts run against a fake Minecraft API (`tools/
 This checks script logic: scheduling, events, persistence, reloads, state machines, caps, cooldowns and rewards.
 It is **not** an in-game test: there is no engine pathfinding, melee, physics, rendering or audio.
 
-Result: **115/115 scenarios passed**
+Result: **117/117 scenarios passed**
 
 | Scenario | Result |
 |---|---|
@@ -123,7 +123,9 @@ Result: **115/115 scenarios passed**
 | cult: offerings in the shrine barrel, the Hierophant's key opens the vault; his death turns everyone | pass |
 | survey: stations log with a counter; containers stock on approach; samples file; reels play | pass |
 | tower: fuel and parts, transmit, a night under siege, the dawn helicopter and the ending | pass |
+| guidance: one objective at a time (talk, tower, parts, transmit) with a marker, chat and the log | pass |
+| scenes: first sight of the tower is a short cutscene; you are put back; it plays once; Sneak skips | pass |
 
 - music: 3 night track(s) over 4 nights; 129 ticks of night music while a Watcher was stalking
 - dread draw: watcher encounters over twelve nights - calm 25, terrified 29
-- load: peak creature counts {"hollow:borrowed":2,"hollow:watcher":3,"hollow:phantom":2}; script time per tick avg 0.137 ms, p99 1.309 ms, max 4.50 ms (Node on a dev machine against the fake world - not an Xbox measurement)
+- load: peak creature counts {"hollow:borrowed":2,"hollow:watcher":3,"hollow:phantom":1}; script time per tick avg 0.237 ms, p99 1.835 ms, max 6.54 ms (Node on a dev machine against the fake world - not an Xbox measurement)

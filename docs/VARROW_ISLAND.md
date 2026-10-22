@@ -37,6 +37,25 @@ delayed boom, the island burning. Then 2026: your helicopter comes in low from t
 shot down from the trees. Hold **sneak** for two seconds to skip. Players who join mid-scene
 wait for it to end; players who join later just get the wake-up.
 
+**Finding your way.** The game always tells you the one thing to do next:
+
+- A **gold marker** on the locator bar points at it (the bar at the top of the screen, like a
+  compass). A smaller white marker points at the nearest survey station you haven't logged.
+- When the objective changes you get a **"New objective"** title and a line in chat saying what
+  to do and where. Every minute or so the action bar reminds you, with the distance and direction.
+- The **Research Log's** front page starts with the current objective.
+- **Trevor** says what he thinks you should do next when you talk to him.
+- The story goes: talk to Trevor → reach the radio tower on the north peak → collect the
+  transmitter parts (the objective names each one and where to find it, nearest first) →
+  transmit → survive the night → get to the dock.
+
+**Cutscenes.** Besides the opening: a short scene the first time you see the **radio tower**,
+**Sunfall** and **Ground Zero** (never in the middle of a fight); the **transmission** (the lamp
+lighting, the Coast Guard answering, Sunfall seeing it); the **helicopter** arriving at dawn; the
+**Hierophant** turning on you; and the **ending** (the island from the air, with what became of
+everyone). You're safe while they play and put back where you were afterwards. Hold **Sneak** to
+skip any of them.
+
 **The crash.** Each player wakes once: black screen, ringing ears, the title card, Trevor talking
 you round. You get your **Research Log**, a **Geiger counter** and a **loaded service pistol**.
 The barrels by the wreck hold rations, medkits, 9mm rounds, iodine tablets, sample kits, a
@@ -109,7 +128,7 @@ The island's creatures never touch them.
 
 **Places.** The mock town (store with wire, police armoury), the animal pens, three bunkers
 (iron doors: press the button beside them; Bunker 2 is sealed from the inside, so find the
-sinkhole south of it), the bleachers in Blackwood, the dock and boathouse, the north peak relay.
+sinkhole about a hundred blocks west of it), the bleachers in Blackwood, the dock and boathouse, the north peak relay.
 Containers are stocked the first time someone comes near.
 
 **The Heart Below.** Under the crater lake is a cavern, reached by the old instrument shaft on the

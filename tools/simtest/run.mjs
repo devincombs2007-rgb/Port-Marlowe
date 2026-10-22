@@ -2130,6 +2130,7 @@ await test("radiation: severe dose brings sickness; iodine halves uptake; nothin
   assert(p._effects.some((e) => e.id === "weakness"), "weakness at 1000+");
   assert(p._effects.some((e) => e.id === "poison"), "sickness at 1000+");
   sim.fire("scriptEventReceive", { id: "hollow:test", message: "dose 0", sourceEntity: p });
+  p.setDynamicProperty("hollow:scenes", JSON.stringify(["crater"]));   // seen the first-sight cutscene already
   p.teleport({ x: GZ.x + 60, y: 64, z: GZ.z });
   const dose = () => Number(JSON.parse(p.getDynamicProperty("hollow:rad")).dose);
   sim.tick(20 * 30);
@@ -2629,11 +2630,73 @@ await test("tower: fuel and parts, transmit, a night under siege, the dawn helic
   p._ui.push({ canceled: false, selection: 0 });
   sim.tick(60);
   assert(statusOf(sim, p).includes("phase=gone"), "aboard");
-  sim.tick(480);
+  sim.tick(640);
   for (let i = 0; i < 3; i++) await flush();
   assert(journal(p).includes("ending"), "ending entry");
   assert((p._shownForms ?? []).some((f) => f._title.includes("Varrow Island")), "the epilogue");
   eq(String(p.getGameMode()).toLowerCase(), "survival", "back in the game afterwards");
+  noErrors(sim);
+});
+
+
+await test("guidance: one objective at a time (talk, tower, parts, transmit) with a marker, chat and the log", async () => {
+  const sim = islandWorld();
+  const p = sim.addPlayer("Alex", atSpawn());
+  sim.tick(OPEN);
+  assert(statusOf(sim, p).includes("objective: talk"), "talk to Trevor first");
+  sim.tick(60);
+  assert((p._waypoints ?? []).length >= 1, "a marker on the locator bar");
+  p._ui.push({ canceled: true });
+  sim.fire("playerInteractWithEntity", { player: p, target: trevorOf(sim) });
+  for (let i = 0; i < 3; i++) await flush();
+  sim.tick(60);
+  assert(chat(p).includes("Objective: §fReach the radio tower"), "announced in chat");
+  assert(statusOf(sim, p).includes("objective: tower"), "then the tower");
+  // at the tower: the transmitter parts, nearest first
+  const T = L_CONSOLES.tower;
+  p.teleport({ x: T.x + 0.5, y: 64, z: T.z + 3.5 });
+  sim.tick(260);
+  assert(chat(p).includes("Repair the transmitter"), "parts objective announced");
+  assert(/objective: parts:.*coal.*tubes.*wire.*battery/.test(statusOf(sim, p)), `parts list: ${statusOf(sim, p).match(/objective: [^·]*/)}`);
+  const IS = sim.exports().ItemStack;
+  p._inv.addItem(new IS("hollow:copper_wire", 4));
+  sim.tick(60);
+  assert(chat(p).includes("§6Transmitter:"), "a quiet update, not a new title");
+  assert(!/objective: parts:[^·]*wire/.test(statusOf(sim, p)), "wire in a pack counts");
+  for (const [id, n] of [["minecraft:coal", 8], ["hollow:vacuum_tube", 2], ["hollow:battery_bank", 1]]) p._inv.addItem(new IS(id, n));
+  sim.tick(60);
+  assert(statusOf(sim, p).includes("objective: install"), "take it all to the tower");
+  // the Research Log leads with it
+  p._ui.push({ canceled: true });
+  sim.fire("scriptEventReceive", { id: "hollow:journal", sourceEntity: p, message: "" });
+  for (let i = 0; i < 3; i++) await flush();
+  const log = (p._shownForms ?? []).filter((f) => f._title.includes("Research Log")).pop();
+  assert(log && log._body.includes("Objective"), "objective on the log's front page");
+  noErrors(sim);
+});
+
+await test("scenes: first sight of the tower is a short cutscene; you are put back; it plays once; Sneak skips", () => {
+  const sim = islandWorld();
+  const p = sim.addPlayer("Alex", atSpawn());
+  sim.tick(OPEN);
+  const T = L_CONSOLES.tower;
+  const spot = { x: T.x + 20.5, y: 64, z: T.z + 20.5 };
+  p.teleport(spot);
+  sim.tick(25);
+  eq(String(p.getGameMode()).toLowerCase(), "spectator", "in the cutscene");
+  sim.tick(200);
+  eq(String(p.getGameMode()).toLowerCase(), "survival", "back afterwards");
+  assert(Math.hypot(p.location.x - spot.x, p.location.z - spot.z) < 1, "where they were");
+  sim.tick(100);
+  eq(String(p.getGameMode()).toLowerCase(), "survival", "not replayed");
+  // Ground Zero: skip with Sneak
+  p.teleport({ x: GZ.x + 80.5, y: 64, z: GZ.z + 0.5 });
+  sim.tick(25);
+  eq(String(p.getGameMode()).toLowerCase(), "spectator", "the crater scene");
+  p.isSneaking = true;
+  sim.tick(25);
+  p.isSneaking = false;
+  eq(String(p.getGameMode()).toLowerCase(), "survival", "skipped");
   noErrors(sim);
 });
 

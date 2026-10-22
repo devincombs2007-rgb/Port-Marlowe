@@ -11,7 +11,7 @@ import { every, safe } from "../core/scheduler";
 import { readWorld, writeWorld } from "../core/store";
 import { isDarkHours } from "../core/time";
 import { unlock } from "../systems/journal";
-import { enterScene, leave } from "./cinematic";
+import { playScene } from "./scenes";
 import { cultEndingState, sendWarband } from "./cult";
 import { isIsland } from "./mode";
 import { onConsoleHook, surveyState } from "./survey";
@@ -183,37 +183,56 @@ function transmit(p: Player): void {
   save();
   const dim = p.dimension;
   const lamp = (POINTS.tower_lamp ?? [])[0];
-  if (lamp) {
+  const lightLamp = () => {
+    if (!lamp) return;
     try {
       dim.getBlock(lamp)?.setPermutation(BlockPermutation.resolve("minecraft:sea_lantern"));
       dim.getBlock({ x: lamp.x, y: lamp.y + 1, z: lamp.z })?.setPermutation(BlockPermutation.resolve("minecraft:light_block_15"));
     } catch {
       /* unloaded */
     }
-  }
-  const lines: [number, string, string?][] = [
-    [0, "§7You key the transmitter. Seventy-year-old valves warm to orange, one by one.", SND.cineRadio],
-    [80, "§f\"Mayday, mayday, mayday. This is the Varrow Island survey party, contract one-one-four. Our helicopter was shot down. Two dead. We need extraction.\""],
-    [180, "§8...static...", SND.cineRadio],
-    [260, "§b\"Varrow party, Coast Guard Sector Honolulu. We hear you, faint but readable. A helicopter will launch at first light. Can you reach the old dock on the south-east shore?\""],
-    [380, "§f\"We can reach it.\""],
-    [430, "§b\"Hold on until dawn. And keep your heads down.\""],
+  };
+  // the radio exchange also goes to chat, so it can be read again (or by anyone who skipped)
+  const lines: [number, string][] = [
+    [0, "§7You key the transmitter. Seventy-year-old valves warm to orange, one by one."],
+    [70, "§f\"Mayday, mayday, mayday. This is the Varrow Island survey party. Our helicopter was shot down. Two dead. We need extraction.\""],
+    [200, "§b\"Varrow party, Coast Guard Sector Honolulu. We hear you. A helicopter will launch at first light. Can you reach the old dock on the south-east shore?\""],
+    [300, "§f\"We can reach it.\""],
+    [340, "§b\"Hold on until dawn. And keep your heads down.\""],
   ];
-  for (const [t, text, snd] of lines) {
+  for (const [t, text] of lines) {
     system.runTimeout(() => safe("tower.radio", () => {
-      for (const q of world.getAllPlayers()) {
-        notice(q, text);
-        if (snd) ui(q, snd, 0.7, 1);
-      }
+      for (const q of world.getAllPlayers()) q.sendMessage(text);
     }), t);
   }
+  const T = SITES.TOWER;
+  const hut = (POINTS.tower_hut ?? [])[0] ?? { x: T.x, y: 163, z: T.z + 7 };
+  const top = lamp ?? { x: T.x, y: hut.y + 30, z: T.z };
+  const shrine = (POINTS.shrine ?? [])[0] ?? { x: SITES.SUNFALL.x, y: 75, z: SITES.SUNFALL.z };
+  const at = (x: number, y: number, z: number) => ({ x, y, z });
+  playScene("transmit", world.getAllPlayers(), [
+    { t: 1, fade: true },
+    { t: 8, cam: { at: at(hut.x + 7, hut.y + 2, hut.z + 7), look: at(hut.x, hut.y + 1, hut.z) }, sound: [SND.cineRadio, 0.8] },
+    { t: 20, bar: "§7The valves warm to orange, one by one." },
+    { t: 70, title: ["", "§f\"Mayday, mayday, mayday...\""], sound: [SND.cineRadio, 0.6] },
+    { t: 110, cam: { at: at(top.x + 9, top.y - 2, top.z + 9), look: at(top.x, top.y, top.z), ease: 4 } },
+    { t: 150, run: lightLamp, sound: ["random.anvil_land", 0.3, 1.8] },
+    { t: 160, title: ["", "§eThe lamp on the mast lights."] },
+    { t: 200, title: ["§bCoast Guard", "§f\"We hear you. Helicopter at first light.\""], sound: [SND.cineRadio, 0.7] },
+    { t: 215, cam: { at: at(top.x + 70, top.y + 18, top.z + 90), look: at(top.x, top.y, top.z), ease: 5 } },
+    { t: 300, cam: { at: at(shrine.x + 40, shrine.y + 40, shrine.z + 50), look: at(shrine.x, shrine.y, shrine.z), ease: 0 }, fade: true },
+    { t: 305, title: ["", "§cAt Sunfall, they see it too."], sound: ["bell.use" as string, 1, 0.8] },
+    { t: 340, title: ["§fHold on until dawn", "§7then get to the old dock"] },
+  ], 410, {
+    onEnd: () => undefined,
+  });
   system.runTimeout(() => safe("tower.after", () => {
     for (const q of world.getAllPlayers()) unlock(q, "transmit");
     const kin = cultEndingState().standing >= 70;
     say(kin
       ? "First light. One more night. And the lamp's lit; every soul on this island can see it. I hope your friends at Sunfall meant it."
       : "First light. One more night, then. That lamp's lit now; they'll all have seen it. They'll come for it.", "transmit", 0);
-  }), 480);
+  }), 420);
 }
 
 // ------------------------------------------------------------------------- the last night
@@ -300,7 +319,13 @@ function startRescue(): void {
       /* ignore */
     }
   }
-  say("There! Go, go! The dock!", "rescue", 0);
+  playScene("rescue", world.getAllPlayers(), [
+    { t: 1, fade: true },
+    { t: 8, cam: { at: { x: land.x - 14, y: land.y + 4, z: land.z - 10 }, look: () => heli } },
+    { t: 30, title: ["§fDawn", "§7rotors over the water"], sound: [SND.cineRotor, 1] },
+    { t: 90, cam: { at: { x: land.x - 8, y: land.y + 10, z: land.z + 12 }, look: () => heli, ease: 3 } },
+    { t: 120, title: ["", "§6It's setting down at the old dock. Get there."] },
+  ], 165, { onEnd: () => say("There! Go, go! The dock!", "rescue", 0) });
   fly(from, { x: land.x, y: land.y + 1.5, z: land.z }, 420, 180, () => {
     st().phase = "landed";
     save();
@@ -382,8 +407,6 @@ function ending(): void {
   save();
   aboard.clear();
   const land = LANDING();
-  const players = world.getAllPlayers().filter((p) => p.isValid);
-  const camAt = { x: land.x - 22, y: land.y + 9, z: land.z - 18 };
   // Trevor gets aboard too
   const t = trevorEntity();
   if (t?.isValid && !trevorGone()) {
@@ -393,58 +416,59 @@ function ending(): void {
       /* ignore */
     }
   }
-  for (const p of players) {
-    try {
-      p.camera.fade({ fadeColor: { red: 0, green: 0, blue: 0 }, fadeTime: { fadeInTime: 0.6, holdTime: 0.6, fadeOutTime: 1.2 } });
-    } catch {
-      /* ignore */
-    }
-  }
-  system.runTimeout(() => safe("ending.cam", () => {
-    for (const p of players) {
-      if (!p.isValid) continue;
-      enterScene(p, camAt);
-      try {
-        if (heli?.isValid) p.camera.setCamera("minecraft:free", { location: camAt, facingEntity: heli });
-      } catch {
-        /* ignore */
-      }
-    }
-    const up = { x: land.x, y: land.y + 30, z: land.z + 20 };
-    fly({ x: land.x, y: land.y + 1.5, z: land.z }, up, 160, 180, () => {
-      fly(up, { x: land.x + 40, y: land.y + 60, z: land.z + 260 }, 260, 165, () => {
+  const at = (x: number, y: number, z: number) => ({ x, y, z });
+  const up = at(land.x, land.y + 30, land.z + 20);
+  const gz = SITES.GZ;
+  const sun = (POINTS.shrine ?? [])[0] ?? at(SITES.SUNFALL.x, 75, SITES.SUNFALL.z);
+  const crash = SITES.CRASH;
+  const cap = captions();
+  playScene("ending", world.getAllPlayers(), [
+    { t: 1, fade: true },
+    { t: 8, cam: { at: at(land.x - 22, land.y + 9, land.z - 18), look: () => heli } },
+    { t: 14, run: () => fly(at(land.x, land.y + 1.5, land.z), up, 160, 180, () => {
+      fly(up, at(land.x + 40, land.y + 60, land.z + 260), 260, 165, () => {
         try {
           heli?.remove();
         } catch {
           /* ignore */
         }
       });
-    });
-  }), 14);
-  const titles: [number, string, string][] = [
-    [80, "§fVarrow Island", "§7June 2026"],
-    [200, "§7You were on the island", `§f${Math.max(1, world.getDay())} day(s)`],
-  ];
-  for (const [at, a, b] of titles) {
-    system.runTimeout(() => safe("ending.title", () => {
-      for (const p of players) {
-        try {
-          if (p.isValid) p.onScreenDisplay.setTitle(a, { subtitle: b, fadeInDuration: 20, stayDuration: 70, fadeOutDuration: 20 });
-        } catch {
-          /* ignore */
-        }
-      }
-    }), at);
-  }
-  system.runTimeout(() => safe("ending.form", () => {
-    for (const p of players) {
-      if (!p.isValid) continue;
-      leave(p, { x: land.x, y: land.y, z: land.z - 3 });
+    }) },
+    { t: 60, title: ["§fVarrow Island", "§7June 2026"], sound: [SND.cineWind, 0.8] },
+    { t: 130, cam: { at: at(gz.x - 70, 120, gz.z + 70), look: at(gz.x, 58, gz.z) }, fade: true },
+    { t: 135, cam: { at: at(gz.x + 40, 130, gz.z + 90), look: at(gz.x, 58, gz.z), ease: 5 } },
+    { t: 150, title: cap[0] },
+    { t: 230, cam: { at: at(sun.x + 40, sun.y + 35, sun.z + 50), look: at(sun.x, sun.y, sun.z) }, fade: true },
+    { t: 235, cam: { at: at(sun.x - 30, sun.y + 45, sun.z + 40), look: at(sun.x, sun.y, sun.z), ease: 5 } },
+    { t: 250, title: cap[1] },
+    { t: 330, cam: { at: at(crash.x + 30, 90, crash.z + 40), look: at(crash.x, 64, crash.z) }, fade: true },
+    { t: 335, cam: { at: at(crash.x - 20, 100, crash.z + 60), look: at(crash.x, 64, crash.z), ease: 5 } },
+    { t: 350, title: cap[2] },
+    { t: 430, title: cap[3] },
+    { t: 510, title: ["§fTHE HOLLOW", "§7thank you for playing"] },
+  ], 580, {
+    returnTo: at(land.x, land.y, land.z - 3),
+    onEnd: (p) => {
       unlock(p, "ending", true);
       void endingForm(p, lines);
-    }
+    },
+  });
+  system.runTimeout(() => {
     ended = false;
-  }), 440);
+  }, 600);
+}
+
+/** Short captions for the ending shots, from the same facts as the epilogue. */
+function captions(): [string, string][] {
+  const sv = surveyState();
+  const cult = cultEndingState();
+  const trevor = trevorEntity();
+  return [
+    ["§fUnder the Lake", sv.heart ? "§7silence, at last" : "§7something still waits"],
+    ["§fThe Children", cult.hierophantDead ? "§7scattered into the mangroves" : cult.standing >= 60 ? "§7let you go" : "§7still watching the sky"],
+    ["§fTrevor Hale", trevorGone() ? "§7rests above Crash Beach" : trevor?.isValid ? "§7made it home" : "§7found on the beach, furious"],
+    ["§fThe Survey", sv.findings ? "§7complete" : `§7${sv.stations.length}/6 stations, ${sv.samples.length}/4 samples`],
+  ];
 }
 
 async function endingForm(p: Player, lines: string[]): Promise<void> {
@@ -463,6 +487,12 @@ async function endingForm(p: Player, lines: string[]): Promise<void> {
 export function towerSummary(): string {
   const s = st();
   return `tower: gen=${s.running} valves=${s.valves}/2 wire=${s.wire}/4 battery=${s.battery}/1 phase=${s.phase} waves=${s.waves}`;
+}
+
+/** What the relay still needs, for the objective tracker. */
+export function towerProgress(): { running: boolean; valves: number; wire: number; battery: number; phase: Phase; ready: boolean } {
+  const s = st();
+  return { running: s.running, valves: s.valves, wire: s.wire, battery: s.battery, phase: s.phase, ready: ready() };
 }
 
 export function endingText(): string {

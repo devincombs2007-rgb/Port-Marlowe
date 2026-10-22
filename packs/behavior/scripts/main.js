@@ -1,5 +1,5 @@
 // ../../scripts_src/main.ts
-import { ItemStack as ItemStack15, Player as Player31, system as system16, world as world29 } from "@minecraft/server";
+import { ItemStack as ItemStack15, Player as Player33, system as system18, world as world31 } from "@minecraft/server";
 
 // ../../scripts_src/core/config.ts
 import { PlayerPermissionLevel } from "@minecraft/server";
@@ -236,6 +236,8 @@ var DP = {
   survey: "hollow:survey",
   tower: "hollow:tower",
   reel: "hollow:reel",
+  scenes: "hollow:scenes",
+  objective: "hollow:objective",
   // item
   mag: "hollow:mag",
   // entity
@@ -259,8 +261,8 @@ function readWorldArray(key) {
   try {
     const raw = world.getDynamicProperty(key);
     if (typeof raw !== "string" || raw.length === 0) return [];
-    const v2 = JSON.parse(raw);
-    return Array.isArray(v2) ? v2 : [];
+    const v3 = JSON.parse(raw);
+    return Array.isArray(v3) ? v3 : [];
   } catch {
     return [];
   }
@@ -292,12 +294,12 @@ function writeEntity(entity, key, value) {
 }
 function getNum(entity, key, fallback = 0) {
   if (!entity) {
-    const v2 = world.getDynamicProperty(key);
-    return typeof v2 === "number" ? v2 : fallback;
+    const v3 = world.getDynamicProperty(key);
+    return typeof v3 === "number" ? v3 : fallback;
   }
   try {
-    const v2 = entity.getDynamicProperty(key);
-    return typeof v2 === "number" ? v2 : fallback;
+    const v3 = entity.getDynamicProperty(key);
+    return typeof v3 === "number" ? v3 : fallback;
   } catch {
     return fallback;
   }
@@ -356,11 +358,11 @@ function saveSettings(s) {
   writeWorld(DP.settings, worldCache);
 }
 function sanitizeWorld(s) {
-  const out = { ...WORLD_DEFAULTS };
-  out.intensity = numberSetting(s.intensity, out.intensity, 0, 2);
-  out.frequency = numberSetting(s.frequency, out.frequency, 25, 200);
-  out.graceDays = numberSetting(s.graceDays, out.graceDays, 0, 10);
-  out.knockerNight = numberSetting(s.knockerNight, out.knockerNight, 1, 20);
+  const out2 = { ...WORLD_DEFAULTS };
+  out2.intensity = numberSetting(s.intensity, out2.intensity, 0, 2);
+  out2.frequency = numberSetting(s.frequency, out2.frequency, 25, 200);
+  out2.graceDays = numberSetting(s.graceDays, out2.graceDays, 0, 10);
+  out2.knockerNight = numberSetting(s.knockerNight, out2.knockerNight, 1, 20);
   for (const key of [
     "watcher",
     "borrowed",
@@ -376,12 +378,12 @@ function sanitizeWorld(s) {
     "trevorPermadeath",
     "cult"
   ]) {
-    if (typeof s[key] === "boolean") out[key] = s[key];
+    if (typeof s[key] === "boolean") out2[key] = s[key];
   }
-  return out;
+  return out2;
 }
-function numberSetting(v2, fallback, min, max) {
-  return typeof v2 === "number" && Number.isFinite(v2) ? Math.max(min, Math.min(max, Math.round(v2))) : fallback;
+function numberSetting(v3, fallback, min, max) {
+  return typeof v3 === "number" && Number.isFinite(v3) ? Math.max(min, Math.min(max, Math.round(v3))) : fallback;
 }
 function sanitizePrefs(p) {
   return {
@@ -432,6 +434,10 @@ function cooldownScale() {
 // ../../scripts_src/core/time.ts
 import { system, world as world2 } from "@minecraft/server";
 var tod = () => world2.getTimeOfDay();
+var isDusk = () => {
+  const t = tod();
+  return t >= 11800 && t < 13e3;
+};
 var isNight = () => {
   const t = tod();
   return t >= 13e3 && t < 23200;
@@ -443,12 +449,12 @@ var isDarkHours = () => {
 var isDay = () => !isDarkHours();
 var now = () => system.currentTick;
 function hollowDay() {
-  let start = world2.getDynamicProperty(DP.startDay);
-  if (typeof start !== "number") {
-    start = world2.getDay();
-    world2.setDynamicProperty(DP.startDay, start);
+  let start2 = world2.getDynamicProperty(DP.startDay);
+  if (typeof start2 !== "number") {
+    start2 = world2.getDay();
+    world2.setDynamicProperty(DP.startDay, start2);
   }
-  return Math.max(0, world2.getDay() - start);
+  return Math.max(0, world2.getDay() - start2);
 }
 function hollowNight() {
   return hollowDay() + (tod() >= 12e3 ? 1 : 0);
@@ -516,7 +522,7 @@ function worldSound(dim2, sound2, at, volume = 1, pitch = 1) {
 }
 
 // ../../scripts_src/core/fx.ts
-import { MolangVariableMap } from "@minecraft/server";
+import { MolangVariableMap, system as system2 } from "@minecraft/server";
 var FOG_TAGS = ["hollow_watch", "hollow_heart", "hollow_mire", "hollow_dread"];
 function pushFog(p, fogId, tag) {
   if (!prefs(p).visualFx) return;
@@ -554,7 +560,12 @@ function hint(p, text) {
   } catch {
   }
 }
+var lastNotice = /* @__PURE__ */ new Map();
+function lastNoticeAt(p) {
+  return lastNotice.get(p.id) ?? -99999;
+}
 function notice(p, text) {
+  lastNotice.set(p.id, system2.currentTick);
   try {
     p.onScreenDisplay.setActionBar(text);
   } catch {
@@ -562,7 +573,7 @@ function notice(p, text) {
 }
 
 // ../../scripts_src/core/forms.ts
-import { system as system2 } from "@minecraft/server";
+import { system as system3 } from "@minecraft/server";
 import { FormCancelationReason } from "@minecraft/server-ui";
 var sessions = /* @__PURE__ */ new Map();
 function forgetForms(playerId) {
@@ -580,18 +591,18 @@ async function formSession(p, render) {
 }
 async function showForm(p, form, retries = 6) {
   const token = sessions.get(p.id);
-  const current = () => p.isValid && sessions.get(p.id) === token;
+  const current2 = () => p.isValid && sessions.get(p.id) === token;
   for (let attempt = 0; attempt <= retries; attempt++) {
-    if (!current()) return void 0;
+    if (!current2()) return void 0;
     let r;
     try {
       r = await form.show(p);
     } catch {
       return void 0;
     }
-    if (!current()) return void 0;
+    if (!current2()) return void 0;
     if (!r.canceled || r.cancelationReason !== FormCancelationReason.UserBusy || attempt === retries) return r;
-    await new Promise((resolve) => system2.runTimeout(resolve, 10));
+    await new Promise((resolve) => system3.runTimeout(resolve, 10));
   }
   return void 0;
 }
@@ -634,7 +645,7 @@ var norm = (a) => {
   const l = len(a);
   return l > 1e-6 ? scale(a, 1 / l) : { x: 0, y: 0, z: 0 };
 };
-var clamp = (v2, lo, hi) => v2 < lo ? lo : v2 > hi ? hi : v2;
+var clamp = (v3, lo, hi) => v3 < lo ? lo : v3 > hi ? hi : v3;
 function angleTo(view, from, to) {
   const d = norm(sub(to, from));
   const c = clamp(dot(norm(view), d), -1, 1);
@@ -906,16 +917,16 @@ function hasBlockNear(dim2, c, types, rx, ry, rz) {
   }
 }
 function findBlocks(dim2, c, types, rx, ry, rz, max = 16) {
-  const out = [];
+  const out2 = [];
   try {
     const list3 = dim2.getBlocks(volumeAround(c, rx, ry, rz), { includeTypes: types }, false);
     for (const loc of list3.getBlockLocationIterator()) {
-      out.push(loc);
-      if (out.length >= max) break;
+      out2.push(loc);
+      if (out2.length >= max) break;
     }
   } catch {
   }
-  return out;
+  return out2;
 }
 function inLitArea(player, radius = 5) {
   return hasBlockNear(player.dimension, player.location, LIGHT_BLOCKS, radius, 2, radius);
@@ -1026,7 +1037,7 @@ function onlinePlayers() {
 }
 
 // ../../scripts_src/core/scheduler.ts
-import { system as system3, world as world5 } from "@minecraft/server";
+import { system as system4, world as world5 } from "@minecraft/server";
 var failures = /* @__PURE__ */ new Map();
 function safe(label, fn) {
   try {
@@ -1038,15 +1049,15 @@ function safe(label, fn) {
   }
 }
 function every(label, ticks, fn, offset = 0) {
-  const start = () => system3.runInterval(() => safe(label, fn), ticks);
-  if (offset > 0) system3.runTimeout(start, offset);
-  else start();
+  const start2 = () => system4.runInterval(() => safe(label, fn), ticks);
+  if (offset > 0) system4.runTimeout(start2, offset);
+  else start2();
 }
 function everyPlayer(label, period, fn) {
-  system3.runInterval(() => {
+  system4.runInterval(() => {
     const players = world5.getAllPlayers();
     if (players.length === 0) return;
-    const t = system3.currentTick;
+    const t = system4.currentTick;
     for (let i = 0; i < players.length; i++) {
       if ((i * 7 + t) % period !== 0) continue;
       const p = players[i];
@@ -1056,7 +1067,7 @@ function everyPlayer(label, period, fn) {
   }, 1);
 }
 function later(label, ticks, fn) {
-  system3.runTimeout(() => safe(label, fn), Math.max(1, Math.round(ticks)));
+  system4.runTimeout(() => safe(label, fn), Math.max(1, Math.round(ticks)));
 }
 function failureReport() {
   const parts = [];
@@ -1073,9 +1084,9 @@ function frighten(p, amount) {
   pending.set(p.id, Math.min(60, (pending.get(p.id) ?? 0) + amount));
 }
 function takeFright(playerId) {
-  const v2 = pending.get(playerId) ?? 0;
+  const v3 = pending.get(playerId) ?? 0;
   pending.delete(playerId);
-  return v2;
+  return v3;
 }
 function forgetFright(playerId) {
   pending.delete(playerId);
@@ -1107,7 +1118,7 @@ import {
 import { EntityDamageCause as EntityDamageCause2, EquipmentSlot as EquipmentSlot5, GameMode as GameMode7, ItemStack as ItemStack7, Player as Player20, world as world17 } from "@minecraft/server";
 
 // ../../scripts_src/systems/dread.ts
-import { GameMode as GameMode4, system as system6, world as world9 } from "@minecraft/server";
+import { GameMode as GameMode4, system as system7, world as world9 } from "@minecraft/server";
 
 // ../../scripts_src/systems/noise.ts
 import { Player as Player7, world as world6 } from "@minecraft/server";
@@ -1133,17 +1144,17 @@ function quietFloor(p) {
 var moveState = /* @__PURE__ */ new Map();
 function movementNoise(p, observeOnly = false) {
   if (p.isSneaking) return { radius: 0, kind: "move" };
-  const v2 = p.getVelocity();
-  const speed = Math.hypot(v2.x, v2.z);
-  const st10 = { ...moveState.get(p.id) ?? { airborne: false, lastLand: -999 } };
-  const wasAir = st10.airborne;
-  st10.airborne = !p.isOnGround;
+  const v3 = p.getVelocity();
+  const speed = Math.hypot(v3.x, v3.z);
+  const st11 = { ...moveState.get(p.id) ?? { airborne: false, lastLand: -999 } };
+  const wasAir = st11.airborne;
+  st11.airborne = !p.isOnGround;
   let landed = false;
-  if (wasAir && p.isOnGround && now() - st10.lastLand > 10) {
+  if (wasAir && p.isOnGround && now() - st11.lastLand > 10) {
     landed = true;
-    st10.lastLand = now();
+    st11.lastLand = now();
   }
-  if (!observeOnly) moveState.set(p.id, st10);
+  if (!observeOnly) moveState.set(p.id, st11);
   if (quietFloor(p)) return { radius: 0, kind: "move" };
   if (p.isSprinting && speed > 0.05) return { radius: 16, kind: "sprint" };
   if (landed || p.isJumping) return { radius: 8, kind: "jump" };
@@ -1191,7 +1202,7 @@ function startNoiseEvents() {
 }
 
 // ../../scripts_src/systems/journal.ts
-import { ItemLockMode, ItemStack, system as system5 } from "@minecraft/server";
+import { ItemLockMode, ItemStack, system as system6 } from "@minecraft/server";
 import { ActionFormData as ActionFormData2, FormCancelationReason as FormCancelationReason2 } from "@minecraft/server-ui";
 
 // ../../scripts_src/content/island_journal.ts
@@ -1585,7 +1596,7 @@ var ISLAND_ENTRIES = [
     island: true,
     title: "The Back Way",
     icon: `${J}seer`,
-    body: '§o"The machine-house under the western hill is closed. But the rock has a throat. Walk south of its door, where the ground falls in. Climb down."§r' + P + "A sinkhole south of Bunker 2, with a cave that runs into the back of it."
+    body: '§o"The machine-house under the western hill is closed. But the rock has a throat. Walk west from its door, a hundred paces, where the ground falls in. Climb down."§r' + P + "A sinkhole about a hundred blocks west of Bunker 2, with a cave that runs into the back of it."
   },
   {
     id: "hierophant_dead",
@@ -2150,7 +2161,7 @@ function detectIsland(dim2) {
 }
 
 // ../../scripts_src/island/radiation.ts
-import { EquipmentSlot as EquipmentSlot2, GameMode as GameMode2, system as system4 } from "@minecraft/server";
+import { EquipmentSlot as EquipmentSlot2, GameMode as GameMode2, system as system5 } from "@minecraft/server";
 var DEFAULT = { dose: 0, iodine: 0, told: 0 };
 var cache = /* @__PURE__ */ new Map();
 var lastSave = /* @__PURE__ */ new Map();
@@ -2219,7 +2230,7 @@ function suitProtection(p) {
   let k = 0;
   try {
     const eq = p.getComponent("minecraft:equippable");
-    for (const [slot, id, v2] of HAZMAT) if (eq?.getEquipment(slot)?.typeId === id) k += v2;
+    for (const [slot, id, v3] of HAZMAT) if (eq?.getEquipment(slot)?.typeId === id) k += v3;
   } catch {
   }
   return Math.min(0.9, k);
@@ -2227,14 +2238,14 @@ function suitProtection(p) {
 function chelate(p) {
   const s = radState(p);
   const target2 = Math.max(0, s.dose - Math.max(120, s.dose / 3));
-  const step2 = (s.dose - target2) / 12;
+  const step3 = (s.dose - target2) / 12;
   let n = 0;
-  const run = system4.runInterval(() => {
+  const run = system5.runInterval(() => {
     if (!p.isValid || ++n > 12) {
-      system4.clearRun(run);
+      system5.clearRun(run);
       return;
     }
-    s.dose = Math.max(0, s.dose - step2);
+    s.dose = Math.max(0, s.dose - step3);
     if (n === 12) save(p, s, true);
   }, 100);
   notice(p, "§7The shot burns going in. §fYour dose will come down over the next minute.");
@@ -2367,14 +2378,14 @@ async function openPrefs(p) {
   const f = new ModalFormData().title("§lMy comfort settings").slider("Ambience volume (script cues)", 0, 100, { defaultValue: cur.ambience, valueStep: 10 }).dropdown("Encounter accents (short stingers)", ["Off", "Subtle", "Full"], { defaultValueIndex: cur.accents }).toggle("Visual effects (fog shifts, soft fades)", { defaultValue: cur.visualFx }).toggle("Action-bar hints", { defaultValue: cur.hints }).toggle("Music (night, cave, shrine and boss tracks)", { defaultValue: cur.music }).toggle("Dread effects (heartbeat, breathing, closing fog, hallucinations)", { defaultValue: cur.dreadFx }).submitButton("Save");
   const r = await showForm(p, f);
   if (!r || r.canceled || !r.formValues) return;
-  const v2 = r.formValues;
+  const v3 = r.formValues;
   const next = {
-    ambience: Number(v2[0]),
-    accents: Number(v2[1]),
-    visualFx: Boolean(v2[2]),
-    hints: Boolean(v2[3]),
-    music: Boolean(v2[4]),
-    dreadFx: v2[5] === void 0 ? cur.dreadFx : Boolean(v2[5])
+    ambience: Number(v3[0]),
+    accents: Number(v3[1]),
+    visualFx: Boolean(v3[2]),
+    hints: Boolean(v3[3]),
+    music: Boolean(v3[4]),
+    dreadFx: v3[5] === void 0 ? cur.dreadFx : Boolean(v3[5])
   };
   savePrefs(p, next);
   if (!next.visualFx || !next.dreadFx) clearAllFog(p);
@@ -2385,25 +2396,25 @@ async function openWorld(p) {
   const f = new ModalFormData().title("§lWorld rules").dropdown("Horror intensity", ["Calm: rarer, no ambush strikes", "Standard", "Nightmare: frequent, bolder"], { defaultValueIndex: s.intensity }).slider("Encounter frequency (%)", 25, 200, { defaultValue: s.frequency, valueStep: 25 }).slider("Grace days before creatures hunt", 0, 10, { defaultValue: s.graceDays, valueStep: 1 }).slider("First night the Knocker may visit", 1, 20, { defaultValue: s.knockerNight, valueStep: 1 }).toggle("Creature: The Watcher", { defaultValue: s.watcher }).toggle("Creature: The Borrowed", { defaultValue: s.borrowed }).toggle("Creature: The Hollowed", { defaultValue: s.hollowed }).toggle("Creature: The Knocker", { defaultValue: s.knocker }).toggle("Creature: The Mirebound", { defaultValue: s.mirebound }).toggle("Destructive Knocker (may break wooden doors on Hard)", { defaultValue: s.destructive }).toggle("Rare bedtime knocking (harmless, never blocks sleep)", { defaultValue: s.sleepDisturbance }).toggle("Place cabins, camps, towers, lean-tos and the shrine", { defaultValue: s.sites }).toggle("Scale the Heart Below with player count", { defaultValue: s.bossScaling }).toggle("Rare one-off events (harmless, once per world)", { defaultValue: s.rareEvents }).toggle("Dread: fear, hallucinations, and fear drawing them closer", { defaultValue: s.dread }).toggle("Varrow Island: Trevor's death is permanent", { defaultValue: s.trevorPermadeath }).toggle("Varrow Island: the Children of the Second Sun (villages and night patrols)", { defaultValue: s.cult }).submitButton("Save");
   const r = await showForm(p, f);
   if (!r || r.canceled || !r.formValues || !isOperator(p)) return;
-  const v2 = r.formValues;
+  const v3 = r.formValues;
   const next = {
-    intensity: Number(v2[0]),
-    frequency: Number(v2[1]),
-    graceDays: Number(v2[2]),
-    knockerNight: Number(v2[3]),
-    watcher: Boolean(v2[4]),
-    borrowed: Boolean(v2[5]),
-    hollowed: Boolean(v2[6]),
-    knocker: Boolean(v2[7]),
-    mirebound: Boolean(v2[8]),
-    destructive: Boolean(v2[9]),
-    sleepDisturbance: Boolean(v2[10]),
-    sites: Boolean(v2[11]),
-    bossScaling: Boolean(v2[12]),
-    rareEvents: Boolean(v2[13]),
-    dread: v2[14] === void 0 ? s.dread : Boolean(v2[14]),
-    trevorPermadeath: v2[15] === void 0 ? s.trevorPermadeath : Boolean(v2[15]),
-    cult: v2[16] === void 0 ? s.cult : Boolean(v2[16])
+    intensity: Number(v3[0]),
+    frequency: Number(v3[1]),
+    graceDays: Number(v3[2]),
+    knockerNight: Number(v3[3]),
+    watcher: Boolean(v3[4]),
+    borrowed: Boolean(v3[5]),
+    hollowed: Boolean(v3[6]),
+    knocker: Boolean(v3[7]),
+    mirebound: Boolean(v3[8]),
+    destructive: Boolean(v3[9]),
+    sleepDisturbance: Boolean(v3[10]),
+    sites: Boolean(v3[11]),
+    bossScaling: Boolean(v3[12]),
+    rareEvents: Boolean(v3[13]),
+    dread: v3[14] === void 0 ? s.dread : Boolean(v3[14]),
+    trevorPermadeath: v3[15] === void 0 ? s.trevorPermadeath : Boolean(v3[15]),
+    cult: v3[16] === void 0 ? s.cult : Boolean(v3[16])
   };
   saveSettings(next);
   notice(p, "§7World rules saved.");
@@ -2416,11 +2427,11 @@ function fieldNotes(p, has) {
   const s = settings();
   const t = tod();
   const phase = t < 12e3 ? "daylight" : t < 13e3 ? "dusk" : t < 23200 ? "night" : "dawn";
-  const carried = /* @__PURE__ */ new Set();
+  const carried2 = /* @__PURE__ */ new Set();
   const inv = p.getComponent("minecraft:inventory")?.container;
   if (inv) for (let i = 0; i < inv.size; i++) {
     const item = inv.getItem(i);
-    if (item) carried.add(item.typeId);
+    if (item) carried2.add(item.typeId);
   }
   const w = wardNear(p.dimension, p.location);
   const used = w ? getCustomState(w.permutation, "hollow:used") : void 0;
@@ -2436,24 +2447,24 @@ function fieldNotes(p, has) {
   let next = "Build a roof and closed door. Carry a torch after dusk; a chime warns you of visitors.";
   if (has("after")) {
     recipe = "craft_lantern";
-    next = carried.has(ITEM.lantern) ? "Place your Heartwood Lantern at home. Its registered protection reaches 24 blocks." : "Turn the Stilled Heart into a Heartwood Lantern for your home.";
+    next = carried2.has(ITEM.lantern) ? "Place your Heartwood Lantern at home. Its registered protection reaches 24 blocks." : "Turn the Stilled Heart into a Heartwood Lantern for your home.";
   } else if (has("heart1") && has("craft_offering")) {
     recipe = "craft_offering";
     next = "Prepare the offering, food and equipment. Read your shrine notes before deciding to wake it.";
   } else if (has("craft_heartseeker")) {
     recipe = "craft_heartseeker";
-    next = carried.has(ITEM.heartseeker) ? "Use your Heartseeker in the Overworld and follow its bearings." : "Craft a Heartseeker when you are ready to investigate farther.";
+    next = carried2.has(ITEM.heartseeker) ? "Use your Heartseeker in the Overworld and follow its bearings." : "Craft a Heartseeker when you are ready to investigate farther.";
     if (!s.sites) next += " New shrine placement is disabled in World rules.";
   } else if (has("craft_lens")) {
     recipe = "craft_lens";
-    next = carried.has(ITEM.lens) ? "Use your Seer's Glass to investigate fresh tracks and suspicious animals. Each look wears the glass." : "You have learned to make a Seer's Glass. Craft it to investigate tracks and suspicious animals.";
+    next = carried2.has(ITEM.lens) ? "Use your Seer's Glass to investigate fresh tracks and suspicious animals. Each look wears the glass." : "You have learned to make a Seer's Glass. Craft it to investigate tracks and suspicious animals.";
   } else if (has("watcher1")) {
     recipe = "craft_ward";
     next = "Read your discovered Watcher notes. Improve the shelter and learn its warnings before venturing out.";
   }
   if (settings().dread && dreadOf(p) >= 50) {
     next = "Your nerve is going. Get to light and a roof, find company, or drink Hearth Tea. Frightened people draw them in, and see things that aren't there.";
-    if (has("craft_tea") && !carried.has(ITEM.tea)) recipe = "craft_tea";
+    if (has("craft_tea") && !carried2.has(ITEM.tea)) recipe = "craft_tea";
   }
   if (!has(recipe)) recipe = "";
   return {
@@ -2485,7 +2496,7 @@ function data(p) {
   let d = cache2.get(p.id);
   if (!d) {
     const raw = readEntity(p, DP.journal, { u: [], r: [] });
-    const valid = (v2) => typeof v2 === "string" && ENTRY_BY_ID.has(v2);
+    const valid = (v3) => typeof v3 === "string" && ENTRY_BY_ID.has(v3);
     const u = [...new Set(Array.isArray(raw.u) ? raw.u.filter(valid) : [])];
     d = { u, r: [...new Set(Array.isArray(raw.r) ? raw.r.filter((id) => valid(id) && u.includes(id)) : [])] };
     cache2.set(p.id, d);
@@ -2501,7 +2512,7 @@ function forgetJournal(playerId) {
 }
 function cancelJournalNotices(playerId) {
   const pending3 = discoveries.get(playerId);
-  if (pending3) system5.clearRun(pending3.run);
+  if (pending3) system6.clearRun(pending3.run);
   discoveries.delete(playerId);
 }
 function hasEntry(p, id) {
@@ -2518,7 +2529,7 @@ function unlock(p, id, quiet = false) {
     if (pending3) pending3.ids.add(id);
     else {
       const ids = /* @__PURE__ */ new Set([id]);
-      const run = system5.runTimeout(() => {
+      const run = system6.runTimeout(() => {
         discoveries.delete(p.id);
         if (!p.isValid) return;
         const unread = [...ids].filter((entry) => !data(p).r.includes(entry));
@@ -2588,6 +2599,10 @@ function threatsAwake() {
   if (s.knocker) lines.push(hunting && night >= s.knockerNight ? "§7• Keep your door closed at night." : "§7• Nights are quiet at the door, for now.");
   return lines.join("\n");
 }
+var logHeader;
+function setLogHeader(fn) {
+  logHeader = fn;
+}
 async function openJournal(p) {
   await formSession(p, () => openJournalMenu(p));
 }
@@ -2599,7 +2614,7 @@ async function openJournalMenu(p) {
   const total = ENTRIES.filter((e) => entryVisible(e, island)).length;
   const have = d.u.filter((id) => entryVisible(ENTRY_BY_ID.get(id), island)).length;
   const form = new ActionFormData2().title(island ? "§lResearch Log" : "§lField Journal").body(
-    `§7Day §f${hollowDay() + 1}§7 · Entries §f${have}/${total}
+    (logHeader?.(p) ?? "") + `§7Day §f${hollowDay() + 1}§7 · Entries §f${have}/${total}
 
 ` + threatsAwake()
   );
@@ -2700,10 +2715,10 @@ function st2(p) {
   }
   return s;
 }
-function stageFor(v2, current) {
-  let stage = current;
-  while (stage < 3 && v2 >= UP[stage]) stage++;
-  while (stage > 0 && v2 < UP[stage - 1] - HYST) stage--;
+function stageFor(v3, current2) {
+  let stage = current2;
+  while (stage < 3 && v3 >= UP[stage]) stage++;
+  while (stage > 0 && v3 < UP[stage - 1] - HYST) stage--;
   return stage;
 }
 function dreadOf(p) {
@@ -2930,8 +2945,8 @@ function maybeHallucinate(p, s) {
   if (ok) s.nextHallucination = t + Math.round(rand(2400, 5400) * (s.stage === 3 ? 0.6 : 1));
 }
 function behind(p, d) {
-  const v2 = p.getViewDirection();
-  const flat = norm({ x: v2.x, y: 0, z: v2.z });
+  const v3 = p.getViewDirection();
+  const flat = norm({ x: v3.x, y: 0, z: v3.z });
   return add(p.location, add(scale(flat, -d), { x: 0, y: 0.2, z: 0 }));
 }
 function followSteps(p, s) {
@@ -3009,12 +3024,12 @@ function spawnPhantom(p, underground2) {
   }
   return false;
 }
-function removePhantom(id, seen) {
+function removePhantom(id, seen2) {
   const ph = phantoms.get(id);
   phantoms.delete(id);
   const e = world9.getEntity(id);
   if (!e || !e.isValid) return;
-  if (seen && ph) {
+  if (seen2 && ph) {
     const p = world9.getAllPlayers().find((o) => o.id === ph.playerId);
     if (p) {
       personal(p, SND.vanish, 0.7, 1, e.location);
@@ -3052,11 +3067,11 @@ function tickPhantoms() {
 function startDread() {
   setDreadReader((p) => settings().dread ? dreadOf(p) : 0);
   everyPlayer("dread", PERIOD, update);
-  system6.runInterval(() => safe("dread.phantoms", tickPhantoms), 4);
+  system7.runInterval(() => safe("dread.phantoms", tickPhantoms), 4);
 }
-function setDread(p, v2) {
+function setDread(p, v3) {
   const s = st2(p);
-  s.v = Math.max(0, Math.min(100, v2));
+  s.v = Math.max(0, Math.min(100, v3));
   const from = s.stage;
   s.stage = stageFor(s.v, s.stage);
   if (s.stage !== from) onStageChange(p, s, from);
@@ -3072,18 +3087,18 @@ function dreadSummary() {
 }
 
 // ../../scripts_src/items/components.ts
-import { EquipmentSlot as EquipmentSlot4, GameMode as GameMode6, Player as Player18, system as system11, world as world15 } from "@minecraft/server";
+import { EquipmentSlot as EquipmentSlot4, GameMode as GameMode6, Player as Player18, system as system12, world as world15 } from "@minecraft/server";
 
 // ../../scripts_src/island/survey.ts
-import { BlockPermutation as BlockPermutation3, ItemStack as ItemStack4, Player as Player15, system as system10, world as world12 } from "@minecraft/server";
+import { BlockPermutation as BlockPermutation3, ItemStack as ItemStack4, Player as Player15, system as system11, world as world12 } from "@minecraft/server";
 import { ActionFormData as ActionFormData4 } from "@minecraft/server-ui";
 
 // ../../scripts_src/island/trevor.ts
-import { system as system9, world as world11 } from "@minecraft/server";
+import { system as system10, world as world11 } from "@minecraft/server";
 import { ActionFormData as ActionFormData3 } from "@minecraft/server-ui";
 
 // ../../scripts_src/island/jobs.ts
-import { BlockPermutation as BlockPermutation2, ItemStack as ItemStack3, system as system8, world as world10 } from "@minecraft/server";
+import { BlockPermutation as BlockPermutation2, ItemStack as ItemStack3, system as system9, world as world10 } from "@minecraft/server";
 
 // ../../scripts_src/island/guns.ts
 import {
@@ -3092,7 +3107,7 @@ import {
   GameMode as GameMode5,
   ItemStack as ItemStack2,
   Player as Player12,
-  system as system7
+  system as system8
 } from "@minecraft/server";
 var GUNS = {
   [ITEM.pistol]: {
@@ -3157,8 +3172,8 @@ function magOf(item) {
   if (!item) return 0;
   const g = GUNS[item.typeId];
   const max = g?.mag ?? MAG_SIZE;
-  const v2 = item.getDynamicProperty(DP.mag);
-  return typeof v2 === "number" ? Math.max(0, Math.min(max, Math.round(v2))) : max;
+  const v3 = item.getDynamicProperty(DP.mag);
+  return typeof v3 === "number" ? Math.max(0, Math.min(max, Math.round(v3))) : max;
 }
 function setMag(item, n) {
   const g = GUNS[item.typeId];
@@ -3223,10 +3238,10 @@ function reload(p) {
     notice(p, `§7No ${g.ammoName} left. §8Crates, bunkers, the dead, or a crafting table (gunpowder, iron, copper).`);
     return;
   }
-  const until = system7.currentTick + g.reloadTicks;
+  const until = system8.currentTick + g.reloadTicks;
   reloading.set(p.id, until);
   worldSound(p.dimension, SND.reload, p.location, 0.9, g.item === ITEM.pistol ? 1 : 0.85);
-  system7.runTimeout(() => {
+  system8.runTimeout(() => {
     if (!p.isValid || reloading.get(p.id) !== until) return;
     reloading.delete(p.id);
     const now2 = heldGun(p);
@@ -3244,16 +3259,16 @@ function add2(a, b, k = 1) {
 function jitter(d, deg) {
   if (deg <= 0) return d;
   const r = deg * Math.PI / 180;
-  const v2 = { x: d.x + (Math.random() - 0.5) * 2 * r, y: d.y + (Math.random() - 0.5) * 2 * r, z: d.z + (Math.random() - 0.5) * 2 * r };
-  const L = Math.hypot(v2.x, v2.y, v2.z) || 1;
-  return { x: v2.x / L, y: v2.y / L, z: v2.z / L };
+  const v3 = { x: d.x + (Math.random() - 0.5) * 2 * r, y: d.y + (Math.random() - 0.5) * 2 * r, z: d.z + (Math.random() - 0.5) * 2 * r };
+  const L = Math.hypot(v3.x, v3.y, v3.z) || 1;
+  return { x: v3.x / L, y: v3.y / L, z: v3.z / L };
 }
 var NO_HIT = ["minecraft:item", "minecraft:xp_orb", ENT.crewBody, ENT.bullet, ENT.trevor, ENT.lure, ENT.phantom, ENT.cultRound];
 function fire(p) {
   const held = heldGun(p);
   if (!held) return;
   const [item, g] = held;
-  if ((reloading.get(p.id) ?? 0) > system7.currentTick) return;
+  if ((reloading.get(p.id) ?? 0) > system8.currentTick) return;
   if (p.isSneaking) {
     reload(p);
     return;
@@ -3360,12 +3375,12 @@ function fireFlare(p) {
     }
   }
   let n = 0;
-  const run = system7.runInterval(() => {
+  const run = system8.runInterval(() => {
     n++;
     particle(dim2, "minecraft:basic_flame_particle", { x: at.x, y: at.y + 0.5, z: at.z });
     particle(dim2, "minecraft:lava_particle", { x: at.x, y: at.y + 0.5, z: at.z });
     if (n >= 60) {
-      system7.clearRun(run);
+      system8.clearRun(run);
       for (const pos of lights) {
         try {
           const b = dim2.getBlock(pos);
@@ -3417,7 +3432,7 @@ function registerGearComponents(ev) {
   const gun = {
     onUse(e) {
       const p = e.source;
-      system7.run(() => p.isValid && fire(p));
+      system8.run(() => p.isValid && fire(p));
     }
   };
   reg.registerCustomComponent("hollow:pistol", gun);
@@ -3425,7 +3440,7 @@ function registerGearComponents(ev) {
   reg.registerCustomComponent("hollow:flare_gun", {
     onUse(e) {
       const p = e.source;
-      system7.run(() => {
+      system8.run(() => {
         if (!p.isValid) return;
         fireFlare(p);
         wear(p, ITEM.flareGun);
@@ -3435,13 +3450,13 @@ function registerGearComponents(ev) {
   reg.registerCustomComponent("hollow:chelation", {
     onConsume(e) {
       const p = e.source;
-      if (p instanceof Player12) system7.run(() => p.isValid && chelate(p));
+      if (p instanceof Player12) system8.run(() => p.isValid && chelate(p));
     }
   });
   reg.registerCustomComponent("hollow:geiger", {
     onUse(e) {
       const p = e.source;
-      system7.run(() => {
+      system8.run(() => {
         if (!p.isValid) return;
         if (!isIsland()) {
           notice(p, "§7The needle barely moves. Background radiation only.");
@@ -3455,25 +3470,25 @@ function registerGearComponents(ev) {
   reg.registerCustomComponent("hollow:medkit", {
     onConsume(e) {
       const p = e.source;
-      if (p instanceof Player12) system7.run(() => p.isValid && heal(p));
+      if (p instanceof Player12) system8.run(() => p.isValid && heal(p));
     }
   });
   reg.registerCustomComponent("hollow:iodine", {
     onConsume(e) {
       const p = e.source;
-      if (p instanceof Player12) system7.run(() => p.isValid && takeIodine(p));
+      if (p instanceof Player12) system8.run(() => p.isValid && takeIodine(p));
     }
   });
   reg.registerCustomComponent("hollow:ration", {
     onConsume(e) {
       const p = e.source;
-      if (p instanceof Player12) system7.run(() => p.isValid && hint(p, "§7Beef stew and crackers, cold. It's the best thing you've ever eaten."));
+      if (p instanceof Player12) system8.run(() => p.isValid && hint(p, "§7Beef stew and crackers, cold. It's the best thing you've ever eaten."));
     }
   });
   reg.registerCustomComponent("hollow:field_radio", {
     onUse(e) {
       const p = e.source;
-      system7.run(() => {
+      system8.run(() => {
         if (!p.isValid) return;
         ui(p, "random.click", 0.7, 1.2);
         if (trevorGone()) {
@@ -3487,13 +3502,13 @@ function registerGearComponents(ev) {
   reg.registerCustomComponent("hollow:shrine_key", {
     onUse(e) {
       const p = e.source;
-      system7.run(() => p.isValid && shrineKeyHook?.(p));
+      system8.run(() => p.isValid && shrineKeyHook?.(p));
     }
   });
   reg.registerCustomComponent("hollow:broken_radio", {
     onUse(e) {
       const p = e.source;
-      system7.run(() => {
+      system8.run(() => {
         if (!p.isValid) return;
         ui(p, "random.click", 0.6, 0.8);
         notice(p, "§7Static. The board is cracked clean through and the battery is swollen.\n§fIt will never call the mainland. §7Something bigger might: the old relay on the north peak.\n§8With two copper ingots and some redstone it could still reach Trevor (crafting table).");
@@ -3575,6 +3590,9 @@ function queueSummary() {
   } else lines.push('§8No camp yet. Order "Make camp here".');
   return lines.join("\n");
 }
+function campPos() {
+  return st3().camp;
+}
 function dim() {
   return world10.getDimension("overworld");
 }
@@ -3649,16 +3667,16 @@ function campContainer() {
 }
 function campStock() {
   const c = campContainer();
-  const out = { logs: 0, stone: 0, food: 0 };
-  if (!c) return out;
+  const out2 = { logs: 0, stone: 0, food: 0 };
+  if (!c) return out2;
   for (let i = 0; i < c.size; i++) {
     const it = c.getItem(i);
     if (!it) continue;
-    if (it.typeId.endsWith("_log")) out.logs += it.amount;
-    else if (it.typeId === "minecraft:cobblestone") out.stone += it.amount;
-    else if (["minecraft:sweet_berries", "minecraft:cod", "minecraft:salmon", "minecraft:tropical_fish"].includes(it.typeId)) out.food += it.amount;
+    if (it.typeId.endsWith("_log")) out2.logs += it.amount;
+    else if (it.typeId === "minecraft:cobblestone") out2.stone += it.amount;
+    else if (["minecraft:sweet_berries", "minecraft:cod", "minecraft:salmon", "minecraft:tropical_fish"].includes(it.typeId)) out2.food += it.amount;
   }
-  return out;
+  return out2;
 }
 function takeFromCamp(match, n) {
   const c = campContainer();
@@ -3728,25 +3746,25 @@ var STONE_TYPES = [
 function nearest(at, list3) {
   let best;
   let bd = 1e9;
-  for (const v2 of list3) {
-    const d = dist2(at, v2);
+  for (const v3 of list3) {
+    const d = dist2(at, v3);
     if (d < bd) {
       bd = d;
-      best = v2;
+      best = v3;
     }
   }
   return best;
 }
-function treeBlocks(start) {
+function treeBlocks(start2) {
   const d = dim();
-  const seen = /* @__PURE__ */ new Set();
+  const seen2 = /* @__PURE__ */ new Set();
   const logs = [];
-  const stack = [start];
+  const stack = [start2];
   while (stack.length && logs.length < 90) {
     const p = stack.pop();
     const k = `${p.x},${p.y},${p.z}`;
-    if (seen.has(k)) continue;
-    seen.add(k);
+    if (seen2.has(k)) continue;
+    seen2.add(k);
     let id;
     try {
       id = d.getBlock(p)?.typeId;
@@ -3762,11 +3780,11 @@ function treeBlocks(start) {
   const leaves = [];
   const lseen = /* @__PURE__ */ new Set();
   for (const l of logs) {
-    for (const v2 of findBlocksBy(l, 3, LEAF)) {
-      const k = `${v2.x},${v2.y},${v2.z}`;
+    for (const v3 of findBlocksBy(l, 3, LEAF)) {
+      const k = `${v3.x},${v3.y},${v3.z}`;
       if (!lseen.has(k)) {
         lseen.add(k);
-        leaves.push(v2);
+        leaves.push(v3);
       }
     }
   }
@@ -3774,17 +3792,17 @@ function treeBlocks(start) {
   return [...leaves, ...logs];
 }
 function findBlocksBy(c, r, test) {
-  const out = [];
+  const out2 = [];
   const d = dim();
   for (let dx = -r; dx <= r; dx++) for (let dy = -r; dy <= r; dy++) for (let dz = -r; dz <= r; dz++) {
     const p = { x: c.x + dx, y: c.y + dy, z: c.z + dz };
     try {
       const id = d.getBlock(p)?.typeId;
-      if (id && test(id)) out.push(p);
+      if (id && test(id)) out2.push(p);
     } catch {
     }
   }
-  return out;
+  return out2;
 }
 function exposed(p) {
   try {
@@ -3821,9 +3839,9 @@ function chew(e, a, perTick) {
   return list3.length === 0;
 }
 function blueprint(plan2) {
-  const out = [];
-  const log = (x, y, z) => out.push([x, y, z, "minecraft:oak_log", { pillar_axis: "y" }]);
-  const plank = (x, y, z) => out.push([x, y, z, "minecraft:oak_planks"]);
+  const out2 = [];
+  const log = (x, y, z) => out2.push([x, y, z, "minecraft:oak_log", { pillar_axis: "y" }]);
+  const plank = (x, y, z) => out2.push([x, y, z, "minecraft:oak_planks"]);
   if (plan2 === "leanto") {
     for (const x of [-2, 2]) {
       log(x, 0, -1);
@@ -3832,51 +3850,51 @@ function blueprint(plan2) {
       log(x, 0, 1);
     }
     for (let x = -2; x <= 2; x++) {
-      out.push([x, 3, -1, "minecraft:oak_slab", { "minecraft:vertical_half": "bottom" }]);
+      out2.push([x, 3, -1, "minecraft:oak_slab", { "minecraft:vertical_half": "bottom" }]);
       plank(x, 2, 0);
-      out.push([x, 1, 1, "minecraft:oak_slab", { "minecraft:vertical_half": "top" }]);
+      out2.push([x, 1, 1, "minecraft:oak_slab", { "minecraft:vertical_half": "top" }]);
     }
-    out.push([0, 0, 2, "minecraft:campfire", { extinguished: false, "minecraft:cardinal_direction": "south" }]);
+    out2.push([0, 0, 2, "minecraft:campfire", { extinguished: false, "minecraft:cardinal_direction": "south" }]);
   } else if (plan2 === "cabin") {
     for (let y = 0; y < 4; y++) {
       for (let x = -3; x <= 3; x++) for (const z of [-3, 3]) {
         if (Math.abs(x) === 3 || y === 3) log(x, y, z);
         else if (!(z === 3 && x === 0 && y < 2) && !(y === 1 && Math.abs(x) === 2)) plank(x, y, z);
-        else if (y === 1 && Math.abs(x) === 2) out.push([x, y, z, "minecraft:oak_fence"]);
+        else if (y === 1 && Math.abs(x) === 2) out2.push([x, y, z, "minecraft:oak_fence"]);
       }
       for (let z = -2; z <= 2; z++) for (const x of [-3, 3]) {
         if (y === 3) log(x, y, z);
-        else if (y === 1 && z === 0) out.push([x, y, z, "minecraft:oak_fence"]);
+        else if (y === 1 && z === 0) out2.push([x, y, z, "minecraft:oak_fence"]);
         else plank(x, y, z);
       }
     }
-    out.push([0, 0, 3, "minecraft:wooden_door", { "minecraft:cardinal_direction": "south", door_hinge_bit: false, open_bit: false, upper_block_bit: false }]);
-    out.push([0, 1, 3, "minecraft:wooden_door", { "minecraft:cardinal_direction": "south", door_hinge_bit: false, open_bit: false, upper_block_bit: true }]);
+    out2.push([0, 0, 3, "minecraft:wooden_door", { "minecraft:cardinal_direction": "south", door_hinge_bit: false, open_bit: false, upper_block_bit: false }]);
+    out2.push([0, 1, 3, "minecraft:wooden_door", { "minecraft:cardinal_direction": "south", door_hinge_bit: false, open_bit: false, upper_block_bit: true }]);
     for (let x = -4; x <= 4; x++) for (let z = -4; z <= 4; z++) {
       const edge = Math.abs(x) === 4 || Math.abs(z) === 4;
-      out.push([x, 4, z, edge ? "minecraft:oak_slab" : "minecraft:oak_planks", edge ? { "minecraft:vertical_half": "bottom" } : void 0]);
+      out2.push([x, 4, z, edge ? "minecraft:oak_slab" : "minecraft:oak_planks", edge ? { "minecraft:vertical_half": "bottom" } : void 0]);
     }
-    out.push([2, 3, 2, "minecraft:lantern", { hanging: true }]);
+    out2.push([2, 3, 2, "minecraft:lantern", { hanging: true }]);
   } else if (plan2 === "watchtower") {
     for (const x of [-1, 1]) for (const z of [-1, 1]) for (let y = 0; y < 7; y++) log(x, y, z);
     for (let x = -2; x <= 2; x++) for (let z = -2; z <= 2; z++) {
       if (!(x === 0 && z === 2)) plank(x, 7, z);
       if (Math.abs(x) === 2 || Math.abs(z) === 2) {
-        if (!(x === 0 && z === 2)) out.push([x, 8, z, "minecraft:oak_fence"]);
+        if (!(x === 0 && z === 2)) out2.push([x, 8, z, "minecraft:oak_fence"]);
       }
     }
-    for (let y = 0; y < 8; y++) out.push([0, y, 2, "minecraft:ladder", { facing_direction: 3 }]);
+    for (let y = 0; y < 8; y++) out2.push([0, y, 2, "minecraft:ladder", { facing_direction: 3 }]);
     for (let y = 0; y < 7; y++) plank(0, y, 1);
-    out.push([1, 8, 1, "minecraft:torch", { torch_facing_direction: "top" }]);
+    out2.push([1, 8, 1, "minecraft:torch", { torch_facing_direction: "top" }]);
   } else {
     for (let x = -3; x <= 3; x++) {
       log(x, 0, 0);
       log(x, 1, 0);
       log(x, 2, 0);
-      out.push([x, 3, 0, "minecraft:oak_fence"]);
+      out2.push([x, 3, 0, "minecraft:oak_fence"]);
     }
   }
-  return out;
+  return out2;
 }
 var COST = {
   leanto: { logs: 10, stone: 0 },
@@ -4231,9 +4249,9 @@ function patrolStep(e, a) {
     return;
   }
   try {
-    const seen = e.dimension.getEntities({ families: ["monster"], location: e.location, maxDistance: 26, closest: 1 })[0];
-    if (seen) {
-      const dx = seen.location.x - e.location.x, dz = seen.location.z - e.location.z;
+    const seen2 = e.dimension.getEntities({ families: ["monster"], location: e.location, maxDistance: 26, closest: 1 })[0];
+    if (seen2) {
+      const dx = seen2.location.x - e.location.x, dz = seen2.location.z - e.location.z;
       const dir = Math.abs(dx) > Math.abs(dz) ? dx > 0 ? "east" : "west" : dz > 0 ? "south" : "north";
       say(`§eMovement to the ${dir}!§r Something's out there.`, "patrol_seen", 600);
     }
@@ -4266,7 +4284,7 @@ function startJobs() {
     const a = st3().cur;
     if (a) a.arrived = true;
   }), { entityTypes: ["hollow:trevor"] });
-  system8.runInterval(() => safe("jobs", jobTick), 4);
+  system9.runInterval(() => safe("jobs", jobTick), 4);
   onFlareHook((p, at) => {
     const e = trevorEntity();
     if (!e?.isValid || trevorDown() || Math.hypot(e.location.x - at.x, e.location.z - at.z) > 220) return;
@@ -4388,7 +4406,7 @@ function orderFollow(p, quiet = false) {
   saveState();
   if (!e || isDown()) return;
   e.triggerEvent("hollow:release");
-  system9.run(() => safe("trevor.tame", () => {
+  system10.run(() => safe("trevor.tame", () => {
     if (!e.isValid || !p.isValid) return;
     const tame = e.getComponent("minecraft:tameable");
     let ok = false;
@@ -4445,7 +4463,7 @@ function helpUp(e, by) {
     hp?.setCurrentValue(Math.max(hp.currentValue, 22));
   } catch {
   }
-  system9.run(() => {
+  system10.run(() => {
     if (!e.isValid) return;
     const l = leader();
     if (s.mode === "follow" && l) orderFollow(l, true);
@@ -4558,6 +4576,10 @@ async function talk(p, e) {
   await formSession(p, () => trevorMenu(p, e, false));
   unlock(p, "trevor1");
 }
+var objectiveVoice;
+function setObjectiveVoice(fn) {
+  objectiveVoice = fn;
+}
 async function trevorMenu(p, e, remote) {
   const s = st4();
   const there = lookTarget(p);
@@ -4590,7 +4612,7 @@ async function trevorMenu(p, e, remote) {
   const form = new ActionFormData3().title(remote ? "§lField radio: Trevor" : "§lTrevor Hale").body(`${statusLine(e)}
 ${queueSummary()}
 
-§o"${remote ? "Go ahead, I'm listening." : advice(p)}"`);
+§o"${remote ? "Go ahead, I'm listening." : objectiveVoice?.(p) ?? advice(p)}"`);
   for (const [label, icon] of actions) form.button(label, icon);
   form.button("§8Close", "textures/ui/hollow/back");
   const r = await showForm(p, form);
@@ -4928,7 +4950,7 @@ var SAMPLE_OF = {
   wood: ITEM.woodSample,
   tissue: ITEM.tissueSample
 };
-var KIND_OF = Object.fromEntries(Object.entries(SAMPLE_OF).map(([k, v2]) => [v2, k]));
+var KIND_OF = Object.fromEntries(Object.entries(SAMPLE_OF).map(([k, v3]) => [v3, k]));
 var SOIL = [
   "minecraft:dirt",
   "minecraft:coarse_dirt",
@@ -5128,27 +5150,27 @@ function registerSurveyComponents(ev) {
   reg.registerCustomComponent("hollow:sample_kit", {
     onUse(e) {
       const p = e.source;
-      system10.run(() => safe("sample", () => p.isValid && takeSample(p)));
+      system11.run(() => safe("sample", () => p.isValid && takeSample(p)));
     }
   });
   reg.registerCustomComponent("hollow:sample", {
     onUse(e) {
       const p = e.source;
       const id = e.itemStack?.typeId;
-      system10.run(() => safe("sample.file", () => p.isValid && id && fileSample(p, id)));
+      system11.run(() => safe("sample.file", () => p.isValid && id && fileSample(p, id)));
     }
   });
   reg.registerCustomComponent("hollow:film_reel", {
     onUse(e) {
       const p = e.source;
       const item = e.itemStack;
-      system10.run(() => p.isValid && void watchReel(p, item));
+      system11.run(() => p.isValid && void watchReel(p, item));
     }
   });
   reg.registerCustomComponent("hollow:tower_part", {
     onUse(e) {
       const p = e.source;
-      system10.run(() => p.isValid && notice(p, "§7A spare for the 1957 relay transmitter. It goes in the cabinet in the hut under the tower on the north peak."));
+      system11.run(() => p.isValid && notice(p, "§7A spare for the 1957 relay transmitter. It goes in the cabinet in the hut under the tower on the north peak."));
     }
   });
 }
@@ -5315,11 +5337,11 @@ function fill2(dim2, s) {
     const b = block(dim2, loc);
     const inv = b?.getComponent("minecraft:inventory")?.container;
     if (!inv) continue;
-    const loot = table ? mgr.generateLootFromTable(table) ?? [] : [];
+    const loot2 = table ? mgr.generateLootFromTable(table) ?? [] : [];
     for (const [rule, id, n] of DISABLED_SUPPLY) {
-      if (!settings()[rule]) loot.push(new ItemStack5(id, n));
+      if (!settings()[rule]) loot2.push(new ItemStack5(id, n));
     }
-    for (const item of loot) {
+    for (const item of loot2) {
       const slot = randInt(0, inv.size - 1);
       if (!inv.getItem(slot)) inv.setItem(slot, item);
       else inv.addItem(item);
@@ -5424,8 +5446,8 @@ function useHeartseeker(p) {
   const depth = Math.round(p.location.y - c.y);
   ui(p, SND.heartseeker, 1, d < 32 ? 1.3 : d < 96 ? 1 : 0.8);
   particle(p.dimension, PARTICLE.veinMote, { x: p.location.x, y: p.location.y + 1.2, z: p.location.z });
-  const where = d < 6 ? "directly below you" : `${compass(p.location, c)}, ${d} blocks`;
-  notice(p, `§7The Heartseeker beats: ${where}, ${depth > 0 ? `${depth} blocks down` : "at this depth"}.`);
+  const where2 = d < 6 ? "directly below you" : `${compass(p.location, c)}, ${d} blocks`;
+  notice(p, `§7The Heartseeker beats: ${where2}, ${depth > 0 ? `${depth} blocks down` : "at this depth"}.`);
   unlock(p, "craft_heartseeker", true);
   unlock(p, "heart1");
   try {
@@ -5528,8 +5550,8 @@ function list() {
 function persist() {
   writeWorld(DP.tracks, list());
 }
-function dirOf(v2) {
-  return Math.abs(v2.x) > Math.abs(v2.z) ? v2.x > 0 ? 1 : 3 : v2.z > 0 ? 2 : 0;
+function dirOf(v3) {
+  return Math.abs(v3.x) > Math.abs(v3.z) ? v3.x > 0 ? 1 : 3 : v3.z > 0 ? 2 : 0;
 }
 function pressTrack(dim2, at, kind, facing) {
   const cell = { x: Math.floor(at.x), y: Math.floor(at.y), z: Math.floor(at.z) };
@@ -5617,14 +5639,14 @@ function notice2(p) {
   }
 }
 function tracksNear(dim2, at, r) {
-  const out = [];
+  const out2 = [];
   for (const t of list()) {
     if (t.d !== dim2.id || distSq(t, at) > r * r) continue;
     const b = block(dim2, t);
     const k = b?.typeId === BLOCK.tracks ? b.permutation.getState("hollow:kind") : void 0;
-    if (typeof k === "number" && !out.includes(k)) out.push(k);
+    if (typeof k === "number" && !out2.includes(k)) out2.push(k);
   }
-  return out;
+  return out2;
 }
 function startTracks() {
   every("tracks.expire", 600, expire, 17);
@@ -5676,7 +5698,7 @@ function forgetItemEffects(playerId) {
   itemSessions.delete(playerId);
   for (const [key, reveal2] of revealTimers) {
     if (reveal2.player.id !== playerId) continue;
-    system11.clearRun(reveal2.run);
+    system12.clearRun(reveal2.run);
     revealTimers.delete(key);
     try {
       if (reveal2.player.isValid && reveal2.entity.isValid) {
@@ -5693,7 +5715,7 @@ function queueUse(p, typeId, action) {
     itemSessions.set(p.id, token);
   }
   const dim2 = p.dimension.id;
-  system11.run(() => {
+  system12.run(() => {
     if (!p.isValid || itemSessions.get(p.id) !== token || p.dimension.id !== dim2 || heldItem(p) !== typeId) return;
     const hp = p.getComponent("minecraft:health");
     if (hp && hp.currentValue <= 0) return;
@@ -5713,8 +5735,8 @@ function useLens(p) {
       p.spawnParticle("hollow:lens_reveal", { x: b.location.x, y: b.location.y + 1.2, z: b.location.z });
       const key = `${p.id}|${b.id}`;
       const old = revealTimers.get(key);
-      if (old) system11.clearRun(old.run);
-      const run = system11.runTimeout(() => {
+      if (old) system12.clearRun(old.run);
+      const run = system12.runTimeout(() => {
         revealTimers.delete(key);
         try {
           if (p.isValid && b.isValid) p.removePropertyOverrideForEntity(b, PROP.revealed);
@@ -5789,7 +5811,7 @@ function registerItemComponents(ev) {
     // Hearth Tea: drinking it calms Dread sharply and steadies the nerves for two minutes.
     onConsume(e) {
       const p = e.source;
-      if (p instanceof Player18) system11.run(() => p.isValid && drinkTea(p));
+      if (p instanceof Player18) system12.run(() => p.isValid && drinkTea(p));
     }
   });
   ev.itemComponentRegistry.registerCustomComponent("hollow:material", {
@@ -6133,13 +6155,13 @@ function survival(p) {
   return gm === GameMode7.Survival || gm === GameMode7.Adventure;
 }
 function veinSpots(c) {
-  const out = [];
+  const out2 = [];
   for (const sx of [-1, 1]) {
     for (const sz of [-1, 1]) {
-      out.push({ x: c.x + sx * 4.3, y: c.y + 1.5, z: c.z + sz * 4.3 });
+      out2.push({ x: c.x + sx * 4.3, y: c.y + 1.5, z: c.z + sz * 4.3 });
     }
   }
-  return out;
+  return out2;
 }
 function setAltar(dim2, awake) {
   for (const loc of findBlocks(dim2, boss.center, [BLOCK.altar], 13, 6, 13, 2)) {
@@ -6249,10 +6271,10 @@ function spawnVeins(dim2, count2, players) {
   const spots = veinSpots(boss.center).slice(0, count2);
   for (const at of spots) {
     try {
-      const v2 = dim2.spawnEntity(ENT.vein, at);
-      v2.setDynamicProperty(FIGHT, boss.token);
-      if (players >= 3) v2.triggerEvent("hollow:tough");
-      boss.veins.push(v2.id);
+      const v3 = dim2.spawnEntity(ENT.vein, at);
+      v3.setDynamicProperty(FIGHT, boss.token);
+      if (players >= 3) v3.triggerEvent("hollow:tough");
+      boss.veins.push(v3.id);
       particle(dim2, PARTICLE.veinMote, at);
     } catch {
     }
@@ -6305,9 +6327,9 @@ function pulse(dim2, heart, players) {
         const dNow = distXZ(p.location, origin);
         if (!p.isOnGround || Math.abs(dNow - d) > 2.2) return;
         hurt(p, 5, heart.isValid ? heart : void 0);
-        const out = norm(sub(p.location, origin));
+        const out2 = norm(sub(p.location, origin));
         try {
-          p.applyKnockback({ x: out.x * 0.7, z: out.z * 0.7 }, 0.25);
+          p.applyKnockback({ x: out2.x * 0.7, z: out2.z * 0.7 }, 0.25);
         } catch {
         }
       });
@@ -6320,8 +6342,8 @@ function gaze(dim2, heart, players) {
   const core = add(heart.location, { x: 0, y: 1.3, z: 0 });
   worldSound(dim2, SND.heartDrone, core, 1);
   particle(dim2, PARTICLE.spores, core);
-  const start = norm(sub(target2.location, core));
-  const dir0 = { x: start.x, y: 0, z: start.z };
+  const start2 = norm(sub(target2.location, core));
+  const dir0 = { x: start2.x, y: 0, z: start2.z };
   const sweep = Math.random() < 0.5 ? -1 : 1;
   for (let k = 0; k <= 12; k++) {
     later("heart.gaze", 30 + k * 5, () => {
@@ -6516,7 +6538,7 @@ function onShieldHit(heart) {
 }
 function onVeinDied(id) {
   if (!load().active) return;
-  boss.veins = boss.veins.filter((v2) => v2 !== id);
+  boss.veins = boss.veins.filter((v3) => v3 !== id);
   save5();
 }
 function onHeartDied(id) {
@@ -6577,7 +6599,7 @@ var cache3 = /* @__PURE__ */ new Map();
 function list2(key) {
   let l = cache3.get(key);
   if (!l) {
-    l = readWorldArray(key).filter((s) => s && typeof s.d === "string" && [s.x, s.y, s.z].every((v2) => typeof v2 === "number" && Number.isFinite(v2)));
+    l = readWorldArray(key).filter((s) => s && typeof s.d === "string" && [s.x, s.y, s.z].every((v3) => typeof v3 === "number" && Number.isFinite(v3)));
     cache3.set(key, l);
   }
   return l;
@@ -7003,8 +7025,8 @@ function update4() {
       if (inState > seconds(60) && playersNear(e, 24).length === 0) vanish(e, enc);
       continue;
     }
-    const seen = near.some((p) => dist(p.location, e.location) < 20 && clearLine(e.dimension, p.getHeadLocation(), add(e.location, { x: 0, y: 1, z: 0 })));
-    if (inState > seconds(10) && !seen || inState > seconds(30)) vanish(e, enc);
+    const seen2 = near.some((p) => dist(p.location, e.location) < 20 && clearLine(e.dimension, p.getHeadLocation(), add(e.location, { x: 0, y: 1, z: 0 })));
+    if (inState > seconds(10) && !seen2 || inState > seconds(30)) vanish(e, enc);
   }
 }
 function onBorrowedSheared(e, by) {
@@ -7092,9 +7114,9 @@ function doorOpen(dim2, door) {
   if (!b || !DOORS.includes(b.typeId)) return true;
   return getCustomState(b.permutation, "open_bit") === true;
 }
-function insidePlayers(v2) {
+function insidePlayers(v3) {
   try {
-    return world20.getDimension(v2.dim).getPlayers({ location: v2.door, maxDistance: 18 });
+    return world20.getDimension(v3.dim).getPlayers({ location: v3.door, maxDistance: 18 });
   } catch {
     return [];
   }
@@ -7120,13 +7142,13 @@ function tryVisit() {
   doors.sort((a, b) => dist(a, p.location) - dist(b, p.location));
   for (const d of doors.slice(0, 3)) {
     const door = doorLower(dim2, d);
-    const out = outsideDir(dim2, door);
-    if (!out) continue;
+    const out2 = outsideDir(dim2, door);
+    if (!out2) continue;
     for (let k = 0; k < 5; k++) {
       const r = rand(18, 26);
-      const side = { x: out.z, y: 0, z: -out.x };
+      const side = { x: out2.z, y: 0, z: -out2.x };
       const lateral = rand(-6, 6);
-      const target2 = add(add(door, scale(out, r)), scale(side, lateral));
+      const target2 = add(add(door, scale(out2, r)), scale(side, lateral));
       const g = groundNear(dim2, target2.x, door.y, target2.z, 8, 3);
       if (!g || lanternNear(dim2, g)) continue;
       if (clearLine(dim2, p.getHeadLocation(), add(g, { x: 0, y: 2, z: 0 }))) continue;
@@ -7142,7 +7164,7 @@ function tryVisit() {
         target: p.id,
         dim: dim2.id,
         door,
-        out,
+        out: out2,
         started: now(),
         phase: "approach",
         phaseAt: now(),
@@ -7156,10 +7178,10 @@ function tryVisit() {
     }
   }
 }
-function setPhase(e, v2, p) {
-  if (v2.phase === p) return;
-  v2.phase = p;
-  v2.phaseAt = now();
+function setPhase(e, v3, p) {
+  if (v3.phase === p) return;
+  v3.phase = p;
+  v3.phaseAt = now();
   const ev = p === "knock" ? "hollow:at_door" : p === "hunt" ? "hollow:hunt" : p === "leave" ? "hollow:leave" : void 0;
   if (ev) {
     try {
@@ -7188,126 +7210,126 @@ var SCRIPT = [
 var KNOCK_END = 900;
 var nextTry = 0;
 function update5() {
-  const v2 = visit;
-  if (!v2) {
+  const v3 = visit;
+  if (!v3) {
     if (now() < nextTry) return;
     nextTry = now() + 100;
     tryVisit();
     return;
   }
-  const e = world20.getEntity(v2.id);
+  const e = world20.getEntity(v3.id);
   if (!e?.isValid) {
     visit = void 0;
     return;
   }
   const dim2 = e.dimension;
-  const inState = now() - v2.phaseAt;
-  const inside = insidePlayers(v2);
+  const inState = now() - v3.phaseAt;
+  const inside = insidePlayers(v3);
   const daybreak = isDay();
-  if (v2.phase === "approach" || v2.phase === "leave") trail(e, 1 /* Knocker */, 1.4);
-  if (v2.phase === "approach") {
-    const d = dist(e.location, add(v2.door, { x: 0.5, y: 0, z: 0.5 }));
-    if (!v2.wardChecked && d < 12) {
-      v2.wardChecked = true;
-      const ward = wardNear(dim2, v2.door);
+  if (v3.phase === "approach" || v3.phase === "leave") trail(e, 1 /* Knocker */, 1.4);
+  if (v3.phase === "approach") {
+    const d = dist(e.location, add(v3.door, { x: 0.5, y: 0, z: 0.5 }));
+    if (!v3.wardChecked && d < 12) {
+      v3.wardChecked = true;
+      const ward = wardNear(dim2, v3.door);
       if (ward) {
         useWard(ward, "knocker");
         for (const p of inside) {
           unlock(p, "knocker1");
           hint(p, "§7Something stopped outside. The ward flared, and it went away.");
         }
-        setPhase(e, v2, "leave");
+        setPhase(e, v3, "leave");
         return;
       }
     }
     if (d <= 2.4) {
-      setPhase(e, v2, "knock");
-      for (const p of insidePlayers(v2)) frighten(p, 16);
+      setPhase(e, v3, "knock");
+      for (const p of insidePlayers(v3)) frighten(p, 16);
       standingPrints(e, 1 /* Knocker */);
-    } else if (inState > seconds(70) || daybreak) setPhase(e, v2, "leave");
-    confront(e, v2);
+    } else if (inState > seconds(70) || daybreak) setPhase(e, v3, "leave");
+    confront(e, v3);
     return;
   }
-  if (v2.phase === "knock") {
-    while (v2.step < SCRIPT.length && inState >= SCRIPT[v2.step][0]) {
-      const [, snd, vol] = SCRIPT[v2.step];
-      worldSound(dim2, snd, add(v2.door, { x: 0.5, y: 1.2, z: 0.5 }), vol);
-      if (v2.step === 0) {
+  if (v3.phase === "knock") {
+    while (v3.step < SCRIPT.length && inState >= SCRIPT[v3.step][0]) {
+      const [, snd, vol] = SCRIPT[v3.step];
+      worldSound(dim2, snd, add(v3.door, { x: 0.5, y: 1.2, z: 0.5 }), vol);
+      if (v3.step === 0) {
         for (const p of inside) {
           unlock(p, "knocker1");
           hint(p, "§8Three knocks at the door.");
         }
       }
-      v2.step++;
+      v3.step++;
     }
-    if (doorOpen(dim2, v2.door)) {
-      answered(e, v2);
+    if (doorOpen(dim2, v3.door)) {
+      answered(e, v3);
       return;
     }
     const cfg = settings();
-    if (!v2.broke && cfg.destructive && world20.getDifficulty() === Difficulty3.Hard && inState >= 600 && chance(0.05)) {
-      v2.broke = true;
+    if (!v3.broke && cfg.destructive && world20.getDifficulty() === Difficulty3.Hard && inState >= 600 && chance(0.05)) {
+      v3.broke = true;
       try {
         e.triggerEvent("hollow:break_in");
       } catch {
       }
-      v2.phase = "hunt";
-      v2.phaseAt = now();
+      v3.phase = "hunt";
+      v3.phaseAt = now();
       for (const p of inside) notice(p, "§cIt's trying to break the door!");
       return;
     }
     if (inState >= KNOCK_END || daybreak) {
-      leaveWithNail(e, v2, inside);
+      leaveWithNail(e, v3, inside);
       return;
     }
-    confront(e, v2);
+    confront(e, v3);
     return;
   }
-  if (v2.phase === "hunt") {
+  if (v3.phase === "hunt") {
     const h = e.getComponent("minecraft:health");
     const low = h ? h.currentValue / h.effectiveMax < 0.25 : false;
-    if (low || inState > seconds(90) || daybreak) setPhase(e, v2, "leave");
+    if (low || inState > seconds(90) || daybreak) setPhase(e, v3, "leave");
     return;
   }
-  let nearest2 = 999;
+  let nearest3 = 999;
   try {
-    for (const p of dim2.getPlayers({ location: e.location, maxDistance: 48 })) nearest2 = Math.min(nearest2, dist(p.location, e.location));
+    for (const p of dim2.getPlayers({ location: e.location, maxDistance: 48 })) nearest3 = Math.min(nearest3, dist(p.location, e.location));
   } catch {
   }
-  if (nearest2 > 40 || inState > seconds(30)) end(e);
+  if (nearest3 > 40 || inState > seconds(30)) end(e);
 }
-function confront(e, v2) {
+function confront(e, v3) {
   try {
     for (const p of e.dimension.getPlayers({ location: e.location, maxDistance: 5 })) {
       if (!huntable(p)) continue;
       if (ctx(p).roofed) continue;
-      setPhase(e, v2, "hunt");
+      setPhase(e, v3, "hunt");
       worldSound(e.dimension, SND.knockerLunge, e.location);
       return;
     }
   } catch {
   }
 }
-function answered(e, v2) {
-  setPhase(e, v2, "hunt");
-  worldSound(e.dimension, SND.knockerLunge, add(v2.door, { x: 0.5, y: 1, z: 0.5 }));
-  for (const p of insidePlayers(v2)) {
+function answered(e, v3) {
+  setPhase(e, v3, "hunt");
+  worldSound(e.dimension, SND.knockerLunge, add(v3.door, { x: 0.5, y: 1, z: 0.5 }));
+  for (const p of insidePlayers(v3)) {
     unlock(p, "knocker1");
     unlock(p, "knocker3");
     accent(p, SND.stingerLow, 2, true);
     frighten(p, 22);
   }
 }
-function leaveWithNail(e, v2, inside) {
-  setPhase(e, v2, "leave");
+function leaveWithNail(e, v3, inside) {
+  setPhase(e, v3, "leave");
   const dim2 = e.dimension;
-  worldSound(dim2, SND.knockerLeave, add(v2.door, { x: 0.5, y: 1, z: 0.5 }), 0.9);
-  if (!v2.nailDone && v2.step > 0) {
-    v2.nailDone = true;
-    const step2 = add(add(v2.door, { x: 0.5, y: 0.2, z: 0.5 }), scale(v2.out, 1.2));
+  worldSound(dim2, SND.knockerLeave, add(v3.door, { x: 0.5, y: 1, z: 0.5 }), 0.9);
+  if (!v3.nailDone && v3.step > 0) {
+    v3.nailDone = true;
+    const step3 = add(add(v3.door, { x: 0.5, y: 0.2, z: 0.5 }), scale(v3.out, 1.2));
     later("knocker.nail", 60, () => {
       try {
-        dim2.spawnItem(new ItemStack9(ITEM.knockerNail, 1), step2);
+        dim2.spawnItem(new ItemStack9(ITEM.knockerNail, 1), step3);
       } catch {
       }
     });
@@ -7318,10 +7340,10 @@ function leaveWithNail(e, v2, inside) {
   }
 }
 function onKnockerHurt(e, by) {
-  const v2 = visit;
-  if (!v2 || v2.id !== e.id) return;
-  if (v2.phase === "knock" || v2.phase === "approach") {
-    if (by instanceof Player23) answered(e, v2);
+  const v3 = visit;
+  if (!v3 || v3.id !== e.id) return;
+  if (v3.phase === "knock" || v3.phase === "approach") {
+    if (by instanceof Player23) answered(e, v3);
   }
 }
 function onKnockerDied(id, killer) {
@@ -7435,8 +7457,8 @@ function release(m) {
   const p = world21.getEntity(m.target);
   if (p?.isValid && rt(p).encounter === "mirebound") rt(p).encounter = void 0;
   if (m.victim) {
-    const v2 = world21.getEntity(m.victim);
-    if (v2?.isValid) popFog(v2, "hollow_mire");
+    const v3 = world21.getEntity(m.victim);
+    if (v3?.isValid) popFog(v3, "hollow_mire");
   }
 }
 function vanish2(e, m) {
@@ -7457,15 +7479,15 @@ function riding(p, e) {
   }
 }
 function letGo(e, m, why) {
-  const v2 = m.victim ? world21.getEntity(m.victim) : void 0;
+  const v3 = m.victim ? world21.getEntity(m.victim) : void 0;
   try {
     e.getComponent("minecraft:rideable")?.ejectRiders();
   } catch {
   }
-  if (v2?.isValid) {
-    popFog(v2, "hollow_mire");
-    unlock(v2, "mirebound2");
-    if (why !== "death") notice(v2, why === "sneak" ? "§7You wrench free." : why === "hit" ? "§7It lets go." : "§7It loses its grip.");
+  if (v3?.isValid) {
+    popFog(v3, "hollow_mire");
+    unlock(v3, "mirebound2");
+    if (why !== "death") notice(v3, why === "sneak" ? "§7You wrench free." : why === "hit" ? "§7It lets go." : "§7It loses its grip.");
   }
   m.victim = void 0;
   worldSound(e.dimension, SND.mireRelease, e.location);
@@ -7515,18 +7537,18 @@ function update6() {
     }
     if (m.state === "erupt") {
       if (inState < 12) continue;
-      const v2 = m.victim ? world21.getEntity(m.victim) : void 0;
-      if (!v2?.isValid || dist(v2.location, e.location) > 3.2 || !huntable(v2) || protectedSpot(dim2, v2.location)) {
+      const v3 = m.victim ? world21.getEntity(m.victim) : void 0;
+      if (!v3?.isValid || dist(v3.location, e.location) > 3.2 || !huntable(v3) || protectedSpot(dim2, v3.location)) {
         m.victim = void 0;
-        if (v2?.isValid) notice(v2, "§7It snaps at empty water. Get to dry land.");
+        if (v3?.isValid) notice(v3, "§7It snaps at empty water. Get to dry land.");
         setState2(e, m, "retreat");
         continue;
       }
       setState2(e, m, "grab");
       for (let k = 0; k <= 2; k++) {
         const f = k / 2;
-        const at = { x: v2.location.x + (e.location.x - v2.location.x) * f, y: v2.location.y, z: v2.location.z + (e.location.z - v2.location.z) * f };
-        pressTrack(dim2, at, 2 /* Drag */, { x: e.location.x - v2.location.x, y: 0, z: e.location.z - v2.location.z });
+        const at = { x: v3.location.x + (e.location.x - v3.location.x) * f, y: v3.location.y, z: v3.location.z + (e.location.z - v3.location.z) * f };
+        pressTrack(dim2, at, 2 /* Drag */, { x: e.location.x - v3.location.x, y: 0, z: e.location.z - v3.location.z });
       }
       m.grabs++;
       m.dmgAt = t;
@@ -7534,39 +7556,39 @@ function update6() {
       continue;
     }
     if (m.state === "grab") {
-      const v2 = m.victim ? world21.getEntity(m.victim) : void 0;
-      if (!v2?.isValid || v2.getComponent("minecraft:health")?.currentValue === 0) {
+      const v3 = m.victim ? world21.getEntity(m.victim) : void 0;
+      if (!v3?.isValid || v3.getComponent("minecraft:health")?.currentValue === 0) {
         letGo(e, m, "death");
         continue;
       }
-      if (m.seatTries < 3 && !riding(v2, e)) {
+      if (m.seatTries < 3 && !riding(v3, e)) {
         m.seatTries++;
         let held = false;
         try {
-          held = !!e.getComponent("minecraft:rideable")?.addRider(v2);
+          held = !!e.getComponent("minecraft:rideable")?.addRider(v3);
         } catch {
           held = false;
         }
-        if (m.seatTries >= 3 && !held && !riding(v2, e)) {
-          v2.applyDamage(3, { cause: EntityDamageCause3.entityAttack, damagingEntity: e });
-          v2.addEffect("slowness", 50, { amplifier: 2, showParticles: false });
+        if (m.seatTries >= 3 && !held && !riding(v3, e)) {
+          v3.applyDamage(3, { cause: EntityDamageCause3.entityAttack, damagingEntity: e });
+          v3.addEffect("slowness", 50, { amplifier: 2, showParticles: false });
           letGo(e, m, "timeout");
           continue;
         }
         if (held) {
           worldSound(e.dimension, SND.mireGrab, e.location);
-          pushFog(v2, FOG.mire, "hollow_mire");
+          pushFog(v3, FOG.mire, "hollow_mire");
         }
         continue;
       }
-      if (!riding(v2, e)) {
+      if (!riding(v3, e)) {
         letGo(e, m, "sneak");
         continue;
       }
-      notice(v2, "§fPress §lSNEAK§r§f to break free!");
+      notice(v3, "§fPress §lSNEAK§r§f to break free!");
       if (t - m.dmgAt >= 30) {
         m.dmgAt = t;
-        v2.applyDamage(2, { cause: EntityDamageCause3.entityAttack, damagingEntity: e });
+        v3.applyDamage(2, { cause: EntityDamageCause3.entityAttack, damagingEntity: e });
       }
       if (inState > 100) letGo(e, m, "timeout");
       continue;
@@ -7653,11 +7675,11 @@ function looking(p, e) {
   return clearLine(dim2, head, target2) || clearLine(dim2, head, add(e.location, { x: 0, y: 1.4, z: 0 }));
 }
 function observers(e) {
-  const out = [];
+  const out2 = [];
   for (const p of e.dimension.getPlayers({ location: e.location, maxDistance: 72 })) {
-    if (looking(p, e)) out.push(p);
+    if (looking(p, e)) out2.push(p);
   }
-  return out;
+  return out2;
 }
 function targetSafe(p, enc) {
   const t = now();
@@ -7797,8 +7819,8 @@ function update7() {
     const inState = t - enc.stateAt;
     const d = dist(p.location, e.location);
     if (enc.state === "withdraw") {
-      const seen = observers(e).length > 0;
-      if (inState > 60 && (!seen || d > 40) || inState > 240) vanish3(e, enc);
+      const seen2 = observers(e).length > 0;
+      if (inState > 60 && (!seen2 || d > 40) || inState > 240) vanish3(e, enc);
       continue;
     }
     if (isDay()) {
@@ -8045,14 +8067,14 @@ function markDone(id) {
   writeWorld(DP.events, done);
 }
 function animalsAround(p) {
-  const out = [];
+  const out2 = [];
   for (const type of ANIMALS) {
     try {
-      out.push(...p.dimension.getEntities({ type, location: p.location, maxDistance: 24 }));
+      out2.push(...p.dimension.getEntities({ type, location: p.location, maxDistance: 24 }));
     } catch {
     }
   }
-  return out;
+  return out2;
 }
 function everyEye(p) {
   const herd = animalsAround(p).slice(0, 24);
@@ -8315,7 +8337,7 @@ import {
   GameMode as GameMode9,
   HudVisibility,
   InputPermissionCategory,
-  system as system12,
+  system as system13,
   world as world24
 } from "@minecraft/server";
 var D = { x: SITES.DIORAMA.x, z: SITES.DIORAMA.z };
@@ -8466,8 +8488,8 @@ var bomberPath = (t) => v(D.x - 130 + (t - 240) * 1.45, 172, D.z - 26);
 var RELEASE = 300;
 var bombPath = (t) => {
   const u = Math.min(1, (t - RELEASE) / 120);
-  const start = bomberPath(RELEASE);
-  return v(start.x + (BURST.x - start.x) * (1 - (1 - u) ** 2), start.y - (start.y - BURST.y) * u * u, start.z + (BURST.z - start.z) * u);
+  const start2 = bomberPath(RELEASE);
+  return v(start2.x + (BURST.x - start2.x) * (1 - (1 - u) ** 2), start2.y - (start2.y - BURST.y) * u * u, start2.z + (BURST.z - start2.z) * u);
 };
 var HELI_FROM = () => v(C.x + 26, crashY + 30, C.z + 175);
 var HELI_TO = () => v(C.x + 6, crashY + 24, C.z + 38);
@@ -8633,7 +8655,7 @@ var loop;
 function finish() {
   if (!running2) return;
   running2 = false;
-  if (loop !== void 0) system12.clearRun(loop);
+  if (loop !== void 0) system13.clearRun(loop);
   for (const k of [...props.keys()]) drop(k);
   world24.setDynamicProperty(DP.cine, 1);
   for (const p of watching()) {
@@ -8651,7 +8673,7 @@ function playCinematic(players, then) {
   sneakTicks.clear();
   viewers = players.filter((p) => p.isValid);
   for (const p of viewers) enter(p, v(D.x, 150, D.z + 40));
-  loop = system12.runInterval(() => safe("cinematic", frame), 1);
+  loop = system13.runInterval(() => safe("cinematic", frame), 1);
   return true;
 }
 function replayCinematic(p) {
@@ -8661,7 +8683,7 @@ function replayCinematic(p) {
 }
 
 // ../../scripts_src/island/leaves.ts
-import { ItemStack as ItemStack12, system as system13, world as world25 } from "@minecraft/server";
+import { ItemStack as ItemStack12, system as system14, world as world25 } from "@minecraft/server";
 var LOG2 = (id) => id.endsWith("_log") || id.endsWith("_wood");
 var LEAF2 = (id) => id.endsWith("_leaves");
 var SAPLING = {
@@ -8695,11 +8717,11 @@ function decayAround(at) {
   const doomed = leaves.filter((p) => !supported(p)).slice(0, 260);
   doomed.sort((a, b) => Math.hypot(a.x - at.x, a.z - at.z) - Math.hypot(b.x - at.x, b.z - at.z));
   let i = 0;
-  const run = system13.runInterval(() => safe("leaves.fall", () => {
+  const run = system14.runInterval(() => safe("leaves.fall", () => {
     for (let k = 0; k < 6; k++) {
       const p = doomed[i++];
       if (!p) {
-        system13.clearRun(run);
+        system14.clearRun(run);
         return;
       }
       const b = dim2.getBlock(p);
@@ -8719,13 +8741,205 @@ function startLeaves() {
     const id = ev.brokenBlockPermutation.type.id;
     if (!LOG2(id)) return;
     const at = ev.block.location;
-    system13.runTimeout(() => safe("leaves.decay", () => void decayAround(at)), 30);
+    system14.runTimeout(() => safe("leaves.decay", () => void decayAround(at)), 30);
   }));
 }
 
 // ../../scripts_src/island/cult.ts
-import { BlockPermutation as BlockPermutation7, ItemStack as ItemStack13, world as world26 } from "@minecraft/server";
+import { BlockPermutation as BlockPermutation7, ItemStack as ItemStack13, world as world27 } from "@minecraft/server";
 import { ActionFormData as ActionFormData5 } from "@minecraft/server-ui";
+
+// ../../scripts_src/island/scenes.ts
+import { EasingType as EasingType2, Entity as Entity17, GameMode as GameMode10, system as system15, world as world26 } from "@minecraft/server";
+var current;
+var queue = [];
+function sceneRunning() {
+  return !!current;
+}
+function canWatch(p) {
+  if (!p.isValid || needsRestore(p)) return false;
+  try {
+    const gm = p.getGameMode();
+    return gm === GameMode10.Survival || gm === GameMode10.Adventure || gm === GameMode10.Creative;
+  } catch {
+    return false;
+  }
+}
+function seen(p) {
+  return readEntity(p, DP.scenes, []);
+}
+function hasSeen(p, name) {
+  return seen(p).includes(name);
+}
+function markSeen(p, name) {
+  const s = seen(p);
+  if (!s.includes(name)) writeEntity(p, DP.scenes, [...s, name]);
+}
+function camTo(p, at, look, ease) {
+  const easeOptions = ease > 0 ? { easeTime: ease, easeType: EasingType2.InOutSine } : void 0;
+  try {
+    if (look instanceof Entity17) {
+      if (look.isValid) p.camera.setCamera("minecraft:free", { location: at, facingEntity: look, easeOptions });
+    } else if (look) {
+      p.camera.setCamera("minecraft:free", { location: at, facingLocation: look, easeOptions });
+    }
+  } catch {
+  }
+}
+function step2() {
+  const c = current;
+  if (!c) return;
+  c.tick++;
+  const t = c.tick;
+  c.viewers = c.viewers.filter((p) => p.isValid && needsRestore(p));
+  for (const shot of c.scene.shots) {
+    if (shot.t !== t) continue;
+    safe(`scene.${c.scene.name}.${t}`, () => {
+      shot.run?.();
+      for (const p of c.viewers) {
+        try {
+          if (shot.fade) p.camera.fade({ fadeColor: { red: 0, green: 0, blue: 0 }, fadeTime: { fadeInTime: 0.5, holdTime: 0.3, fadeOutTime: 0.6 } });
+          if (shot.cam) {
+            const look = typeof shot.cam.look === "function" ? shot.cam.look() : shot.cam.look;
+            camTo(p, shot.cam.at, look, shot.cam.ease ?? 0);
+          }
+          if (shot.title) p.onScreenDisplay.setTitle(shot.title[0], { subtitle: shot.title[1], fadeInDuration: 12, stayDuration: 60, fadeOutDuration: 20 });
+          if (shot.bar) p.onScreenDisplay.setActionBar(shot.bar);
+          if (shot.sound) p.playSound(shot.sound[0], { volume: shot.sound[1] ?? 1, pitch: shot.sound[2] ?? 1 });
+        } catch {
+        }
+      }
+    });
+  }
+  for (const p of [...c.viewers]) {
+    const n = p.isSneaking ? (c.sneak.get(p.id) ?? 0) + 1 : 0;
+    c.sneak.set(p.id, n);
+    if (n >= 20 && t > 10) {
+      c.viewers = c.viewers.filter((v3) => v3.id !== p.id);
+      out(p, c.scene);
+    }
+  }
+  if (t >= c.scene.length || c.viewers.length === 0) end2();
+}
+function out(p, scene) {
+  leave(p, scene.returnTo);
+  try {
+    p.onScreenDisplay.setActionBar(" ");
+  } catch {
+  }
+  safe(`scene.${scene.name}.end`, () => scene.onEnd?.(p));
+}
+function end2() {
+  const c = current;
+  if (!c) return;
+  system15.clearRun(c.loop);
+  current = void 0;
+  for (const p of c.viewers) out(p, c.scene);
+  for (const shot of c.scene.shots) if (shot.t > c.tick && shot.run) safe(`scene.${c.scene.name}.late`, shot.run);
+  const next = queue.shift();
+  if (next) system15.runTimeout(() => start(next), 10);
+}
+function start(scene) {
+  if (current || cinematicRunning()) {
+    queue.push(scene);
+    return false;
+  }
+  const players = scene.players.filter(canWatch);
+  const first = scene.shots.find((s) => s.cam)?.cam?.at ?? players[0]?.location;
+  if (!players.length || !first) {
+    for (const shot of scene.shots) if (shot.run) safe(`scene.${scene.name}.nobody`, shot.run);
+    return false;
+  }
+  for (const p of players) {
+    markSeen(p, scene.name);
+    enterScene(p, { x: first.x, y: first.y, z: first.z });
+    try {
+      p.onScreenDisplay.setActionBar("§8Hold Sneak to skip");
+    } catch {
+    }
+  }
+  current = { scene, tick: 0, viewers: players, sneak: /* @__PURE__ */ new Map(), loop: system15.runInterval(() => safe("scene", step2), 1) };
+  return true;
+}
+function playScene(name, players, shots, length, opts = {}) {
+  return start({ name, players, shots, length, ...opts });
+}
+var v2 = (x, y, z) => ({ x, y, z });
+function towerScene() {
+  const t = SITES.TOWER;
+  const hut = (POINTS.tower_hut ?? [])[0] ?? v2(t.x, 163, t.z + 7);
+  const top = (POINTS.tower_top ?? [])[0] ?? v2(t.x, hut.y + 34, t.z);
+  return [
+    { t: 1, fade: true },
+    { t: 8, cam: { at: v2(t.x + 16, hut.y + 2, t.z + 18), look: v2(t.x, hut.y + 6, t.z) } },
+    { t: 12, cam: { at: v2(t.x + 11, top.y + 3, t.z + 13), look: v2(t.x, top.y - 2, t.z), ease: 6 } },
+    { t: 30, title: ["§fThe North Peak Relay", "§7built 1957 · still standing"] },
+    { t: 90, bar: "§7The hut at its foot holds the transmitter. The shed beside it, the generator." },
+    { t: 128, cam: { at: v2(t.x + 24, hut.y + 10, t.z + 26), look: v2(t.x, hut.y + 1, t.z + 4), ease: 2.5 } },
+    { t: 150, bar: "§6Press the buttons inside the hut and the shed to see what they need." }
+  ];
+}
+function sunfallScene() {
+  const g = (POINTS.cult_gate ?? [])[0] ?? v2(SITES.SUNFALL.x, 75, SITES.SUNFALL.z + 34);
+  const s = (POINTS.shrine ?? [])[0] ?? v2(SITES.SUNFALL.x, 75, SITES.SUNFALL.z);
+  return [
+    { t: 1, fade: true },
+    { t: 8, cam: { at: v2(g.x + 16, g.y + 9, g.z + 24), look: v2(s.x, s.y + 3, s.z) } },
+    { t: 12, cam: { at: v2(g.x - 14, g.y + 18, g.z + 2), look: v2(s.x, s.y + 2, s.z), ease: 6.5 } },
+    { t: 30, title: ["§fSunfall", "§7the Children of the Second Sun"] },
+    { t: 95, bar: "§7Zealots guard the gate. The Faithful will only talk to you unarmed." },
+    { t: 140, bar: "§6Gifts of food and offerings at their shrine earn their trust." }
+  ];
+}
+function craterScene() {
+  const g = SITES.GZ;
+  const r = CRATER_R;
+  return [
+    { t: 1, fade: true },
+    { t: 8, cam: { at: v2(g.x - r - 18, 98, g.z + 34), look: v2(g.x, 60, g.z) } },
+    { t: 12, cam: { at: v2(g.x + 24, 104, g.z + r + 20), look: v2(g.x, 58, g.z), ease: 7 } },
+    { t: 30, title: ["§aGround Zero", "§77 May 1957"] },
+    { t: 95, bar: "§7The counter screams near the green water. Don't swim, don't drink." },
+    { t: 140, bar: "§6A hazmat suit lets you work here. The bunkers had them." }
+  ];
+}
+var FIRST_SIGHT = [
+  ["tower", (p) => Math.hypot(p.location.x - SITES.TOWER.x, p.location.z - SITES.TOWER.z) < 42, towerScene, 175],
+  ["sunfall", (p) => Math.hypot(p.location.x - SITES.SUNFALL.x, p.location.z - SITES.SUNFALL.z) < 78, sunfallScene, 170],
+  ["crater", (p) => Math.hypot(p.location.x - SITES.GZ.x, p.location.z - SITES.GZ.z) < CRATER_R + 46, craterScene, 170]
+];
+function calm(p) {
+  try {
+    if (p.dimension.getEntities({ location: p.location, maxDistance: 16, families: ["monster"] }).length) return false;
+    if (p.dimension.getEntities({ location: p.location, maxDistance: 20, type: "hollow:zealot" }).length) return false;
+    const hp = p.getComponent("minecraft:health");
+    return !hp || hp.currentValue > 8;
+  } catch {
+    return true;
+  }
+}
+function firstSight() {
+  if (!isIsland() || current || cinematicRunning()) return;
+  for (const p of world26.getAllPlayers()) {
+    if (!canWatch(p) || getNum(p, DP.woke, 0) !== 1 || p.dimension.id !== "minecraft:overworld") continue;
+    for (const [name, near, shots, len2] of FIRST_SIGHT) {
+      if (hasSeen(p, name) || !near(p)) continue;
+      if (!calm(p)) {
+        markSeen(p, name);
+        continue;
+      }
+      const company = world26.getAllPlayers().filter((q) => q.id === p.id || !hasSeen(q, name) && canWatch(q) && Math.hypot(q.location.x - p.location.x, q.location.z - p.location.z) < 30 && calm(q));
+      playScene(name, company, shots(), len2, { onEnd: (q) => sceneEndHook?.(q, name) });
+      return;
+    }
+  }
+}
+var sceneEndHook;
+function startScenes() {
+  system15.runInterval(() => safe("scenes.sight", firstSight), 20);
+}
+
+// ../../scripts_src/island/cult.ts
 var DEFAULT5 = {
   standing: 0,
   hierophantDead: false,
@@ -8751,17 +8965,17 @@ function changeStanding(delta, why) {
   const s = st7();
   const before = s.standing;
   s.standing = Math.max(-100, Math.min(100, s.standing + delta));
-  if (delta < 0) s.violentDay = world26.getDay();
+  if (delta < 0) s.violentDay = world27.getDay();
   save7();
   if (why && Math.abs(s.standing - before) >= 1) {
-    for (const p of world26.getAllPlayers()) {
+    for (const p of world27.getAllPlayers()) {
       if (p.isValid) notice(p, `${delta > 0 ? "§a" : "§c"}${why} §8(the Children ${standingWord()})`);
     }
   }
 }
 function standingWord() {
-  const v2 = st7().standing;
-  return v2 <= -60 ? "want you dead" : v2 <= -25 ? "hate you" : v2 < 10 ? "distrust you" : v2 < 40 ? "tolerate you" : v2 < 70 ? "accept you" : "call you kin";
+  const v3 = st7().standing;
+  return v3 <= -60 ? "want you dead" : v3 <= -25 ? "hate you" : v3 < 10 ? "distrust you" : v3 < 40 ? "tolerate you" : v3 < 70 ? "accept you" : "call you kin";
 }
 var CULT = [ENT.zealot, ENT.faithful, ENT.seer, ENT.hierophant];
 var NAMES2 = [
@@ -8783,7 +8997,7 @@ var NAMES2 = [
 function villages() {
   const homes = POINTS.cult_home ?? [];
   const posts = POINTS.cult_post ?? [];
-  const near = (c, r) => (v2) => Math.hypot(v2.x - c.x, v2.z - c.z) < r;
+  const near = (c, r) => (v3) => Math.hypot(v3.x - c.x, v3.z - c.z) < r;
   const sun = SITES.SUNFALL, mg = SITES.MANGROVES;
   return [
     { key: "sunfall", center: sun, homes: homes.filter(near(sun, 40)), posts: posts.filter(near(sun, 40)), faithful: 6, zealots: 3 },
@@ -8792,7 +9006,7 @@ function villages() {
 }
 function spawnAt(type, at, resident = true) {
   try {
-    const e = world26.getDimension("overworld").spawnEntity(type, { x: at.x + 0.5, y: at.y, z: at.z + 0.5 });
+    const e = world27.getDimension("overworld").spawnEntity(type, { x: at.x + 0.5, y: at.y, z: at.z + 0.5 });
     if (type === ENT.zealot && resident) e.triggerEvent("hollow:resident");
     if (type === ENT.faithful || type === ENT.seer) e.nameTag = pick(NAMES2);
     if (type === ENT.hierophant) e.nameTag = "The Hierophant";
@@ -8804,31 +9018,31 @@ function spawnAt(type, at, resident = true) {
 function census() {
   if (!isIsland() || !settings().cult) return;
   const s = st7();
-  const day = world26.getDay();
-  const dim2 = world26.getDimension("overworld");
-  for (const v2 of villages()) {
-    if (s.villageDay[v2.key] === day) continue;
-    const c = { x: v2.center.x, y: 70, z: v2.center.z };
-    const someone = world26.getAllPlayers().some((p) => p.dimension.id === dim2.id && Math.hypot(p.location.x - c.x, p.location.z - c.z) < 96);
+  const day = world27.getDay();
+  const dim2 = world27.getDimension("overworld");
+  for (const v3 of villages()) {
+    if (s.villageDay[v3.key] === day) continue;
+    const c = { x: v3.center.x, y: 70, z: v3.center.z };
+    const someone = world27.getAllPlayers().some((p) => p.dimension.id === dim2.id && Math.hypot(p.location.x - c.x, p.location.z - c.z) < 96);
     if (!someone) continue;
     try {
       if (!dim2.isChunkLoaded(c)) continue;
     } catch {
       continue;
     }
-    s.villageDay[v2.key] = day;
+    s.villageDay[v3.key] = day;
     const here = dim2.getEntities({ location: c, maxDistance: 48 }).filter((e) => CULT.includes(e.typeId));
     const count2 = (t) => here.filter((e) => e.typeId === t).length;
     const hostile = s.hierophantDead || s.standing <= -60;
-    for (let i = count2(ENT.faithful); i < (hostile ? Math.ceil(v2.faithful / 2) : v2.faithful); i++) {
-      const h = v2.homes[i % Math.max(1, v2.homes.length)];
+    for (let i = count2(ENT.faithful); i < (hostile ? Math.ceil(v3.faithful / 2) : v3.faithful); i++) {
+      const h = v3.homes[i % Math.max(1, v3.homes.length)];
       if (h) spawnAt(ENT.faithful, h);
     }
-    for (let i = count2(ENT.zealot); i < v2.zealots + (hostile ? 2 : 0); i++) {
-      const p = v2.posts[i % Math.max(1, v2.posts.length)] ?? v2.homes[0];
+    for (let i = count2(ENT.zealot); i < v3.zealots + (hostile ? 2 : 0); i++) {
+      const p = v3.posts[i % Math.max(1, v3.posts.length)] ?? v3.homes[0];
       if (p) spawnAt(ENT.zealot, p);
     }
-    if (v2.key === "sunfall") {
+    if (v3.key === "sunfall") {
       const shrine2 = (POINTS.hierophant ?? [])[0];
       if (shrine2 && !s.hierophantDead && count2(ENT.hierophant) === 0) spawnAt(ENT.hierophant, shrine2);
       if (count2(ENT.seer) === 0 && s.standing > -40 && Math.random() < 0.65) {
@@ -8842,13 +9056,13 @@ function census() {
 var PATROL_TAG = "hollow_patrol";
 var patrol = {
   add(id) {
-    world26.getEntity(id)?.addTag(PATROL_TAG);
+    world27.getEntity(id)?.addTag(PATROL_TAG);
   },
   delete(_id) {
   },
   list() {
     try {
-      return world26.getDimension("overworld").getEntities({ tags: [PATROL_TAG] });
+      return world27.getDimension("overworld").getEntities({ tags: [PATROL_TAG] });
     } catch {
       return [];
     }
@@ -8861,12 +9075,12 @@ var wrathful = /* @__PURE__ */ new Set();
 function patrols() {
   if (!isIsland() || !settings().cult) return;
   const s = st7();
-  const dim2 = world26.getDimension("overworld");
+  const dim2 = world27.getDimension("overworld");
   for (const e of patrol.list()) {
     if (!e.isValid) continue;
     if (isDay() && !isDarkHours()) {
-      const seen = world26.getAllPlayers().some((p) => Math.hypot(p.location.x - e.location.x, p.location.z - e.location.z) < 20);
-      if (!seen) {
+      const seen2 = world27.getAllPlayers().some((p) => Math.hypot(p.location.x - e.location.x, p.location.z - e.location.z) < 20);
+      if (!seen2) {
         e.triggerEvent("hollow:despawn");
       }
     }
@@ -8876,9 +9090,9 @@ function patrols() {
   if (hollowNight() < 2 && !hostile) return;
   if (patrol.size >= (hostile ? 6 : 4)) return;
   const chance2 = (hostile ? 0.35 : 0.14) * [0.6, 1, 1.5][settings().intensity] * (s.standing >= 40 ? 0.4 : 1);
-  for (const p of world26.getAllPlayers()) {
+  for (const p of world27.getAllPlayers()) {
     if (!p.isValid || p.dimension.id !== dim2.id || Math.random() > chance2) continue;
-    const near = villages().some((v2) => Math.hypot(p.location.x - v2.center.x, p.location.z - v2.center.z) < 60);
+    const near = villages().some((v3) => Math.hypot(p.location.x - v3.center.x, p.location.z - v3.center.z) < 60);
     if (near) continue;
     const a = Math.random() * Math.PI * 2;
     const r = 40 + Math.random() * 16;
@@ -8932,7 +9146,7 @@ async function talkFaithful(p, e) {
   }
   const held = heldItem(p);
   if (held && FOOD.includes(held)) {
-    const key = `${e.id}:${world26.getDay()}`;
+    const key = `${e.id}:${world27.getDay()}`;
     if (!s.gifts[key]) {
       s.gifts[key] = 1;
       takeOne(p, held);
@@ -9010,7 +9224,7 @@ async function talkSeer(p, e) {
     if (s.standing >= 40) {
       options.push(["Is there another way into the sealed bunker?", () => {
         unlock(p, "seer_way");
-        notice(p, '§7The Seer: §f"The machine-house under the western hill is closed. But the rock has a throat. Walk south of its door, where the ground falls in. Climb down."');
+        notice(p, '§7The Seer: §f"The machine-house under the western hill is closed. But the rock has a throat. Walk west from its door, a hundred paces, where the ground falls in. Climb down."');
       }]);
     }
     const form = new ActionFormData5().title("§lThe Seer").body(`§o"You smell of the mainland, and of the dead man you carried."
@@ -9059,7 +9273,7 @@ function onDeath(dead, killer) {
     s.hierophantDead = true;
     s.standing = -100;
     save7();
-    for (const p of world26.getAllPlayers()) {
+    for (const p of world27.getAllPlayers()) {
       notice(p, "§4The Hierophant is dead. §7The Children of the Second Sun will never forgive you.");
       unlock(p, "hierophant_dead");
     }
@@ -9067,7 +9281,7 @@ function onDeath(dead, killer) {
   }
 }
 function callZealots(at) {
-  const dim2 = world26.getDimension("overworld");
+  const dim2 = world27.getDimension("overworld");
   for (let k = 0; k < 2; k++) {
     const g = groundNear(dim2, at.x + 18 + k * 2, at.y, at.z - 14, 10);
     if (!g) continue;
@@ -9085,7 +9299,14 @@ function onHurt(hurt2, by) {
         hurt2.triggerEvent("hollow:wrath");
       } catch {
       }
-      for (const p of world26.getAllPlayers()) notice(p, '§c"You raise your hand against the sun?"');
+      const near = world27.getAllPlayers().filter((p) => Math.hypot(p.location.x - hurt2.location.x, p.location.z - hurt2.location.z) < 40);
+      const h = hurt2.location;
+      const yaw = Math.random() * Math.PI * 2;
+      playScene("hierophant", near, [
+        { t: 1, cam: { at: { x: h.x + Math.cos(yaw) * 5, y: h.y + 2.2, z: h.z + Math.sin(yaw) * 5 }, look: () => hurt2 } },
+        { t: 4, cam: { at: { x: h.x + Math.cos(yaw) * 3, y: h.y + 1.9, z: h.z + Math.sin(yaw) * 3 }, look: () => hurt2, ease: 2.5 } },
+        { t: 10, title: ["§4The Hierophant", '§c"You raise your hand against the sun?"'], sound: ["mob.evocation_illager.prepare_attack", 1, 0.7] }
+      ], 70);
     }
     const hp = hurt2.getComponent("minecraft:health");
     if (hp && hp.currentValue < hp.effectiveMax * 0.5 && !s.wrathSummoned) {
@@ -9110,22 +9331,22 @@ function offerings() {
   const s = st7();
   const barrel = LOOT_CONTAINERS.find((c) => c.loot === "shrine_offerings");
   if (!barrel) return;
-  const dim2 = world26.getDimension("overworld");
+  const dim2 = world27.getDimension("overworld");
   try {
     if (!dim2.isChunkLoaded(barrel)) return;
     const c = dim2.getBlock(barrel)?.getComponent("minecraft:inventory")?.container;
     if (!c) return;
-    if (s.offeredDay !== world26.getDay()) {
-      s.offeredDay = world26.getDay();
+    if (s.offeredDay !== world27.getDay()) {
+      s.offeredDay = world27.getDay();
       s.offeredToday = 0;
     }
     let gained = 0;
     for (let i = 0; i < c.size; i++) {
       const it = c.getItem(i);
       if (!it) continue;
-      const v2 = it.typeId === ITEM.offering ? 15 : it.typeId === ITEM.medkit || it.typeId === ITEM.iodine ? 5 : FOOD.includes(it.typeId) ? 1 : 0;
-      if (!v2) continue;
-      gained += v2 * it.amount;
+      const v3 = it.typeId === ITEM.offering ? 15 : it.typeId === ITEM.medkit || it.typeId === ITEM.iodine ? 5 : FOOD.includes(it.typeId) ? 1 : 0;
+      if (!v3) continue;
+      gained += v3 * it.amount;
       c.setItem(i, void 0);
     }
     if (gained > 0) {
@@ -9158,7 +9379,7 @@ function useShrineKey(p) {
   notice(p, "§7Stone grinds. A shaft opens in front of the altar, a ladder down into the dark.");
   unlock(p, "ledger");
 }
-function openVault(dim2 = world26.getDimension("overworld")) {
+function openVault(dim2 = world27.getDimension("overworld")) {
   const s = st7();
   const shaft = (POINTS.vault_shaft ?? [])[0];
   if (!shaft) return false;
@@ -9179,15 +9400,15 @@ function openVault(dim2 = world26.getDimension("overworld")) {
 }
 function onRound(e) {
   const dim2 = e.dimension;
-  const nearest2 = world26.getAllPlayers().reduce((d, p) => Math.min(d, Math.hypot(p.location.x - e.location.x, p.location.z - e.location.z)), 1e9);
-  if (nearest2 < 40) worldSound(dim2, SND.pistol, e.location, 1, 0.68 + Math.random() * 0.06);
+  const nearest3 = world27.getAllPlayers().reduce((d, p) => Math.min(d, Math.hypot(p.location.x - e.location.x, p.location.z - e.location.z)), 1e9);
+  if (nearest3 < 40) worldSound(dim2, SND.pistol, e.location, 1, 0.68 + Math.random() * 0.06);
   else worldSound(dim2, SND.distantShot, e.location, 0.9);
   particle(dim2, "minecraft:basic_smoke_particle", e.location);
   emitNoise({ dim: dim2, at: e.location, radius: 48, kind: "gunshot" });
 }
 function sendWarband(near, n) {
   if (!settings().cult) return 0;
-  const dim2 = world26.getDimension("overworld");
+  const dim2 = world27.getDimension("overworld");
   let made = 0;
   const a = Math.random() * Math.PI * 2;
   for (let k = 0; k < n; k++) {
@@ -9211,28 +9432,28 @@ function cultSummary() {
   const s = st7();
   return `cult: standing=${s.standing} (${standingWord()}) hierophant=${s.hierophantDead ? "dead" : "alive"} patrol=${patrol.size} vault=${s.vaultOpen}`;
 }
-function setStanding(v2) {
-  st7().standing = Math.max(-100, Math.min(100, v2));
+function setStanding(v3) {
+  st7().standing = Math.max(-100, Math.min(100, v3));
   save7();
   return `standing ${st7().standing} (${standingWord()})`;
 }
 function startCult() {
-  world26.afterEvents.playerInteractWithEntity.subscribe((ev) => safe("cult.talk", () => {
+  world27.afterEvents.playerInteractWithEntity.subscribe((ev) => safe("cult.talk", () => {
     const t = ev.target;
     if (t.typeId === ENT.faithful) void talkFaithful(ev.player, t);
     else if (t.typeId === ENT.seer) void talkSeer(ev.player, t);
     else if (t.typeId === ENT.hierophant) void talkHierophant(ev.player, t);
   }));
-  world26.afterEvents.entityDie.subscribe((ev) => safe("cult.die", () => onDeath(ev.deadEntity, ev.damageSource.damagingEntity)));
-  world26.afterEvents.entityHurt.subscribe((ev) => safe("cult.hurt", () => onHurt(ev.hurtEntity, ev.damageSource.damagingEntity)));
-  world26.afterEvents.entitySpawn.subscribe((ev) => safe("cult.round", () => {
+  world27.afterEvents.entityDie.subscribe((ev) => safe("cult.die", () => onDeath(ev.deadEntity, ev.damageSource.damagingEntity)));
+  world27.afterEvents.entityHurt.subscribe((ev) => safe("cult.hurt", () => onHurt(ev.hurtEntity, ev.damageSource.damagingEntity)));
+  world27.afterEvents.entitySpawn.subscribe((ev) => safe("cult.round", () => {
     if (ev.entity.isValid && ev.entity.typeId === ENT.cultRound) onRound(ev.entity);
   }));
   onShrineKeyHook(useShrineKey);
   onGunshotHook((p, radius) => {
     if (!isIsland()) return;
-    for (const v2 of villages()) {
-      if (Math.hypot(p.location.x - v2.center.x, p.location.z - v2.center.z) < radius + 20) {
+    for (const v3 of villages()) {
+      if (Math.hypot(p.location.x - v3.center.x, p.location.z - v3.center.z) < radius + 20) {
         changeStanding(-2);
         break;
       }
@@ -9240,12 +9461,12 @@ function startCult() {
   });
   every("cult.sight", 100, () => {
     if (!isIsland()) return;
-    for (const p of world26.getAllPlayers()) {
+    for (const p of world27.getAllPlayers()) {
       try {
-        const seen = p.dimension.getEntities({ location: p.location, maxDistance: 28, families: ["cult"] })[0];
-        if (!seen) continue;
+        const seen2 = p.dimension.getEntities({ location: p.location, maxDistance: 28, families: ["cult"] })[0];
+        if (!seen2) continue;
         unlock(p, "cult1");
-        if (seen.typeId === ENT.zealot) unlock(p, "cult_zealot");
+        if (seen2.typeId === ENT.zealot) unlock(p, "cult_zealot");
       } catch {
       }
     }
@@ -9255,7 +9476,7 @@ function startCult() {
   every("cult.offerings", 200, offerings, 13);
   every("cult.quiet", 2400, () => {
     const s = st7();
-    const day = world26.getDay();
+    const day = world27.getDay();
     if (s.quietDay !== day && s.violentDay !== day && day > 0 && isDay()) {
       s.quietDay = day;
       save7();
@@ -9265,7 +9486,7 @@ function startCult() {
 }
 
 // ../../scripts_src/island/tower.ts
-import { BlockPermutation as BlockPermutation8, system as system14, world as world27 } from "@minecraft/server";
+import { BlockPermutation as BlockPermutation8, system as system16, world as world28 } from "@minecraft/server";
 import { ActionFormData as ActionFormData6 } from "@minecraft/server-ui";
 var NEED = { valves: 2, wire: 4, battery: 1 };
 var DEFAULT6 = { running: false, valves: 0, wire: 0, battery: 0, phase: "idle", sawNight: false, waves: 0, ending: "" };
@@ -9388,34 +9609,52 @@ function transmit(p) {
   save8();
   const dim2 = p.dimension;
   const lamp = (POINTS.tower_lamp ?? [])[0];
-  if (lamp) {
+  const lightLamp = () => {
+    if (!lamp) return;
     try {
       dim2.getBlock(lamp)?.setPermutation(BlockPermutation8.resolve("minecraft:sea_lantern"));
       dim2.getBlock({ x: lamp.x, y: lamp.y + 1, z: lamp.z })?.setPermutation(BlockPermutation8.resolve("minecraft:light_block_15"));
     } catch {
     }
-  }
+  };
   const lines = [
-    [0, "§7You key the transmitter. Seventy-year-old valves warm to orange, one by one.", SND.cineRadio],
-    [80, '§f"Mayday, mayday, mayday. This is the Varrow Island survey party, contract one-one-four. Our helicopter was shot down. Two dead. We need extraction."'],
-    [180, "§8...static...", SND.cineRadio],
-    [260, '§b"Varrow party, Coast Guard Sector Honolulu. We hear you, faint but readable. A helicopter will launch at first light. Can you reach the old dock on the south-east shore?"'],
-    [380, '§f"We can reach it."'],
-    [430, '§b"Hold on until dawn. And keep your heads down."']
+    [0, "§7You key the transmitter. Seventy-year-old valves warm to orange, one by one."],
+    [70, '§f"Mayday, mayday, mayday. This is the Varrow Island survey party. Our helicopter was shot down. Two dead. We need extraction."'],
+    [200, '§b"Varrow party, Coast Guard Sector Honolulu. We hear you. A helicopter will launch at first light. Can you reach the old dock on the south-east shore?"'],
+    [300, '§f"We can reach it."'],
+    [340, '§b"Hold on until dawn. And keep your heads down."']
   ];
-  for (const [t, text, snd] of lines) {
-    system14.runTimeout(() => safe("tower.radio", () => {
-      for (const q of world27.getAllPlayers()) {
-        notice(q, text);
-        if (snd) ui(q, snd, 0.7, 1);
-      }
+  for (const [t, text] of lines) {
+    system16.runTimeout(() => safe("tower.radio", () => {
+      for (const q of world28.getAllPlayers()) q.sendMessage(text);
     }), t);
   }
-  system14.runTimeout(() => safe("tower.after", () => {
-    for (const q of world27.getAllPlayers()) unlock(q, "transmit");
+  const T = SITES.TOWER;
+  const hut = (POINTS.tower_hut ?? [])[0] ?? { x: T.x, y: 163, z: T.z + 7 };
+  const top = lamp ?? { x: T.x, y: hut.y + 30, z: T.z };
+  const shrine2 = (POINTS.shrine ?? [])[0] ?? { x: SITES.SUNFALL.x, y: 75, z: SITES.SUNFALL.z };
+  const at = (x, y, z) => ({ x, y, z });
+  playScene("transmit", world28.getAllPlayers(), [
+    { t: 1, fade: true },
+    { t: 8, cam: { at: at(hut.x + 7, hut.y + 2, hut.z + 7), look: at(hut.x, hut.y + 1, hut.z) }, sound: [SND.cineRadio, 0.8] },
+    { t: 20, bar: "§7The valves warm to orange, one by one." },
+    { t: 70, title: ["", '§f"Mayday, mayday, mayday..."'], sound: [SND.cineRadio, 0.6] },
+    { t: 110, cam: { at: at(top.x + 9, top.y - 2, top.z + 9), look: at(top.x, top.y, top.z), ease: 4 } },
+    { t: 150, run: lightLamp, sound: ["random.anvil_land", 0.3, 1.8] },
+    { t: 160, title: ["", "§eThe lamp on the mast lights."] },
+    { t: 200, title: ["§bCoast Guard", '§f"We hear you. Helicopter at first light."'], sound: [SND.cineRadio, 0.7] },
+    { t: 215, cam: { at: at(top.x + 70, top.y + 18, top.z + 90), look: at(top.x, top.y, top.z), ease: 5 } },
+    { t: 300, cam: { at: at(shrine2.x + 40, shrine2.y + 40, shrine2.z + 50), look: at(shrine2.x, shrine2.y, shrine2.z), ease: 0 }, fade: true },
+    { t: 305, title: ["", "§cAt Sunfall, they see it too."], sound: ["bell.use", 1, 0.8] },
+    { t: 340, title: ["§fHold on until dawn", "§7then get to the old dock"] }
+  ], 410, {
+    onEnd: () => void 0
+  });
+  system16.runTimeout(() => safe("tower.after", () => {
+    for (const q of world28.getAllPlayers()) unlock(q, "transmit");
     const kin = cultEndingState().standing >= 70;
     say(kin ? "First light. One more night. And the lamp's lit; every soul on this island can see it. I hope your friends at Sunfall meant it." : "First light. One more night, then. That lamp's lit now; they'll all have seen it. They'll come for it.", "transmit", 0);
-  }), 480);
+  }), 420);
 }
 function lastNight() {
   const s = st8();
@@ -9427,7 +9666,7 @@ function lastNight() {
     }
     const { standing, hierophantDead } = cultEndingState();
     if (!settings().cult || standing >= 70 || s.waves >= (hierophantDead ? 6 : 4)) return;
-    const players = world27.getAllPlayers().filter((p) => p.isValid && p.dimension.id === "minecraft:overworld");
+    const players = world28.getAllPlayers().filter((p) => p.isValid && p.dimension.id === "minecraft:overworld");
     if (!players.length) return;
     const target2 = pick(players);
     const n = sendWarband(target2.location, hierophantDead ? 4 : 3);
@@ -9449,16 +9688,16 @@ var flight;
 var aboard = /* @__PURE__ */ new Map();
 function spawnHeli(at) {
   try {
-    heli = world27.getDimension("overworld").spawnEntity(ENT.helicopter, at);
+    heli = world28.getDimension("overworld").spawnEntity(ENT.helicopter, at);
     return heli;
   } catch {
     return void 0;
   }
 }
 function fly(from, to, ticks, yaw, done2) {
-  if (flight !== void 0) system14.clearRun(flight);
+  if (flight !== void 0) system16.clearRun(flight);
   let t = 0;
-  flight = system14.runInterval(() => safe("tower.fly", () => {
+  flight = system16.runInterval(() => safe("tower.fly", () => {
     t++;
     const k = Math.min(1, t / ticks);
     const e = k * k * (3 - 2 * k);
@@ -9467,9 +9706,9 @@ function fly(from, to, ticks, yaw, done2) {
       if (heli?.isValid) heli.teleport(at, { rotation: { x: 0, y: yaw } });
     } catch {
     }
-    if (t % 20 === 0) worldSound(world27.getDimension("overworld"), SND.cineRotor, at, 1.4);
+    if (t % 20 === 0) worldSound(world28.getDimension("overworld"), SND.cineRotor, at, 1.4);
     if (k >= 1) {
-      if (flight !== void 0) system14.clearRun(flight);
+      if (flight !== void 0) system16.clearRun(flight);
       flight = void 0;
       done2();
     }
@@ -9482,18 +9721,24 @@ function startRescue() {
   const land = LANDING();
   const from = { x: land.x + 30, y: land.y + 45, z: land.z + 190 };
   spawnHeli(from);
-  for (const p of world27.getAllPlayers()) {
+  for (const p of world28.getAllPlayers()) {
     notice(p, `§bRotor noise from the south.§7 Orange and white, low over the water: the Coast Guard. It's heading for the old dock (${compass(p.location, land)}).`);
     try {
       p.onScreenDisplay.setTitle("§fDawn", { subtitle: "§7get to the dock", fadeInDuration: 20, stayDuration: 60, fadeOutDuration: 30 });
     } catch {
     }
   }
-  say("There! Go, go! The dock!", "rescue", 0);
+  playScene("rescue", world28.getAllPlayers(), [
+    { t: 1, fade: true },
+    { t: 8, cam: { at: { x: land.x - 14, y: land.y + 4, z: land.z - 10 }, look: () => heli } },
+    { t: 30, title: ["§fDawn", "§7rotors over the water"], sound: [SND.cineRotor, 1] },
+    { t: 90, cam: { at: { x: land.x - 8, y: land.y + 10, z: land.z + 12 }, look: () => heli, ease: 3 } },
+    { t: 120, title: ["", "§6It's setting down at the old dock. Get there."] }
+  ], 165, { onEnd: () => say("There! Go, go! The dock!", "rescue", 0) });
   fly(from, { x: land.x, y: land.y + 1.5, z: land.z }, 420, 180, () => {
     st8().phase = "landed";
     save8();
-    for (const p of world27.getAllPlayers()) {
+    for (const p of world28.getAllPlayers()) {
       unlock(p, "rescue");
       notice(p, "§7The helicopter settles beside the old dock, skids on the planks. A crewman waves you in.");
     }
@@ -9503,7 +9748,7 @@ function holdLanded() {
   const s = st8();
   if (s.phase !== "landed" && s.phase !== "inbound") return;
   const land = LANDING();
-  const dim2 = world27.getDimension("overworld");
+  const dim2 = world28.getDimension("overworld");
   if (!heli?.isValid) {
     if (s.phase === "inbound" && flight !== void 0) return;
     try {
@@ -9522,8 +9767,8 @@ function holdLanded() {
     heli.teleport({ x: land.x, y: land.y + 1.5, z: land.z }, { rotation: { x: 0, y: 180 } });
   } catch {
   }
-  const near = world27.getAllPlayers().filter((p) => p.isValid && Math.hypot(p.location.x - land.x, p.location.z - land.z) < 7 && Math.abs(p.location.y - land.y) < 6);
-  for (const p of world27.getAllPlayers()) if (!near.includes(p)) aboard.delete(p.id);
+  const near = world28.getAllPlayers().filter((p) => p.isValid && Math.hypot(p.location.x - land.x, p.location.z - land.z) < 7 && Math.abs(p.location.y - land.y) < 6);
+  for (const p of world28.getAllPlayers()) if (!near.includes(p)) aboard.delete(p.id);
   for (const p of near) {
     const n = (aboard.get(p.id) ?? 0) + 1;
     aboard.set(p.id, n);
@@ -9535,21 +9780,21 @@ function holdLanded() {
   }
 }
 function epilogue() {
-  const out = [];
+  const out2 = [];
   const trevor = trevorEntity();
-  if (trevorGone()) out.push("§lTrevor Hale§r is buried above Crash Beach, between Dan Okafor and Ruth Lindqvist. You carved the markers yourself.");
-  else if (trevor?.isValid) out.push("§lTrevor Hale§r flew home with you, asleep before the island was out of sight. He kept the field radio.");
-  else out.push("§lTrevor Hale§r was found on the beach by the second helicopter, sunburnt and furious. He kept the field radio.");
+  if (trevorGone()) out2.push("§lTrevor Hale§r is buried above Crash Beach, between Dan Okafor and Ruth Lindqvist. You carved the markers yourself.");
+  else if (trevor?.isValid) out2.push("§lTrevor Hale§r flew home with you, asleep before the island was out of sight. He kept the field radio.");
+  else out2.push("§lTrevor Hale§r was found on the beach by the second helicopter, sunburnt and furious. He kept the field radio.");
   const sv = surveyState();
-  if (sv.findings) out.push("Your §lsurvey§r ran to two hundred and twelve pages. Varrow Island went back on the list of places nobody is allowed to go, with your readings attached.");
-  else out.push(`Your §lsurvey§r was incomplete: ${sv.stations.length} of 6 stations, ${sv.samples.length} of 4 sample types. Federal Legacy Sites marked it "inconclusive" and never paid the invoice.`);
-  if (sv.heart) out.push("Whatever lived under the crater lake is dead. Within a month the counters at the inner stations had fallen by a third.");
-  else out.push("Something is still under the crater lake. On still nights, the fishing fleet says, you can hear it from the water.");
+  if (sv.findings) out2.push("Your §lsurvey§r ran to two hundred and twelve pages. Varrow Island went back on the list of places nobody is allowed to go, with your readings attached.");
+  else out2.push(`Your §lsurvey§r was incomplete: ${sv.stations.length} of 6 stations, ${sv.samples.length} of 4 sample types. Federal Legacy Sites marked it "inconclusive" and never paid the invoice.`);
+  if (sv.heart) out2.push("Whatever lived under the crater lake is dead. Within a month the counters at the inner stations had fallen by a third.");
+  else out2.push("Something is still under the crater lake. On still nights, the fishing fleet says, you can hear it from the water.");
   const cult = cultEndingState();
-  if (cult.hierophantDead) out.push("Without the Hierophant the Children of the Second Sun scattered into the mangroves. A Coast Guard landing party found eleven of them a year later. None would speak.");
-  else if (cult.standing >= 60) out.push("The Children let you go. The Seer stood on the shore as you lifted off, her blind face turned to the sun.");
-  else out.push("The Children of the Second Sun are still on Varrow. Nobody has been back.");
-  return out;
+  if (cult.hierophantDead) out2.push("Without the Hierophant the Children of the Second Sun scattered into the mangroves. A Coast Guard landing party found eleven of them a year later. None would speak.");
+  else if (cult.standing >= 60) out2.push("The Children let you go. The Seer stood on the shore as you lifted off, her blind face turned to the sun.");
+  else out2.push("The Children of the Second Sun are still on Varrow. Nobody has been back.");
+  return out2;
 }
 var ended = false;
 function ending() {
@@ -9562,8 +9807,6 @@ function ending() {
   save8();
   aboard.clear();
   const land = LANDING();
-  const players = world27.getAllPlayers().filter((p) => p.isValid);
-  const camAt = { x: land.x - 22, y: land.y + 9, z: land.z - 18 };
   const t = trevorEntity();
   if (t?.isValid && !trevorGone()) {
     try {
@@ -9571,54 +9814,56 @@ function ending() {
     } catch {
     }
   }
-  for (const p of players) {
-    try {
-      p.camera.fade({ fadeColor: { red: 0, green: 0, blue: 0 }, fadeTime: { fadeInTime: 0.6, holdTime: 0.6, fadeOutTime: 1.2 } });
-    } catch {
-    }
-  }
-  system14.runTimeout(() => safe("ending.cam", () => {
-    for (const p of players) {
-      if (!p.isValid) continue;
-      enterScene(p, camAt);
-      try {
-        if (heli?.isValid) p.camera.setCamera("minecraft:free", { location: camAt, facingEntity: heli });
-      } catch {
-      }
-    }
-    const up = { x: land.x, y: land.y + 30, z: land.z + 20 };
-    fly({ x: land.x, y: land.y + 1.5, z: land.z }, up, 160, 180, () => {
-      fly(up, { x: land.x + 40, y: land.y + 60, z: land.z + 260 }, 260, 165, () => {
+  const at = (x, y, z) => ({ x, y, z });
+  const up = at(land.x, land.y + 30, land.z + 20);
+  const gz = SITES.GZ;
+  const sun = (POINTS.shrine ?? [])[0] ?? at(SITES.SUNFALL.x, 75, SITES.SUNFALL.z);
+  const crash = SITES.CRASH;
+  const cap = captions();
+  playScene("ending", world28.getAllPlayers(), [
+    { t: 1, fade: true },
+    { t: 8, cam: { at: at(land.x - 22, land.y + 9, land.z - 18), look: () => heli } },
+    { t: 14, run: () => fly(at(land.x, land.y + 1.5, land.z), up, 160, 180, () => {
+      fly(up, at(land.x + 40, land.y + 60, land.z + 260), 260, 165, () => {
         try {
           heli?.remove();
         } catch {
         }
       });
-    });
-  }), 14);
-  const titles = [
-    [80, "§fVarrow Island", "§7June 2026"],
-    [200, "§7You were on the island", `§f${Math.max(1, world27.getDay())} day(s)`]
-  ];
-  for (const [at, a, b] of titles) {
-    system14.runTimeout(() => safe("ending.title", () => {
-      for (const p of players) {
-        try {
-          if (p.isValid) p.onScreenDisplay.setTitle(a, { subtitle: b, fadeInDuration: 20, stayDuration: 70, fadeOutDuration: 20 });
-        } catch {
-        }
-      }
-    }), at);
-  }
-  system14.runTimeout(() => safe("ending.form", () => {
-    for (const p of players) {
-      if (!p.isValid) continue;
-      leave(p, { x: land.x, y: land.y, z: land.z - 3 });
+    }) },
+    { t: 60, title: ["§fVarrow Island", "§7June 2026"], sound: [SND.cineWind, 0.8] },
+    { t: 130, cam: { at: at(gz.x - 70, 120, gz.z + 70), look: at(gz.x, 58, gz.z) }, fade: true },
+    { t: 135, cam: { at: at(gz.x + 40, 130, gz.z + 90), look: at(gz.x, 58, gz.z), ease: 5 } },
+    { t: 150, title: cap[0] },
+    { t: 230, cam: { at: at(sun.x + 40, sun.y + 35, sun.z + 50), look: at(sun.x, sun.y, sun.z) }, fade: true },
+    { t: 235, cam: { at: at(sun.x - 30, sun.y + 45, sun.z + 40), look: at(sun.x, sun.y, sun.z), ease: 5 } },
+    { t: 250, title: cap[1] },
+    { t: 330, cam: { at: at(crash.x + 30, 90, crash.z + 40), look: at(crash.x, 64, crash.z) }, fade: true },
+    { t: 335, cam: { at: at(crash.x - 20, 100, crash.z + 60), look: at(crash.x, 64, crash.z), ease: 5 } },
+    { t: 350, title: cap[2] },
+    { t: 430, title: cap[3] },
+    { t: 510, title: ["§fTHE HOLLOW", "§7thank you for playing"] }
+  ], 580, {
+    returnTo: at(land.x, land.y, land.z - 3),
+    onEnd: (p) => {
       unlock(p, "ending", true);
       void endingForm(p, lines);
     }
+  });
+  system16.runTimeout(() => {
     ended = false;
-  }), 440);
+  }, 600);
+}
+function captions() {
+  const sv = surveyState();
+  const cult = cultEndingState();
+  const trevor = trevorEntity();
+  return [
+    ["§fUnder the Lake", sv.heart ? "§7silence, at last" : "§7something still waits"],
+    ["§fThe Children", cult.hierophantDead ? "§7scattered into the mangroves" : cult.standing >= 60 ? "§7let you go" : "§7still watching the sky"],
+    ["§fTrevor Hale", trevorGone() ? "§7rests above Crash Beach" : trevor?.isValid ? "§7made it home" : "§7found on the beach, furious"],
+    ["§fThe Survey", sv.findings ? "§7complete" : `§7${sv.stations.length}/6 stations, ${sv.samples.length}/4 samples`]
+  ];
 }
 async function endingForm(p, lines) {
   await formSession(p, async () => {
@@ -9631,6 +9876,10 @@ async function endingForm(p, lines) {
 function towerSummary() {
   const s = st8();
   return `tower: gen=${s.running} valves=${s.valves}/2 wire=${s.wire}/4 battery=${s.battery}/1 phase=${s.phase} waves=${s.waves}`;
+}
+function towerProgress() {
+  const s = st8();
+  return { running: s.running, valves: s.valves, wire: s.wire, battery: s.battery, phase: s.phase, ready: ready() };
 }
 function forceRescue() {
   const s = st8();
@@ -9653,16 +9902,291 @@ function startTower() {
   every("tower.heli", 10, () => isIsland() && holdLanded(), 5);
 }
 
-// ../../scripts_src/island/story.ts
-import { ItemStack as ItemStack14, system as system15, world as world28 } from "@minecraft/server";
-var DEFAULT7 = { setup: false, bodies: [], searched: [], intro: false };
-var story;
+// ../../scripts_src/island/objectives.ts
+import { LocationWaypoint as LocationWaypoint2, WaypointTexture as WaypointTexture2, world as world29 } from "@minecraft/server";
+var DEFAULT7 = { talked: false, reachedTower: false, last: "" };
+var state8;
 function st9() {
-  if (!story) story = { ...DEFAULT7, ...readWorld(DP.story, DEFAULT7) };
-  return story;
+  if (!state8) state8 = { ...DEFAULT7, ...readWorld(DP.objective, DEFAULT7) };
+  return state8;
 }
 function save9() {
-  writeWorld(DP.story, st9());
+  writeWorld(DP.objective, st9());
+}
+var loot = (key) => LOOT_CONTAINERS.find((c) => c.loot === key);
+var point = (key) => (POINTS[key] ?? [])[0];
+var xz = (v3, y = 70) => ({ x: v3.x, y, z: v3.z });
+function carried(id) {
+  let n = 0;
+  for (const p of world29.getAllPlayers()) {
+    const c = p.getComponent("minecraft:inventory")?.container;
+    if (!c) continue;
+    for (let i = 0; i < c.size; i++) {
+      const it = c.getItem(i);
+      if (it?.typeId === id) n += it.amount;
+    }
+  }
+  return n;
+}
+function fuelCarried() {
+  return carried("minecraft:coal") + carried("minecraft:charcoal") + carried("minecraft:coal_block") * 9;
+}
+function missingParts() {
+  const t = towerProgress();
+  const out2 = [];
+  if (!t.running && fuelCarried() < 8) out2.push({ what: "8 coal or charcoal", where: "the station hut just below the tower keeps some; or burn logs into charcoal", at: loot("station6_log") });
+  if (t.valves + carried(ITEM.valve) < 2) {
+    out2.push({ what: "2 vacuum tubes", where: "Bunker 2's radio room. Its door is sealed: go in by the sinkhole to its west", at: point("bunker2_sinkhole") });
+  }
+  if (t.wire + carried(ITEM.wire) < 4) out2.push({ what: "4 copper wire", where: "the general store in the mock town (or craft it from copper ingots)", at: loot("store_wire") });
+  if (t.battery + carried(ITEM.battery) < 1) out2.push({ what: "a battery bank", where: "the boathouse at the old dock", at: loot("dock_battery") });
+  return out2;
+}
+function nearest2(p, list3) {
+  let best;
+  let d = Infinity;
+  for (const x of list3) {
+    if (!x.at) continue;
+    const k = Math.hypot(x.at.x - p.location.x, x.at.z - p.location.z);
+    if (k < d) {
+      d = k;
+      best = x;
+    }
+  }
+  return best ?? list3[0];
+}
+function goalFor(p) {
+  const s = st9();
+  const t = towerProgress();
+  if (t.phase === "gone") {
+    const sv = surveyState();
+    const left = [];
+    if (!sv.findings) left.push(`the survey (${sv.stations.length}/6 stations, ${sv.samples.length}/4 samples)`);
+    if (!sv.heart) left.push("the thing under the crater lake");
+    return {
+      key: "free",
+      title: "Explore Varrow Island",
+      detail: left.length ? `Still unfinished: ${left.join(" and ")}.` : "There's nothing left you have to do here.",
+      trevor: "We made it. Anything else we do here, we do because we want to."
+    };
+  }
+  if (t.phase === "inbound" || t.phase === "landed") {
+    return {
+      key: "dock",
+      title: "Get to the old dock",
+      detail: "The helicopter is setting down there. Stand next to it to leave.",
+      target: point("dock_end") ?? xz(SITES.DOCK),
+      trevor: "The dock! Run!"
+    };
+  }
+  if (t.phase === "waiting") {
+    return {
+      key: "night",
+      title: "Survive until dawn",
+      detail: "The lamp is lit. Hold out until morning, then go to the old dock on the south-east shore.",
+      target: point("dock_end") ?? xz(SITES.DOCK),
+      trevor: isDarkHours() ? "Stay close, keep your back to something. Dawn's coming." : "First light. Then the dock. Let's not be late."
+    };
+  }
+  if (!s.talked && !trevorGone()) {
+    const e = trevorEntity();
+    return {
+      key: "talk",
+      title: "Talk to Trevor",
+      detail: "Walk up to him and press Use. Search the crates by the wreck and the crew for supplies.",
+      target: e?.isValid ? e.location : xz(SITES.CRASH, 65),
+      trevor: ""
+    };
+  }
+  if (!s.reachedTower) {
+    const camp = campPos();
+    const night = (isDusk() || isDarkHours()) && !camp;
+    return {
+      key: "tower",
+      title: "Reach the radio tower on the north peak",
+      detail: night ? "It's getting dark. Ask Trevor to Make camp (then Build a lean-to), or keep to the fires at the wreck until morning." : "The 1957 relay mast on the grey ridge to the north. Follow the gold marker.",
+      target: xz(SITES.TOWER, 160),
+      trevor: night ? "It's getting dark. We should make camp and go north in the morning." : "North peak. That mast. If anything on this island can still talk to the mainland, it's that."
+    };
+  }
+  if (!t.ready) {
+    const parts = missingParts();
+    if (!parts.length) {
+      return {
+        key: "install",
+        title: t.running ? "Fit the parts at the tower" : "Fuel the generator at the tower",
+        detail: t.running ? "Press the button in the hut at the foot of the mast." : "Press the button by the generator in the shed next to the hut (8 coal or charcoal).",
+        target: t.running ? CONSOLES.tower : CONSOLES.generator,
+        trevor: "We've got everything. Back to the tower."
+      };
+    }
+    const next = p ? nearest2(p, parts) : parts[0];
+    return {
+      key: `parts:${parts.map((x) => x.what).join(",")}`,
+      title: "Repair the transmitter",
+      detail: `Still needed: ${parts.map((x) => x.what).join(", ")}. Nearest: ${next?.what} — ${next?.where}.`,
+      target: next?.at,
+      trevor: `We still need ${next?.what}. ${next?.where[0].toUpperCase()}${next?.where.slice(1)}.`
+    };
+  }
+  return {
+    key: "transmit",
+    title: "Transmit from the tower",
+    detail: "Everything is fitted. Press the button in the hut and choose Transmit.",
+    target: CONSOLES.tower,
+    trevor: "That's all of it. Let's make the call."
+  };
+}
+var marks = /* @__PURE__ */ new Map();
+function place2(p, which, at) {
+  const m = marks.get(p.id) ?? {};
+  marks.set(p.id, m);
+  const old = which === "main" ? m.main : m.side;
+  const oldAt = which === "main" ? m.at : m.sideAt;
+  if (at && oldAt && Math.hypot(at.x - oldAt.x, at.z - oldAt.z) < 4 && old?.isValid) return;
+  try {
+    if (old?.isValid) p.locatorBar.removeWaypoint(old);
+  } catch {
+  }
+  if (which === "main") {
+    m.main = void 0;
+    m.at = void 0;
+  } else {
+    m.side = void 0;
+    m.sideAt = void 0;
+  }
+  if (!at) return;
+  try {
+    const wp = new LocationWaypoint2(
+      { dimension: world29.getDimension("overworld"), x: at.x + 0.5, y: at.y, z: at.z + 0.5 },
+      { textureBoundsList: [{ lowerBound: 0, texture: which === "main" ? WaypointTexture2.Circle : WaypointTexture2.SmallSquare }] },
+      which === "main" ? { red: 1, green: 0.72, blue: 0.15 } : { red: 0.85, green: 0.9, blue: 1 }
+    );
+    p.locatorBar.addWaypoint(wp);
+    if (which === "main") {
+      m.main = wp;
+      m.at = at;
+    } else {
+      m.side = wp;
+      m.sideAt = at;
+    }
+  } catch {
+  }
+}
+function nearestStation(p) {
+  const done2 = surveyState().stations;
+  let best;
+  let d = Infinity;
+  for (const [k, at] of Object.entries(STATIONS)) {
+    if (done2.includes(k)) continue;
+    const c = CONSOLES[k] ?? xz(at);
+    const k2 = Math.hypot(c.x - p.location.x, c.z - p.location.z);
+    if (k2 < d) {
+      d = k2;
+      best = c;
+    }
+  }
+  return best;
+}
+function where(p, at) {
+  if (!at) return "";
+  const d = Math.round(Math.hypot(at.x - p.location.x, at.z - p.location.z));
+  return d < 8 ? " §7(here)" : ` §7(${d} m ${compass(p.location, at)})`;
+}
+var lastReminder = /* @__PURE__ */ new Map();
+function refresh() {
+  if (!isIsland() || cinematicRunning()) return;
+  const s = st9();
+  if (!s.reachedTower && world29.getAllPlayers().some((p) => Math.hypot(p.location.x - SITES.TOWER.x, p.location.z - SITES.TOWER.z) < 40)) {
+    s.reachedTower = true;
+    save9();
+  }
+  const announce = goalFor();
+  const changed = announce.key !== s.last;
+  if (changed) {
+    const first = s.last === "";
+    const prev = s.last;
+    s.last = announce.key;
+    save9();
+    const partsOnly = announce.key.startsWith("parts:") && prev.startsWith("parts:");
+    if (!first || announce.key !== "talk") {
+      for (const p of world29.getAllPlayers()) {
+        if (getNum(p, DP.woke, 0) !== 1) continue;
+        const g = goalFor(p);
+        if (partsOnly) {
+          p.sendMessage(`§6Transmitter: §7${g.detail}`);
+          ui(p, "random.orb", 0.5, 1.2);
+          continue;
+        }
+        p.sendMessage(`§6Objective: §f${g.title}
+§7${g.detail}`);
+        if (!sceneRunning()) {
+          try {
+            p.onScreenDisplay.setTitle("§6New objective", { subtitle: `§f${g.title}`, fadeInDuration: 10, stayDuration: 50, fadeOutDuration: 20 });
+          } catch {
+          }
+        }
+        ui(p, "random.levelup", 0.4, 1.6);
+      }
+    }
+  }
+  for (const p of world29.getAllPlayers()) {
+    if (!p.isValid || getNum(p, DP.woke, 0) !== 1 || p.dimension.id !== "minecraft:overworld") continue;
+    const g = goalFor(p);
+    place2(p, "main", g.target);
+    place2(p, "side", g.key === "free" || surveyState().stations.length < 6 ? nearestStation(p) : void 0);
+    const last = lastReminder.get(p.id) ?? 0;
+    if (now() - last > 1300 && now() - lastNoticeAt(p) > 200 && !sceneRunning()) {
+      lastReminder.set(p.id, now());
+      try {
+        p.onScreenDisplay.setActionBar(`§6▶ ${g.title}${where(p, g.target)}`);
+      } catch {
+      }
+    }
+  }
+}
+function objectiveHeader(p) {
+  if (!isIsland()) return "";
+  const g = goalFor(p);
+  return `§6Objective: §f${g.title}${where(p, g.target)}
+§7${g.detail}
+
+`;
+}
+function objectiveSummary() {
+  const g = goalFor();
+  return `objective: ${g.key}`;
+}
+function forgetObjectives(playerId) {
+  marks.delete(playerId);
+  lastReminder.delete(playerId);
+}
+function startObjectives() {
+  world29.afterEvents.playerInteractWithEntity.subscribe((ev) => safe("obj.talk", () => {
+    if (ev.target.typeId === ENT.trevor && !st9().talked) {
+      st9().talked = true;
+      save9();
+    }
+  }));
+  setLogHeader(objectiveHeader);
+  setObjectiveVoice((p) => {
+    if (!isIsland()) return void 0;
+    const g = goalFor(p);
+    return g.trevor || void 0;
+  });
+  every("objectives", 40, refresh, 11);
+}
+
+// ../../scripts_src/island/story.ts
+import { ItemStack as ItemStack14, system as system17, world as world30 } from "@minecraft/server";
+var DEFAULT8 = { setup: false, bodies: [], searched: [], intro: false };
+var story;
+function st10() {
+  if (!story) story = { ...DEFAULT8, ...readWorld(DP.story, DEFAULT8) };
+  return story;
+}
+function save10() {
+  writeWorld(DP.story, st10());
 }
 var SUPPLIES = [
   [[ITEM.ration, 4], [ITEM.medkit, 2], [ITEM.round, 14], [ITEM.iodine, 4]],
@@ -9670,7 +10194,7 @@ var SUPPLIES = [
   [[ITEM.medkit, 1], [ITEM.ration, 3], [ITEM.iodine, 2], [ITEM.round, 7], [ITEM.sampleKit, 3]]
 ];
 function stockCrates() {
-  const dim2 = world28.getDimension("overworld");
+  const dim2 = world30.getDimension("overworld");
   let ok = true;
   CRASH_CONTAINERS.forEach((pos, i) => {
     try {
@@ -9688,7 +10212,7 @@ function stockCrates() {
   return ok;
 }
 function layBodies() {
-  const dim2 = world28.getDimension("overworld");
+  const dim2 = world30.getDimension("overworld");
   const ids = [];
   CREW_BODIES.slice(0, 2).forEach((b, i) => {
     try {
@@ -9702,9 +10226,9 @@ function layBodies() {
   return ids;
 }
 function setupWorld() {
-  const s = st9();
+  const s = st10();
   if (s.setup) return;
-  const dim2 = world28.getDimension("overworld");
+  const dim2 = world30.getDimension("overworld");
   if (!dim2.isChunkLoaded({ x: SITES.CRASH.x, y: SPAWN_POINT.y, z: SITES.CRASH.z })) {
     later("story.setup", 40, setupWorld);
     return;
@@ -9715,7 +10239,7 @@ function setupWorld() {
   }
   s.bodies = layBodies();
   s.setup = true;
-  save9();
+  save10();
   const at = groundNear(dim2, SPAWN_POINT.x + 2, SPAWN_POINT.y, SPAWN_POINT.z - 2, 8) ?? { x: SPAWN_POINT.x + 2, y: SPAWN_POINT.y, z: SPAWN_POINT.z - 2 };
   setHome(SPAWN_POINT);
   if (!trevorGone()) spawnTrevor(at);
@@ -9748,9 +10272,9 @@ function wakeUp(p, first) {
   } catch {
   }
   ui(p, SND.ringing, 0.9);
-  const step2 = (ticks, fn) => later("story.wake", ticks, () => p.isValid && fn());
+  const step3 = (ticks, fn) => later("story.wake", ticks, () => p.isValid && fn());
   if (first) {
-    step2(50, () => {
+    step3(50, () => {
       ui(p, SND.titleHit, 0.9);
       p.onScreenDisplay.setTitle("§lVARROW ISLAND", {
         subtitle: "§7South Pacific  ·  2026",
@@ -9759,20 +10283,20 @@ function wakeUp(p, first) {
         fadeOutDuration: 40
       });
     });
-    step2(170, () => ui(p, SND.gasp, 0.9));
-    step2(230, () => say("...hey. Hey! You're alive. Good. No, don't get up yet.", "wake1", 200));
-    step2(330, () => say("Dan's gone. Ruth too. Someone was §lshooting§r at us from the trees. I saw the flashes.", "wake2", 200));
-    step2(450, () => {
+    step3(170, () => ui(p, SND.gasp, 0.9));
+    step3(230, () => say("...hey. Hey! You're alive. Good. No, don't get up yet.", "wake1", 200));
+    step3(330, () => say("Dan's gone. Ruth too. Someone was §lshooting§r at us from the trees. I saw the flashes.", "wake2", 200));
+    step3(450, () => {
       say("Get what you can out of the wreck before it all goes up. Rations, medkits, rounds. Your kit's here. Take it.", "wake3", 200);
       issueKit(p);
       unlock(p, "contract", true);
       unlock(p, "crash");
     });
-    step2(600, () => say("Radio's cracked in half. Nobody's coming for us. We need shelter before dark, then we find a way to call out ourselves.", "wake4", 200));
-    step2(640, () => notice(p, "§7Talk to §fTrevor§7 (Use on him). Read your §fResearch Log§7. Search the §fcrates§7 by the wreck."));
+    step3(600, () => say("Radio's cracked in half. Nobody's coming for us. We need shelter before dark, then we find a way to call out ourselves.", "wake4", 200));
+    step3(640, () => notice(p, "§7Talk to §fTrevor§7 (Use on him). Read your §fResearch Log§7. Search the §fcrates§7 by the wreck."));
   } else {
-    step2(60, () => ui(p, SND.gasp, 0.8));
-    step2(100, () => {
+    step3(60, () => ui(p, SND.gasp, 0.8));
+    step3(100, () => {
       say(`${p.name}! Thank God. You were thrown clear down the beach. Here, your kit. Crates are by the wreck.`, `late:${p.id}`, 100);
       issueKit(p);
       unlock(p, "contract", true);
@@ -9782,9 +10306,9 @@ function wakeUp(p, first) {
   later("story.follow", first ? 470 : 120, () => {
     if (!p.isValid) return;
     const e = trevorEntity();
-    if (e && !st9().intro) {
-      st9().intro = true;
-      save9();
+    if (e && !st10().intro) {
+      st10().intro = true;
+      save10();
       orderFollow(p, true);
     }
   });
@@ -9814,10 +10338,10 @@ function onIslandSpawn(p, initial) {
     return;
   }
   pending2.add(p.id);
-  const first = !st9().intro && !anyoneAwake(p);
+  const first = !st10().intro && !anyoneAwake(p);
   if (first && !cinematicDone() && !cinematicRunning()) {
     later("story.cine", 30, () => {
-      const group = world28.getAllPlayers().filter((q) => q.isValid && q.dimension.id === "minecraft:overworld");
+      const group = world30.getAllPlayers().filter((q) => q.isValid && q.dimension.id === "minecraft:overworld");
       if (!playCinematic(group, (q) => wakeUp(q, true))) wakeUp(p, true);
     });
     return;
@@ -9834,10 +10358,10 @@ function onIslandSpawn(p, initial) {
   later("story.wake", 20, () => p.isValid && wakeUp(p, first));
 }
 function anyoneAwake(except) {
-  return world28.getAllPlayers().some((q) => q.id !== except.id && getNum(q, DP.woke, 0) === 1);
+  return world30.getAllPlayers().some((q) => q.id !== except.id && getNum(q, DP.woke, 0) === 1);
 }
 function searchBody(p, body) {
-  const s = st9();
+  const s = st10();
   let variant = 0;
   try {
     variant = body.getComponent("minecraft:variant")?.value ?? 0;
@@ -9856,7 +10380,7 @@ function searchBody(p, body) {
   }
   if (first) {
     s.searched.push(body.id);
-    save9();
+    save10();
     say(variant === 0 ? "Dan had two kids. I'll write to them myself, if we get out." : "She got us down. Remember that. She got us down.", `body${variant}`, 6e3);
   }
 }
@@ -9885,16 +10409,16 @@ function places(p) {
   }
 }
 function startStory() {
-  world28.afterEvents.playerInteractWithEntity.subscribe((ev) => safe("story.search", () => {
+  world30.afterEvents.playerInteractWithEntity.subscribe((ev) => safe("story.search", () => {
     if (ev.target.typeId === ENT.crewBody) searchBody(ev.player, ev.target);
   }));
   everyPlayer("story.places", 100, places);
-  system15.run(() => safe("story.resume", () => {
+  system17.run(() => safe("story.resume", () => {
     if (isIsland()) setupWorld();
   }));
 }
 function storySummary() {
-  const s = st9();
+  const s = st10();
   return `story: island=${isIsland()} setup=${s.setup} bodies=${s.bodies.length} searched=${s.searched.length} intro=${s.intro}`;
 }
 function giveIslandKit(p) {
@@ -9902,7 +10426,7 @@ function giveIslandKit(p) {
 }
 
 // ../../scripts_src/main.ts
-system16.beforeEvents.startup.subscribe((ev) => {
+system18.beforeEvents.startup.subscribe((ev) => {
   registerItemComponents(ev);
   registerBlockComponents(ev);
   registerGearComponents(ev);
@@ -9948,12 +10472,14 @@ function init() {
   startCult();
   startSurvey();
   startTower();
+  startScenes();
+  startObjectives();
   startStory();
   later("sweep", 40, sweepLoaded);
   console.warn(`[hollow] THE HOLLOW initialised (day ${hollowDay()}).`);
 }
-world29.afterEvents.worldLoad.subscribe(() => safe("init", init));
-world29.afterEvents.playerSpawn.subscribe((ev) => safe("playerSpawn", () => {
+world31.afterEvents.worldLoad.subscribe(() => safe("init", init));
+world31.afterEvents.playerSpawn.subscribe((ev) => safe("playerSpawn", () => {
   const p = ev.player;
   clearAllFog(p);
   const island = isIsland() || ev.initialSpawn && detectIsland(p.dimension);
@@ -9996,10 +10522,11 @@ function forgetEncounters(playerId) {
   forgetMireboundTarget(playerId);
   forgetKnockerTarget(playerId);
   forgetTrevorPlayer(playerId);
+  forgetObjectives(playerId);
 }
-world29.beforeEvents.playerLeave.subscribe((ev) => {
+world31.beforeEvents.playerLeave.subscribe((ev) => {
   const id = ev.player.id;
-  system16.run(() => safe("playerLeave", () => {
+  system18.run(() => safe("playerLeave", () => {
     forgetEncounters(id);
     forgetRuntime(id);
     forgetAudio(id);
@@ -10012,13 +10539,13 @@ world29.beforeEvents.playerLeave.subscribe((ev) => {
     forgetGuns(id);
   }));
 });
-world29.afterEvents.playerDimensionChange.subscribe((ev) => safe("dimChange", () => {
+world31.afterEvents.playerDimensionChange.subscribe((ev) => safe("dimChange", () => {
   rt(ev.player).ctx = void 0;
   forgetEncounters(ev.player.id);
   forgetBossPlayer(ev.player);
   clearAllFog(ev.player);
 }));
-world29.afterEvents.entityHurt.subscribe((ev) => safe("entityHurt", () => {
+world31.afterEvents.entityHurt.subscribe((ev) => safe("entityHurt", () => {
   const hurt2 = ev.hurtEntity;
   const by = ev.damageSource.damagingEntity;
   switch (hurt2.typeId) {
@@ -10035,11 +10562,11 @@ world29.afterEvents.entityHurt.subscribe((ev) => safe("entityHurt", () => {
       onMireboundHurt(hurt2, by);
       break;
   }
-  if (hurt2 instanceof Player31 && by?.typeId === ENT.watcher) onWatcherStruck(by, hurt2);
-  if (hurt2 instanceof Player31 && by?.typeId.startsWith("hollow:")) frighten(hurt2, 8);
+  if (hurt2 instanceof Player33 && by?.typeId === ENT.watcher) onWatcherStruck(by, hurt2);
+  if (hurt2 instanceof Player33 && by?.typeId.startsWith("hollow:")) frighten(hurt2, 8);
   if (hurt2.typeId === ENT.heart || hurt2.typeId === ENT.vein) onBossHurt(hurt2, ev.damage, by);
 }));
-world29.afterEvents.entityDie.subscribe((ev) => safe("entityDie", () => {
+world31.afterEvents.entityDie.subscribe((ev) => safe("entityDie", () => {
   const dead = ev.deadEntity;
   const killer = ev.damageSource.damagingEntity;
   switch (dead.typeId) {
@@ -10069,7 +10596,7 @@ world29.afterEvents.entityDie.subscribe((ev) => safe("entityDie", () => {
       break;
   }
 }));
-world29.afterEvents.dataDrivenEntityTrigger.subscribe((ev) => safe("ddTrigger", () => {
+world31.afterEvents.dataDrivenEntityTrigger.subscribe((ev) => safe("ddTrigger", () => {
   if (ev.eventId === "hollow:watcher_struck") onWatcherStruck(ev.entity, nearestPlayer(ev.entity, 5));
   else if (ev.eventId === "hollow:sheared") onBorrowedSheared(ev.entity, nearestPlayer(ev.entity, 6));
   else if (ev.eventId === "hollow:shield_hit") onShieldHit(ev.entity);
@@ -10083,13 +10610,13 @@ function testCommand(p, arg) {
       setTestMode(false);
       return "test mode off: normal rules";
     case "night":
-      world29.setTimeOfDay(13e3);
+      world31.setTimeOfDay(13e3);
       return "dusk (13000)";
     case "midnight":
-      world29.setTimeOfDay(18e3);
+      world31.setTimeOfDay(18e3);
       return "midnight (18000)";
     case "day":
-      world29.setTimeOfDay(1e3);
+      world31.setTimeOfDay(1e3);
       return "morning (1000)";
     case "kit": {
       const kit = [
@@ -10154,18 +10681,18 @@ function testCommand(p, arg) {
       return `dose ${Math.round(radState(p).dose)} mSv`;
     default:
       if (arg.startsWith("standing")) {
-        const v2 = Number(arg.slice(8).trim());
-        return Number.isFinite(v2) ? setStanding(v2) : "usage: /scriptevent hollow:test standing <-100..100>";
+        const v3 = Number(arg.slice(8).trim());
+        return Number.isFinite(v3) ? setStanding(v3) : "usage: /scriptevent hollow:test standing <-100..100>";
       }
       if (arg.startsWith("dose")) {
-        const v2 = Number(arg.slice(4).trim());
-        if (!Number.isFinite(v2)) return "usage: /scriptevent hollow:test dose <0-3000>";
-        setDose(p, v2);
-        return `dose set to ${v2} mSv`;
+        const v3 = Number(arg.slice(4).trim());
+        if (!Number.isFinite(v3)) return "usage: /scriptevent hollow:test dose <0-3000>";
+        setDose(p, v3);
+        return `dose set to ${v3} mSv`;
       }
       if (arg.startsWith("dread")) {
-        const v2 = Number(arg.slice(5).trim());
-        return Number.isFinite(v2) ? setDread(p, v2) : "usage: /scriptevent hollow:test dread <0-100>";
+        const v3 = Number(arg.slice(5).trim());
+        return Number.isFinite(v3) ? setDread(p, v3) : "usage: /scriptevent hollow:test dread <0-100>";
       }
       return "usage: /scriptevent hollow:test on|off|night|midnight|day|kit|journal|knocker|boss2|boss3|eye|lantern|roof|phantom|dread <0-100>|island|forest|islandkit|trevordown|cinematic|cultspawn|standing <n>|rescue|rad|dose <mSv>";
   }
@@ -10177,9 +10704,9 @@ function nearestPlayer(e, r) {
     return void 0;
   }
 }
-system16.afterEvents.scriptEventReceive.subscribe((ev) => safe("scriptevent", () => {
+system18.afterEvents.scriptEventReceive.subscribe((ev) => safe("scriptevent", () => {
   const p = ev.sourceEntity;
-  if (!(p instanceof Player31)) return;
+  if (!(p instanceof Player33)) return;
   switch (ev.id) {
     case "hollow:journal":
       void openJournal(p);
@@ -10187,7 +10714,7 @@ system16.afterEvents.scriptEventReceive.subscribe((ev) => safe("scriptevent", ()
     case "hollow:status":
       if (!isOperator(p)) return;
       p.sendMessage(
-        `§7[hollow] day ${hollowDay()} · watcher ${watcherCount()} · borrowed ${borrowedCount()} · hollowed ${hollowedCount()} · mirebound ${mireboundCount()} · knocker ${knockerActive() ? 1 : 0} · heart ${bossSummary()} · dread ${dreadSummary()} · ${storySummary()} · ${trevorSummary()} · ${jobSummary()} · ${cultSummary()} · ${surveySummary()} · ${towerSummary()} · failures: ${failureReport()}`
+        `§7[hollow] day ${hollowDay()} · watcher ${watcherCount()} · borrowed ${borrowedCount()} · hollowed ${hollowedCount()} · mirebound ${mireboundCount()} · knocker ${knockerActive() ? 1 : 0} · heart ${bossSummary()} · dread ${dreadSummary()} · ${storySummary()} · ${trevorSummary()} · ${jobSummary()} · ${cultSummary()} · ${surveySummary()} · ${towerSummary()} · ${objectiveSummary()} · failures: ${failureReport()}`
       );
       return;
     case "hollow:debug":
