@@ -128,4 +128,4 @@ Result: **117/117 scenarios passed**
 
 - music: 3 night track(s) over 4 nights; 129 ticks of night music while a Watcher was stalking
 - dread draw: watcher encounters over twelve nights - calm 25, terrified 29
-- load: peak creature counts {"hollow:borrowed":2,"hollow:watcher":3,"hollow:phantom":2}; script time per tick avg 0.239 ms, p99 2.038 ms, max 7.15 ms (Node on a dev machine against the fake world - not an Xbox measurement)
+- load: peak creature counts {"hollow:borrowed":2,"hollow:watcher":3,"hollow:phantom":2}; script time per tick avg 0.249 ms, p99 2.135 ms, max 15.29 ms (Node on a dev machine against the fake world - not an Xbox measurement)
