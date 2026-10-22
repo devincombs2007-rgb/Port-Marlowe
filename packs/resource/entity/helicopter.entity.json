@@ -1,0 +1,28 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "hollow:helicopter",
+      "materials": {
+        "default": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/hollow/helicopter"
+      },
+      "geometry": {
+        "default": "geometry.hollow.helicopter"
+      },
+      "animations": {
+        "rotors": "animation.hollow.helicopter.rotors"
+      },
+      "scripts": {
+        "animate": [
+          "rotors"
+        ]
+      },
+      "render_controllers": [
+        "controller.render.hollow.default"
+      ]
+    }
+  }
+}

@@ -1,0 +1,172 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.hollow.bomber.props": {
+      "loop": true,
+      "bones": {
+        "prop0": {
+          "rotation": [
+            0,
+            0,
+            "query.life_time * 1500"
+          ]
+        },
+        "prop1": {
+          "rotation": [
+            0,
+            0,
+            "query.life_time * 1537"
+          ]
+        },
+        "prop2": {
+          "rotation": [
+            0,
+            0,
+            "query.life_time * 1574"
+          ]
+        },
+        "prop3": {
+          "rotation": [
+            0,
+            0,
+            "query.life_time * 1611"
+          ]
+        }
+      }
+    },
+    "animation.hollow.bomber.doors": {
+      "loop": true,
+      "bones": {
+        "door_l": {
+          "rotation": [
+            0,
+            0,
+            "query.property('hollow:open') ? -80 : 0"
+          ]
+        },
+        "door_r": {
+          "rotation": [
+            0,
+            0,
+            "query.property('hollow:open') ? 80 : 0"
+          ]
+        }
+      }
+    },
+    "animation.hollow.bomb.wobble": {
+      "loop": true,
+      "bones": {
+        "body": {
+          "rotation": [
+            "math.sin(query.life_time * 400 + 0) * 2",
+            "math.sin(query.life_time * 330 + 40) * 2",
+            "query.life_time * 30"
+          ]
+        }
+      }
+    },
+    "animation.hollow.helicopter.rotors": {
+      "loop": true,
+      "bones": {
+        "rotor": {
+          "rotation": [
+            0,
+            "query.life_time * 1300",
+            0
+          ]
+        },
+        "tail_rotor": {
+          "rotation": [
+            "query.life_time * 2600",
+            0,
+            0
+          ]
+        },
+        "body": {
+          "rotation": [
+            6,
+            0,
+            0
+          ]
+        }
+      }
+    },
+    "animation.hollow.mushroom_cloud.bloom": {
+      "loop": true,
+      "bones": {
+        "root": {
+          "scale": 40
+        },
+        "fireball": {
+          "position": [
+            0,
+            "math.max(0, query.life_time - 1.5) * 3.2",
+            0
+          ],
+          "scale": "query.life_time < 9.0 ? math.min(1.0, 0.15 + query.life_time * 0.7) * (1.0 + math.max(0, query.life_time - 4.0) * 0.06) : 0.0"
+        },
+        "stem": {
+          "position": [
+            0,
+            -26,
+            0
+          ],
+          "scale": [
+            "math.clamp((query.life_time - 3.0) / 7.0, 0, 1) * 1.1",
+            "math.clamp((query.life_time - 3.0) / 9.0, 0, 1) * 1.45",
+            "math.clamp((query.life_time - 3.0) / 7.0, 0, 1) * 1.1"
+          ]
+        },
+        "cap": {
+          "position": [
+            0,
+            "-34 + math.min(42, math.max(0, query.life_time - 2.5) * 3.6)",
+            0
+          ],
+          "scale": [
+            "query.life_time < 2.5 ? 0 : math.min(1.35, 0.25 + (query.life_time - 2.5) * 0.11)",
+            "query.life_time < 2.5 ? 0 : math.min(1.1, 0.3 + (query.life_time - 2.5) * 0.08)",
+            "query.life_time < 2.5 ? 0 : math.min(1.35, 0.25 + (query.life_time - 2.5) * 0.11)"
+          ],
+          "rotation": [
+            0,
+            "query.life_time * 4",
+            0
+          ]
+        },
+        "skirt": {
+          "position": [
+            0,
+            "-22 + math.min(30, query.life_time * 3.6)",
+            0
+          ],
+          "scale": "(query.life_time > 1.8 && query.life_time < 7.5) ? 0.8 + (query.life_time - 1.8) * 0.18 : 0"
+        },
+        "shock": {
+          "position": [
+            0,
+            14,
+            0
+          ],
+          "scale": [
+            "(query.life_time > 0.4 && query.life_time < 6.5) ? 0.1 + (query.life_time - 0.4) * 0.55 : 0",
+            1,
+            "(query.life_time > 0.4 && query.life_time < 6.5) ? 0.1 + (query.life_time - 0.4) * 0.55 : 0"
+          ]
+        },
+        "surge": {
+          "position": [
+            0,
+            14,
+            0
+          ],
+          "scale": [
+            "query.life_time < 3.5 ? 0 : math.min(2.6, 0.6 + (query.life_time - 3.5) * 0.25)",
+            "query.life_time < 3.5 ? 0 : math.min(1.8, 0.5 + (query.life_time - 3.5) * 0.12)",
+            "query.life_time < 3.5 ? 0 : math.min(2.6, 0.6 + (query.life_time - 3.5) * 0.25)"
+          ]
+        }
+      }
+    }
+  }
+}

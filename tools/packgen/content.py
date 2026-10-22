@@ -83,8 +83,62 @@ ITEMS = [
         "minecraft:digger": {"use_efficiency": True, "destroy_speeds": [
             {"block": {"tags": "query.any_tag('log', 'wood')"}, "speed": 9},
             {"block": {"tags": "query.any_tag('plant')"}, "speed": 6}]}}, "equipment"),
+    ("field_radio", "Field Radio", "field_radio", {
+        "minecraft:max_stack_size": 1, "minecraft:interact_button": "Call Trevor", "hollow:field_radio": {},
+        "minecraft:cooldown": {"category": "hollow_radio", "duration": 1.0}}, "equipment"),
     ("broken_radio", "Satellite Radio (cracked)", "broken_radio", {
         "minecraft:max_stack_size": 1, "minecraft:interact_button": "Inspect", "hollow:broken_radio": {}}, "items"),
+    # ---------------------------------------------------------------- Varrow Island (2.0, phases 4-6)
+    ("bolt_rifle", "Bolt-Action Rifle", "bolt_rifle", {
+        "minecraft:max_stack_size": 1, "minecraft:interact_button": "Fire", "hollow:gun": {},
+        "minecraft:hand_equipped": True, "minecraft:can_destroy_in_creative": False,
+        "minecraft:cooldown": {"category": "hollow_rifle", "duration": 1.25}}, "equipment"),
+    ("rifle_round", ".30 Rifle Rounds", "rifle_round", {"minecraft:max_stack_size": 64}, "equipment"),
+    ("pump_shotgun", "Pump Shotgun", "pump_shotgun", {
+        "minecraft:max_stack_size": 1, "minecraft:interact_button": "Fire", "hollow:gun": {},
+        "minecraft:hand_equipped": True, "minecraft:can_destroy_in_creative": False,
+        "minecraft:cooldown": {"category": "hollow_shotgun", "duration": 0.9}}, "equipment"),
+    ("shotgun_shell", "Shotgun Shells", "shotgun_shell", {"minecraft:max_stack_size": 64}, "equipment"),
+    ("flare_gun", "Flare Gun", "flare_gun", {
+        "minecraft:max_stack_size": 1, "minecraft:interact_button": "Fire flare", "hollow:flare_gun": {},
+        "minecraft:durability": {"max_durability": 6},
+        "minecraft:cooldown": {"category": "hollow_flare", "duration": 4.0}}, "equipment"),
+    ("hazmat_hood", "Hazmat Hood", "hazmat_hood", {
+        "minecraft:wearable": {"slot": "slot.armor.head", "protection": 1}, "minecraft:durability": {"max_durability": 240},
+        "minecraft:repairable": {"repair_items": [{"items": ["minecraft:leather"], "repair_amount": 60}]}}, "equipment"),
+    ("hazmat_suit", "Hazmat Suit", "hazmat_suit", {
+        "minecraft:wearable": {"slot": "slot.armor.chest", "protection": 3}, "minecraft:durability": {"max_durability": 320},
+        "minecraft:repairable": {"repair_items": [{"items": ["minecraft:leather"], "repair_amount": 80}]}}, "equipment"),
+    ("hazmat_trousers", "Hazmat Trousers", "hazmat_trousers", {
+        "minecraft:wearable": {"slot": "slot.armor.legs", "protection": 2}, "minecraft:durability": {"max_durability": 280},
+        "minecraft:repairable": {"repair_items": [{"items": ["minecraft:leather"], "repair_amount": 70}]}}, "equipment"),
+    ("hazmat_boots", "Hazmat Boots", "hazmat_boots", {
+        "minecraft:wearable": {"slot": "slot.armor.feet", "protection": 1}, "minecraft:durability": {"max_durability": 220},
+        "minecraft:repairable": {"repair_items": [{"items": ["minecraft:leather"], "repair_amount": 55}]}}, "equipment"),
+    ("sample_kit", "Sample Kit", "sample_kit", {
+        "minecraft:max_stack_size": 8, "minecraft:interact_button": "Take sample", "hollow:sample_kit": {}}, "items"),
+    ("crater_water_sample", "Sample: Crater Water", "crater_water_sample", {"minecraft:max_stack_size": 1, "hollow:sample": {},
+        "minecraft:interact_button": "File sample", "minecraft:glint": True}, "items"),
+    ("soil_sample", "Sample: Blast Soil", "soil_sample", {"minecraft:max_stack_size": 1, "hollow:sample": {},
+        "minecraft:interact_button": "File sample"}, "items"),
+    ("wood_sample", "Sample: Scorched Wood", "wood_sample", {"minecraft:max_stack_size": 1, "hollow:sample": {},
+        "minecraft:interact_button": "File sample"}, "items"),
+    ("tissue_sample", "Sample: Creature Tissue", "tissue_sample", {"minecraft:max_stack_size": 1, "hollow:sample": {},
+        "minecraft:interact_button": "File sample", "minecraft:glint": True}, "items"),
+    ("chelation_shot", "Chelation Shot", "chelation_shot", {
+        "minecraft:max_stack_size": 4, "hollow:chelation": {},
+        "minecraft:food": {"nutrition": 0, "saturation_modifier": 0, "can_always_eat": True},
+        "minecraft:use_animation": "none", "minecraft:use_modifiers": {"use_duration": 1.4, "movement_modifier": 0.3}}, "items"),
+    ("film_reel", "Film Reel (1957)", "film_reel", {
+        "minecraft:max_stack_size": 1, "minecraft:interact_button": "Watch", "hollow:film_reel": {}}, "items"),
+    ("vacuum_tube", "Transmitter Valve", "vacuum_tube", {"minecraft:max_stack_size": 4, "minecraft:interact_button": "Inspect",
+        "hollow:tower_part": {}}, "items"),
+    ("copper_wire", "Copper Wire", "copper_wire", {"minecraft:max_stack_size": 16, "minecraft:interact_button": "Inspect",
+        "hollow:tower_part": {}}, "items"),
+    ("battery_bank", "Battery Bank", "battery_bank", {"minecraft:max_stack_size": 1, "minecraft:interact_button": "Inspect",
+        "hollow:tower_part": {}}, "items"),
+    ("shrine_key", "Shrine Key", "shrine_key", {"minecraft:max_stack_size": 1, "minecraft:interact_button": "Use key",
+        "hollow:shrine_key": {}, "minecraft:rarity": {"value": "rare"}}, "items"),
 ]
 
 # Block items reuse the block identifier and place the block (vanilla pattern, e.g. red_shrub).
@@ -333,6 +387,20 @@ def shapeless(ident, ingredients, result, count=1, unlock=None):
 
 
 RECIPES = {
+    "field_radio": shapeless("field_radio", [("hollow:broken_radio", 1), ("minecraft:copper_ingot", 2), ("minecraft:redstone", 2)],
+                             "hollow:field_radio", unlock=["hollow:broken_radio"]),
+    "copper_wire": shapeless("copper_wire", [("minecraft:copper_ingot", 3)], "hollow:copper_wire", count=2,
+                             unlock=["minecraft:copper_ingot"]),
+    "sample_kit": shaped("sample_kit", ["G G", " G ", " P "], {"G": "minecraft:glass", "P": "minecraft:paper"},
+                         "hollow:sample_kit", count=3, unlock=["minecraft:glass"]),
+    "rifle_round": shaped("rifle_round", [" I ", " G ", " C "], {"I": "minecraft:iron_nugget", "G": "minecraft:gunpowder",
+                          "C": "minecraft:copper_ingot"}, "hollow:rifle_round", count=4, unlock=["minecraft:gunpowder"]),
+    "pistol_round": shaped("pistol_round", ["I", "G", "C"], {"I": "minecraft:iron_nugget", "G": "minecraft:gunpowder",
+                           "C": "minecraft:copper_ingot"}, "hollow:pistol_round", count=6, unlock=["minecraft:gunpowder"]),
+    "shotgun_shell": shaped("shotgun_shell", ["I", "G", "P"], {"I": "minecraft:iron_nugget", "G": "minecraft:gunpowder",
+                            "P": "minecraft:paper"}, "hollow:shotgun_shell", count=4, unlock=["minecraft:gunpowder"]),
+    "research_log": shapeless("research_log", [("minecraft:book", 1), ("minecraft:paper", 1)], "hollow:research_log",
+                              unlock=["minecraft:book"]),
     "field_journal": shapeless("field_journal", [("minecraft:book", 1), ("minecraft:charcoal", 1)], "hollow:field_journal",
                                unlock=["minecraft:book"]),
     "hollow_chime": shaped("hollow_chime", [" S ", "NCN", " N "],
@@ -362,6 +430,19 @@ LANG_EXTRA = {
     "entity.hollow:trevor.name": "Trevor Hale",
     "entity.hollow:crew_body.name": "Crew",
     "entity.hollow:bullet.name": "Bullet",
+    "entity.hollow:bomber.name": "Bomber",
+    "entity.hollow:zealot.name": "Zealot",
+    "entity.hollow:faithful.name": "Faithful",
+    "entity.hollow:seer.name": "Seer",
+    "entity.hollow:hierophant.name": "The Hierophant",
+    "entity.hollow:cult_round.name": "Rifle Round",
+    "item.spawn_egg.entity.hollow:zealot.name": "Spawn Zealot",
+    "item.spawn_egg.entity.hollow:faithful.name": "Spawn Faithful",
+    "item.spawn_egg.entity.hollow:seer.name": "Spawn Seer",
+    "item.spawn_egg.entity.hollow:hierophant.name": "Spawn The Hierophant",
+    "entity.hollow:bomb.name": "The Device",
+    "entity.hollow:helicopter.name": "Helicopter",
+    "entity.hollow:mushroom_cloud.name": "Airburst",
     "item.spawn_egg.entity.hollow:trevor.name": "Spawn Trevor Hale",
     "action.interact.hollow.talk": "Talk",
     "action.interact.hollow.search": "Search",

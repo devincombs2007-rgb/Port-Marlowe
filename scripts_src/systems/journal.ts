@@ -73,7 +73,7 @@ export function unlock(p: Player, id: string, quiet = false): boolean {
         if (unread.length === 0) return;
         notice(p, unread.length === 1
           ? `§7New journal entry: §f${ENTRY_BY_ID.get(unread[0])!.title}`
-          : `§7${unread.length} new journal entries. §fOpen your Field Journal to read them.`);
+          : `§7${unread.length} new journal entries. §fOpen your ${isIsland() ? "Research Log" : "Field Journal"} to read them.`);
         ui(p, SND.journalEntry, 0.8);
       }, 30);
       discoveries.set(p.id, { run, ids });

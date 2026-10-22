@@ -1,9 +1,10 @@
-# Varrow Island (2.0, phase 1 of 6)
+# Varrow Island (2.0)
 
 THE HOLLOW 2.0 moves the story to **Varrow Island**, a 1957 nuclear test site in the Pacific.
 You and your friends are a 2026 survey team; someone on the island shoots your helicopter down.
-The full plan (story, cinematic, Trevor's jobs, the cult, the survey, the tower, Ground Zero) is
-in the 2.0 design doc. This page covers what is **in this build**.
+All six phases of the 2.0 plan are in this build: the island and the crash, the 1957 cinematic,
+Trevor's jobs, the Children of the Second Sun, the survey and the tower, and Ground Zero with the
+endings. This page is the player's guide.
 
 ## Files
 
@@ -15,7 +16,7 @@ in the 2.0 design doc. This page covers what is **in this build**.
 Import the `.mcworld` the same way you imported the `.mcaddon`. Turn on **Vibrant Visuals** in
 Video settings for the green crater, the mist and the soft shadows.
 
-## What is in phase 1
+## The island
 
 **The island.** About 600 × 600 blocks of land in an endless ocean (the game generates open sea
 beyond the island, so you cannot walk off the map):
@@ -30,34 +31,102 @@ beyond the island, so you cannot walk off the map):
   **mangrove shallows** on the east coast, open meadows in the north-west and centre, beaches with
   palms, seagrass and kelp offshore, caves and ores underground.
 
+**The opening.** The first time anyone arrives, everyone online watches it together: 1957,
+a bomber over the island, the drop, the airburst, the white-out, the mushroom cloud and the
+delayed boom, the island burning. Then 2026: your helicopter comes in low from the south and is
+shot down from the trees. Hold **sneak** for two seconds to skip. Players who join mid-scene
+wait for it to end; players who join later just get the wake-up.
+
 **The crash.** Each player wakes once: black screen, ringing ears, the title card, Trevor talking
 you round. You get your **Research Log**, a **Geiger counter** and a **loaded service pistol**.
-Players who join later get a shorter version and their own kit. The barrels by the wreck hold
-rations, medkits, 9mm rounds, iodine tablets, a survival hatchet and the cracked satellite radio.
-The pilot and co-pilot lie where they fell; search them (Use) for their notes and supplies.
+The barrels by the wreck hold rations, medkits, 9mm rounds, iodine tablets, sample kits, a
+survival hatchet and the cracked satellite radio (craft it into a **field radio** with copper and
+redstone to give Trevor orders from anywhere). Search the pilot and co-pilot (Use) for their notes.
 
-**Trevor Hale.** One companion shared by everyone:
+**Trevor Hale.** One companion shared by everyone. Use on him (or the field radio) for orders.
+Orders go into **one queue, first come first served**, and he tells you whose job he's on:
 
-- Use on him: **Follow me**, **Hold here**, **Patch me up** (one of his medkits). Anyone can give
-  orders; the newest order wins and he says whose order he is on.
-- He fights with his pistol, patches up anyone nearby who is badly hurt, warns you about the
-  clicking in the dark and the thing in the trees, and refuses to follow you into the crater
-  without a suit (he waits at the edge and picks up again when you come out).
-- He **goes down** instead of dying. Go to him, press Use and stay beside him for 3 seconds. You
-  have a minute. If nobody comes, he crawls off and limps back at the next dawn, unless an
-  operator turned on **World rules → Varrow Island: Trevor's death is permanent**.
-- Chopping, gathering and building are listed in his menu as "coming with the next update".
+- **Follow**, **Hold here**, **Go there** (where you're looking), **Make camp** (his home base),
+  **Chop wood**, **Quarry stone**, **Gather food**, **Build…** (lean-to, cabin, watchtower, a
+  stretch of wall: he gathers what he needs first), **Light a fire**, **Collect** (empties his
+  pack into the camp chest), **Patrol** the camp, **Patch me up**, **Cancel my orders**.
+- He fights with his pistol, patches up anyone nearby who is badly hurt, warns you about what he
+  hears, and won't follow you into the crater without a suit.
+- Fire a **flare** and he comes to it as soon as his current job is done.
+- He **goes down** instead of dying. Stand beside him for 3 seconds to get him up. If nobody
+  comes, he limps back at the next dawn, unless **World rules → Varrow Island: Trevor's death is
+  permanent** is on.
 
-**Radiation.** Your dose builds near Ground Zero (about 60 mSv a minute on the crater floor),
-far faster in the green water, which also poisons you. Rock overhead blocks most of it. It falls
-slowly once you are clear. 100 mSv: hunger. 300: nausea. 600: weakness. 1000: sickness. 1500:
-withering. Hold the Geiger counter to hear it and see a live readout; Use it for a reading with
-the direction the rate climbs. Iodine tablets halve your uptake for five minutes. Your dose is on
-the Research Log's Field Conditions page.
+**Radiation.** Your dose builds near Ground Zero, far faster in the green crater water (which
+also poisons you), in the sealed bunker labs, and deep under the crater. 100 mSv: hunger. 300:
+nausea. 600: weakness. 1000: sickness. 1500: withering. Hold the Geiger counter to hear it; Use
+it for a reading. **Iodine** halves uptake for five minutes; a **chelation shot** pulls a third of
+your dose out; the **hazmat suit** (hood, suit, trousers, boots: 90% with all four, but heavy)
+lets you work in the crater. Trevor has no suit, so he waits at the edge.
 
-**The pistol.** Aim and Use to fire (instant hit, about 48 blocks, harder to the head). Seven
-rounds; **sneak + Use** reloads from 9mm rounds in your inventory. Every shot is heard 48 blocks
-away, and the Hollowed hunt by sound.
+**Weapons.** Use to fire, **sneak + Use** to reload from rounds in your inventory. Every shot is
+heard a long way off.
+
+| Weapon | Where | Mag | Notes |
+|---|---|---|---|
+| Service pistol | your kit | 7 | 9mm; about 48 blocks |
+| Bolt-action rifle | Bunker 1 armoury | 5 | hits hard to 90 blocks; slow |
+| Pump shotgun | police post, mock town | 4 | seven pellets; deadly close, useless far |
+| Flare gun | Bunker 1, the landing craft, sometimes the boathouse | 1 | lights the ground for 30 s; calls Trevor |
+
+Rounds and shells are crafted from iron nuggets and gunpowder (plus copper or paper).
+
+**The Children of the Second Sun.** Settlers who came in 1962 and never left. They live at
+**Sunfall** (the walled village in the north-west) and a stilt camp in the **mangroves** (east).
+The island's creatures never touch them.
+
+- **Zealots** guard the villages with 1950s rifles and, from the second night, hunt the island
+  after dark in twos and threes. They go back into the trees at dawn.
+- **The Faithful** tend gardens and won't talk to anyone holding a weapon. Hold food when you
+  speak to one to give it as a gift. Hurt one and the Zealots come.
+- **The Seer** (sometimes at Sunfall) talks if you come unarmed: lore, a Hush Offering for a
+  medkit, the bunker map for a battery bank, and, if they trust you, the back way into Bunker 2.
+- **The Hierophant**, at the shrine. Neutral until attacked; then a boss with a boss bar who
+  calls his guards. Kill him and every one of them hunts you, every night, for good.
+- **Standing** (shared by the group): gifts, offerings left in the shrine barrel and quiet days
+  raise it; killing them, and gunfire near their villages, lower it. At 20 the Faithful trade
+  copper wire for medicine. At 40 the Seer shows you the back way. At 60 the Hierophant gives you
+  the **shrine key**, which opens the vault under the shrine (he also drops it). At 70 they leave
+  you alone on the last night.
+- **World rules → Varrow Island: the Children of the Second Sun** turns them off.
+
+**The survey** (the contract; Research Log → Operation SUNLAMP):
+
+- **Six monitoring stations.** Press each station's console button with a Geiger counter in your
+  pack to log the reading. The masts of unlogged stations flicker red; each log tells you the
+  nearest one left.
+- **Four samples.** Use a **sample kit** facing crater water, blast soil or scorched wood near
+  Ground Zero, or facing one of the island's creatures (or carry one when you kill one). Use the
+  sample to file it.
+- **Ten film reels** from 1957 and 1962, in station log barrels, the bunker record rooms and the
+  shrine vault. Use one to watch it.
+- All six stations and four samples complete the survey (and the ending says so).
+
+**Places.** The mock town (store with wire, police armoury), the animal pens, three bunkers
+(iron doors: press the button beside them; Bunker 2 is sealed from the inside, so find the
+sinkhole south of it), the bleachers in Blackwood, the dock and boathouse, the north peak relay.
+Containers are stocked the first time someone comes near.
+
+**The Heart Below.** Under the crater lake is a cavern, reached by the old instrument shaft on the
+crater's north rim (iron trapdoor, long ladder). Its altar takes a Hush Offering (the Seer trades
+one; the 1.1 recipe still works) and wakes the Heart. Kill it and the island's radiation from
+below drops for good.
+
+**The way off.** The 1957 relay on the north peak:
+
+1. Fuel the **generator** in the shed (button by the hopper, 8 coal or charcoal).
+2. Install **2 vacuum tubes** (Bunker 2's radio room; a spare in the shrine vault), **4 copper
+   wire** (the store; craft from copper; the Faithful) and **1 battery bank** (the boathouse; a
+   spare in Bunker 3) with the button in the hut.
+3. **Transmit.** The Coast Guard answers: a helicopter at first light, at the old dock.
+4. Survive the night. The lamp on the mast is lit and the Children come for it.
+5. At dawn the helicopter sets down at the dock. Stand by it to leave. The ending reflects
+   Trevor, the survey, the Heart and the Children. Afterwards you can stay and keep playing.
 
 **The 1.1 creatures** are all still there and work as before.
 
@@ -70,27 +139,25 @@ away, and the Hollowed hunt by sound.
 | `island` / `forest` | switch this world into / out of Varrow Island mode (the island world switches itself on) |
 | `islandkit` | Research Log, Geiger counter and pistol |
 | `trevordown` | knock Trevor down to test helping him up |
+| `cinematic` | replay the opening for yourself |
+| `cultspawn` | a Zealot, one of the Faithful and the Seer next to you |
+| `standing 40` | set the Children's standing (-100..100) |
+| `rescue` | skip to the dawn helicopter (fills the tower and sends it in) |
 | `dose 600` / `rad` | set / show your radiation dose |
 | `on`, `night`, `day`, … | the 1.1 test kit still works |
 
-`/scriptevent hollow:status` now also prints the story and Trevor state.
+`/scriptevent hollow:status` also prints the story, Trevor, jobs, cult, survey and tower state.
 
 ## Honest status
 
-- The scripts pass **105/105** headless simulations, 12 of them new for the island (detection,
-  wake-up, late joiners, restarts, radiation bands and iodine, the pistol, Trevor going down,
-  limping back, permanent death, shared orders, the crater refusal, searching the crew).
-- Static validation: 0 errors, 0 warnings. Every block in the world is a canonical Bedrock block
-  state, and the world file is decoded back with an independent reader on every build.
-- **Nobody has opened the world in Minecraft yet.** The world file is written from scratch in
-  Mojang's storage format; your first import is the real test. If it fails to open, tell me what
-  the game shows and I will switch to the fallback (the add-on builds the island itself in a new
-  world).
-- Things only the game can confirm: Trevor's taming and follow behaviour, his ranged attack,
-  the helicopter's look in-game, how dark nights are, and Xbox performance on a 600-block island.
-
-## Next phases
-
-2. The 1957 cinematic and the shoot-down. 3. Trevor's jobs (shared queue, chopping, gathering,
-building). 4. The Children of the Second Sun. 5. The survey, the tower and the rescue.
-6. Ground Zero, the hazmat suit, the rifle and shotgun, the endings.
+- The scripts pass every headless simulation (see `docs/SIMULATION_REPORT.generated.md`),
+  including the island, the cinematic, Trevor and his jobs, the Children, the survey and the
+  tower through to the ending. Static validation: 0 errors, 0 warnings. The world file is decoded
+  back with an independent reader on every build.
+- **None of 2.0 has been played in Minecraft yet.** The simulations run the real scripts against
+  a fake game; they can't check pathfinding, combat, how anything looks or sounds, camera moves,
+  or Xbox performance. The world file is written from scratch in Mojang's format; your first
+  import is the real test. If something breaks, tell me what you saw and I'll fix it.
+- Things most likely to need tuning after a first play: Trevor's pathing on long jobs, how hard
+  the Zealots and the Hierophant hit, night patrol frequency, radiation rates, and the
+  cinematic's camera framing.

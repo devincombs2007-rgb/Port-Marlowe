@@ -1,4 +1,4 @@
-import { EquipmentSlot, GameMode, Player, Vector3 } from "@minecraft/server";
+import { EquipmentSlot, GameMode, Player, Vector3, system } from "@minecraft/server";
 import { CRATER_R, SITES } from "../content/island_layout";
 import { ui } from "../core/audio";
 import { notice } from "../core/fx";
@@ -83,13 +83,58 @@ function shielded(p: Player): boolean {
   }
 }
 
-/** The rate this player is exposed to right now, mSv/h. */
+/** The rate this player is exposed to right now, mSv/h (before the hazmat suit). */
 export function rateAt(p: Player): number {
   if (p.dimension.id !== "minecraft:overworld") return 0.1;
   let r = groundRate(p.location);
   if (inCraterLake(p)) r *= 4;
   if (shielded(p)) r *= 0.3;
+  for (const extra of extraSources) r += extra(p);
   return Math.max(0.1, r);
+}
+
+/** Other sources (sealed bunker labs, cult shrines...) register here. */
+const extraSources: ((p: Player) => number)[] = [];
+export function addRadiationSource(fn: (p: Player) => number): void {
+  extraSources.push(fn);
+}
+
+const HAZMAT: [EquipmentSlot, string, number][] = [
+  [EquipmentSlot.Head, ITEM.hazmatHood, 0.25], [EquipmentSlot.Chest, ITEM.hazmatSuit, 0.35],
+  [EquipmentSlot.Legs, ITEM.hazmatTrousers, 0.2], [EquipmentSlot.Feet, ITEM.hazmatBoots, 0.1],
+];
+
+/** Fraction of radiation the hazmat pieces worn keep out (0..0.9). */
+export function suitProtection(p: Player): number {
+  let k = 0;
+  try {
+    const eq = p.getComponent("minecraft:equippable");
+    for (const [slot, id, v] of HAZMAT) if (eq?.getEquipment(slot)?.typeId === id) k += v;
+  } catch {
+    /* ignore */
+  }
+  return Math.min(0.9, k);
+}
+
+export function fullSuit(p: Player): boolean {
+  return suitProtection(p) >= 0.89;
+}
+
+/** Chelation shot: pulls a third of the dose (and at least 120 mSv) out over the next minute. */
+export function chelate(p: Player): void {
+  const s = radState(p);
+  const target = Math.max(0, s.dose - Math.max(120, s.dose / 3));
+  const step = (s.dose - target) / 12;
+  let n = 0;
+  const run = system.runInterval(() => {
+    if (!p.isValid || ++n > 12) {
+      system.clearRun(run);
+      return;
+    }
+    s.dose = Math.max(0, s.dose - step);
+    if (n === 12) save(p, s, true);
+  }, 100);
+  notice(p, "§7The shot burns going in. §fYour dose will come down over the next minute.");
 }
 
 export function band(dose: number): number {
@@ -136,14 +181,23 @@ function tick(p: Player): void {
   const s = radState(p);
   const rate = rateAt(p);
   const t = now();
+  const suit = suitProtection(p);
+  if (suit >= 0.55) {
+    // the rubber suit is heavy and hot
+    try {
+      p.addEffect("slowness", 40, { amplifier: 0, showParticles: false });
+    } catch {
+      /* ignore */
+    }
+  }
   if (rate >= 1) {
     const iodine = s.iodine > t ? 0.5 : 1;
-    s.dose = Math.min(3000, s.dose + (rate / 120) * iodine);
+    s.dose = Math.min(3000, s.dose + (rate / 120) * iodine * (1 - suit));
   } else {
     s.dose = Math.max(0, s.dose - 0.4);
   }
-  // toxic crater water burns on contact
-  if (inCraterLake(p)) {
+  // toxic crater water burns on contact (the full suit keeps it off your skin)
+  if (inCraterLake(p) && suit < 0.89) {
     try {
       p.addEffect("poison", 50, { amplifier: 1, showParticles: false });
     } catch {
@@ -172,7 +226,7 @@ function tick(p: Player): void {
   // the counter in your hand ticks with the local rate and shows a running readout
   if (holdsGeiger(p)) {
     ui(p, SND.geiger[geigerLevel(rate)], 0.9);
-    notice(p, `§a☢ §f${fmt(rate)} §7mSv/h   §8·   §7dose §f${fmt(s.dose)} §7mSv §8(${bandName(s.dose)})`);
+    notice(p, `§a☢ §f${fmt(rate)} §7mSv/h${suit > 0 ? ` §8(suit -${Math.round(suit * 100)}%)` : ""}   §8·   §7dose §f${fmt(s.dose)} §7mSv §8(${bandName(s.dose)})`);
   }
   save(p, s);
 }

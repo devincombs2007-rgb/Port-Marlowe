@@ -639,6 +639,101 @@ def crew():
     write("crew", A, {})
 
 
+# ------------------------------------------------------------------------------ CINEMATIC SET PIECES
+def cinematic():
+    t = LT
+    A = {
+        "animation.hollow.bomber.props": anim({
+            f"prop{i}": {"rotation": [0, 0, f"{t} * {1500 + i * 37}"]} for i in range(4)
+        }),
+        "animation.hollow.bomber.doors": anim({
+            "door_l": {"rotation": [0, 0, "query.property('hollow:open') ? -80 : 0"]},
+            "door_r": {"rotation": [0, 0, "query.property('hollow:open') ? 80 : 0"]},
+        }),
+        "animation.hollow.bomb.wobble": anim({
+            "body": {"rotation": [f"{S(400, 2)}", f"{S(330, 2, 40)}", f"{t} * 30"]},
+        }),
+        "animation.hollow.helicopter.rotors": anim({
+            "rotor": {"rotation": [0, f"{t} * 1300", 0]},
+            "tail_rotor": {"rotation": [f"{t} * 2600", 0, 0]},
+            "body": {"rotation": [6, 0, 0]},
+        }),
+        # The airburst, all in one clip driven by the entity's age (seconds since the flash).
+        # Spawned at the burst point, 65 blocks above the ground; the root scale is 40, so one
+        # model unit = 2.5 blocks and the ground is 26 units below.
+        "animation.hollow.mushroom_cloud.bloom": anim({
+            "root": {"scale": 40},
+            "fireball": {
+                "position": [0, f"math.max(0, {t} - 1.5) * 3.2", 0],
+                "scale": f"{t} < 9.0 ? math.min(1.0, 0.15 + {t} * 0.7) * (1.0 + math.max(0, {t} - 4.0) * 0.06) : 0.0",
+            },
+            "stem": {
+                "position": [0, -26, 0],
+                "scale": [f"math.clamp(({t} - 3.0) / 7.0, 0, 1) * 1.1", f"math.clamp(({t} - 3.0) / 9.0, 0, 1) * 1.45", f"math.clamp(({t} - 3.0) / 7.0, 0, 1) * 1.1"],
+            },
+            "cap": {
+                "position": [0, f"-34 + math.min(42, math.max(0, {t} - 2.5) * 3.6)", 0],
+                "scale": [f"{t} < 2.5 ? 0 : math.min(1.35, 0.25 + ({t} - 2.5) * 0.11)", f"{t} < 2.5 ? 0 : math.min(1.1, 0.3 + ({t} - 2.5) * 0.08)", f"{t} < 2.5 ? 0 : math.min(1.35, 0.25 + ({t} - 2.5) * 0.11)"],
+                "rotation": [0, f"{t} * 4", 0],
+            },
+            "skirt": {
+                "position": [0, f"-22 + math.min(30, {t} * 3.6)", 0],
+                "scale": f"({t} > 1.8 && {t} < 7.5) ? 0.8 + ({t} - 1.8) * 0.18 : 0",
+            },
+            "shock": {
+                "position": [0, 14, 0],
+                "scale": [f"({t} > 0.4 && {t} < 6.5) ? 0.1 + ({t} - 0.4) * 0.55 : 0", 1, f"({t} > 0.4 && {t} < 6.5) ? 0.1 + ({t} - 0.4) * 0.55 : 0"],
+            },
+            "surge": {
+                "position": [0, 14, 0],
+                "scale": [f"{t} < 3.5 ? 0 : math.min(2.6, 0.6 + ({t} - 3.5) * 0.25)", f"{t} < 3.5 ? 0 : math.min(1.8, 0.5 + ({t} - 3.5) * 0.12)", f"{t} < 3.5 ? 0 : math.min(2.6, 0.6 + ({t} - 3.5) * 0.25)"],
+            },
+        }),
+    }
+    write("cinematic", A, {})
+
+
+# ------------------------------------------------------------------------------ THE CHILDREN (cult)
+def cult():
+    """Trevor's gait and stance without his pack, plus a preacher's raised arms and garden work."""
+    base = {}
+    trevor_src = {}
+    import copy
+    trevor_src.update(ANIMS)
+    for k in ("idle", "walk", "run", "aim", "look_at_target"):
+        a = copy.deepcopy(trevor_src[f"animation.hollow.trevor.{k}"])
+        a["bones"].pop("pack", None)
+        base[f"animation.hollow.cult.{k}"] = a
+    base["animation.hollow.cult.preach"] = anim({
+        "right_arm": {"rotation": [f"-150 + {S(40, 8)}", 0, -12]},
+        "left_arm": {"rotation": [f"-150 + {S(40, 8, 90)}", 0, 12]},
+        "head": {"rotation": [-25, 0, 0]},
+        "torso": {"rotation": [-6, 0, 0]},
+    })
+    base["animation.hollow.cult.tend"] = anim({
+        "torso": {"rotation": [f"34 + {S(60, 4)}", 0, 0]},
+        "right_arm": {"rotation": [f"-40 + math.max(0, math.sin(query.anim_time * 200)) * 30", 0, 0]},
+        "left_arm": {"rotation": [-30, 0, 10]},
+        "head": {"rotation": [20, 0, 0]},
+        "right_leg": {"rotation": [-10, 0, 0]},
+        "left_leg": {"rotation": [10, 0, 0]},
+    }, length=1.8)
+    C = {
+        "controller.animation.hollow.cult.locomotion": ctrl("idle", {
+            "idle": {"animations": ["idle"], "transitions": [{"running": f"{Q}.modified_move_speed > 0.42"},
+                                                             {"walking": f"{Q}.modified_move_speed > 0.06"}], "blend_transition": 0.3},
+            "walking": {"animations": [{"walk": MOVE_WEIGHT}], "transitions": [{"running": f"{Q}.modified_move_speed > 0.46"},
+                                                                               {"idle": f"{Q}.modified_move_speed < 0.03"}], "blend_transition": 0.3},
+            "running": {"animations": ["run"], "transitions": [{"walking": f"{Q}.modified_move_speed < 0.38"}], "blend_transition": 0.25},
+        }),
+        "controller.animation.hollow.cult.combat": ctrl("calm", {
+            "calm": {"transitions": [{"aiming": "query.has_target"}]},
+            "aiming": {"animations": ["aim"], "transitions": [{"calm": "!query.has_target"}], "blend_transition": 0.2},
+        }),
+    }
+    write("cult", base, C)
+
+
 def main():
     watcher()
     borrowed()
@@ -647,6 +742,8 @@ def main():
     mirebound()
     trevor()
     crew()
+    cinematic()
+    cult()
     # syntax-check every Molang expression we just wrote
     from hollowkit.animpreview import check_all_molang
     check_all_molang(ANIMS)

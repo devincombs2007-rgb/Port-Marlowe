@@ -62,8 +62,71 @@
     "hollow_survival_hatchet": {
       "textures": "textures/items/hollow/survival_hatchet"
     },
+    "hollow_field_radio": {
+      "textures": "textures/items/hollow/field_radio"
+    },
     "hollow_broken_radio": {
       "textures": "textures/items/hollow/broken_radio"
+    },
+    "hollow_bolt_rifle": {
+      "textures": "textures/items/hollow/bolt_rifle"
+    },
+    "hollow_rifle_round": {
+      "textures": "textures/items/hollow/rifle_round"
+    },
+    "hollow_pump_shotgun": {
+      "textures": "textures/items/hollow/pump_shotgun"
+    },
+    "hollow_shotgun_shell": {
+      "textures": "textures/items/hollow/shotgun_shell"
+    },
+    "hollow_flare_gun": {
+      "textures": "textures/items/hollow/flare_gun"
+    },
+    "hollow_hazmat_hood": {
+      "textures": "textures/items/hollow/hazmat_hood"
+    },
+    "hollow_hazmat_suit": {
+      "textures": "textures/items/hollow/hazmat_suit"
+    },
+    "hollow_hazmat_trousers": {
+      "textures": "textures/items/hollow/hazmat_trousers"
+    },
+    "hollow_hazmat_boots": {
+      "textures": "textures/items/hollow/hazmat_boots"
+    },
+    "hollow_sample_kit": {
+      "textures": "textures/items/hollow/sample_kit"
+    },
+    "hollow_crater_water_sample": {
+      "textures": "textures/items/hollow/crater_water_sample"
+    },
+    "hollow_soil_sample": {
+      "textures": "textures/items/hollow/soil_sample"
+    },
+    "hollow_wood_sample": {
+      "textures": "textures/items/hollow/wood_sample"
+    },
+    "hollow_tissue_sample": {
+      "textures": "textures/items/hollow/tissue_sample"
+    },
+    "hollow_chelation_shot": {
+      "textures": "textures/items/hollow/chelation_shot"
+    },
+    "hollow_film_reel": {
+      "textures": "textures/items/hollow/film_reel"
+    },
+    "hollow_vacuum_tube": {
+      "textures": "textures/items/hollow/vacuum_tube"
+    },
+    "hollow_copper_wire": {
+      "textures": "textures/items/hollow/copper_wire"
+    },
+    "hollow_battery_bank": {
+      "textures": "textures/items/hollow/battery_bank"
+    },
+    "hollow_shrine_key": {
+      "textures": "textures/items/hollow/shrine_key"
     },
     "hollow_hollow_chime": {
       "textures": "textures/items/hollow/hollow_chime"

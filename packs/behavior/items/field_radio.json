@@ -1,0 +1,28 @@
+{
+  "format_version": "1.26.30",
+  "minecraft:item": {
+    "description": {
+      "identifier": "hollow:field_radio",
+      "menu_category": {
+        "category": "equipment"
+      }
+    },
+    "components": {
+      "minecraft:icon": {
+        "textures": {
+          "default": "hollow_field_radio"
+        }
+      },
+      "minecraft:display_name": {
+        "value": "item.hollow:field_radio.name"
+      },
+      "minecraft:max_stack_size": 1,
+      "minecraft:interact_button": "Call Trevor",
+      "hollow:field_radio": {},
+      "minecraft:cooldown": {
+        "category": "hollow_radio",
+        "duration": 1.0
+      }
+    }
+  }
+}

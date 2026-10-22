@@ -1,0 +1,28 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "hollow:mushroom_cloud",
+      "materials": {
+        "default": "entity_emissive_alpha"
+      },
+      "textures": {
+        "default": "textures/entity/hollow/mushroom_cloud"
+      },
+      "geometry": {
+        "default": "geometry.hollow.mushroom_cloud"
+      },
+      "animations": {
+        "bloom": "animation.hollow.mushroom_cloud.bloom"
+      },
+      "scripts": {
+        "animate": [
+          "bloom"
+        ]
+      },
+      "render_controllers": [
+        "controller.render.hollow.mushroom_cloud"
+      ]
+    }
+  }
+}

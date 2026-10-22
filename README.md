@@ -1,8 +1,9 @@
 # THE HOLLOW: Survival Horror
 
-> **2.0 — Varrow Island (phase 1 of 6):** a prebuilt island world: a 1957 nuclear test site,
-> a helicopter crash, Trevor Hale (one AI companion shared by everyone), radiation and a Geiger
-> counter, and a service pistol. See **[docs/VARROW_ISLAND.md](docs/VARROW_ISLAND.md)**.
+> **2.0 — Varrow Island:** a prebuilt island world: a 1957 nuclear test site and its opening
+> cinematic, a helicopter shot down, Trevor Hale (one AI companion shared by everyone, with a
+> job queue), the Children of the Second Sun, radiation, guns and a hazmat suit, the survey, the
+> Heart under the crater, and a way off the island. See **[docs/VARROW_ISLAND.md](docs/VARROW_ISLAND.md)**.
 > In any other world the add-on keeps the original forest story below.
 
 A survival-horror add-on for **Minecraft Bedrock Edition** that targets Xbox and Realms.

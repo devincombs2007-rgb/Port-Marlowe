@@ -1,0 +1,40 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "hollow:zealot",
+      "materials": {
+        "default": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/hollow/zealot"
+      },
+      "geometry": {
+        "default": "geometry.hollow.zealot"
+      },
+      "animations": {
+        "idle": "animation.hollow.cult.idle",
+        "walk": "animation.hollow.cult.walk",
+        "run": "animation.hollow.cult.run",
+        "look_at_target": "animation.hollow.cult.look_at_target",
+        "locomotion": "controller.animation.hollow.cult.locomotion",
+        "aim": "animation.hollow.cult.aim",
+        "combat": "controller.animation.hollow.cult.combat"
+      },
+      "scripts": {
+        "animate": [
+          "look_at_target",
+          "locomotion",
+          "combat"
+        ]
+      },
+      "render_controllers": [
+        "controller.render.hollow.armed"
+      ],
+      "spawn_egg": {
+        "base_color": "#c4c0b0",
+        "overlay_color": "#b8622c"
+      }
+    }
+  }
+}

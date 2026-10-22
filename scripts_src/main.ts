@@ -41,6 +41,12 @@ import { cancelJournalNotices, ensureJournal, forgetJournal, openJournal, unlock
 import { forgetNoise, startNoiseEvents } from "./systems/noise";
 import { forceSite, forgetSites, startSites } from "./systems/sites";
 import { forgetGuns, registerGearComponents } from "./island/guns";
+import { replayCinematic } from "./island/cinematic";
+import { jobSummary, startJobs } from "./island/jobs";
+import { startLeaves } from "./island/leaves";
+import { cultSummary, setStanding, startCult } from "./island/cult";
+import { registerSurveyComponents, startSurvey, surveySummary } from "./island/survey";
+import { forceRescue, startTower, towerSummary } from "./island/tower";
 import { detectIsland, isIsland, setIsland } from "./island/mode";
 import { forgetRadiation, radState, setDose, startRadiation } from "./island/radiation";
 import { giveIslandKit, onIslandSpawn, startStory, storySummary } from "./island/story";
@@ -50,6 +56,7 @@ system.beforeEvents.startup.subscribe((ev) => {
   registerItemComponents(ev);
   registerBlockComponents(ev);
   registerGearComponents(ev);
+  registerSurveyComponents(ev);
 });
 
 let started = false;
@@ -91,6 +98,11 @@ function init(): void {
   startHeart();
   startRadiation();
   startTrevor();
+  startJobs();
+  startLeaves();
+  startCult();
+  startSurvey();
+  startTower();
   startStory();
   later("sweep", 40, sweepLoaded);
   console.warn(`[hollow] THE HOLLOW initialised (day ${hollowDay()}).`);
@@ -265,9 +277,22 @@ function testCommand(p: Player, arg: string): string {
       return "Research Log, Geiger counter and pistol given";
     case "trevordown":
       return forceDown();
+    case "cinematic":
+      return replayCinematic(p);
+    case "rescue":
+      return forceRescue();
+    case "cultspawn": {
+      const at = p.location;
+      for (const t of [ENT.zealot, ENT.faithful, ENT.seer]) p.dimension.spawnEntity(t, { x: at.x + 3, y: at.y, z: at.z + 3 });
+      return "zealot, faithful and seer spawned";
+    }
     case "rad":
       return `dose ${Math.round(radState(p).dose)} mSv`;
     default:
+      if (arg.startsWith("standing")) {
+        const v = Number(arg.slice(8).trim());
+        return Number.isFinite(v) ? setStanding(v) : "usage: /scriptevent hollow:test standing <-100..100>";
+      }
       if (arg.startsWith("dose")) {
         const v = Number(arg.slice(4).trim());
         if (!Number.isFinite(v)) return "usage: /scriptevent hollow:test dose <0-3000>";
@@ -278,7 +303,7 @@ function testCommand(p: Player, arg: string): string {
         const v = Number(arg.slice(5).trim());
         return Number.isFinite(v) ? setDread(p, v) : "usage: /scriptevent hollow:test dread <0-100>";
       }
-      return "usage: /scriptevent hollow:test on|off|night|midnight|day|kit|journal|knocker|boss2|boss3|eye|lantern|roof|phantom|dread <0-100>|island|forest|islandkit|trevordown|rad|dose <mSv>";
+      return "usage: /scriptevent hollow:test on|off|night|midnight|day|kit|journal|knocker|boss2|boss3|eye|lantern|roof|phantom|dread <0-100>|island|forest|islandkit|trevordown|cinematic|cultspawn|standing <n>|rescue|rad|dose <mSv>";
   }
 }
 
@@ -308,7 +333,7 @@ system.afterEvents.scriptEventReceive.subscribe((ev) => safe("scriptevent", () =
       p.sendMessage(
         `§7[hollow] day ${hollowDay()} · watcher ${watcherCount()} · borrowed ${borrowedCount()} · hollowed ${hollowedCount()} · ` +
         `mirebound ${mireboundCount()} · knocker ${knockerActive() ? 1 : 0} · heart ${bossSummary()} · dread ${dreadSummary()} · ` +
-        `${storySummary()} · ${trevorSummary()} · failures: ${failureReport()}`,
+        `${storySummary()} · ${trevorSummary()} · ${jobSummary()} · ${cultSummary()} · ${surveySummary()} · ${towerSummary()} · failures: ${failureReport()}`,
       );
       return;
     case "hollow:debug":

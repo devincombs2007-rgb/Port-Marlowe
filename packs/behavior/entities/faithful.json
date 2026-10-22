@@ -1,0 +1,203 @@
+{
+  "format_version": "1.26.50",
+  "minecraft:entity": {
+    "description": {
+      "identifier": "hollow:faithful",
+      "is_spawnable": true,
+      "is_summonable": true,
+      "spawn_category": "creature"
+    },
+    "component_groups": {
+      "hollow:despawn": {
+        "minecraft:instant_despawn": {}
+      }
+    },
+    "components": {
+      "minecraft:type_family": {
+        "family": [
+          "cult",
+          "cult_peaceful",
+          "faithful",
+          "mob"
+        ]
+      },
+      "minecraft:health": {
+        "value": 18,
+        "max": 18
+      },
+      "minecraft:collision_box": {
+        "width": 0.6,
+        "height": 1.9
+      },
+      "minecraft:movement": {
+        "value": 0.24
+      },
+      "minecraft:navigation.walk": {
+        "can_path_over_water": false,
+        "can_swim": true,
+        "avoid_water": true,
+        "avoid_damage_blocks": true,
+        "can_open_doors": true,
+        "can_pass_doors": true
+      },
+      "minecraft:movement.basic": {},
+      "minecraft:jump.static": {},
+      "minecraft:can_climb": {},
+      "minecraft:physics": {},
+      "minecraft:nameable": {
+        "always_show": false,
+        "allow_name_tag_renaming": false
+      },
+      "minecraft:breathable": {
+        "total_supply": 15,
+        "suffocate_time": 0,
+        "breathes_air": true,
+        "breathes_water": false
+      },
+      "minecraft:behavior.float": {
+        "priority": 0
+      },
+      "minecraft:behavior.look_at_player": {
+        "priority": 7,
+        "look_distance": 8,
+        "probability": 0.03
+      },
+      "minecraft:behavior.random_look_around": {
+        "priority": 9
+      },
+      "minecraft:conditional_bandwidth_optimization": {},
+      "minecraft:damage_sensor": {
+        "triggers": [
+          {
+            "cause": "fall",
+            "damage_multiplier": 0.6
+          }
+        ]
+      },
+      "minecraft:interact": {
+        "interactions": [
+          {
+            "on_interact": {
+              "filters": {
+                "test": "is_family",
+                "subject": "other",
+                "value": "player"
+              },
+              "event": "hollow:talk",
+              "target": "self"
+            },
+            "interact_text": "action.interact.hollow.talk"
+          }
+        ]
+      },
+      "minecraft:behavior.panic": {
+        "priority": 1,
+        "speed_multiplier": 1.3
+      },
+      "minecraft:behavior.avoid_mob_type": {
+        "priority": 2,
+        "max_dist": 10,
+        "max_flee": 16,
+        "walk_speed_multiplier": 1.1,
+        "sprint_speed_multiplier": 1.3,
+        "entity_types": [
+          {
+            "filters": {
+              "all_of": [
+                {
+                  "test": "is_family",
+                  "subject": "other",
+                  "value": "player"
+                },
+                {
+                  "any_of": [
+                    {
+                      "test": "has_equipment",
+                      "subject": "other",
+                      "domain": "hand",
+                      "value": "hollow:service_pistol"
+                    },
+                    {
+                      "test": "has_equipment",
+                      "subject": "other",
+                      "domain": "hand",
+                      "value": "hollow:bolt_rifle"
+                    },
+                    {
+                      "test": "has_equipment",
+                      "subject": "other",
+                      "domain": "hand",
+                      "value": "hollow:pump_shotgun"
+                    },
+                    {
+                      "test": "has_equipment",
+                      "subject": "other",
+                      "domain": "hand",
+                      "value": "minecraft:iron_sword"
+                    },
+                    {
+                      "test": "has_equipment",
+                      "subject": "other",
+                      "domain": "hand",
+                      "value": "minecraft:diamond_sword"
+                    },
+                    {
+                      "test": "has_equipment",
+                      "subject": "other",
+                      "domain": "hand",
+                      "value": "minecraft:netherite_sword"
+                    },
+                    {
+                      "test": "has_equipment",
+                      "subject": "other",
+                      "domain": "hand",
+                      "value": "minecraft:bow"
+                    },
+                    {
+                      "test": "has_equipment",
+                      "subject": "other",
+                      "domain": "hand",
+                      "value": "minecraft:crossbow"
+                    },
+                    {
+                      "test": "has_equipment",
+                      "subject": "other",
+                      "domain": "hand",
+                      "value": "hollow:survival_hatchet"
+                    }
+                  ]
+                }
+              ]
+            },
+            "max_dist": 8
+          }
+        ]
+      },
+      "minecraft:behavior.random_stroll": {
+        "priority": 7,
+        "speed_multiplier": 0.6
+      },
+      "minecraft:persistent": {},
+      "minecraft:home": {
+        "restriction_radius": 22
+      },
+      "minecraft:behavior.move_towards_home_restriction": {
+        "priority": 5,
+        "speed_multiplier": 0.7
+      },
+      "minecraft:loot": {
+        "table": "loot_tables/hollow/faithful.json"
+      }
+    },
+    "events": {
+      "hollow:talk": {},
+      "hollow:despawn": {
+        "add": {
+          "component_groups": [
+            "hollow:despawn"
+          ]
+        }
+      }
+    }
+  }
+}

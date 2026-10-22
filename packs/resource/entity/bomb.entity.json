@@ -1,0 +1,28 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "hollow:bomb",
+      "materials": {
+        "default": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/hollow/bomb"
+      },
+      "geometry": {
+        "default": "geometry.hollow.bomb"
+      },
+      "animations": {
+        "wobble": "animation.hollow.bomb.wobble"
+      },
+      "scripts": {
+        "animate": [
+          "wobble"
+        ]
+      },
+      "render_controllers": [
+        "controller.render.hollow.default"
+      ]
+    }
+  }
+}

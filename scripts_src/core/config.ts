@@ -33,6 +33,8 @@ export interface WorldSettings {
   /** Varrow Island: when Trevor falls and nobody helps him up in time, he is gone for good
    * (on) or limps back to camp at the next dawn (off, the default). */
   trevorPermadeath: boolean;
+  /** Varrow Island: the Children of the Second Sun (villages, patrols, standing). */
+  cult: boolean;
 }
 
 export const WORLD_DEFAULTS: WorldSettings = {
@@ -52,6 +54,7 @@ export const WORLD_DEFAULTS: WorldSettings = {
   rareEvents: true,
   dread: true,
   trevorPermadeath: false,
+  cult: true,
 };
 
 /** Per-player comfort preferences. Every player can change their own. */
@@ -114,7 +117,7 @@ function sanitizeWorld(s: WorldSettings): WorldSettings {
   out.graceDays = numberSetting(s.graceDays, out.graceDays, 0, 10);
   out.knockerNight = numberSetting(s.knockerNight, out.knockerNight, 1, 20);
   for (const key of ["watcher", "borrowed", "hollowed", "knocker", "mirebound", "destructive",
-    "sleepDisturbance", "sites", "bossScaling", "rareEvents", "dread", "trevorPermadeath"] as const) {
+    "sleepDisturbance", "sites", "bossScaling", "rareEvents", "dread", "trevorPermadeath", "cult"] as const) {
     if (typeof s[key] === "boolean") out[key] = s[key];
   }
   return out;

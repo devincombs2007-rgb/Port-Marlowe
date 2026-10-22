@@ -199,11 +199,14 @@ class World:
             recs[base + b"\x31"] = b"".join(nbt.dumps(b) for b in bes)
         return recs
 
-    def save_db(self, db_dir):
+    def save_db(self, db_dir, fresh=True):
+        """Write this region's chunks. fresh=False adds them to an existing database (a second
+        region of the same world)."""
         import leveldb
-        if os.path.isdir(db_dir):
-            shutil.rmtree(db_dir)
-        os.makedirs(db_dir)
+        if fresh:
+            if os.path.isdir(db_dir):
+                shutil.rmtree(db_dir)
+            os.makedirs(db_dir)
         if self.wet:
             self._water_id()
         self._pal_bytes = [blocks.palette_bytes(c) for c in self.palette]

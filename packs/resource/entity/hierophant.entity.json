@@ -1,0 +1,44 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "hollow:hierophant",
+      "materials": {
+        "default": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/hollow/hierophant"
+      },
+      "geometry": {
+        "default": "geometry.hollow.hierophant"
+      },
+      "animations": {
+        "idle": "animation.hollow.cult.idle",
+        "walk": "animation.hollow.cult.walk",
+        "run": "animation.hollow.cult.run",
+        "look_at_target": "animation.hollow.cult.look_at_target",
+        "locomotion": "controller.animation.hollow.cult.locomotion",
+        "aim": "animation.hollow.cult.aim",
+        "combat": "controller.animation.hollow.cult.combat",
+        "preach": "animation.hollow.cult.preach"
+      },
+      "scripts": {
+        "animate": [
+          "look_at_target",
+          "locomotion",
+          "combat",
+          {
+            "preach": "!query.has_target && math.mod(query.life_time, 24.0) < 6.0"
+          }
+        ]
+      },
+      "render_controllers": [
+        "controller.render.hollow.armed"
+      ],
+      "spawn_egg": {
+        "base_color": "#c4c0b0",
+        "overlay_color": "#b8622c"
+      }
+    }
+  }
+}

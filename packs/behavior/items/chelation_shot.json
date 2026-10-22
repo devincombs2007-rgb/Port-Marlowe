@@ -1,0 +1,33 @@
+{
+  "format_version": "1.26.30",
+  "minecraft:item": {
+    "description": {
+      "identifier": "hollow:chelation_shot",
+      "menu_category": {
+        "category": "items"
+      }
+    },
+    "components": {
+      "minecraft:icon": {
+        "textures": {
+          "default": "hollow_chelation_shot"
+        }
+      },
+      "minecraft:display_name": {
+        "value": "item.hollow:chelation_shot.name"
+      },
+      "minecraft:max_stack_size": 4,
+      "hollow:chelation": {},
+      "minecraft:food": {
+        "nutrition": 0,
+        "saturation_modifier": 0,
+        "can_always_eat": true
+      },
+      "minecraft:use_animation": "none",
+      "minecraft:use_modifiers": {
+        "use_duration": 1.4,
+        "movement_modifier": 0.3
+      }
+    }
+  }
+}

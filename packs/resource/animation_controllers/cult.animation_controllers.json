@@ -1,0 +1,74 @@
+{
+  "format_version": "1.10.0",
+  "animation_controllers": {
+    "controller.animation.hollow.cult.locomotion": {
+      "initial_state": "idle",
+      "states": {
+        "idle": {
+          "animations": [
+            "idle"
+          ],
+          "transitions": [
+            {
+              "running": "query.modified_move_speed > 0.42"
+            },
+            {
+              "walking": "query.modified_move_speed > 0.06"
+            }
+          ],
+          "blend_transition": 0.3
+        },
+        "walking": {
+          "animations": [
+            {
+              "walk": "math.clamp(query.modified_move_speed * 5.0, 0.0, 1.0)"
+            }
+          ],
+          "transitions": [
+            {
+              "running": "query.modified_move_speed > 0.46"
+            },
+            {
+              "idle": "query.modified_move_speed < 0.03"
+            }
+          ],
+          "blend_transition": 0.3
+        },
+        "running": {
+          "animations": [
+            "run"
+          ],
+          "transitions": [
+            {
+              "walking": "query.modified_move_speed < 0.38"
+            }
+          ],
+          "blend_transition": 0.25
+        }
+      }
+    },
+    "controller.animation.hollow.cult.combat": {
+      "initial_state": "calm",
+      "states": {
+        "calm": {
+          "transitions": [
+            {
+              "aiming": "query.has_target"
+            }
+          ]
+        },
+        "aiming": {
+          "animations": [
+            "aim"
+          ],
+          "transitions": [
+            {
+              "calm": "!query.has_target"
+            }
+          ],
+          "blend_transition": 0.2
+        }
+      }
+    }
+  }
+}

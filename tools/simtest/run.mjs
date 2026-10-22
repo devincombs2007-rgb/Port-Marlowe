@@ -2007,6 +2007,7 @@ function islandWorld(seed = 1) {
 }
 const atSpawn = () => ({ x: L_SPAWN.x + 0.5, y: 64, z: L_SPAWN.z + 0.5 });
 const has = (p, id) => p._inv.count(id) > 0;
+const OPEN = 2100; // the opening cinematic (~1330 ticks) and the wake-up (~640)
 const chat = (p) => p._log.filter((l) => l.startsWith("[chat]")).join("\n");
 
 await test("island: the crash site is recognised; crates stocked, crew laid, Trevor on his feet", () => {
@@ -2025,7 +2026,7 @@ await test("island: the crash site is recognised; crates stocked, crew laid, Tre
 await test("island: the wake-up plays once, gives the kit and the contract, and Trevor follows you", () => {
   const sim = islandWorld();
   const p = sim.addPlayer("Alex", atSpawn());
-  sim.tick(800);
+  sim.tick(OPEN);
   assert(p._log.some((l) => l.startsWith("[title] §lVARROW ISLAND")), "title card");
   assert(p._log.includes("[fade]"), "fade from black");
   for (const id of ["hollow:research_log", "hollow:geiger_counter", "hollow:service_pistol"]) assert(has(p, id), `kit ${id}`);
@@ -2038,7 +2039,7 @@ await test("island: the wake-up plays once, gives the kit and the contract, and 
   // rejoining never repeats the scene or duplicates the kit
   sim.removePlayer(p);
   sim.addPlayer("Alex", atSpawn());
-  sim.tick(800);
+  sim.tick(OPEN);
   eq(p._inv.count("hollow:geiger_counter"), 1, "one Geiger");
   eq(p._log.filter((l) => l.startsWith("[title] §lVARROW")).length, 1, "title once");
   noErrors(sim);
@@ -2047,7 +2048,7 @@ await test("island: the wake-up plays once, gives the kit and the contract, and 
 await test("island: a later arrival gets the short wake-up and their own kit; restart keeps one Trevor", () => {
   const sim = islandWorld();
   sim.addPlayer("Alex", atSpawn());
-  sim.tick(800);
+  sim.tick(OPEN);
   const b = sim.addPlayer("Sam", atSpawn());
   sim.tick(300);
   assert(!b._log.some((l) => l.startsWith("[title] §lVARROW")), "no long title for a late arrival");
@@ -2066,7 +2067,7 @@ await test("island: recognised even when the crash site was not loaded at the mo
   const p = sim.addPlayer("Alex", atSpawn());
   sim.tick(10);
   ready = true;
-  sim.tick(800);
+  sim.tick(OPEN);
   eq(sim.world.getDynamicProperty("hollow:island"), 1, "island flag");
   assert(has(p, "hollow:research_log") && !has(p, "hollow:field_journal"), "island kit, not the forest journal");
   noErrors(sim);
@@ -2075,7 +2076,7 @@ await test("island: recognised even when the crash site was not loaded at the mo
 await test("island: an ordinary world keeps the forest story (no Trevor, Field Journal)", () => {
   const sim = newWorld();
   const p = sim.addPlayer("Alex");
-  sim.tick(800);
+  sim.tick(OPEN);
   eq(sim.world.getDynamicProperty("hollow:island"), undefined, "not the island");
   eq(count(sim, "hollow:trevor"), 0, "no Trevor");
   eq(p._inv.count("hollow:field_journal"), 1, "Field Journal");
@@ -2086,7 +2087,7 @@ await test("island: an ordinary world keeps the forest story (no Trevor, Field J
 await test("radiation: dose builds at Ground Zero, the green water poisons, distance and time bring it down", () => {
   const sim = islandWorld();
   const p = sim.addPlayer("Alex", atSpawn());
-  sim.tick(800);
+  sim.tick(OPEN);
   const dose = () => Number(JSON.parse(p.getDynamicProperty("hollow:rad") ?? '{"dose":0}').dose);
   p.teleport({ x: GZ.x, y: 64, z: GZ.z });
   sim.tick(20 * 60);
@@ -2122,7 +2123,7 @@ await test("radiation: dose builds at Ground Zero, the green water poisons, dist
 await test("radiation: severe dose brings sickness; iodine halves uptake; nothing happens off the island", () => {
   const sim = islandWorld();
   const p = sim.addPlayer("Alex", atSpawn());
-  sim.tick(800);
+  sim.tick(OPEN);
   sim.fire("scriptEventReceive", { id: "hollow:test", message: "dose 1100", sourceEntity: p });
   p._effects = [];
   sim.tick(20 * 25);
@@ -2150,10 +2151,10 @@ await test("radiation: severe dose brings sickness; iodine halves uptake; nothin
 await test("pistol: seven shots that hurt, a dry click, sneak-reload from rounds, every shot heard", () => {
   const sim = islandWorld();
   const p = sim.addPlayer("Alex", atSpawn());
-  sim.tick(800);
+  sim.tick(OPEN);
   p.selectedSlotIndex = p._inv.slots.findIndex((x) => x?.typeId === "hollow:service_pistol");
   p.setRotation({ x: 0, y: 0 });
-  const target = sim.overworld.spawnEntity("hollow:hollowed", { x: p.location.x, y: 64, z: p.location.z + 8 });
+  const target = sim.overworld.spawnEntity("hollow:hollowed", { x: p.location.x, y: p.location.y, z: p.location.z + 8 });
   const hp0 = target.getComponent("minecraft:health").currentValue;
   sim.worldSounds = [];
   sim.useItem(p);
@@ -2186,7 +2187,7 @@ await test("pistol: seven shots that hurt, a dry click, sneak-reload from rounds
 await test("trevor: goes down instead of dying; standing beside him brings him round", () => {
   const sim = islandWorld();
   const p = sim.addPlayer("Alex", atSpawn());
-  sim.tick(800);
+  sim.tick(OPEN);
   const t = sim.overworld.getEntities({ type: "hollow:trevor" })[0];
   t.triggerEvent("hollow:down");
   sim.fire("dataDrivenEntityTrigger", { entity: t, eventId: "hollow:down" });
@@ -2204,7 +2205,7 @@ await test("trevor: goes down instead of dying; standing beside him brings him r
 await test("trevor: nobody comes - he limps back at dawn; with permanent death on he is gone for good", () => {
   const sim = islandWorld();
   const p = sim.addPlayer("Alex", atSpawn());
-  sim.tick(800);
+  sim.tick(OPEN);
   let t = sim.overworld.getEntities({ type: "hollow:trevor" })[0];
   t.triggerEvent("hollow:down");
   sim.fire("dataDrivenEntityTrigger", { entity: t, eventId: "hollow:down" });
@@ -2233,7 +2234,7 @@ await test("trevor: nobody comes - he limps back at dawn; with permanent death o
 await test("trevor: anyone can order him; he patches up the badly hurt and won't follow into the crater", async () => {
   const sim = islandWorld();
   const a = sim.addPlayer("Alex", atSpawn());
-  sim.tick(800);
+  sim.tick(OPEN);
   const b = sim.addPlayer("Sam", atSpawn());
   sim.tick(300);
   const t = sim.overworld.getEntities({ type: "hollow:trevor" })[0];
@@ -2274,7 +2275,7 @@ await test("trevor: anyone can order him; he patches up the badly hurt and won't
 await test("island: searching the crew gives their notes once; the forest cabins never appear", () => {
   const sim = islandWorld();
   const p = sim.addPlayer("Alex", atSpawn());
-  sim.tick(800);
+  sim.tick(OPEN);
   const bodies = sim.overworld.getEntities({ type: "hollow:crew_body" });
   const rounds = p._inv.count("hollow:pistol_round");
   for (const b of bodies) sim.fire("playerInteractWithEntity", { player: p, target: b });
@@ -2289,6 +2290,350 @@ await test("island: searching the crew gives their notes once; the forest cabins
   }
   const sites = JSON.parse(sim.world.getDynamicProperty("hollow:sites") ?? "[]");
   eq(sites.length, 0, "no forest sites placed on the island");
+  noErrors(sim);
+});
+
+await test("cinematic: the first arrival triggers 1957 and the shoot-down for everyone, once", () => {
+  const sim = islandWorld();
+  const a = sim.addPlayer("Alex", atSpawn());
+  sim.tick(10);
+  const b = sim.addPlayer("Sam", atSpawn());
+  sim.tick(60);
+  for (const p of [a, b]) {
+    eq(p.getGameMode(), "Spectator", `${p.name} watching`);
+    eq(p._hud, "hidden", "HUD hidden");
+    assert(p._log.some((l) => l.includes("7 MAY 1957")), "1957 title");
+  }
+  sim.tick(400);
+  assert(sim.spawnLog.includes("hollow:bomber") && sim.spawnLog.includes("hollow:bomb"), "bomber and bomb");
+  assert(a._camShots > 5, "camera shots");
+  sim.tick(200);
+  assert(sim.spawnLog.includes("hollow:mushroom_cloud"), "airburst");
+  assert(a._log.some((l) => l.includes("[shake]")), "the boom shakes the camera");
+  sim.tick(500);
+  assert(sim.spawnLog.includes("hollow:helicopter"), "the helicopter");
+  assert(a._log.some((l) => l.includes("Taking fire")), "shot down");
+  sim.tick(300);
+  for (const p of [a, b]) {
+    eq(p.getGameMode(), "Survival", `${p.name} back in survival`);
+    eq(p._camera, undefined, "camera released");
+    assert(Math.abs(p.location.z - L_SPAWN.z) < 3, "back at the beach");
+  }
+  eq(sim.world.getDynamicProperty("hollow:cine_done"), 1, "done");
+  eq(sim.overworld.getEntities({ families: ["cinematic"] }).length, 0, "props cleared");
+  sim.tick(800);
+  for (const p of [a, b]) assert(has(p, "hollow:geiger_counter"), `${p.name} woke with their kit`);
+  // it never plays again
+  const c = sim.addPlayer("Kai", atSpawn());
+  sim.tick(60);
+  eq(c.getGameMode(), "Survival", "late arrival does not see it");
+  noErrors(sim);
+});
+
+await test("cinematic: hold sneak to skip; quitting mid-scene restores you on return", () => {
+  const sim = islandWorld();
+  const a = sim.addPlayer("Alex", atSpawn());
+  const b = sim.addPlayer("Sam", atSpawn());
+  sim.tick(120);
+  a.isSneaking = true;
+  sim.tick(25);
+  a.isSneaking = false;
+  eq(a.getGameMode(), "Survival", "Alex skipped");
+  eq(b.getGameMode(), "Spectator", "Sam still watching");
+  sim.removePlayer(b);
+  sim.tick(60);
+  sim.addPlayer("Sam", atSpawn());
+  sim.tick(2200);
+  eq(b.getGameMode(), "Survival", "Sam restored after rejoining");
+  assert(has(b, "hollow:geiger_counter") && has(a, "hollow:geiger_counter"), "both woke");
+  eq(sim.overworld.getEntities({ families: ["cinematic"] }).length, 0, "no props left behind");
+  noErrors(sim);
+});
+
+// =============================================================================== Trevor's jobs (phase 3)
+function trevorOf(sim) {
+  return sim.overworld.getEntities({ type: "hollow:trevor" })[0];
+}
+async function order(sim, p, ...selections) {
+  for (const sel of selections) p._ui.push({ canceled: false, selection: sel });
+  sim.fire("playerInteractWithEntity", { player: p, target: trevorOf(sim) });
+  for (let i = 0; i < selections.length + 1; i++) await flush();
+  sim.tick(2);
+}
+function plantTree(sim, x, z) {
+  for (let y = 64; y < 69; y++) sim.overworld.setBlock({ x, y, z }, "minecraft:oak_log");
+  for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) for (let y = 67; y < 70; y++) {
+    if (dx || dz || y > 68) sim.overworld.setBlock({ x: x + dx, y, z: z + dz }, "minecraft:oak_leaves");
+  }
+}
+const crate = (sim) => {
+  const j = JSON.parse(sim.world.getDynamicProperty("hollow:jobs"));
+  return j.camp ? sim.overworld.getBlock(j.camp).getComponent("minecraft:inventory")?.container : undefined;
+};
+
+await test("jobs: make camp, chop a tree, logs stacked in the camp crate", async () => {
+  const sim = islandWorld();
+  const p = sim.addPlayer("Alex", atSpawn());
+  sim.tick(OPEN);
+  const base = { x: Math.floor(p.location.x) + 4, y: 63, z: Math.floor(p.location.z) };
+  p.lookAt({ x: base.x + 0.5, y: 63.5, z: base.z + 0.5 });
+  await order(sim, p, 3);                        // Make camp here
+  sim.tick(700);
+  const c = crate(sim);
+  assert(c, "camp crate placed");
+  plantTree(sim, base.x + 6, base.z + 4);
+  p.lookAt({ x: base.x + 6.5, y: 63.5, z: base.z + 3.5 });
+  await order(sim, p, 4);                        // Chop trees there
+  sim.tick(2600);
+  assert(c.count("minecraft:oak_log") >= 5, `logs in the crate (${c.count("minecraft:oak_log")})`);
+  eq(sim.overworld.getBlock({ x: base.x + 6, y: 65, z: base.z + 4 }).typeId, "minecraft:air", "the tree is gone");
+  eq(sim.overworld.getBlock({ x: base.x + 7, y: 68, z: base.z + 4 }).typeId, "minecraft:air", "and its leaves");
+  assert(/Logs are in the crate|trees I've cut/.test(chat(p)), "reports back");
+  noErrors(sim);
+});
+
+await test("jobs: building a cabin takes forty logs from the crate and raises it block by block", async () => {
+  const sim = islandWorld();
+  const p = sim.addPlayer("Alex", atSpawn());
+  sim.tick(OPEN);
+  p.lookAt({ x: p.location.x + 4.5, y: 63.5, z: p.location.z + 0.5 });
+  await order(sim, p, 3);
+  sim.tick(700);
+  const c = crate(sim);
+  // not enough logs: he says so and drops the job
+  p.lookAt({ x: p.location.x + 10.5, y: 63.5, z: p.location.z + 8.5 });
+  await order(sim, p, 7, 1);
+  sim.tick(40);
+  assert(/40 logs/.test(chat(p)), "asks for logs");
+  c.addItem(new (sim.exports().ItemStack)("minecraft:spruce_log", 64));
+  await order(sim, p, 7, 1);
+  sim.tick(3000);
+  eq(c.count("minecraft:spruce_log"), 24, "forty logs used");
+  const site = JSON.parse(sim.world.getDynamicProperty("hollow:jobs")).stats.built;
+  eq(site, 1, "one building finished");
+  const placed = [...sim.overworld._blocks.values()].filter((b) => b.perm.type.id === "minecraft:oak_planks").length;
+  assert(placed > 60, `planks placed (${placed})`);
+  noErrors(sim);
+});
+
+await test("jobs: orders from different players run first come first served; cancel drops only your own", async () => {
+  const sim = islandWorld();
+  const a = sim.addPlayer("Alex", atSpawn());
+  sim.tick(OPEN);
+  const b = sim.addPlayer("Sam", atSpawn());
+  sim.tick(300);
+  a.lookAt({ x: a.location.x + 6.5, y: 63.5, z: a.location.z + 0.5 });
+  await order(sim, a, 2);                        // go there
+  await order(sim, b, 8);                        // light a fire
+  await order(sim, a, 9);                        // collect
+  const j = () => JSON.parse(sim.world.getDynamicProperty("hollow:jobs"));
+  eq(j().queue.length + (j().cur ? 1 : 0), 3, "three orders");
+  assert(/2 jobs ahead/.test(chat(b)) || /jobs ahead/.test(chat(a)), "says how many are ahead");
+  await order(sim, a, 12);                       // cancel my orders (index 12 when not beside him? see menu)
+  const left = j().queue.concat(j().cur ? [j().cur.order] : []);
+  assert(left.every((o) => o.byName === "Sam"), "only Sam's order remains");
+  sim.tick(1200);
+  assert([...sim.overworld._blocks.values()].some((x) => x.perm.type.id === "minecraft:campfire"), "Sam's fire got lit");
+  noErrors(sim);
+});
+
+await test("jobs: the field radio orders him from anywhere; cut logs drop their leaves on the island", async () => {
+  const sim = islandWorld();
+  const p = sim.addPlayer("Alex", atSpawn());
+  sim.tick(OPEN);
+  p.teleport({ x: p.location.x + 200, y: 64, z: p.location.z });
+  p.hold("hollow:field_radio");
+  p._ui.push({ canceled: false, selection: 1 });   // hold here
+  sim.useItem(p);
+  sim.tick(2);
+  for (let i = 0; i < 3; i++) await flush();
+  sim.tick(20);
+  eq(trevorOf(sim).getProperty("hollow:state"), "hold", "holding on the radio's say-so");
+  assert((p._shownForms ?? []).some((f) => f._title.includes("Field radio")), "radio menu");
+  // leaf decay after cutting a log by hand
+  const t = { x: Math.floor(p.location.x) + 3, z: Math.floor(p.location.z) + 3 };
+  plantTree(sim, t.x, t.z);
+  for (let y = 64; y < 69; y++) {
+    const blk = sim.overworld.getBlock({ x: t.x, y, z: t.z });
+    const perm = blk.permutation;
+    sim.overworld._set(blk.location, new (sim.exports().BlockPermutation)("minecraft:air"));
+    sim.fire("playerBreakBlock", { player: p, block: blk, dimension: sim.overworld, brokenBlockPermutation: perm });
+  }
+  sim.tick(200);
+  const leaves = [...sim.overworld._blocks.values()].filter((b) => b.perm.type.id === "minecraft:oak_leaves").length;
+  eq(leaves, 0, "the canopy fell");
+  noErrors(sim);
+});
+
+
+// ------------------------------------------------------------------------------- phases 4-6
+const layoutJson = (name) => JSON.parse(LAYOUT_TS.match(new RegExp(`export const ${name}[^=]*= (.*);`))[1]);
+const L_POINTS = layoutJson("POINTS");
+const L_CONSOLES = layoutJson("CONSOLES");
+const L_LOOT = layoutJson("LOOT_CONTAINERS");
+const L_SITES = { SUNFALL: { x: -150, z: -178 }, DOCK: { x: 192, z: 258 } };
+const statusOf = (sim, p) => {
+  p._log = [];
+  sim.fire("scriptEventReceive", { id: "hollow:status", message: "", sourceEntity: p });
+  return p._log.join("\n");
+};
+const ofType = (sim, t) => [...sim.overworld._entities.values()].filter((e) => e.isValid && e.typeId === t);
+const press = (sim, p, key) => {
+  const c = L_CONSOLES[key];
+  sim.fire("buttonPush", { source: p, block: sim.overworld.getBlock(c), dimension: sim.overworld });
+};
+const lootAt = (key) => L_LOOT.find((c) => c.loot === key);
+
+await test("cult: Sunfall fills when you come near; gifts raise standing; killing the Faithful is never forgotten", async () => {
+  const sim = islandWorld();
+  const p = sim.addPlayer("Alex", atSpawn());
+  sim.tick(OPEN);
+  p.teleport({ x: L_SITES.SUNFALL.x + 0.5, y: 64, z: L_SITES.SUNFALL.z + 30.5 });
+  sim.tick(500);
+  const faithful = ofType(sim, "hollow:faithful");
+  assert(faithful.length >= 4, `faithful at home (${faithful.length})`);
+  eq(ofType(sim, "hollow:hierophant").length, 1, "the Hierophant at his shrine");
+  assert(ofType(sim, "hollow:zealot").length >= 3, "guards");
+  assert(statusOf(sim, p).includes("standing=0"), "neutral to start");
+  p.hold("minecraft:bread");
+  sim.fire("playerInteractWithEntity", { player: p, target: faithful[0] });
+  await flush();
+  assert(statusOf(sim, p).includes("standing=4"), "a gift is remembered");
+  // armed: they won't talk
+  p.hold("hollow:service_pistol");
+  sim.fire("playerInteractWithEntity", { player: p, target: faithful[1] });
+  await flush();
+  assert(chat(p).includes("Put that away") || p._log.join().includes("Put that away"), "refuses an armed visitor");
+  sim.damage(faithful[2], 999, p);
+  sim.tick(2);
+  assert(statusOf(sim, p).includes("standing=-21"), `a killing costs 25: ${statusOf(sim, p).match(/cult:[^·]*/)}`);
+  assert(journal(p).includes("cult1") && journal(p).includes("cult_faithful"), "journal entries");
+  noErrors(sim);
+});
+
+await test("cult: offerings in the shrine barrel, the Hierophant's key opens the vault; his death turns everyone", async () => {
+  const sim = islandWorld();
+  const p = sim.addPlayer("Alex", atSpawn());
+  sim.tick(OPEN);
+  const barrel = lootAt("shrine_offerings");
+  sim.overworld.setBlock(barrel, "minecraft:barrel");
+  const shrine = L_POINTS.shrine[0];
+  p.teleport({ x: shrine.x + 2.5, y: 64, z: shrine.z + 2.5 });
+  sim.tick(100);
+  const c = sim.overworld.getBlock(barrel).getComponent("minecraft:inventory").container;
+  c.addItem(new (sim.exports().ItemStack)("hollow:offering_of_silence", 1));
+  sim.tick(220);
+  assert(statusOf(sim, p).includes("standing=15"), "the offering is taken");
+  const shaft = L_POINTS.vault_shaft[0];
+  sim.overworld.setBlock(shaft, "minecraft:polished_blackstone");
+  p.hold("hollow:shrine_key");
+  sim.useItem(p);
+  sim.tick(2);
+  eq(sim.overworld.getBlock(shaft).typeId, "minecraft:ladder", "the shaft opens");
+  assert(journal(p).includes("ledger"), "the ledger");
+  assert(!has(p, "hollow:shrine_key"), "key used up");
+  const h = ofType(sim, "hollow:hierophant")[0] ?? sim.overworld.spawnEntity("hollow:hierophant", { x: shrine.x, y: 64, z: shrine.z + 4 });
+  sim.damage(h, 999, p);
+  sim.tick(2);
+  assert(statusOf(sim, p).includes("standing=-100") && statusOf(sim, p).includes("hierophant=dead"), "never forgiven");
+  noErrors(sim);
+});
+
+await test("survey: stations log with a counter; containers stock on approach; samples file; reels play", async () => {
+  const sim = islandWorld();
+  const p = sim.addPlayer("Alex", atSpawn());
+  sim.tick(OPEN);
+  const c1 = L_CONSOLES.station1;
+  p.teleport({ x: c1.x + 1.5, y: 64, z: c1.z + 1.5 });
+  press(sim, p, "station1");
+  assert(journal(p).includes("station1") && journal(p).includes("survey"), "station entry");
+  assert(statusOf(sim, p).includes("stations=1/6"), "logged once");
+  press(sim, p, "station1");
+  assert(statusOf(sim, p).includes("stations=1/6"), "not twice");
+  // the armoury stocks when someone comes near
+  const arm = lootAt("bunker1_armory");
+  sim.overworld.setBlock(arm, "minecraft:chest");
+  p.teleport({ x: arm.x + 0.5, y: 64, z: arm.z + 3.5 });
+  sim.tick(80);
+  const box = sim.overworld.getBlock(arm).getComponent("minecraft:inventory").container;
+  let ids = [];
+  for (let i = 0; i < box.size; i++) if (box.getItem(i)) ids.push(box.getItem(i).typeId);
+  assert(ids.includes("hollow:bolt_rifle") && ids.includes("hollow:hazmat_suit"), `armoury stocked (${ids})`);
+  sim.tick(80);
+  let n = 0;
+  for (let i = 0; i < box.size; i++) if (box.getItem(i)?.typeId === "hollow:bolt_rifle") n += box.getItem(i).amount;
+  eq(n, 1, "stocked once");
+  // a soil sample on the blast plain, then filed
+  p.teleport({ x: GZ.x + 60.5, y: 64, z: GZ.z + 0.5 });
+  sim.overworld.setBlock({ x: GZ.x + 60, y: 63, z: GZ.z }, "minecraft:sand");
+  p.lookAt({ x: GZ.x + 60.5, y: 63.5, z: GZ.z + 0.5 });
+  p.hold("hollow:sample_kit");
+  sim.useItem(p);
+  sim.tick(2);
+  assert(has(p, "hollow:soil_sample"), `soil sample taken: ${p._log.slice(-3)} ${JSON.stringify(p.getBlockFromViewDirection({ maxDistance: 5 })?.block?.typeId)}`);
+  p.hold("hollow:soil_sample");
+  sim.useItem(p);
+  sim.tick(2);
+  assert(!has(p, "hollow:soil_sample") && journal(p).includes("sample_soil"), "filed");
+  assert(statusOf(sim, p).includes("samples=soil"), "survey knows");
+  // a reel
+  const reel = new (sim.exports().ItemStack)("hollow:film_reel", 1);
+  reel.setDynamicProperty("hollow:reel", 4);
+  p._inv.setItem(p.selectedSlotIndex, reel);
+  p._ui.push({ canceled: false, selection: 0 });
+  sim.useItem(p);
+  sim.tick(2);
+  for (let i = 0; i < 3; i++) await flush();
+  assert((p._shownForms ?? []).some((f) => f._title.includes("Reel 4")), "the film plays");
+  assert(journal(p).includes("reel4"), "reel entry");
+  noErrors(sim);
+});
+
+await test("tower: fuel and parts, transmit, a night under siege, the dawn helicopter and the ending", async () => {
+  const sim = islandWorld();
+  const p = sim.addPlayer("Alex", atSpawn());
+  sim.tick(OPEN);
+  const IS = sim.exports().ItemStack;
+  const g = L_CONSOLES.generator;
+  p.teleport({ x: g.x + 1.5, y: 64, z: g.z + 1.5 });
+  press(sim, p, "generator");
+  assert(statusOf(sim, p).includes("gen=false"), "no fuel, no power");
+  p._inv.addItem(new IS("minecraft:coal", 10));
+  press(sim, p, "generator");
+  assert(statusOf(sim, p).includes("gen=true"), "running");
+  eq(p._inv.count("minecraft:coal"), 2, "eight burned");
+  p._inv.addItem(new IS("hollow:vacuum_tube", 2));
+  p._inv.addItem(new IS("hollow:copper_wire", 5));
+  p._inv.addItem(new IS("hollow:battery_bank", 1));
+  p._ui.push({ canceled: false, selection: 0 });
+  press(sim, p, "tower");
+  for (let i = 0; i < 3; i++) await flush();
+  assert(statusOf(sim, p).includes("valves=2/2 wire=4/4 battery=1/1"), "parts fitted");
+  eq(p._inv.count("hollow:copper_wire"), 1, "spare wire kept");
+  p._ui.push({ canceled: false, selection: 1 });
+  press(sim, p, "tower");
+  for (let i = 0; i < 3; i++) await flush();
+  sim.tick(500);
+  assert(statusOf(sim, p).includes("phase=waiting"), "transmitted");
+  assert(journal(p).includes("transmit"), "mayday entry");
+  sim.world.setTimeOfDay(16000);
+  sim.tick(1000);
+  assert(statusOf(sim, p).match(/waves=[1-9]/), "the Children come for the lamp");
+  sim.world.setTimeOfDay(1000);
+  sim.tick(950);
+  assert(/phase=(inbound|landed)/.test(statusOf(sim, p)), "rotors at dawn");
+  sim.tick(450);
+  assert(statusOf(sim, p).includes("phase=landed"), "set down at the dock");
+  const d = L_POINTS.dock_end[0];
+  p.teleport({ x: d.x + 0.5, y: d.y + 1, z: d.z - 3.5 });
+  p._ui.push({ canceled: false, selection: 0 });
+  sim.tick(60);
+  assert(statusOf(sim, p).includes("phase=gone"), "aboard");
+  sim.tick(480);
+  for (let i = 0; i < 3; i++) await flush();
+  assert(journal(p).includes("ending"), "ending entry");
+  assert((p._shownForms ?? []).some((f) => f._title.includes("Varrow Island")), "the epilogue");
+  eq(String(p.getGameMode()).toLowerCase(), "survival", "back in the game afterwards");
   noErrors(sim);
 });
 

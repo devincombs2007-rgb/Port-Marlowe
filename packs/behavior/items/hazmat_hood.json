@@ -1,0 +1,38 @@
+{
+  "format_version": "1.26.30",
+  "minecraft:item": {
+    "description": {
+      "identifier": "hollow:hazmat_hood",
+      "menu_category": {
+        "category": "equipment"
+      }
+    },
+    "components": {
+      "minecraft:icon": {
+        "textures": {
+          "default": "hollow_hazmat_hood"
+        }
+      },
+      "minecraft:display_name": {
+        "value": "item.hollow:hazmat_hood.name"
+      },
+      "minecraft:wearable": {
+        "slot": "slot.armor.head",
+        "protection": 1
+      },
+      "minecraft:durability": {
+        "max_durability": 240
+      },
+      "minecraft:repairable": {
+        "repair_items": [
+          {
+            "items": [
+              "minecraft:leather"
+            ],
+            "repair_amount": 60
+          }
+        ]
+      }
+    }
+  }
+}

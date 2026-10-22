@@ -1,0 +1,33 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "hollow:sample_kit"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      "G G",
+      " G ",
+      " P "
+    ],
+    "key": {
+      "G": {
+        "item": "minecraft:glass"
+      },
+      "P": {
+        "item": "minecraft:paper"
+      }
+    },
+    "unlock": [
+      {
+        "item": "minecraft:glass"
+      }
+    ],
+    "result": {
+      "item": "hollow:sample_kit",
+      "count": 3
+    }
+  }
+}

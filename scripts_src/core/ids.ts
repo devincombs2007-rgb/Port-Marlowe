@@ -17,6 +17,15 @@ export const ENT = {
   trevor: "hollow:trevor",
   crewBody: "hollow:crew_body",
   bullet: "hollow:bullet",
+  bomber: "hollow:bomber",
+  bomb: "hollow:bomb",
+  helicopter: "hollow:helicopter",
+  mushroomCloud: "hollow:mushroom_cloud",
+  zealot: "hollow:zealot",
+  faithful: "hollow:faithful",
+  seer: "hollow:seer",
+  hierophant: "hollow:hierophant",
+  cultRound: "hollow:cult_round",
 } as const;
 
 export const ITEM = {
@@ -44,6 +53,27 @@ export const ITEM = {
   iodine: "hollow:iodine_tablets",
   hatchet: "hollow:survival_hatchet",
   brokenRadio: "hollow:broken_radio",
+  fieldRadio: "hollow:field_radio",
+  rifle: "hollow:bolt_rifle",
+  rifleRound: "hollow:rifle_round",
+  shotgun: "hollow:pump_shotgun",
+  shell: "hollow:shotgun_shell",
+  flareGun: "hollow:flare_gun",
+  hazmatHood: "hollow:hazmat_hood",
+  hazmatSuit: "hollow:hazmat_suit",
+  hazmatTrousers: "hollow:hazmat_trousers",
+  hazmatBoots: "hollow:hazmat_boots",
+  sampleKit: "hollow:sample_kit",
+  waterSample: "hollow:crater_water_sample",
+  soilSample: "hollow:soil_sample",
+  woodSample: "hollow:wood_sample",
+  tissueSample: "hollow:tissue_sample",
+  chelation: "hollow:chelation_shot",
+  filmReel: "hollow:film_reel",
+  valve: "hollow:vacuum_tube",
+  wire: "hollow:copper_wire",
+  battery: "hollow:battery_bank",
+  shrineKey: "hollow:shrine_key",
 } as const;
 
 export const BLOCK = {
@@ -145,6 +175,15 @@ export const SND = {
   ringing: "hollow.story.ringing",
   titleHit: "hollow.story.title",
   gasp: "hollow.story.gasp",
+  cineWind: "hollow.cine.wind",
+  cineCountdown: "hollow.cine.countdown",
+  cineBomber: "hollow.cine.bomber",
+  cineWhistle: "hollow.cine.whistle",
+  cineBoom: "hollow.cine.boom",
+  cineFire: "hollow.cine.fire",
+  cineRotor: "hollow.cine.rotor",
+  cineRadio: "hollow.cine.radio",
+  cineImpact: "hollow.cine.impact",
 } as const;
 
 export const PARTICLE = {
@@ -192,10 +231,17 @@ export const DP = {
   dread: "hollow:dread",
   rad: "hollow:rad",
   woke: "hollow:woke",
+  cineRestore: "hollow:cine_restore",
   // world (island)
   island: "hollow:island",
   story: "hollow:story",
   trevor: "hollow:trevor",
+  cine: "hollow:cine_done",
+  jobs: "hollow:jobs",
+  cult: "hollow:cult",
+  survey: "hollow:survey",
+  tower: "hollow:tower",
+  reel: "hollow:reel",
   // item
   mag: "hollow:mag",
   // entity

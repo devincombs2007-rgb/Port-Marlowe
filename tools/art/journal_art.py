@@ -141,6 +141,9 @@ def creature(name, tex, pose, yaw, pitch, crop=None, fit=0.84, build_fn="build")
     if name == "crew":
         mod = importlib.import_module("trevor")
         model = mod.build("crew")
+    elif name in ("zealot", "faithful", "seer", "hierophant"):
+        mod = importlib.import_module("cult")
+        model = mod.build(name)
     else:
         mod = importlib.import_module(name if name != "heart_below" else "heart")
         model = getattr(mod, build_fn)()
@@ -478,6 +481,10 @@ CREATURES = [
                                 "arm_l": {"rot": (-60, 0, -20)}, "arm_r": {"rot": (-60, 0, 20)}}, 30, 14, None),
     ("trevor", "trevor", {"head": {"rot": (-4, 14, 0)}}, 24, 6, ((0, 26, -1), 10.0)),
     ("crew", "crew", {"head": {"rot": (0, 20, 0)}}, 30, 8, ((0, 24, -1), 12.0)),
+    ("zealot", "zealot", {"head": {"rot": (0, 18, 0)}}, 24, 6, ((0, 26, -1), 10.0)),
+    ("faithful", "faithful", {"head": {"rot": (-6, 14, 0)}}, 24, 6, ((0, 26, -1), 10.0)),
+    ("seer", "seer", {"head": {"rot": (-10, 10, 0)}}, 24, 6, ((0, 24, -1), 10.0)),
+    ("hierophant", "hierophant", {"head": {"rot": (0, 12, 0)}}, 24, 6, ((0, 29, -1), 12.0)),
 ]
 
 
@@ -505,7 +512,9 @@ def specimen(item):
 ITEMS = ["hollow_chime", "rowan_ward", "hollow_lens", "heartseeker", "offering_of_silence", "heartwood_lantern",
          "hearth_tea", "pale_resin", "borrowed_hide", "hollow_fang", "knocker_nail", "mire_pearl", "stilled_heart",
          "field_journal", "torn_page", "research_log", "geiger_counter", "service_pistol", "medkit", "ration_pack",
-         "iodine_tablets", "survival_hatchet", "broken_radio", "pistol_round"]
+         "iodine_tablets", "survival_hatchet", "broken_radio", "pistol_round", "field_radio",
+         "bolt_rifle", "pump_shotgun", "flare_gun", "hazmat_suit", "sample_kit", "crater_water_sample", "chelation_shot",
+         "film_reel", "vacuum_tube", "copper_wire", "battery_bank", "shrine_key"]
 
 
 def main():

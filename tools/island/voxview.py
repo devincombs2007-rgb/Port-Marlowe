@@ -34,6 +34,29 @@ COL = {
     "bedrock": (40, 40, 40), "firefly_bush": (90, 120, 50), "bush": (70, 120, 50), "waterlily": (40, 120, 40),
 }
 
+COL.update({
+    "stone_bricks": (122, 122, 122), "oak_planks": (162, 130, 78), "white_terracotta": (209, 178, 161),
+    "light_blue_terracotta": (113, 108, 137), "yellow_terracotta": (186, 133, 35), "birch_planks": (192, 175, 121),
+    "dark_oak_stairs": (66, 43, 20), "dark_oak_planks": (66, 43, 20), "glass_pane": (170, 200, 210),
+    "spruce_door": (100, 75, 45), "spruce_slab": (114, 84, 48), "oak_fence": (162, 130, 78), "spruce_stairs": (114, 84, 48),
+    "red_wool": (160, 39, 34), "green_wool": (84, 109, 27), "bookshelf": (110, 80, 50), "jukebox": (100, 60, 40),
+    "white_carpet": (233, 236, 236), "web": (220, 220, 220), "black_terracotta": (37, 22, 16), "brown_terracotta": (77, 51, 35),
+    "gravel": (128, 122, 118), "brick_block": (150, 97, 83), "smooth_stone_slab": (158, 158, 158),
+    "polished_andesite": (132, 134, 133), "stone_brick_slab": (122, 122, 122), "iron_door": (200, 200, 200),
+    "iron_bars": (110, 110, 110), "lantern": (230, 170, 80), "oxidized_copper": (82, 162, 132),
+    "oxidized_cut_copper": (79, 153, 126), "ladder": (150, 115, 70), "cobblestone": (115, 115, 115),
+    "fence_gate": (162, 130, 78), "cauldron": (60, 60, 60), "lectern": (160, 120, 70), "light_gray_concrete": (125, 125, 115),
+    "redstone_lamp": (140, 80, 40), "stone_button": (130, 130, 130), "lever": (100, 100, 100), "lightning_rod": (200, 120, 80),
+    "yellow_concrete": (240, 175, 21), "stone_brick_stairs": (122, 122, 122), "cracked_stone_bricks": (115, 115, 115),
+    "chest": (160, 110, 40), "brewing_stand": (120, 100, 60), "smooth_stone": (158, 158, 158), "tinted_glass": (44, 38, 46),
+    "white_wool": (233, 236, 236), "spruce_planks": (114, 84, 48), "furnace": (110, 110, 110),
+    "stripped_spruce_log": (115, 89, 52), "spruce_fence": (114, 84, 48), "shroomlight": (240, 146, 70),
+    "ochre_froglight": (250, 240, 180), "mud_bricks": (137, 103, 79), "farmland": (82, 44, 15), "wheat": (180, 170, 70),
+    "carrots": (90, 150, 40), "mangrove_planks": (117, 54, 48), "mangrove_slab": (117, 54, 48), "iron_trapdoor": (190, 190, 190),
+    "coal_block": (16, 15, 15), "verdant_froglight": (110, 230, 110), "wooden_pressure_plate": (162, 130, 78),
+    "stripped_oak_log": (170, 136, 86),
+})
+
 
 def render(blocks, names, x0, z0, cx, cz, rad, yaw=35, scale=6, ymin=None):
     i0, k0 = cx - rad - x0, cz - rad - z0
@@ -87,3 +110,18 @@ def main(argv):
 
 if __name__ == "__main__":
     main(sys.argv[1:])
+
+
+def cut(name, yaw=35, ymin=None, out=None, strip=()):
+    """Render a saved cut-out (build/island/cuts/<name>.npz). strip: block names to hide."""
+    d = np.load(os.path.join(ROOT, "build", "island", "cuts", f"{name}.npz"))
+    blocks, names = d["blocks"], list(d["names"])
+    if strip:
+        lut = np.array([0 if n.replace("minecraft:", "") in strip else i for i, n in enumerate(names)], np.uint16)
+        blocks = lut[blocks]
+    r = blocks.shape[0] // 2
+    img = render(blocks, names, int(d["x0"]), int(d["z0"]), int(d["x0"]) + r, int(d["z0"]) + r, r, yaw,
+                 scale=max(4, 600 // (2 * r)), ymin=ymin)
+    out = out or os.path.join(ROOT, "build", "island", f"cut_{name}_{int(yaw)}.png")
+    img.save(out)
+    return out

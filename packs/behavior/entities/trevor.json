@@ -94,7 +94,7 @@
                     "test": "is_family",
                     "subject": "other",
                     "operator": "not",
-                    "value": "cult"
+                    "value": "cult_peaceful"
                   }
                 ]
               },
@@ -133,6 +133,31 @@
       },
       "hollow:despawn": {
         "minecraft:instant_despawn": {}
+      },
+      "hollow:goto": {
+        "minecraft:behavior.move_to_block": {
+          "priority": 1,
+          "search_range": 48,
+          "search_height": 12,
+          "goal_radius": 1.4,
+          "speed_multiplier": 1.1,
+          "tick_interval": 5,
+          "target_selection_method": "nearest",
+          "target_blocks": [
+            "minecraft:structure_void"
+          ],
+          "on_reach": [
+            {
+              "event": "hollow:arrived",
+              "target": "self"
+            }
+          ]
+        }
+      },
+      "hollow:working": {
+        "minecraft:movement": {
+          "value": 0.0
+        }
       }
     },
     "components": {
@@ -269,7 +294,9 @@
         "remove": {
           "component_groups": [
             "hollow:wild",
-            "hollow:hold"
+            "hollow:hold",
+            "hollow:goto",
+            "hollow:working"
           ]
         },
         "add": {
@@ -285,7 +312,9 @@
         "remove": {
           "component_groups": [
             "hollow:hold",
-            "hollow:downed"
+            "hollow:downed",
+            "hollow:goto",
+            "hollow:working"
           ]
         },
         "add": {
@@ -302,7 +331,9 @@
         "remove": {
           "component_groups": [
             "hollow:follow",
-            "hollow:downed"
+            "hollow:downed",
+            "hollow:goto",
+            "hollow:working"
           ]
         },
         "add": {
@@ -319,7 +350,9 @@
         "remove": {
           "component_groups": [
             "hollow:follow",
-            "hollow:hold"
+            "hollow:hold",
+            "hollow:goto",
+            "hollow:working"
           ]
         },
         "add": {
@@ -332,7 +365,9 @@
         "remove": {
           "component_groups": [
             "hollow:combat",
-            "hollow:follow"
+            "hollow:follow",
+            "hollow:goto",
+            "hollow:working"
           ]
         },
         "add": {
@@ -366,7 +401,60 @@
             "hollow:despawn"
           ]
         }
-      }
+      },
+      "hollow:job_goto": {
+        "remove": {
+          "component_groups": [
+            "hollow:follow",
+            "hollow:hold",
+            "hollow:working"
+          ]
+        },
+        "add": {
+          "component_groups": [
+            "hollow:goto",
+            "hollow:combat"
+          ]
+        },
+        "set_property": {
+          "hollow:state": "hold"
+        }
+      },
+      "hollow:job_work": {
+        "remove": {
+          "component_groups": [
+            "hollow:follow",
+            "hollow:hold",
+            "hollow:goto"
+          ]
+        },
+        "add": {
+          "component_groups": [
+            "hollow:working"
+          ]
+        },
+        "set_property": {
+          "hollow:state": "work"
+        }
+      },
+      "hollow:job_stop": {
+        "remove": {
+          "component_groups": [
+            "hollow:goto",
+            "hollow:working"
+          ]
+        },
+        "add": {
+          "component_groups": [
+            "hollow:hold",
+            "hollow:combat"
+          ]
+        },
+        "set_property": {
+          "hollow:state": "hold"
+        }
+      },
+      "hollow:arrived": {}
     }
   }
 }

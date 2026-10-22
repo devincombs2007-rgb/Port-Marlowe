@@ -213,6 +213,43 @@
         "Texture.default"
       ],
       "ignore_lighting": true
+    },
+    "controller.render.hollow.mushroom_cloud": {
+      "geometry": "Geometry.default",
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "textures": [
+        "Texture.default"
+      ],
+      "overlay_color": {
+        "r": "0.16",
+        "g": "0.13",
+        "b": "0.11",
+        "a": "math.clamp((query.life_time - 9.0) / 14.0, 0.0, 0.55)"
+      },
+      "ignore_lighting": true
+    },
+    "controller.render.hollow.armed": {
+      "geometry": "Geometry.default",
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "textures": [
+        "Texture.default"
+      ],
+      "part_visibility": [
+        {
+          "*": true
+        },
+        {
+          "gun": "query.has_target"
+        }
+      ]
     }
   }
 }

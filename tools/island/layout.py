@@ -20,7 +20,7 @@ SUNFALL = (-150, -178)
 MANGROVES = (236, 40)
 NORTH_PEAK = (18, -226)
 TOWER = (18, -232)            # radio relay on the peak
-DOCK = (196, 214)
+DOCK = (192, 258)
 BUNKERS = {"bunker1": (70, -98), "bunker2": (-104, -62), "bunker3": (178, -150)}
 STATIONS = {
     "station1": (112 + 52, -12),      # crater rim, east

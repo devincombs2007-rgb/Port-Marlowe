@@ -1589,6 +1589,100 @@
           "volume": 0.3
         }
       ]
+    },
+    "hollow.cine.wind": {
+      "category": "ambient",
+      "sounds": [
+        {
+          "name": "sounds/hollow/cinematic/wind_1",
+          "volume": 0.8
+        }
+      ],
+      "subtitle": "subtitles.hollow.cine.wind"
+    },
+    "hollow.cine.countdown": {
+      "category": "ambient",
+      "sounds": [
+        {
+          "name": "sounds/hollow/cinematic/countdown_1",
+          "volume": 0.8
+        }
+      ],
+      "subtitle": "subtitles.hollow.cine.countdown"
+    },
+    "hollow.cine.bomber": {
+      "category": "ambient",
+      "sounds": [
+        {
+          "name": "sounds/hollow/cinematic/bomber_1",
+          "volume": 0.9
+        }
+      ],
+      "subtitle": "subtitles.hollow.cine.bomber"
+    },
+    "hollow.cine.whistle": {
+      "category": "ambient",
+      "sounds": [
+        {
+          "name": "sounds/hollow/cinematic/whistle_1",
+          "volume": 0.8
+        }
+      ],
+      "subtitle": "subtitles.hollow.cine.whistle"
+    },
+    "hollow.cine.boom": {
+      "category": "ambient",
+      "sounds": [
+        {
+          "name": "sounds/hollow/cinematic/boom_1",
+          "volume": 1.0
+        }
+      ],
+      "subtitle": "subtitles.hollow.cine.boom"
+    },
+    "hollow.cine.fire": {
+      "category": "ambient",
+      "sounds": [
+        {
+          "name": "sounds/hollow/cinematic/fire_1",
+          "volume": 0.8
+        }
+      ],
+      "subtitle": "subtitles.hollow.cine.fire"
+    },
+    "hollow.cine.rotor": {
+      "category": "ambient",
+      "sounds": [
+        {
+          "name": "sounds/hollow/cinematic/rotor_1",
+          "volume": 0.8
+        }
+      ],
+      "subtitle": "subtitles.hollow.cine.rotor"
+    },
+    "hollow.cine.radio": {
+      "category": "ambient",
+      "sounds": [
+        {
+          "name": "sounds/hollow/cinematic/radio_1",
+          "volume": 0.7
+        },
+        {
+          "name": "sounds/hollow/cinematic/radio_2",
+          "volume": 0.7
+        }
+      ],
+      "subtitle": "subtitles.hollow.cine.radio"
+    },
+    "hollow.cine.impact": {
+      "category": "ambient",
+      "sounds": [
+        {
+          "name": "sounds/hollow/cinematic/impact_1",
+          "volume": 1.0
+        }
+      ],
+      "subtitle": "subtitles.hollow.cine.impact"
     }
   }
 }

@@ -2,7 +2,7 @@ import { Entity, EntityTameableComponent, Player, Vector3, system, world } from 
 import { ActionFormData } from "@minecraft/server-ui";
 import { SITES } from "../content/island_layout";
 import { ui, worldSound } from "../core/audio";
-import { settings } from "../core/config";
+import { isOperator, settings } from "../core/config";
 import { notice, particle } from "../core/fx";
 import { formSession, showForm } from "../core/forms";
 import { ENT, SND, DP } from "../core/ids";
@@ -14,6 +14,7 @@ import { groundNear } from "../core/world";
 import { unlock } from "../systems/journal";
 import { emitNoise } from "../systems/noise";
 import { isIsland } from "./mode";
+import { Plan, cancelMine, clearAll, enqueue, lookTarget, queueSummary } from "./jobs";
 import { rateAt } from "./radiation";
 
 // TREVOR HALE: one companion shared by everyone in the world.
@@ -45,6 +46,8 @@ interface TrevorState {
   deaths: number;
   /** waiting at the crater's edge for this player to come back out */
   waitingFor?: string;
+  /** what he has seen killed, by creature type, for remarks like "that's the third one" */
+  kills?: Record<string, number>;
 }
 
 const DEFAULT: TrevorState = {
@@ -52,6 +55,13 @@ const DEFAULT: TrevorState = {
   home: { x: SITES.SPAWN.x, y: 66, z: SITES.SPAWN.z }, lastNight: -1, deaths: 0,
 };
 const DOWN_TICKS = 1200;
+const MEMORY: Record<string, [string, string]> = {
+  [ENT.watcher]: ["of those tall ones", "It just stood there, watching us."],
+  [ENT.borrowed]: ["sheep that isn't a sheep", "That was not a sheep. That was never a sheep."],
+  [ENT.hollowed]: ["clicker", "No eyes. It found us by sound."],
+  [ENT.knocker]: ["of the things at the door", "It knocked. It actually knocked."],
+  [ENT.mirebound]: ["of the things in the water", "It came up out of the water like a log with teeth."],
+};
 const REVIVE_TICKS = 60;
 
 let state: TrevorState | undefined;
@@ -181,6 +191,10 @@ export function orderHold(p?: Player, quiet = false): void {
 
 function isDown(): boolean {
   return st().downAt > 0;
+}
+
+export function trevorDown(): boolean {
+  return isDown();
 }
 
 function leader(): Player | undefined {
@@ -324,7 +338,6 @@ function advice(p: Player): string {
 }
 
 async function talk(p: Player, e: Entity): Promise<void> {
-  const s = st();
   if (isDown()) {
     if (!reviving.has(p.id)) {
       reviving.set(p.id, 0);
@@ -333,25 +346,58 @@ async function talk(p: Player, e: Entity): Promise<void> {
     }
     return;
   }
-  await formSession(p, async () => {
-    const form = new ActionFormData()
-      .title("§lTrevor Hale")
-      .body(`${statusLine(e)}\n\n§o"${advice(p)}"`)
-      .button("Follow me", "textures/ui/hollow/journal/trevor")
-      .button("Hold here", "textures/ui/hollow/world")
-      .button(s.medkits > 0 ? "Patch me up\n§8uses one of his medkits" : "Patch me up\n§8he's out of medkits", "textures/ui/hollow/journal/item_medkit")
-      .button("§8Chop trees · gather · build\n§8(coming with the next update)", "textures/ui/hollow/journal/item_survival_hatchet")
-      .button("§8Close", "textures/ui/hollow/back");
-    const r = await showForm(p, form);
-    if (!r || r.canceled || r.selection === undefined || !e.isValid) return;
-    if (r.selection === 0) {
-      if (rateAt(p) > 60) say("Not in there. Not without a suit. Come back out and I'll follow you anywhere else.");
-      else orderFollow(p);
-    } else if (r.selection === 1) orderHold(p);
-    else if (r.selection === 2) patchUp(p);
-    else if (r.selection === 3) say("One thing at a time. Let's stay alive tonight first.");
-  });
+  await formSession(p, () => trevorMenu(p, e, false));
   unlock(p, "trevor1");
+}
+
+/** The order menu: beside him (Use on him) or from anywhere with the field radio. */
+export async function trevorMenu(p: Player, e: Entity | undefined, remote: boolean): Promise<void> {
+  const s = st();
+  const there = lookTarget(p);
+  const near = !!e && Math.hypot(e.location.x - p.location.x, e.location.z - p.location.z) < 8;
+  const actions: [string, string, () => void | Promise<void>][] = [
+    ["Follow me", "textures/ui/hollow/journal/trevor", () => {
+      if (rateAt(p) > 60) say("Not in there. Not without a suit. Come back out and I'll follow you anywhere else.");
+      else enqueue(p, "follow");
+    }],
+    ["Hold here", "textures/ui/hollow/world", () => enqueue(p, "hold")],
+    ["Go there\n§8where you're looking", "textures/ui/hollow/journal/conditions", () => enqueue(p, "goto", there)],
+    ["Make camp here\n§8a crate he fills with what he gathers", "textures/ui/hollow/journal/place_camp", () => enqueue(p, "camp", there)],
+    ["Chop trees there", "textures/ui/hollow/journal/item_survival_hatchet", () => enqueue(p, "chop", there)],
+    ["Gather stone there", "textures/ui/hollow/journal/shelter", () => enqueue(p, "stone", there)],
+    ["Gather food there\n§8berries, or fish from the shore", "textures/ui/hollow/journal/item_ration_pack", () => enqueue(p, "food", there)],
+    ["Build...\n§8from the logs in the camp crate", "textures/ui/hollow/journal/place_leanto", () => buildMenu(p, there)],
+    ["Light a fire there", "textures/ui/hollow/journal/event_lantern", () => enqueue(p, "fire", there)],
+    ["Collect items there", "textures/ui/hollow/journal/recipe", () => enqueue(p, "collect", there)],
+    ["Patrol camp tonight", "textures/ui/hollow/journal/watcher", () => enqueue(p, "patrol")],
+  ];
+  if (near && !remote) actions.push([s.medkits > 0 ? "Patch me up\n§8uses one of his medkits" : "Patch me up\n§8he's out of medkits", "textures/ui/hollow/journal/item_medkit", () => patchUp(p)]);
+  actions.push(["Cancel my orders", "textures/ui/hollow/back", () => {
+    const n = cancelMine(p);
+    say(n ? `Dropping your ${n === 1 ? "order" : `${n} orders`}, ${p.name}.` : "You haven't asked me for anything.");
+  }]);
+  if (isOperator(p)) actions.push(["§8Clear every order (operator)", "textures/ui/hollow/settings", () => {
+    clearAll();
+    say("Clean slate.");
+  }]);
+  const form = new ActionFormData()
+    .title(remote ? "§lField radio: Trevor" : "§lTrevor Hale")
+    .body(`${statusLine(e)}\n${queueSummary()}\n\n§o"${remote ? "Go ahead, I'm listening." : advice(p)}"`);
+  for (const [label, icon] of actions) form.button(label, icon);
+  form.button("§8Close", "textures/ui/hollow/back");
+  const r = await showForm(p, form);
+  if (!r || r.canceled || r.selection === undefined || r.selection >= actions.length) return;
+  await actions[r.selection][2]();
+}
+
+async function buildMenu(p: Player, there: { x: number; y: number; z: number }): Promise<void> {
+  const plans: [Plan, string][] = [["leanto", "Lean-to\n§810 logs"], ["cabin", "Cabin\n§840 logs"], ["watchtower", "Watchtower\n§830 logs"], ["wall", "Palisade wall\n§88 logs"]];
+  const form = new ActionFormData().title("§lBuild").body("§7He builds where you're looking, facing you, from the logs in the camp crate.");
+  for (const [, label] of plans) form.button(label, "textures/ui/hollow/journal/place_leanto");
+  form.button("§8Back", "textures/ui/hollow/back");
+  const r = await showForm(p, form);
+  if (!r || r.canceled || r.selection === undefined || r.selection >= plans.length) return;
+  enqueue(p, "build", there, plans[r.selection][0]);
 }
 
 function patchUp(p: Player): void {
@@ -541,6 +587,22 @@ export function startTrevor(): void {
     if (st().gone) return;
     fallFor(undefined);
   }), { entityTypes: [ENT.trevor] });
+  // he remembers what you've killed together
+  world.afterEvents.entityDie.subscribe((ev) => safe("trevor.memory", () => {
+    const dead = ev.deadEntity;
+    const name = MEMORY[dead.typeId];
+    if (!name || !isIsland()) return;
+    const e = trevorEntity();
+    if (!e || e.dimension.id !== dead.dimension.id) return;
+    if (Math.hypot(e.location.x - dead.location.x, e.location.z - dead.location.z) > 40) return;
+    const s = st();
+    s.kills ??= {};
+    const n = (s.kills[dead.typeId] = (s.kills[dead.typeId] ?? 0) + 1);
+    saveState();
+    const ord = ["", "first", "second", "third", "fourth", "fifth", "sixth"][n] ?? `${n}th`;
+    if (n === 1) say(`What in God's name was that? ${name[1]}`, `mem:${dead.typeId}`, 200);
+    else say(`That's the ${ord} ${name[0]}. ${n >= 3 ? "There's more of them than there should be." : "Keep count. I am."}`, `mem:${dead.typeId}`, 200);
+  }));
   // his shots: the report, a muzzle flash, and the noise that carries across the island
   world.afterEvents.entitySpawn.subscribe((ev) => safe("trevor.shot", () => {
     const b = ev.entity;

@@ -67,6 +67,7 @@ async function openWorld(p: Player): Promise<void> {
     .toggle("Rare one-off events (harmless, once per world)", { defaultValue: s.rareEvents })
     .toggle("Dread: fear, hallucinations, and fear drawing them closer", { defaultValue: s.dread })
     .toggle("Varrow Island: Trevor's death is permanent", { defaultValue: s.trevorPermadeath })
+    .toggle("Varrow Island: the Children of the Second Sun (villages and night patrols)", { defaultValue: s.cult })
     .submitButton("Save");
   const r = await showForm(p, f);
   if (!r || r.canceled || !r.formValues || !isOperator(p)) return;
@@ -89,6 +90,7 @@ async function openWorld(p: Player): Promise<void> {
     rareEvents: Boolean(v[13]),
     dread: v[14] === undefined ? s.dread : Boolean(v[14]),
     trevorPermadeath: v[15] === undefined ? s.trevorPermadeath : Boolean(v[15]),
+    cult: v[16] === undefined ? s.cult : Boolean(v[16]),
   };
   saveSettings(next);
   notice(p, "§7World rules saved.");

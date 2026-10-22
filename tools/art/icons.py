@@ -573,6 +573,356 @@ icon("iodine_tablets", {
     "................",
 ])
 
+# Field radio: the satellite handset, mended with copper wire and tape, its screen alive again.
+icon("field_radio", {
+    "o": "#141618", "m": "#454b52", "l": "#6a717a", "s": "#3fae6a", "S": "#9df0b8", "k": "#8a9098",
+    "a": "#7a8088", "c": "#c87533", "t": "#b8b0a0",
+}, [
+    ".....a..........",
+    ".....a..........",
+    ".....a..........",
+    "....ooooooo.....",
+    "...olllllllo....",
+    "...olsssssmo....",
+    "...olsSsSsmo....",
+    "...olssssSmo....",
+    "...olllllllo....",
+    "...olkkkkkmo....",
+    "...octtttcmo....",
+    "...olklkkkmo....",
+    "...olkkkkkmo....",
+    "...ommmmmmmo....",
+    "....ooooooo.....",
+    "................",
+])
+
+
+# ------------------------------------------------------------------ Varrow Island gear (2.0, phases 4-6)
+
+# Bolt-action rifle: long walnut stock, blued barrel and bolt, laid diagonally like vanilla tools.
+icon("bolt_rifle", {"o": "#141210", "w": "#5a3a20", "W": "#7a5230", "m": "#3a3d42", "h": "#7a8088", "b": "#9aa0a6"}, [
+    "..............oo",
+    ".............ohm",
+    "............ohmo",
+    "...........ohmo.",
+    "..........ohmo..",
+    ".........ohmo...",
+    "........owWo....",
+    ".......owWbo....",
+    "......owWoo.....",
+    ".....owWo.......",
+    "....owWo........",
+    "...owWWo........",
+    "..owWWo.........",
+    ".owWWo..........",
+    ".oWWo...........",
+    "..oo............",
+])
+
+# Rifle rounds: two long brass cartridges with pointed bullets.
+icon("rifle_round", {"o": "#3a2a10", "B": "#e0b850", "b": "#b8892e", "d": "#7a5a1c", "C": "#e59a6a", "c": "#b8643a"}, [
+    "................",
+    "....o.....o.....",
+    "...oCo...oCo....",
+    "...oco...oco....",
+    "...oco...oco....",
+    "...ooo...ooo....",
+    "...oBo...oBo....",
+    "...obo...obo....",
+    "...oBo...oBo....",
+    "...obo...obo....",
+    "...oBo...oBo....",
+    "...obo...obo....",
+    "...obo...obo....",
+    "...odo...odo....",
+    "...ooo...ooo....",
+    "................",
+])
+
+# Pump shotgun: short, heavy, wooden pump and stock.
+icon("pump_shotgun", {"o": "#141210", "w": "#6a4426", "W": "#8a5c34", "m": "#2e3034", "h": "#6a7078"}, [
+    "................",
+    "...........ooo..",
+    "..........ohmo..",
+    ".........ohmmo..",
+    "........ohmmo...",
+    ".......ohmwo....",
+    "......ohmwWo....",
+    ".....ohmwWo.....",
+    "....ommoWo......",
+    "...owwoo........",
+    "..owWWo.........",
+    ".owWWo..........",
+    ".oWWWo..........",
+    ".oWWo...........",
+    "..oo............",
+    "................",
+])
+
+# Shotgun shells: three red paper shells with brass bases.
+icon("shotgun_shell", {"o": "#3a1010", "r": "#b02a20", "R": "#d8453a", "b": "#d9b23a", "B": "#a07818"}, [
+    "................",
+    "................",
+    "................",
+    "..ooo.ooo.ooo...",
+    "..oRo.oRo.oRo...",
+    "..oro.oro.oro...",
+    "..oRo.oRo.oRo...",
+    "..oro.oro.oro...",
+    "..oro.oro.oro...",
+    "..oro.oro.oro...",
+    "..obo.obo.obo...",
+    "..oBo.oBo.oBo...",
+    "..ooo.ooo.ooo...",
+    "................",
+    "................",
+    "................",
+])
+
+# Shrine key: a heavy iron key with a sun-burst bow.
+icon("shrine_key", {"o": "#2a2014", "g": "#c89a38", "G": "#e8c060", "d": "#9a7020"}, [
+    "................",
+    "....g..g..g.....",
+    ".....oooooo.....",
+    "...goGGGGGGog...",
+    "....oGooooGo....",
+    "...goGo..oGog...",
+    "....oGooooGo....",
+    "...goGGGGGGog...",
+    ".....oodGoo.....",
+    ".......oGo......",
+    ".......oGo......",
+    ".......oGooo....",
+    ".......oGGGo....",
+    ".......oGooo....",
+    ".......oGGo.....",
+    "........oo......",
+])
+
+HAZ = {"o": "#2a2410", "y": "#c9a227", "Y": "#e6c75a", "d": "#8a6d14", "k": "#2c2e30", "K": "#4a4e52", "g": "#6f8f9a", "G": "#a8c8d0"}
+
+icon("hazmat_hood", HAZ, [
+    "................",
+    "....oooooooo....",
+    "...oYYYYYYYYo...",
+    "..oYyyyyyyyydo..",
+    "..oYoooooooydo..",
+    "..oYoGGgggoydo..",
+    "..oYoGgggggoydo.",
+    "..oYoggggggoydo.",
+    "..oYoooooooydo..",
+    "..oyyokkkkoyydo.",
+    "..oyyoKKKKoyydo.",
+    "..oddokkkkodddo.",
+    "...oooKKKKooo...",
+    "......oooo......",
+    "................",
+    "................",
+])
+# fix the uneven rows above by trimming to 16
+ICONS["hazmat_hood"] = (ICONS["hazmat_hood"][0], [r[:16].ljust(16, ".") for r in ICONS["hazmat_hood"][1]])
+
+icon("hazmat_suit", HAZ, [
+    "................",
+    "..ooo.....ooo...",
+    ".oYYoooooooYYo..",
+    ".oYyyyyykyyyYo..",
+    ".oYyyyyykyyyyo..",
+    ".oyyYyyykyyYyo..",
+    ".oyoyyyykyyyoyo.",
+    ".oyoyyyykyyyoyo.",
+    ".oyoKKKKKKKKoyo.",
+    ".odoyyyykyyyodo.",
+    ".okoyyyykyyyoko.",
+    "..o.yyyykyyyo...",
+    "....dddddddd....",
+    "....oooooooo....",
+    "................",
+    "................",
+])
+ICONS["hazmat_suit"] = (ICONS["hazmat_suit"][0], [r[:16].ljust(16, ".") for r in ICONS["hazmat_suit"][1]])
+
+icon("hazmat_trousers", HAZ, [
+    "................",
+    "....oooooooo....",
+    "....oKKKKKKo....",
+    "....oyyyyyyo....",
+    "....oyyyoyyo....",
+    "....oyyo.oyo....",
+    "....oyyo.oyo....",
+    "....oyyo.oyo....",
+    "....oyyo.oyo....",
+    "....oyyo.oyo....",
+    "....oddo.odo....",
+    "....oooo.ooo....",
+    "................",
+    "................",
+    "................",
+    "................",
+])
+
+icon("hazmat_boots", HAZ, [
+    "................",
+    "................",
+    "................",
+    "................",
+    "...oooo..oooo...",
+    "...oyyo..oyyo...",
+    "...oyyo..oyyo...",
+    "...oyyo..oyyo...",
+    "...oyyo..oyyo...",
+    "..okkko.okkko...",
+    "..okkkkookkkko..",
+    "..oooooooooooo..",
+    "................",
+    "................",
+    "................",
+    "................",
+])
+
+GLASSP = {"o": "#2a3438", "g": "#bfd6dc", "G": "#e8f4f6", "c": "#6a4a2a", "C": "#8a6a40"}
+for name, liquid in (("sample_kit", None), ("crater_water_sample", ("#4ce05a", "#2a9a3a")), ("soil_sample", ("#5a4630", "#3a2c1c")),
+                     ("wood_sample", ("#3a2a1c", "#1e1610")), ("tissue_sample", ("#c87080", "#8a3a4a"))):
+    pal = dict(GLASSP)
+    if liquid:
+        pal["l"], pal["L"] = liquid
+    rows = [
+        "................",
+        "......occo......",
+        "......oCCo......",
+        ".....oooooo.....",
+        ".....ogGggo.....",
+        ".....oGgggo.....",
+        ".....oggggo.....",
+        "....oggggggo....",
+        "...ogGggggggo...",
+        "...oGggggggdo...",
+        "...oLlllllllo...",
+        "...oLllllllLo...",
+        "...oLLllllLLo...",
+        "....oLLLLLLo....",
+        ".....oooooo.....",
+        "................",
+    ]
+    if not liquid:
+        rows = [r.replace("l", "g").replace("L", "g") for r in rows]
+    pal["d"] = "#9ab4ba"
+    icon(name, pal, rows)
+
+icon("chelation_shot", {"o": "#1e2428", "g": "#c8dde2", "b": "#3a8ad0", "B": "#7ab8f0", "s": "#9aa0a6", "r": "#c0392b"}, [
+    "...............o",
+    "..............os",
+    ".............os.",
+    "............os..",
+    "..........oooo..",
+    ".........ogbBo..",
+    "........ogbBo...",
+    ".......ogbBo....",
+    "......ogbbo.....",
+    ".....ogbbo......",
+    "....orggo.......",
+    "...oooro........",
+    "..oso.o.........",
+    ".oso............",
+    ".oo.............",
+    "................",
+])
+
+icon("film_reel", {"o": "#141414", "m": "#5a5e62", "M": "#8a9096", "f": "#2a2216", "F": "#4a3a24"}, [
+    "................",
+    ".....oooooo.....",
+    "....oMMMMMMo....",
+    "...oMmFFFFmMo...",
+    "..oMmFooooFmMo..",
+    "..oMFoMMMMoFMo..",
+    "..oMFoMooMoFMo..",
+    "..oMFoMooMoFMo..",
+    "..oMFoMMMMoFMo..",
+    "..oMmFooooFmMo..",
+    "...oMmFFFFmMo...",
+    "....oMMMMMMo....",
+    ".....oooooo.....",
+    "................",
+    "................",
+    "................",
+])
+
+icon("vacuum_tube", {"o": "#2a2a2a", "g": "#c8d8dc", "G": "#eef6f8", "f": "#ff9a40", "F": "#ffd080", "m": "#6a7078", "k": "#1a1a1a"}, [
+    "................",
+    "......oooo......",
+    ".....ogGGgo.....",
+    "....ogGggggo....",
+    "....oGggfggo....",
+    "....oggfFfgo....",
+    "....oggfFfgo....",
+    "....oggmmmgo....",
+    "....oggmmmgo....",
+    "....ogggggggo...",
+    "....oooooooo....",
+    "....okkkkkko....",
+    ".....omomom.....",
+    ".....o.o.o......",
+    "................",
+    "................",
+])
+
+icon("copper_wire", {"o": "#4a2410", "c": "#c87533", "C": "#e8a060", "d": "#8a4a22"}, [
+    "................",
+    "................",
+    ".....oooooo.....",
+    "...ooCCCCCCoo...",
+    "..oCcccccccCo...",
+    "..ocdooooodco...",
+    ".oCdo......odo..",
+    ".ocdo......odco.",
+    ".oCdo......odo..",
+    "..ocdooooodco...",
+    "..oCcccccccCo...",
+    "...ooCCCCCCoo...",
+    ".....ooooooC....",
+    "............C...",
+    ".............C..",
+    "................",
+])
+
+icon("battery_bank", {"o": "#1a1a1a", "k": "#2e3034", "K": "#4a4e52", "r": "#c0392b", "b": "#2a6ad0", "y": "#d9b23a"}, [
+    "................",
+    "................",
+    "....rr....bb....",
+    "..oooooooooooo..",
+    "..oKKKKKKKKKKo..",
+    "..okkkkkkkkkko..",
+    "..okyyykkkkkko..",
+    "..okkkkkkkkkko..",
+    "..okkkkkkkkkko..",
+    "..okkkkkkkkkko..",
+    "..okkkkkkkkkko..",
+    "..oKKKKKKKKKKo..",
+    "..oooooooooooo..",
+    "................",
+    "................",
+    "................",
+])
+
+icon("flare_gun", {"o": "#141210", "r": "#c03020", "R": "#e85030", "d": "#7a1a10", "m": "#2e3034"}, [
+    "................",
+    "................",
+    "................",
+    "...oooooooooo...",
+    "..oRRRRRRRRRRo..",
+    "..orrrrrrrrrdo..",
+    "..odddoooooooo..",
+    "..omRmo.o.......",
+    "..oRmRo..o......",
+    "..omRmo.........",
+    ".oRmRmo.........",
+    ".omRmRo.........",
+    ".oooooo.........",
+    "................",
+    "................",
+    "................",
+])
+
 
 def hexrgb(h):
     h = h.lstrip("#")

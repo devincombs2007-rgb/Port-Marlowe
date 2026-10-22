@@ -1,16 +1,18 @@
 import { Entity, ItemStack, Player, Vector3, system, world } from "@minecraft/server";
-import { CRASH_CONTAINERS, CREW_BODIES, CRATER_R, SITES, SPAWN_POINT } from "../content/island_layout";
+import { BUNKERS, CRASH_CONTAINERS, CREW_BODIES, CRATER_R, SITES, SPAWN_POINT } from "../content/island_layout";
 import { ui } from "../core/audio";
 import { prefs } from "../core/config";
 import { notice } from "../core/fx";
 import { DP, ENT, ITEM, SND } from "../core/ids";
 import { everyPlayer, later, safe } from "../core/scheduler";
 import { getNum, readWorld, setNum, writeWorld } from "../core/store";
-import { groundNear } from "../core/world";
+import { groundNear, heldItem } from "../core/world";
 import { giveOrDrop } from "../items/components";
 import { ensureJournal, unlock } from "../systems/journal";
+import { cinematicDone, cinematicRunning, leave, needsRestore, playCinematic } from "./cinematic";
 import { pistolStack } from "./guns";
 import { detectIsland, isIsland } from "./mode";
+import { suitProtection } from "./radiation";
 import { orderFollow, say, setHome, spawnTrevor, trevorEntity, trevorGone } from "./trevor";
 
 // THE CRASH: how Varrow Island begins.
@@ -45,7 +47,7 @@ function save(): void {
 const SUPPLIES: [string, number][][] = [
   [[ITEM.ration, 4], [ITEM.medkit, 2], [ITEM.round, 14], [ITEM.iodine, 4]],
   [[ITEM.hatchet, 1], [ITEM.brokenRadio, 1], [ITEM.ration, 2], [ITEM.round, 7]],
-  [[ITEM.medkit, 1], [ITEM.ration, 3], [ITEM.iodine, 2], [ITEM.round, 7]],
+  [[ITEM.medkit, 1], [ITEM.ration, 3], [ITEM.iodine, 2], [ITEM.round, 7], [ITEM.sampleKit, 3]],
 ];
 
 function stockCrates(): boolean {
@@ -120,8 +122,13 @@ function face(p: Player, at: Vector3): void {
   }
 }
 
+const pending = new Set<string>();
+
 /** The long wake-up, for the people who were in the helicopter. */
 function wakeUp(p: Player, first: boolean): void {
+  pending.delete(p.id);
+  if (!p.isValid || getNum(p, DP.woke, 0) === 1) return;
+  setNum(p, DP.woke, 1);
   const fx = prefs(p).visualFx;
   face(p, { x: SITES.CRASH.x, y: SPAWN_POINT.y + 1, z: SITES.CRASH.z });
   try {
@@ -176,16 +183,48 @@ function wakeUp(p: Player, first: boolean): void {
 export function onIslandSpawn(p: Player, initial: boolean): void {
   if (!isIsland() && !(initial && detectIsland(p.dimension))) return;
   setupWorld();
+  if (needsRestore(p)) {
+    // left in the middle of the opening: put them back on the beach; they wake when it ends
+    leave(p);
+    if (initial && getNum(p, DP.woke, 0) !== 1) {
+      pending.add(p.id);
+      const wait = () => {
+        if (!p.isValid) return;
+        if (cinematicRunning()) later("story.wait", 20, wait);
+        else wakeUp(p, false);
+      };
+      later("story.wait", 20, wait);
+      return;
+    }
+  }
   if (!initial) {
     later("story.respawn", 20, () => p.isValid && ensureJournal(p));
     return;
   }
-  if (getNum(p, DP.woke, 0) === 1) {
+  if (getNum(p, DP.woke, 0) === 1 || pending.has(p.id)) {
     later("story.rejoin", 40, () => p.isValid && ensureJournal(p));
     return;
   }
-  setNum(p, DP.woke, 1);
-  const first = !st().intro && world.getAllPlayers().length >= 1 && !anyoneAwake(p);
+  pending.add(p.id);
+  const first = !st().intro && !anyoneAwake(p);
+  if (first && !cinematicDone() && !cinematicRunning()) {
+    // the very first arrival: everyone online watches 1957 and the shoot-down, then wakes
+    later("story.cine", 30, () => {
+      const group = world.getAllPlayers().filter((q) => q.isValid && q.dimension.id === "minecraft:overworld");
+      if (!playCinematic(group, (q) => wakeUp(q, true))) wakeUp(p, true);
+    });
+    return;
+  }
+  if (cinematicRunning()) {
+    // arrived during the opening: wake when it ends, thrown clear down the beach
+    const wait = () => {
+      if (!p.isValid) return;
+      if (cinematicRunning()) later("story.wait", 20, wait);
+      else wakeUp(p, false);
+    };
+    later("story.wait", 20, wait);
+    return;
+  }
   later("story.wake", 20, () => p.isValid && wakeUp(p, first));
 }
 
@@ -231,6 +270,18 @@ function places(p: Player): void {
     return;
   }
   if (d(SITES.CRASH) < 40) unlock(p, "place_crash", true);
+  if (d(SITES.MOCK_TOWN) < 50) unlock(p, "place_town");
+  if (d(SITES.PENS) < 32) unlock(p, "place_pens");
+  if (d(SITES.SUNFALL) < 60) unlock(p, "place_sunfall");
+  if (d(SITES.MANGROVES) < 50) unlock(p, "place_mangroves");
+  if (d(SITES.TOWER) < 44) unlock(p, "place_tower");
+  if (d(SITES.DOCK) < 40) unlock(p, "place_dock");
+  if (d(SITES.BLACKWOOD) < 44) unlock(p, "place_bleachers");
+  if (Object.values(BUNKERS).some((b) => d(b) < 24)) unlock(p, "place_bunkers");
+  const held = heldItem(p);
+  if (held === ITEM.sampleKit) unlock(p, "gear_samples", true);
+  else if (held === ITEM.chelation) unlock(p, "gear_chelation", true);
+  if (suitProtection(p) > 0) unlock(p, "gear_hazmat", true);
   if (d(SITES.GZ) < CRATER_R + 70) {
     if (unlock(p, "place_crater")) say("That's Ground Zero. Keep your counter out and your visit short.", "gz", 12000);
   }

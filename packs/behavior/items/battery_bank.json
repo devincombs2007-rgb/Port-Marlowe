@@ -1,0 +1,24 @@
+{
+  "format_version": "1.26.30",
+  "minecraft:item": {
+    "description": {
+      "identifier": "hollow:battery_bank",
+      "menu_category": {
+        "category": "items"
+      }
+    },
+    "components": {
+      "minecraft:icon": {
+        "textures": {
+          "default": "hollow_battery_bank"
+        }
+      },
+      "minecraft:display_name": {
+        "value": "item.hollow:battery_bank.name"
+      },
+      "minecraft:max_stack_size": 1,
+      "minecraft:interact_button": "Inspect",
+      "hollow:tower_part": {}
+    }
+  }
+}

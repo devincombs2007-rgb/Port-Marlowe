@@ -1,0 +1,27 @@
+{
+  "format_version": "1.26.30",
+  "minecraft:item": {
+    "description": {
+      "identifier": "hollow:shrine_key",
+      "menu_category": {
+        "category": "items"
+      }
+    },
+    "components": {
+      "minecraft:icon": {
+        "textures": {
+          "default": "hollow_shrine_key"
+        }
+      },
+      "minecraft:display_name": {
+        "value": "item.hollow:shrine_key.name"
+      },
+      "minecraft:max_stack_size": 1,
+      "minecraft:interact_button": "Use key",
+      "hollow:shrine_key": {},
+      "minecraft:rarity": {
+        "value": "rare"
+      }
+    }
+  }
+}

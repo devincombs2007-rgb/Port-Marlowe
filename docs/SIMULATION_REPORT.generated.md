@@ -4,7 +4,7 @@ The real bundled behavior-pack scripts run against a fake Minecraft API (`tools/
 This checks script logic: scheduling, events, persistence, reloads, state machines, caps, cooldowns and rewards.
 It is **not** an in-game test: there is no engine pathfinding, melee, physics, rendering or audio.
 
-Result: **105/105 scenarios passed**
+Result: **115/115 scenarios passed**
 
 | Scenario | Result |
 |---|---|
@@ -113,7 +113,17 @@ Result: **105/105 scenarios passed**
 | trevor: nobody comes - he limps back at dawn; with permanent death on he is gone for good | pass |
 | trevor: anyone can order him; he patches up the badly hurt and won't follow into the crater | pass |
 | island: searching the crew gives their notes once; the forest cabins never appear | pass |
+| cinematic: the first arrival triggers 1957 and the shoot-down for everyone, once | pass |
+| cinematic: hold sneak to skip; quitting mid-scene restores you on return | pass |
+| jobs: make camp, chop a tree, logs stacked in the camp crate | pass |
+| jobs: building a cabin takes forty logs from the crate and raises it block by block | pass |
+| jobs: orders from different players run first come first served; cancel drops only your own | pass |
+| jobs: the field radio orders him from anywhere; cut logs drop their leaves on the island | pass |
+| cult: Sunfall fills when you come near; gifts raise standing; killing the Faithful is never forgotten | pass |
+| cult: offerings in the shrine barrel, the Hierophant's key opens the vault; his death turns everyone | pass |
+| survey: stations log with a counter; containers stock on approach; samples file; reels play | pass |
+| tower: fuel and parts, transmit, a night under siege, the dawn helicopter and the ending | pass |
 
 - music: 3 night track(s) over 4 nights; 129 ticks of night music while a Watcher was stalking
 - dread draw: watcher encounters over twelve nights - calm 25, terrified 29
-- load: peak creature counts {"hollow:borrowed":2,"hollow:watcher":3,"hollow:phantom":2}; script time per tick avg 0.247 ms, p99 2.115 ms, max 41.45 ms (Node on a dev machine against the fake world - not an Xbox measurement)
+- load: peak creature counts {"hollow:borrowed":2,"hollow:watcher":3,"hollow:phantom":2}; script time per tick avg 0.137 ms, p99 1.309 ms, max 4.50 ms (Node on a dev machine against the fake world - not an Xbox measurement)

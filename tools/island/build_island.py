@@ -25,6 +25,8 @@ sys.path.insert(0, os.path.join(ROOT, "tools"))
 from tools.island import layout as L  # noqa: E402
 from tools.island import nbt  # noqa: E402
 from tools.island.bedrock_world import World, level_dat, package  # noqa: E402
+from tools.island.buildings import Builder  # noqa: E402
+from tools.island.diorama import build_diorama  # noqa: E402
 from tools.island.selftest import check_world  # noqa: E402
 from tools.island.structures import CrashSite  # noqa: E402
 from tools.island.terrain import Terrain  # noqa: E402
@@ -65,6 +67,14 @@ def write_layout_ts(extra):
     lines.append(f"export const CRASH_SMOKE = {json.dumps([{'x': a, 'y': b, 'z': c} for a, b, c in extra['smoke']])};")
     lines.append(f"export const CRASH_CONTAINERS = {json.dumps([{'x': a, 'y': b, 'z': c} for a, b, c in extra['containers']])};")
     lines.append(f"export const CREW_BODIES = {json.dumps(extra['bodies'])};")
+    b = extra["builder"]
+    lines.append("export type Pos = { x: number; y: number; z: number };")
+    lines.append("/** Containers the story stocks on first visit: position and loot key. */")
+    lines.append(f"export const LOOT_CONTAINERS: (Pos & {{ loot: string }})[] = {json.dumps([{'x': x, 'y': y, 'z': z, 'loot': k} for x, y, z, k in b.containers])};")
+    lines.append("/** Console buttons: station1..6, tower, generator. */")
+    lines.append(f"export const CONSOLES: Record<string, Pos> = {json.dumps({k: {'x': v[0], 'y': v[1], 'z': v[2]} for k, v in b.consoles.items()})};")
+    lines.append("/** Named points: mannequin seats, cult homes and posts, bunker interiors, the arena... */")
+    lines.append(f"export const POINTS: Record<string, Pos[]> = {json.dumps({k: [{'x': x, 'y': y, 'z': z} for x, y, z in v] for k, v in b.points.items()})};")
     path = os.path.join(ROOT, "scripts_src", "content", "island_layout.ts")
     with open(path, "w") as f:
         f.write("\n".join(lines) + "\n")
@@ -110,6 +120,10 @@ def main(argv):
     site = CrashSite(t, p)
     info = site.build()
     log(t0, f"crash site: {info['blocks']} hull blocks, {info['fires']} fires")
+    builder = Builder(t)
+    if not quick:
+        n_cont = builder.build_all()
+        log(t0, f"buildings: {n_cont} containers, {len(builder.consoles)} consoles, {sum(len(v) for v in builder.points.values())} points")
     sx, sz = L.SPAWN
     sy = w.top(sx, sz, ignore=[w.id(n) for n in ("short_grass", "tall_grass", "fern")]) + 1
     # crew bodies are entities the story script spawns; record where (beside the wreck, on the burn)
@@ -123,6 +137,11 @@ def main(argv):
     os.makedirs(out)
     w.save_db(os.path.join(out, "db"))
     log(t0, "LevelDB written")
+    dio = None
+    if not quick:
+        dio = build_diorama()
+        dio.save_db(os.path.join(out, "db"), fresh=False)
+        log(t0, f"1957 diorama written ({dio.W}x{dio.D} at {L.DIORAMA})")
     level_dat(os.path.join(out, "level.dat"), WORLD_NAME, (sx, sy, sz), L.FLAT_LAYERS, extra={
         "dofiretick": nbt.Byte(0),          # the wreck burns for ever and never takes the forest with it
         "showcoordinates": nbt.Byte(0), "spawnradius": nbt.Int(0), "doinsomnia": nbt.Byte(0),
@@ -138,6 +157,8 @@ def main(argv):
             sample.add(((L.CRASH[0] >> 4) + dx, (L.CRASH[1] >> 4) + dz))
     sample = [c for c in sample if w.cx0 <= c[0] < w.cx1 and w.cz0 <= c[1] < w.cz1]
     errs = check_world(w, os.path.join(out, "db"), sample)
+    if dio is not None:
+        errs += check_world(dio, os.path.join(out, "db"), [(dio.cx0 + 3, dio.cz0 + 5), ((dio.cx0 + dio.cx1) // 2, (dio.cz0 + dio.cz1) // 2)])
     log(t0, f"decoder check on {len(sample)} chunks: {'OK' if errs == 0 else str(errs) + ' errors'}")
     if errs:
         sys.exit(1)
@@ -147,6 +168,22 @@ def main(argv):
     I, K = np.meshgrid(np.arange(w.W), np.arange(w.D), indexing="ij")
     np.savez_compressed(os.path.join(BUILD, "preview.npz"), h=t.h, bio=t.bio, topj=topj,
                         topid=w.blocks[I, topj, K], names=np.array([w.name_of(i) for i in range(len(w.palette))]))
+    # cut-outs of every built place for tools/island/voxview.py
+    cuts = {"crash": (L.CRASH, 24), "town": (L.MOCK_TOWN, 48), "pens": (L.PENS, 26), "sunfall": (L.SUNFALL, 38),
+            "tower": (L.TOWER, 16), "dock": (L.DOCK, 30), "mangroves": (L.MANGROVES, 36), "station1": (L.STATIONS["station1"], 8),
+            "bunker1": (L.BUNKERS["bunker1"], 30), "bunker2": (L.BUNKERS["bunker2"], 30), "gz": (L.GZ, 60),
+            "bleachers": ((L.BLACKWOOD[0] + 40, L.BLACKWOOD[1] - 6), 12)}
+    if dio is not None:
+        d_names = np.array([dio.name_of(i) for i in range(len(dio.palette))])
+        np.savez_compressed(os.path.join(BUILD, "cuts", "diorama.npz"), blocks=dio.blocks, names=d_names, x0=dio.x0, z0=dio.z0)
+    os.makedirs(os.path.join(BUILD, "cuts"), exist_ok=True)
+    names = np.array([w.name_of(i) for i in range(len(w.palette))])
+    for key, ((cx, cz), r) in cuts.items():
+        i0, k0 = cx - r - w.x0, cz - r - w.z0
+        if i0 < 0 or k0 < 0 or i0 + 2 * r + 1 > w.W or k0 + 2 * r + 1 > w.D:
+            continue
+        np.savez_compressed(os.path.join(BUILD, "cuts", f"{key}.npz"), blocks=w.blocks[i0:i0 + 2 * r + 1, :, k0:k0 + 2 * r + 1],
+                            names=names, x0=cx - r, z0=cz - r)
     if quick:
         np.save(os.path.join(BUILD, "quick_blocks.npy"), w.blocks)
         with open(os.path.join(BUILD, "quick_palette.json"), "w") as f:
@@ -154,7 +191,7 @@ def main(argv):
         log(t0, "quick build done (not packaged)")
         return
     ts = write_layout_ts({"spawn": (sx, sy, sz), "smoke": info["smoke"], "containers": site.containers,
-                          "bodies": bodies})
+                          "bodies": bodies, "builder": builder})
     log(t0, f"wrote {os.path.relpath(ts, ROOT)}")
     if "--no-package" in argv:
         return

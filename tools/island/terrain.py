@@ -99,8 +99,10 @@ def build_height(F):
     h = h * (1 - flat_ring * 0.55) + around * flat_ring * 0.55
     h = h * (1 - bowl) + floor * bowl + rim * (1 - bowl)
     # flatten building sites
-    for c, rad, lvl in ((L.MOCK_TOWN, 46, None), (L.SUNFALL, 40, None), (L.PENS, 30, None), (L.DOCK, 22, L.SEA + 2)):
+    for c, rad, lvl in ((L.MOCK_TOWN, 46, None), (L.SUNFALL, 40, None), (L.PENS, 30, None), (L.DOCK, 10, L.SEA + 2)):
         m = smoothstep(rad + 18, rad, F.dist(c))
+        if lvl is not None:
+            m = m * (h >= L.SEA - 1)          # level the landing, never fill in the sea
         inside = F.dist(c) < rad
         if not inside.any():
             continue

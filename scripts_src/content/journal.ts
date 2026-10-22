@@ -3,7 +3,7 @@
 
 import { ISLAND_ENTRIES } from "./island_journal";
 
-export type Chapter = "notes" | "contract" | "threats" | "craft" | "places";
+export type Chapter = "notes" | "contract" | "survey" | "threats" | "craft" | "places";
 
 export interface Entry {
   id: string;
@@ -442,6 +442,7 @@ export const LORE_PAGES = ENTRIES.filter((e) => e.lore !== undefined).sort((a, b
 export const CHAPTERS: { id: Chapter; title: string; icon: string }[] = [
   { id: "notes", title: "Field Notes", icon: "textures/ui/hollow/journal/chapter_notes" },
   { id: "contract", title: "The Contract", icon: "textures/ui/hollow/journal/item_research_log" },
+  { id: "survey", title: "Operation SUNLAMP", icon: "textures/ui/hollow/journal/item_film_reel" },
   { id: "threats", title: "Threats", icon: "textures/ui/hollow/journal/chapter_threats" },
   { id: "craft", title: "Equipment", icon: "textures/ui/hollow/journal/chapter_craft" },
   { id: "places", title: "Places", icon: "textures/ui/hollow/journal/chapter_places" },
@@ -459,5 +460,5 @@ export function entryVisible(e: Entry, island: boolean): boolean {
 export function chaptersFor(island: boolean): { id: Chapter; title: string; icon: string }[] {
   return island
     ? CHAPTERS.filter((c) => c.id !== "notes").map((c) => (c.id === "craft" ? { ...c, title: "Gear & Equipment" } : c))
-    : CHAPTERS.filter((c) => c.id !== "contract");
+    : CHAPTERS.filter((c) => c.id !== "contract" && c.id !== "survey");
 }

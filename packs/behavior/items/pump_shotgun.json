@@ -1,0 +1,30 @@
+{
+  "format_version": "1.26.30",
+  "minecraft:item": {
+    "description": {
+      "identifier": "hollow:pump_shotgun",
+      "menu_category": {
+        "category": "equipment"
+      }
+    },
+    "components": {
+      "minecraft:icon": {
+        "textures": {
+          "default": "hollow_pump_shotgun"
+        }
+      },
+      "minecraft:display_name": {
+        "value": "item.hollow:pump_shotgun.name"
+      },
+      "minecraft:max_stack_size": 1,
+      "minecraft:interact_button": "Fire",
+      "hollow:gun": {},
+      "minecraft:hand_equipped": true,
+      "minecraft:can_destroy_in_creative": false,
+      "minecraft:cooldown": {
+        "category": "hollow_shotgun",
+        "duration": 0.9
+      }
+    }
+  }
+}

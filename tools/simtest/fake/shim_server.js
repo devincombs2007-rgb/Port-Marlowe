@@ -19,3 +19,7 @@ export const EntityDamageCause = M.EntityDamageCause;
 export const WaypointTexture = M.WaypointTexture;
 export const MolangVariableMap = M.MolangVariableMap;
 export const LocationWaypoint = M.LocationWaypoint;
+export const EasingType = M.EasingType;
+export const CameraShakeType = M.CameraShakeType;
+export const HudVisibility = M.HudVisibility;
+export const InputPermissionCategory = M.InputPermissionCategory;

@@ -1,4 +1,5 @@
 import { isIsland } from "../island/mode";
+import { islandHeartTarget } from "../island/survey";
 import {
   BlockVolume, Dimension, ItemStack, LocationWaypoint, Player, StructureRotation, Vector3, WaypointTexture, world,
 } from "@minecraft/server";
@@ -260,6 +261,17 @@ const waypoints = new Map<string, { player: Player; point: LocationWaypoint }>()
 export function useHeartseeker(p: Player): void {
   if (!isOverworld(p.dimension)) {
     notice(p, "§7The Heartseeker lies still. Its heart is in the Overworld.");
+    return;
+  }
+  if (isIsland()) {
+    const c = islandHeartTarget();
+    if (!c) return;
+    const d = Math.round(distXZ(p.location, c));
+    const depth = Math.round(p.location.y - c.y);
+    ui(p, SND.heartseeker, 1, d < 32 ? 1.3 : d < 96 ? 1.0 : 0.8);
+    notice(p, `§7The Heartseeker beats: ${d < 6 ? "directly below you" : `${compass(p.location, c)}, ${d} blocks`}, ${depth > 0 ? `${depth} blocks down` : "at this depth"}. §8(Under the crater lake. The old instrument shaft on the north rim goes down.)`);
+    unlock(p, "craft_heartseeker", true);
+    unlock(p, "heart1");
     return;
   }
   let s = shrine();

@@ -1,6 +1,29 @@
-# THE HOLLOW development checkpoint — 1.1.0
+# THE HOLLOW development checkpoint — 2.0.0
 
-## Latest: 1.1.0 — art, animation, visuals, icons, names and Dread (Claude)
+## Latest: 2.0.0 — Varrow Island, phases 2–6
+
+- **Phase 2, cinematic** (`island/cinematic.ts`, `creatures/cinematic.py`): bomber, bomb,
+  helicopter and mushroom-cloud props; a 1330-tick shared timeline on the diorama island at
+  (2400, 0) with camera moves, fades, shake, titles and sounds; sneak to skip; safe rejoin.
+- **Phase 3, Trevor's jobs** (`island/jobs.ts`): one FIFO queue shared by all players (12 max),
+  travel by marker + `move_to_block`, chopping, quarrying, food, building blueprints, fires,
+  collection into a camp chest, patrols; field radio; leaf decay for the world's persistent leaves.
+- **Phase 4, the Children** (`island/cult.ts`, `creatures/cult.py`): Zealot/Faithful/Seer/
+  Hierophant entities sharing Trevor's skeleton; daily village census; standing; talk/trade
+  forms; gifts and shrine offerings; night patrols (tagged so they survive reloads and leave at
+  dawn); the Hierophant's wrath and death; the shrine key and vault; their gunshots.
+- **Phase 5, survey and tower** (`island/survey.ts`, `island/tower.ts`): station consoles,
+  sample kits and filing, ten film reels, container stocking, the relay (generator, parts,
+  transmit), the last night's war parties, the dawn helicopter, the ending and epilogue.
+- **Phase 6**: rifle, shotgun, flare gun (Trevor comes to it), hazmat suit and chelation;
+  the Heart Below placed in the cavern under the crater (altar set by script, pillars for its
+  veins), the Heartseeker pointing there, radiation hot spots in the sealed labs and the cavern.
+- ~60 new Research Log entries (a new Operation SUNLAMP chapter).
+
+Verification: strict TypeScript, static validation 0/0, visual verification, all headless
+simulations (4 new: cult ×2, survey, tower-to-ending). Not verified in Minecraft: anything.
+
+## 1.1.0 — art, animation, visuals, icons, names and Dread (Claude)
 
 - **Names** (display only; item IDs unchanged so existing worlds keep their items): Pale Resin →
   Weeping Sap, Borrowed Hide → False Fleece, Hollow Fang → Echo Fang, Knocker's Nail → Doorstep
@@ -32,7 +55,7 @@
 Verification: strict TypeScript, static validation 0/0, visual verification, 93/93 simulations.
 Not verified in Minecraft: animation playback, texture appearance in VV, shadow style, sound mix.
 
-## Latest: 2.0.0 — Varrow Island, phase 1 (the island and the crash)
+## 2.0.0 — Varrow Island, phase 1 (the island and the crash)
 
 - `tools/island/`: a from-scratch Bedrock world writer (LevelDB, SubChunk v9 with a waterlog layer,
   Data3D biomes, level.dat) with canonical block states, decoded back by an independent reader on

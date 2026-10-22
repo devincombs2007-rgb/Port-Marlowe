@@ -60,6 +60,10 @@ export const StructureRotation = { None: "None", Rotate90: "Rotate90", Rotate180
 const nameProxy = () => new Proxy({}, { get: (_, k) => String(k) });
 export const EntityDamageCause = nameProxy();
 export const WaypointTexture = nameProxy();
+export const EasingType = nameProxy();
+export const CameraShakeType = nameProxy();
+export const HudVisibility = nameProxy();
+export const InputPermissionCategory = nameProxy();
 export const FormCancelationReason = { UserBusy: "UserBusy", UserClosed: "UserClosed" };
 
 // ----------------------------------------------------------------------------- math
@@ -386,6 +390,7 @@ export class Entity {
       };
     }
     if (name === "minecraft:riding") return this.ridingOn ? { entityRidingOn: this.ridingOn } : undefined;
+    if (name === "minecraft:item" && this.itemStack) return { itemStack: this.itemStack };
     if (name === "minecraft:tameable") {
       const def = this._def;
       const has = [...this._groups].some((g) => def?.component_groups?.[g]?.["minecraft:tameable"]) || def?.components?.["minecraft:tameable"];
@@ -472,6 +477,12 @@ class Screen {
   setTitle(t, o) {
     this.p._log.push(`[title] ${t}${o?.subtitle ? " / " + o.subtitle : ""}`);
   }
+  hideAllExcept() {
+    this.p._hud = "hidden";
+  }
+  setHudVisibility(v) {
+    this.p._hud = v;
+  }
 }
 
 export class Player extends Entity {
@@ -506,7 +517,17 @@ export class Player extends Entity {
       push(id, tag) { self._fog.push({ id, tag }); },
       remove(tag) { self._fog = self._fog.filter((f) => f.tag !== tag); },
     };
-    this.camera = { fade() { self._log.push("[fade]"); } };
+    this.camera = {
+      fade() { self._log.push("[fade]"); },
+      setCamera(preset, o) { self._camera = { preset, ...o }; self._camShots = (self._camShots ?? 0) + 1; },
+      clear() { self._camera = undefined; self._log.push("[camera clear]"); },
+      addShake() { self._log.push("[shake]"); },
+    };
+    this._inputs = new Map();
+    this.inputPermissions = {
+      setPermissionCategory(c, on) { self._inputs.set(c, on); },
+      isPermissionCategoryEnabled(c) { return self._inputs.get(c) ?? true; },
+    };
     this.locatorBar = {
       addWaypoint(w) { self._waypoints.push(w); },
       removeWaypoint(w) { self._waypoints = self._waypoints.filter((x) => x !== w); },
@@ -591,24 +612,7 @@ export class Player extends Entity {
   }
   /** Entities whose body the view ray passes within 0.6 blocks of, nearest first; blocks stop it. */
   getEntitiesFromViewDirection(o = {}) {
-    const max = o.maxDistance ?? 64;
-    const h = this.getHeadLocation();
-    const d = this._view;
-    const blockHit = this.dimension.getBlockFromRay(h, d, { maxDistance: max });
-    const limit = blockHit ? dist(h, blockHit.block.center()) : max;
-    const out = [];
-    for (const e of this.dimension._entities.values()) {
-      if (!e.isValid || e === this) continue;
-      if (o.excludeTypes?.includes(e.typeId)) continue;
-      if (o.excludeFamilies?.some((f) => e._families.has(f))) continue;
-      const c = v3(e.location.x, e.location.y + 0.9, e.location.z);
-      const rel = v3(c.x - h.x, c.y - h.y, c.z - h.z);
-      const t = rel.x * d.x + rel.y * d.y + rel.z * d.z;
-      if (t < 0 || t > limit) continue;
-      const perp = Math.hypot(rel.x - d.x * t, rel.y - d.y * t, rel.z - d.z * t);
-      if (perp <= 1.0) out.push({ entity: e, distance: t });
-    }
-    return out.sort((a, b) => a.distance - b.distance);
+    return this.dimension.getEntitiesFromRay(this.getHeadLocation(), this._view, o, this);
   }
   getBlockFromViewDirection(o = {}) {
     return this.dimension.getBlockFromRay(this.getHeadLocation(), this._view, o);
@@ -627,6 +631,25 @@ export class Dimension {
     this.biome = () => "minecraft:forest";
     this.loaded = () => true;
   }
+  getEntitiesFromRay(h, d, o = {}, self = undefined) {
+    const max = o.maxDistance ?? 64;
+    const blockHit = this.getBlockFromRay(h, d, { maxDistance: max });
+    const limit = blockHit ? dist(h, blockHit.block.center()) : max;
+    const out = [];
+    for (const e of this._entities.values()) {
+      if (!e.isValid || e === self) continue;
+      if (o.excludeTypes?.includes(e.typeId)) continue;
+      if (o.excludeFamilies?.some((f) => e._families.has(f))) continue;
+      const c = v3(e.location.x, e.location.y + 0.9, e.location.z);
+      const rel = v3(c.x - h.x, c.y - h.y, c.z - h.z);
+      const t = rel.x * d.x + rel.y * d.y + rel.z * d.z;
+      if (t < 0 || t > limit) continue;
+      const perp = Math.hypot(rel.x - d.x * t, rel.y - d.y * t, rel.z - d.z * t);
+      if (perp <= 1.0) out.push({ entity: e, distance: t });
+    }
+    return out.sort((a, b) => a.distance - b.distance);
+  }
+
   _terrain(y) {
     if (y < this.heightRange.min) return "minecraft:bedrock";
     if (y < this.groundY - 4) return "minecraft:stone";
@@ -707,6 +730,7 @@ export class Dimension {
     let list = [...this._entities.values()].filter((e) => e.isValid);
     if (o.type) list = list.filter((e) => e.typeId === o.type);
     if (o.families) list = list.filter((e) => o.families.every((f) => e._families.has(f)));
+    if (o.tags) list = list.filter((e) => o.tags.every((t) => e._tags?.has(t)));
     if (o.excludeTypes) list = list.filter((e) => !o.excludeTypes.includes(e.typeId));
     if (o.location) {
       if (o.maxDistance !== undefined) list = list.filter((e) => dist(e.location, o.location) <= o.maxDistance);
@@ -978,7 +1002,7 @@ export class Sim {
     return {
       world: this.world, system: this.system, ItemStack, BlockPermutation, BlockVolume, Block, Entity, Player, Dimension,
       GameMode, Difficulty, EquipmentSlot, ItemLockMode, PlayerPermissionLevel, StructureRotation, EntityDamageCause,
-      WaypointTexture, MolangVariableMap: class { setFloat() {} },
+      WaypointTexture, EasingType, CameraShakeType, HudVisibility, InputPermissionCategory, MolangVariableMap: class { setFloat() {} },
       LocationWaypoint: class { constructor(loc) { this.location = loc; this.isValid = true; } },
       ActionFormData, ModalFormData, FormCancelationReason,
     };
