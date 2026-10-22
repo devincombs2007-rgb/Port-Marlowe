@@ -1,0 +1,25 @@
+{
+  "format_version": "1.26.30",
+  "minecraft:item": {
+    "description": {
+      "identifier": "hollow:research_log",
+      "menu_category": {
+        "category": "items"
+      }
+    },
+    "components": {
+      "minecraft:icon": {
+        "textures": {
+          "default": "hollow_research_log"
+        }
+      },
+      "minecraft:display_name": {
+        "value": "item.hollow:research_log.name"
+      },
+      "minecraft:max_stack_size": 1,
+      "minecraft:interact_button": "Read",
+      "hollow:journal": {},
+      "minecraft:hover_text_color": "gray"
+    }
+  }
+}

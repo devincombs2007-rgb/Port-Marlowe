@@ -38,6 +38,33 @@
     "hollow_offering_of_silence": {
       "textures": "textures/items/hollow/offering_of_silence"
     },
+    "hollow_research_log": {
+      "textures": "textures/items/hollow/research_log"
+    },
+    "hollow_geiger_counter": {
+      "textures": "textures/items/hollow/geiger_counter"
+    },
+    "hollow_service_pistol": {
+      "textures": "textures/items/hollow/service_pistol"
+    },
+    "hollow_pistol_round": {
+      "textures": "textures/items/hollow/pistol_round"
+    },
+    "hollow_medkit": {
+      "textures": "textures/items/hollow/medkit"
+    },
+    "hollow_ration_pack": {
+      "textures": "textures/items/hollow/ration_pack"
+    },
+    "hollow_iodine_tablets": {
+      "textures": "textures/items/hollow/iodine_tablets"
+    },
+    "hollow_survival_hatchet": {
+      "textures": "textures/items/hollow/survival_hatchet"
+    },
+    "hollow_broken_radio": {
+      "textures": "textures/items/hollow/broken_radio"
+    },
     "hollow_hollow_chime": {
       "textures": "textures/items/hollow/hollow_chime"
     },

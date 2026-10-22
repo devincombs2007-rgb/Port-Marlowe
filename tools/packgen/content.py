@@ -47,6 +47,44 @@ ITEMS = [
         "minecraft:use_modifiers": {"use_duration": 1.6, "movement_modifier": 0.35}}, "items"),
     ("offering_of_silence", "Hush Offering", "offering_of_silence", {
         "minecraft:max_stack_size": 1, "minecraft:rarity": {"value": "rare"}, "minecraft:glint": True}, "items"),
+    # ---------------------------------------------------------------- Varrow Island (2.0)
+    ("research_log", "Research Log", "research_log", {
+        "minecraft:max_stack_size": 1, "minecraft:interact_button": "Read", "hollow:journal": {},
+        "minecraft:hover_text_color": "gray"}, "items"),
+    ("geiger_counter", "Geiger Counter", "geiger_counter", {
+        "minecraft:max_stack_size": 1, "minecraft:interact_button": "Take reading", "hollow:geiger": {},
+        "minecraft:cooldown": {"category": "hollow_geiger", "duration": 1.5}}, "equipment"),
+    ("service_pistol", "Service Pistol", "service_pistol", {
+        "minecraft:max_stack_size": 1, "minecraft:interact_button": "Fire", "hollow:pistol": {},
+        "minecraft:hand_equipped": True, "minecraft:can_destroy_in_creative": False,
+        "minecraft:cooldown": {"category": "hollow_pistol", "duration": 0.3}}, "equipment"),
+    ("pistol_round", "9mm Rounds", "pistol_round", {"minecraft:max_stack_size": 64}, "equipment"),
+    ("medkit", "Medkit", "medkit", {
+        "minecraft:max_stack_size": 4, "hollow:medkit": {},
+        "minecraft:food": {"nutrition": 0, "saturation_modifier": 0, "can_always_eat": True},
+        "minecraft:use_animation": "none",
+        "minecraft:use_modifiers": {"use_duration": 2.2, "movement_modifier": 0.3}}, "items"),
+    ("ration_pack", "Field Ration", "ration_pack", {
+        "minecraft:max_stack_size": 16, "hollow:ration": {},
+        "minecraft:food": {"nutrition": 8, "saturation_modifier": 0.75},
+        "minecraft:use_animation": "eat",
+        "minecraft:use_modifiers": {"use_duration": 1.8, "movement_modifier": 0.35}}, "items"),
+    ("iodine_tablets", "Iodine Tablets", "iodine_tablets", {
+        "minecraft:max_stack_size": 8, "hollow:iodine": {},
+        "minecraft:food": {"nutrition": 0, "saturation_modifier": 0, "can_always_eat": True},
+        "minecraft:use_animation": "eat",
+        "minecraft:use_modifiers": {"use_duration": 0.8, "movement_modifier": 0.6}}, "items"),
+    ("survival_hatchet", "Survival Hatchet", "survival_hatchet", {
+        "minecraft:max_stack_size": 1, "minecraft:hand_equipped": True, "minecraft:damage": {"value": 6},
+        "minecraft:durability": {"max_durability": 420},
+        "minecraft:repairable": {"repair_items": [{"items": ["minecraft:iron_ingot"], "repair_amount": 105}]},
+        "minecraft:enchantable": {"slot": "axe", "value": 12},
+        "minecraft:tags": {"tags": ["minecraft:is_axe", "minecraft:is_tool"]},
+        "minecraft:digger": {"use_efficiency": True, "destroy_speeds": [
+            {"block": {"tags": "query.any_tag('log', 'wood')"}, "speed": 9},
+            {"block": {"tags": "query.any_tag('plant')"}, "speed": 6}]}}, "equipment"),
+    ("broken_radio", "Satellite Radio (cracked)", "broken_radio", {
+        "minecraft:max_stack_size": 1, "minecraft:interact_button": "Inspect", "hollow:broken_radio": {}}, "items"),
 ]
 
 # Block items reuse the block identifier and place the block (vanilla pattern, e.g. red_shrub).
@@ -321,6 +359,12 @@ RECIPES = {
 }
 
 LANG_EXTRA = {
+    "entity.hollow:trevor.name": "Trevor Hale",
+    "entity.hollow:crew_body.name": "Crew",
+    "entity.hollow:bullet.name": "Bullet",
+    "item.spawn_egg.entity.hollow:trevor.name": "Spawn Trevor Hale",
+    "action.interact.hollow.talk": "Talk",
+    "action.interact.hollow.search": "Search",
     "entity.hollow:watcher.name": "The Watcher",
     "entity.hollow:borrowed.name": "Sheep?",
     "entity.hollow:hollowed.name": "The Hollowed",

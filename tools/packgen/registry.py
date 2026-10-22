@@ -66,6 +66,14 @@ ENTITY_SOUNDS = {
             "death": "hollow.heart.vein_break",
         },
     },
+    "hollow:trevor": {
+        "volume": 1.0, "pitch": [0.85, 0.95],
+        "events": {
+            "hurt": "hollow.trevor.hurt",
+            "death": "hollow.trevor.death",
+            "step": {"sound": "hollow.trevor.step", "volume": 0.8},
+        },
+    },
 }
 
 LANG_EXTRA = {

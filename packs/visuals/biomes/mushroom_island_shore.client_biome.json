@@ -9,7 +9,8 @@
         "fog_identifier": "hollow:fog_mushroom_island_shore"
       },
       "minecraft:water_appearance": {
-        "surface_color": "#818193"
+        "surface_color": "#4CE05A",
+        "surface_opacity": 0.92
       },
       "minecraft:atmosphere_identifier": {
         "atmosphere_identifier": "hollow:wild_atmospherics"
@@ -21,7 +22,7 @@
         "lighting_identifier": "hollow:wild_lighting"
       },
       "minecraft:water_identifier": {
-        "water_identifier": "hollow:wild_water"
+        "water_identifier": "hollow:toxic_water"
       },
       "minecraft:ambient_sounds": {
         "underwater_addition": {
@@ -31,7 +32,7 @@
         "underwater_loop": "ambient.underwater.loop"
       },
       "minecraft:sky_color": {
-        "sky_color": "#425260"
+        "sky_color": "#4E5E4A"
       }
     }
   }

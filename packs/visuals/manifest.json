@@ -5,8 +5,8 @@
     "description": "\u00a77Horror atmosphere: seven Overworld looks, muted daylight, cold nights, warm shelter light and restrained water. Optional; use one lighting pack.",
     "uuid": "0eefff6a-77f2-5024-aa5f-4ae021c10921",
     "version": [
-      1,
-      1,
+      2,
+      0,
       0
     ],
     "min_engine_version": [
@@ -20,8 +20,8 @@
       "type": "resources",
       "uuid": "f1067fa6-d1f3-581b-8504-1733df4a0d40",
       "version": [
-        1,
-        1,
+        2,
+        0,
         0
       ]
     }

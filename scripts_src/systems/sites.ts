@@ -1,3 +1,4 @@
+import { isIsland } from "../island/mode";
 import {
   BlockVolume, Dimension, ItemStack, LocationWaypoint, Player, StructureRotation, Vector3, WaypointTexture, world,
 } from "@minecraft/server";
@@ -319,7 +320,10 @@ function discover(p: Player): void {
 }
 
 export function startSites(): void {
-  everyPlayer("sites.place", 1200, trySurfaceSite);
+  // the forest cabins, camps and towers belong to the original story, not to Varrow Island
+  everyPlayer("sites.place", 1200, (p) => {
+    if (!isIsland()) trySurfaceSite(p);
+  });
   everyPlayer("sites.discover", 100, discover);
   every("sites.validate", 6000, () => {
     // drop records whose structure was removed (e.g. by /fill) once a player is nearby

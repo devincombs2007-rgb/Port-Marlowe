@@ -1,0 +1,76 @@
+{
+  "format_version": "1.26.50",
+  "minecraft:entity": {
+    "description": {
+      "identifier": "hollow:bullet",
+      "is_spawnable": false,
+      "is_summonable": true
+    },
+    "components": {
+      "minecraft:type_family": {
+        "family": [
+          "hollow",
+          "hollow_temp",
+          "projectile",
+          "inanimate"
+        ]
+      },
+      "minecraft:collision_box": {
+        "width": 0.15,
+        "height": 0.15
+      },
+      "minecraft:projectile": {
+        "on_hit": {
+          "impact_damage": {
+            "damage": {
+              "min": 5,
+              "max": 7
+            },
+            "power_multiplier": 0.0,
+            "knockback": true,
+            "destroy_on_hit": true
+          },
+          "remove_on_hit": {}
+        },
+        "power": 4.2,
+        "gravity": 0.0,
+        "inertia": 1.0,
+        "liquid_inertia": 0.4,
+        "uncertainty_base": 5.0,
+        "uncertainty_multiplier": 1.0,
+        "anchor": "middle",
+        "offset": [
+          0,
+          -0.15,
+          0
+        ],
+        "should_bounce": "no",
+        "hit_water": true,
+        "hit_sound": ""
+      },
+      "minecraft:physics": {},
+      "minecraft:timer": {
+        "looping": false,
+        "time": 3,
+        "time_down_event": {
+          "event": "hollow:despawn",
+          "target": "self"
+        }
+      }
+    },
+    "component_groups": {
+      "hollow:despawn": {
+        "minecraft:instant_despawn": {}
+      }
+    },
+    "events": {
+      "hollow:despawn": {
+        "add": {
+          "component_groups": [
+            "hollow:despawn"
+          ]
+        }
+      }
+    }
+  }
+}

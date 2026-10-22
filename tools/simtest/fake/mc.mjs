@@ -92,6 +92,7 @@ class Signal {
 function passes(name, ev, opts) {
   if (!opts) return true;
   if (opts.entityTypes && ev.entity && !opts.entityTypes.includes(ev.entity.typeId)) return false;
+  if (opts.entityTypes && ev.deadEntity && !opts.entityTypes.includes(ev.deadEntity.typeId)) return false;
   if (opts.namespaces && ev.id && !opts.namespaces.includes(ev.id.split(":")[0])) return false;
   if (opts.entityFilter?.type && ev.entity && ev.entity.typeId !== opts.entityFilter.type) return false;
   if (opts.itemFilter?.includeTypes && ev.items && !ev.items.some((i) => opts.itemFilter.includeTypes.includes(i.typeId))) return false;
@@ -129,16 +130,36 @@ export class ItemStack {
     const def = ITEM_DEFS.get(this.typeId);
     const dur = def?.components?.["minecraft:durability"];
     this._dur = dur ? { damage: 0, maxDurability: dur.max_durability } : undefined;
+    this._dp = new Map();
+    this._lore = [];
+    this._maxStack = def?.components?.["minecraft:max_stack_size"] ?? 64;
   }
   getComponent(name) {
     if (name === "minecraft:durability") return this._dur;
     return undefined;
+  }
+  getDynamicProperty(k) {
+    return this._dp.get(k);
+  }
+  setDynamicProperty(k, v) {
+    if (this._maxStack !== 1) throw new Error("dynamic properties need a non-stackable item");
+    if (v === undefined) this._dp.delete(k);
+    else this._dp.set(k, v);
+  }
+  setLore(l) {
+    this._lore = [...(l ?? [])];
+  }
+  getLore() {
+    return [...this._lore];
   }
   clone() {
     const c = new ItemStack(this.typeId, this.amount);
     c.keepOnDeath = this.keepOnDeath;
     c.lockMode = this.lockMode;
     if (this._dur) c._dur = { ...this._dur };
+    c._dp = new Map(this._dp);
+    c._lore = [...this._lore];
+    c.nameTag = this.nameTag;
     return c;
   }
 }
@@ -329,6 +350,11 @@ export class Entity {
     for (const g of ev.remove?.component_groups ?? []) this._groups.delete(g);
     for (const g of ev.add?.component_groups ?? []) {
       this._groups.add(g);
+      if (this._def.component_groups?.[g]?.["minecraft:instant_despawn"] && this._valid) {
+        this._valid = false;
+        this.dimension._entities.delete(this.id);
+        return;
+      }
       const hp = this._def.component_groups?.[g]?.["minecraft:health"];
       if (hp) this._health = { currentValue: hp.value ?? hp.max, effectiveMax: hp.max ?? hp.value };
     }
@@ -360,7 +386,32 @@ export class Entity {
       };
     }
     if (name === "minecraft:riding") return this.ridingOn ? { entityRidingOn: this.ridingOn } : undefined;
+    if (name === "minecraft:tameable") {
+      const def = this._def;
+      const has = [...this._groups].some((g) => def?.component_groups?.[g]?.["minecraft:tameable"]) || def?.components?.["minecraft:tameable"];
+      if (!has) return undefined;
+      const spec = [...this._groups].map((g) => def.component_groups[g]["minecraft:tameable"]).find(Boolean) ?? def.components["minecraft:tameable"];
+      return {
+        tame: (p) => {
+          if (this._sim.refuseTaming) return false;
+          this._owner = p.id;
+          if (spec.tame_event?.event) this.triggerEvent(spec.tame_event.event);
+          return true;
+        },
+      };
+    }
+    if (name === "minecraft:variant") {
+      const def = this._def;
+      for (const g of this._groups) {
+        const v = def?.component_groups?.[g]?.["minecraft:variant"];
+        if (v) return { value: v.value };
+      }
+      return undefined;
+    }
     return undefined;
+  }
+  kill() {
+    return this._sim.damage(this, 9999, undefined, "selfDestruct");
   }
   matches(opts) {
     if (opts.families && !opts.families.every((f) => this._families.has(f))) return false;
@@ -372,8 +423,9 @@ export class Entity {
     this._valid = false;
     this.dimension._entities.delete(this.id);
   }
-  teleport(loc) {
+  teleport(loc, opts) {
     this.location = { ...loc };
+    if (opts?.facingLocation && this instanceof Player) this.lookAt(opts.facingLocation);
   }
   addEffect(id, dur, opts) {
     this._effects.push({ id, dur, opts });
@@ -533,6 +585,34 @@ export class Player extends Entity {
   remove() {
     throw new Error("cannot remove a player");
   }
+  runCommand(cmd) {
+    this._log.push(`[cmd] ${cmd}`);
+    return { successCount: 1 };
+  }
+  /** Entities whose body the view ray passes within 0.6 blocks of, nearest first; blocks stop it. */
+  getEntitiesFromViewDirection(o = {}) {
+    const max = o.maxDistance ?? 64;
+    const h = this.getHeadLocation();
+    const d = this._view;
+    const blockHit = this.dimension.getBlockFromRay(h, d, { maxDistance: max });
+    const limit = blockHit ? dist(h, blockHit.block.center()) : max;
+    const out = [];
+    for (const e of this.dimension._entities.values()) {
+      if (!e.isValid || e === this) continue;
+      if (o.excludeTypes?.includes(e.typeId)) continue;
+      if (o.excludeFamilies?.some((f) => e._families.has(f))) continue;
+      const c = v3(e.location.x, e.location.y + 0.9, e.location.z);
+      const rel = v3(c.x - h.x, c.y - h.y, c.z - h.z);
+      const t = rel.x * d.x + rel.y * d.y + rel.z * d.z;
+      if (t < 0 || t > limit) continue;
+      const perp = Math.hypot(rel.x - d.x * t, rel.y - d.y * t, rel.z - d.z * t);
+      if (perp <= 1.0) out.push({ entity: e, distance: t });
+    }
+    return out.sort((a, b) => a.distance - b.distance);
+  }
+  getBlockFromViewDirection(o = {}) {
+    return this.dimension.getBlockFromRay(this.getHeadLocation(), this._view, o);
+  }
 }
 
 // ----------------------------------------------------------------------------- dimension
@@ -646,6 +726,7 @@ export class Dimension {
     this._entities.set(e.id, e);
     this._sim.spawnLog.push(typeId);
     if (e._def?.events?.["minecraft:entity_spawned"]) e.triggerEvent("minecraft:entity_spawned");
+    this._sim.fire("entitySpawn", { entity: e, cause: "Spawned" });
     return e;
   }
   spawnItem(stack, loc) {
@@ -657,6 +738,7 @@ export class Dimension {
   spawnParticle() {}
   playSound(id, loc) {
     this._sim.worldSounds.push(id);
+    (this._sim.worldSoundAt ??= []).push({ id, loc });
   }
   items(typeId) {
     return [...this._entities.values()].filter((e) => e.isValid && e.typeId === "minecraft:item" && (!typeId || e.itemStack.typeId === typeId));

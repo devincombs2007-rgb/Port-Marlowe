@@ -1,0 +1,78 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.hollow.crew.pose": {
+      "loop": true,
+      "bones": {
+        "root": {
+          "rotation": [
+            "query.variant == 1 ? -88 : -90",
+            "query.variant == 1 ? 0 : 0",
+            "query.variant == 1 ? 82 : 0"
+          ],
+          "position": [
+            0,
+            "query.variant == 1 ? 3.2 : 2.6",
+            0
+          ]
+        },
+        "head": {
+          "rotation": [
+            0,
+            "query.variant == 1 ? -30 : 28",
+            "query.variant == 1 ? 10 : 0"
+          ]
+        },
+        "right_arm": {
+          "rotation": [
+            "query.variant == 1 ? -60 : 0",
+            0,
+            "query.variant == 1 ? 10 : 42"
+          ]
+        },
+        "right_forearm": {
+          "rotation": [
+            "query.variant == 1 ? -40 : -10",
+            0,
+            0
+          ]
+        },
+        "left_arm": {
+          "rotation": [
+            "query.variant == 1 ? -100 : -24",
+            0,
+            "query.variant == 1 ? 0 : -16"
+          ]
+        },
+        "left_forearm": {
+          "rotation": [
+            -18,
+            0,
+            0
+          ]
+        },
+        "right_leg": {
+          "rotation": [
+            "query.variant == 1 ? -30 : 0",
+            0,
+            "query.variant == 1 ? 0 : 8"
+          ]
+        },
+        "right_shin": {
+          "rotation": [
+            "query.variant == 1 ? 40 : 0",
+            0,
+            0
+          ]
+        },
+        "left_leg": {
+          "rotation": [
+            "query.variant == 1 ? -10 : 0",
+            0,
+            -12
+          ]
+        }
+      }
+    }
+  }
+}

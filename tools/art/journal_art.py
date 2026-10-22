@@ -138,8 +138,12 @@ def ink_render(model, atlas, mers, pose, yaw, pitch, crop=None, fit=0.84, accent
 
 
 def creature(name, tex, pose, yaw, pitch, crop=None, fit=0.84, build_fn="build"):
-    mod = importlib.import_module(name if name != "heart_below" else "heart")
-    model = getattr(mod, build_fn)()
+    if name == "crew":
+        mod = importlib.import_module("trevor")
+        model = mod.build("crew")
+    else:
+        mod = importlib.import_module(name if name != "heart_below" else "heart")
+        model = getattr(mod, build_fn)()
     model.texel_scale = 1
     model.layout()
     base = os.path.join(RP, "textures", "entity", "hollow")
@@ -472,6 +476,8 @@ CREATURES = [
      30, 6, None),
     ("mirebound", "mirebound", {"head": {"rot": (-34, 0, 0)}, "jaw": {"rot": (48, 0, 0)}, "body": {"rot": (-14, 0, 0), "pos": (0, 3, 0)},
                                 "arm_l": {"rot": (-60, 0, -20)}, "arm_r": {"rot": (-60, 0, 20)}}, 30, 14, None),
+    ("trevor", "trevor", {"head": {"rot": (-4, 14, 0)}}, 24, 6, ((0, 26, -1), 10.0)),
+    ("crew", "crew", {"head": {"rot": (0, 20, 0)}}, 30, 8, ((0, 24, -1), 12.0)),
 ]
 
 
@@ -498,7 +504,8 @@ def specimen(item):
 
 ITEMS = ["hollow_chime", "rowan_ward", "hollow_lens", "heartseeker", "offering_of_silence", "heartwood_lantern",
          "hearth_tea", "pale_resin", "borrowed_hide", "hollow_fang", "knocker_nail", "mire_pearl", "stilled_heart",
-         "field_journal", "torn_page"]
+         "field_journal", "torn_page", "research_log", "geiger_counter", "service_pistol", "medkit", "ration_pack",
+         "iodine_tablets", "survival_hatchet", "broken_radio", "pistol_round"]
 
 
 def main():

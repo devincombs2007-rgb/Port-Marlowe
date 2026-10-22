@@ -16,11 +16,12 @@ import { block } from "../core/world";
 //   pistons                                   10       pistonActivate
 //   fighting (any hurt involving a player)    14       entityHurt
 //   explosions                                40       explosion
+//   gunshots                                  48       the service pistol (island/guns.ts)
 //   thrown things landing                     12       projectileHitBlock / projectileHitEntity (at impact)
 //
 //   Silent: sneaking, walking on any wool or carpet, standing still.
 
-export type NoiseKind = "move" | "sprint" | "jump" | "break" | "place" | "use" | "redstone" | "combat" | "explosion" | "impact";
+export type NoiseKind = "move" | "sprint" | "jump" | "break" | "place" | "use" | "redstone" | "combat" | "explosion" | "impact" | "gunshot";
 
 export interface Noise {
   dim: Dimension;

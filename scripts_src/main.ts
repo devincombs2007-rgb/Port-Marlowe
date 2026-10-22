@@ -40,10 +40,16 @@ import { frighten } from "./core/fear";
 import { cancelJournalNotices, ensureJournal, forgetJournal, openJournal, unlock, unlockAll } from "./systems/journal";
 import { forgetNoise, startNoiseEvents } from "./systems/noise";
 import { forceSite, forgetSites, startSites } from "./systems/sites";
+import { forgetGuns, registerGearComponents } from "./island/guns";
+import { detectIsland, isIsland, setIsland } from "./island/mode";
+import { forgetRadiation, radState, setDose, startRadiation } from "./island/radiation";
+import { giveIslandKit, onIslandSpawn, startStory, storySummary } from "./island/story";
+import { forceDown, forgetTrevorPlayer, startTrevor, trevorSummary } from "./island/trevor";
 
 system.beforeEvents.startup.subscribe((ev) => {
   registerItemComponents(ev);
   registerBlockComponents(ev);
+  registerGearComponents(ev);
 });
 
 let started = false;
@@ -83,6 +89,9 @@ function init(): void {
   startKnocker();
   startMirebound();
   startHeart();
+  startRadiation();
+  startTrevor();
+  startStory();
   later("sweep", 40, sweepLoaded);
   console.warn(`[hollow] THE HOLLOW initialised (day ${hollowDay()}).`);
 }
@@ -94,10 +103,20 @@ world.afterEvents.worldLoad.subscribe(() => safe("init", init));
 world.afterEvents.playerSpawn.subscribe((ev) => safe("playerSpawn", () => {
   const p = ev.player;
   clearAllFog(p);
+  const island = isIsland() || (ev.initialSpawn && detectIsland(p.dimension));
   if (ev.initialSpawn) {
     rt(p);
+    if (island) {
+      onIslandSpawn(p, true);
+      return;
+    }
     later("welcome", 60, () => {
       if (!p.isValid) return;
+      // the crash-site chunk may not have been loaded at the moment of spawning: look again
+      if (detectIsland(p.dimension)) {
+        onIslandSpawn(p, true);
+        return;
+      }
       const fresh = unlock(p, "intro", true);
       unlock(p, "shelter", true);
       unlock(p, "craft_chime", true);
@@ -110,7 +129,8 @@ world.afterEvents.playerSpawn.subscribe((ev) => safe("playerSpawn", () => {
     rt(p).ctx = undefined;
     resetDread(p);
     forgetEncounters(p.id);
-    later("journalBack", 20, () => p.isValid && ensureJournal(p));
+    if (island) onIslandSpawn(p, false);
+    else later("journalBack", 20, () => p.isValid && ensureJournal(p));
   }
 }));
 
@@ -124,6 +144,7 @@ function forgetEncounters(playerId: string): void {
   forgetBorrowedTarget(playerId);
   forgetMireboundTarget(playerId);
   forgetKnockerTarget(playerId);
+  forgetTrevorPlayer(playerId);
 }
 
 world.beforeEvents.playerLeave.subscribe((ev) => {
@@ -137,6 +158,8 @@ world.beforeEvents.playerLeave.subscribe((ev) => {
     forgetNoise(id);
     forgetMusic(id);
     forgetDread(id);
+    forgetRadiation(id);
+    forgetGuns(id);
   }));
 });
 
@@ -230,12 +253,32 @@ function testCommand(p: Player, arg: string): string {
       return forceEvent(p, arg);
     case "phantom":
       return forcePhantom(p);
+    case "island":
+      setIsland(true);
+      onIslandSpawn(p, true);
+      return "Varrow Island mode ON for this world (story, Trevor, radiation)";
+    case "forest":
+      setIsland(false);
+      return "Varrow Island mode OFF: the original forest story";
+    case "islandkit":
+      giveIslandKit(p);
+      return "Research Log, Geiger counter and pistol given";
+    case "trevordown":
+      return forceDown();
+    case "rad":
+      return `dose ${Math.round(radState(p).dose)} mSv`;
     default:
+      if (arg.startsWith("dose")) {
+        const v = Number(arg.slice(4).trim());
+        if (!Number.isFinite(v)) return "usage: /scriptevent hollow:test dose <0-3000>";
+        setDose(p, v);
+        return `dose set to ${v} mSv`;
+      }
       if (arg.startsWith("dread")) {
         const v = Number(arg.slice(5).trim());
         return Number.isFinite(v) ? setDread(p, v) : "usage: /scriptevent hollow:test dread <0-100>";
       }
-      return "usage: /scriptevent hollow:test on|off|night|midnight|day|kit|journal|knocker|boss2|boss3|eye|lantern|roof|phantom|dread <0-100>";
+      return "usage: /scriptevent hollow:test on|off|night|midnight|day|kit|journal|knocker|boss2|boss3|eye|lantern|roof|phantom|dread <0-100>|island|forest|islandkit|trevordown|rad|dose <mSv>";
   }
 }
 
@@ -265,7 +308,7 @@ system.afterEvents.scriptEventReceive.subscribe((ev) => safe("scriptevent", () =
       p.sendMessage(
         `§7[hollow] day ${hollowDay()} · watcher ${watcherCount()} · borrowed ${borrowedCount()} · hollowed ${hollowedCount()} · ` +
         `mirebound ${mireboundCount()} · knocker ${knockerActive() ? 1 : 0} · heart ${bossSummary()} · dread ${dreadSummary()} · ` +
-        `failures: ${failureReport()}`,
+        `${storySummary()} · ${trevorSummary()} · failures: ${failureReport()}`,
       );
       return;
     case "hollow:debug":

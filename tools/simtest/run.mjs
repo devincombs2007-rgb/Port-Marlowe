@@ -1986,6 +1986,312 @@ await test("load: 8 players, all creatures, Nightmare 200% for a full day - caps
   noErrors(sim);
 });
 
+
+// =============================================================================== Varrow Island (2.0)
+const LAYOUT_TS = fs.readFileSync(new URL("../../scripts_src/content/island_layout.ts", import.meta.url), "utf8");
+const layoutConst = (name) => JSON.parse(LAYOUT_TS.match(new RegExp(`export const ${name} = (.*);`))[1].replace(/([{,]\s*)([a-zA-Z_]+):/g, '$1"$2":'));
+const L_SMOKE = layoutConst("CRASH_SMOKE");
+const L_BOXES = layoutConst("CRASH_CONTAINERS");
+const L_SPAWN = layoutConst("SPAWN_POINT");
+const GZ = { x: 112, z: -12 };
+
+/** A fake world carrying the crash site's signature blocks, like the shipped world file. */
+function islandWorld(seed = 1) {
+  const sim = newWorld(seed);
+  for (const b of L_BOXES) sim.overworld.setBlock(b, "minecraft:barrel");
+  for (const sm of L_SMOKE) {
+    sim.overworld.setBlock(sm, "minecraft:campfire");
+    sim.overworld.setBlock({ x: sm.x, y: sm.y - 1, z: sm.z }, "minecraft:hay_block");
+  }
+  return sim;
+}
+const atSpawn = () => ({ x: L_SPAWN.x + 0.5, y: 64, z: L_SPAWN.z + 0.5 });
+const has = (p, id) => p._inv.count(id) > 0;
+const chat = (p) => p._log.filter((l) => l.startsWith("[chat]")).join("\n");
+
+await test("island: the crash site is recognised; crates stocked, crew laid, Trevor on his feet", () => {
+  const sim = islandWorld();
+  const p = sim.addPlayer("Alex", atSpawn());
+  sim.tick(80);
+  eq(sim.world.getDynamicProperty("hollow:island"), 1, "island flag");
+  const box = sim.overworld.getBlock(L_BOXES[0]).getComponent("minecraft:inventory").container;
+  assert(box.count("hollow:medkit") >= 1 && box.count("hollow:pistol_round") >= 7, "first crate stocked");
+  eq(count(sim, "hollow:crew_body"), 2, "pilot and co-pilot");
+  eq(count(sim, "hollow:trevor"), 1, "Trevor");
+  assert(!journal(p).includes("intro"), "no forest journal intro on the island");
+  noErrors(sim);
+});
+
+await test("island: the wake-up plays once, gives the kit and the contract, and Trevor follows you", () => {
+  const sim = islandWorld();
+  const p = sim.addPlayer("Alex", atSpawn());
+  sim.tick(800);
+  assert(p._log.some((l) => l.startsWith("[title] §lVARROW ISLAND")), "title card");
+  assert(p._log.includes("[fade]"), "fade from black");
+  for (const id of ["hollow:research_log", "hollow:geiger_counter", "hollow:service_pistol"]) assert(has(p, id), `kit ${id}`);
+  eq(p._inv.count("hollow:field_journal"), 0, "no forest journal");
+  for (const id of ["contract", "crash"]) assert(journal(p).includes(id), `entry ${id}`);
+  assert(/Trevor:.*shooting/.test(chat(p)), "Trevor explains what happened");
+  const t = sim.overworld.getEntities({ type: "hollow:trevor" })[0];
+  eq(t._owner, p.id, "Trevor tamed to the first survivor");
+  eq(t.getProperty("hollow:state"), "follow", "following");
+  // rejoining never repeats the scene or duplicates the kit
+  sim.removePlayer(p);
+  sim.addPlayer("Alex", atSpawn());
+  sim.tick(800);
+  eq(p._inv.count("hollow:geiger_counter"), 1, "one Geiger");
+  eq(p._log.filter((l) => l.startsWith("[title] §lVARROW")).length, 1, "title once");
+  noErrors(sim);
+});
+
+await test("island: a later arrival gets the short wake-up and their own kit; restart keeps one Trevor", () => {
+  const sim = islandWorld();
+  sim.addPlayer("Alex", atSpawn());
+  sim.tick(800);
+  const b = sim.addPlayer("Sam", atSpawn());
+  sim.tick(300);
+  assert(!b._log.some((l) => l.startsWith("[title] §lVARROW")), "no long title for a late arrival");
+  assert(has(b, "hollow:geiger_counter") && has(b, "hollow:service_pistol") && has(b, "hollow:research_log"), "Sam's kit");
+  boot(sim, 2);
+  sim.tick(200);
+  eq(count(sim, "hollow:trevor"), 1, "still one Trevor after a restart");
+  eq(count(sim, "hollow:crew_body"), 2, "crew not laid twice");
+  noErrors(sim);
+});
+
+await test("island: recognised even when the crash site was not loaded at the moment of spawning", () => {
+  const sim = islandWorld();
+  let ready = false;
+  sim.overworld.loaded = () => ready;
+  const p = sim.addPlayer("Alex", atSpawn());
+  sim.tick(10);
+  ready = true;
+  sim.tick(800);
+  eq(sim.world.getDynamicProperty("hollow:island"), 1, "island flag");
+  assert(has(p, "hollow:research_log") && !has(p, "hollow:field_journal"), "island kit, not the forest journal");
+  noErrors(sim);
+});
+
+await test("island: an ordinary world keeps the forest story (no Trevor, Field Journal)", () => {
+  const sim = newWorld();
+  const p = sim.addPlayer("Alex");
+  sim.tick(800);
+  eq(sim.world.getDynamicProperty("hollow:island"), undefined, "not the island");
+  eq(count(sim, "hollow:trevor"), 0, "no Trevor");
+  eq(p._inv.count("hollow:field_journal"), 1, "Field Journal");
+  eq(p._inv.count("hollow:research_log"), 0, "no Research Log");
+  noErrors(sim);
+});
+
+await test("radiation: dose builds at Ground Zero, the green water poisons, distance and time bring it down", () => {
+  const sim = islandWorld();
+  const p = sim.addPlayer("Alex", atSpawn());
+  sim.tick(800);
+  const dose = () => Number(JSON.parse(p.getDynamicProperty("hollow:rad") ?? '{"dose":0}').dose);
+  p.teleport({ x: GZ.x, y: 64, z: GZ.z });
+  sim.tick(20 * 60);
+  const d1 = dose();
+  assert(d1 > 40 && d1 < 80, `a minute on the crater floor ~60 mSv (got ${d1})`);
+  p.isInWater = true;
+  p._effects = [];
+  sim.tick(100);
+  assert(p._effects.some((e) => e.id === "poison"), "crater water poisons");
+  p.isInWater = false;
+  // the counter clicks when held
+  p.selectedSlotIndex = p._inv.slots.findIndex((x) => x?.typeId === "hollow:geiger_counter");
+  p._sounds = [];
+  sim.tick(40);
+  assert(p._sounds.some((s) => s.startsWith("hollow.geiger.")), "Geiger clicks");
+  assert(p._sounds.includes("hollow.geiger.5"), "screams at Ground Zero");
+  // reading
+  sim.useItem(p);
+  sim.tick(2);
+  assert(p._log.some((l) => l.includes("Reading:")), "reading shown");
+  assert(journal(p).includes("radiation1"), "radiation entry");
+  // dose persists across a restart, then falls once clear
+  const before = dose();
+  boot(sim, 3);
+  sim.tick(40);
+  assert(Math.abs(dose() - before) < 10, "dose persisted");
+  p.teleport({ x: -200, y: 64, z: 250 });
+  sim.tick(20 * 120);
+  assert(dose() < before - 30, `dose falls away from the crater (${before} -> ${dose()})`);
+  noErrors(sim);
+});
+
+await test("radiation: severe dose brings sickness; iodine halves uptake; nothing happens off the island", () => {
+  const sim = islandWorld();
+  const p = sim.addPlayer("Alex", atSpawn());
+  sim.tick(800);
+  sim.fire("scriptEventReceive", { id: "hollow:test", message: "dose 1100", sourceEntity: p });
+  p._effects = [];
+  sim.tick(20 * 25);
+  assert(p._effects.some((e) => e.id === "weakness"), "weakness at 1000+");
+  assert(p._effects.some((e) => e.id === "poison"), "sickness at 1000+");
+  sim.fire("scriptEventReceive", { id: "hollow:test", message: "dose 0", sourceEntity: p });
+  p.teleport({ x: GZ.x + 60, y: 64, z: GZ.z });
+  const dose = () => Number(JSON.parse(p.getDynamicProperty("hollow:rad")).dose);
+  sim.tick(20 * 30);
+  const plain = dose();
+  sim.fire("scriptEventReceive", { id: "hollow:test", message: "dose 0", sourceEntity: p });
+  p.hold("hollow:iodine_tablets", 2);
+  sim.consumeItem(p);
+  sim.tick(20 * 30);
+  const withIodine = dose();
+  assert(withIodine < plain * 0.65, `iodine halves uptake (${plain} vs ${withIodine})`);
+  const forest = newWorld();
+  const q = forest.addPlayer("Q", { x: GZ.x, y: 64, z: GZ.z });
+  forest.tick(1200);
+  eq(q.getDynamicProperty("hollow:rad"), undefined, "no radiation outside Varrow Island");
+  noErrors(sim);
+  noErrors(forest);
+});
+
+await test("pistol: seven shots that hurt, a dry click, sneak-reload from rounds, every shot heard", () => {
+  const sim = islandWorld();
+  const p = sim.addPlayer("Alex", atSpawn());
+  sim.tick(800);
+  p.selectedSlotIndex = p._inv.slots.findIndex((x) => x?.typeId === "hollow:service_pistol");
+  p.setRotation({ x: 0, y: 0 });
+  const target = sim.overworld.spawnEntity("hollow:hollowed", { x: p.location.x, y: 64, z: p.location.z + 8 });
+  const hp0 = target.getComponent("minecraft:health").currentValue;
+  sim.worldSounds = [];
+  sim.useItem(p);
+  sim.tick(2);
+  assert(sim.worldSounds.includes("hollow.gun.pistol"), "gunshot");
+  assert(target.getComponent("minecraft:health").currentValue < hp0, "the round hits");
+  const gun = () => p._inv.getItem(p.selectedSlotIndex);
+  eq(gun().getDynamicProperty("hollow:mag"), 6, "six left");
+  for (let i = 0; i < 6; i++) {
+    sim.useItem(p);
+    sim.tick(8);
+  }
+  eq(gun().getDynamicProperty("hollow:mag"), 0, "empty");
+  p._sounds = [];
+  sim.useItem(p);
+  sim.tick(2);
+  assert(p._sounds.includes("hollow.gun.dry"), "dry click");
+  const spare = p._inv.count("hollow:pistol_round");
+  p._inv.addItem(new (sim.exports().ItemStack)("hollow:pistol_round", 10));
+  p.isSneaking = true;
+  sim.useItem(p);
+  sim.tick(40);
+  p.isSneaking = false;
+  eq(gun().getDynamicProperty("hollow:mag"), 7, "reloaded");
+  eq(p._inv.count("hollow:pistol_round"), spare + 3, "seven rounds taken");
+  assert(journal(p).includes("gear_pistol"), "pistol entry");
+  noErrors(sim);
+});
+
+await test("trevor: goes down instead of dying; standing beside him brings him round", () => {
+  const sim = islandWorld();
+  const p = sim.addPlayer("Alex", atSpawn());
+  sim.tick(800);
+  const t = sim.overworld.getEntities({ type: "hollow:trevor" })[0];
+  t.triggerEvent("hollow:down");
+  sim.fire("dataDrivenEntityTrigger", { entity: t, eventId: "hollow:down" });
+  sim.tick(20);
+  eq(t.getProperty("hollow:state"), "downed", "downed");
+  assert(/I'm down/.test(chat(p)), "calls for help");
+  p.teleport({ x: t.location.x + 1, y: t.location.y, z: t.location.z });
+  sim.fire("playerInteractWithEntity", { player: p, target: t });
+  sim.tick(100);
+  assert(t.getProperty("hollow:state") !== "downed", "on his feet");
+  assert(t.getComponent("minecraft:health").currentValue >= 20, "patched up");
+  noErrors(sim);
+});
+
+await test("trevor: nobody comes - he limps back at dawn; with permanent death on he is gone for good", () => {
+  const sim = islandWorld();
+  const p = sim.addPlayer("Alex", atSpawn());
+  sim.tick(800);
+  let t = sim.overworld.getEntities({ type: "hollow:trevor" })[0];
+  t.triggerEvent("hollow:down");
+  sim.fire("dataDrivenEntityTrigger", { entity: t, eventId: "hollow:down" });
+  sim.tick(1300);
+  eq(count(sim, "hollow:trevor"), 0, "crawled off");
+  goTo(sim, 1, 500);
+  sim.tick(40);
+  eq(count(sim, "hollow:trevor"), 1, "back at dawn");
+  assert(/all night/.test(chat(p)), "limps in");
+  // permanent death
+  const s = JSON.parse(sim.world.getDynamicProperty("hollow:settings") ?? "{}");
+  sim.world.setDynamicProperty("hollow:settings", JSON.stringify({ ...s, trevorPermadeath: true }));
+  boot(sim, 4);
+  sim.tick(40);
+  t = sim.overworld.getEntities({ type: "hollow:trevor" })[0];
+  t.triggerEvent("hollow:down");
+  sim.fire("dataDrivenEntityTrigger", { entity: t, eventId: "hollow:down" });
+  sim.tick(1300);
+  goTo(sim, 2, 500);
+  sim.tick(40);
+  eq(count(sim, "hollow:trevor"), 0, "gone for good");
+  assert(JSON.parse(sim.world.getDynamicProperty("hollow:trevor")).gone === true, "remembered");
+  noErrors(sim);
+});
+
+await test("trevor: anyone can order him; he patches up the badly hurt and won't follow into the crater", async () => {
+  const sim = islandWorld();
+  const a = sim.addPlayer("Alex", atSpawn());
+  sim.tick(800);
+  const b = sim.addPlayer("Sam", atSpawn());
+  sim.tick(300);
+  const t = sim.overworld.getEntities({ type: "hollow:trevor" })[0];
+  b._ui.push({ canceled: false, selection: 0 });
+  sim.fire("playerInteractWithEntity", { player: b, target: t });
+  await flush();
+  sim.tick(10);
+  eq(t._owner, b.id, "follows Sam now");
+  b._ui.push({ canceled: false, selection: 1 });
+  sim.fire("playerInteractWithEntity", { player: b, target: t });
+  await flush();
+  sim.tick(10);
+  eq(t.getProperty("hollow:state"), "hold", "holding");
+  // a badly hurt player nearby is patched up without asking
+  b._ui.push({ canceled: false, selection: 0 });
+  sim.fire("playerInteractWithEntity", { player: b, target: t });
+  await flush();
+  sim.tick(10);
+  a.teleport({ x: t.location.x + 2, y: t.location.y, z: t.location.z });
+  a._health.currentValue = 4;
+  a._effects = [];
+  sim.tick(40);
+  assert(a._effects.some((e) => e.id === "regeneration"), "patched up");
+  // the leader walks into the crater: he stops at the edge and waits
+  b.teleport({ x: GZ.x, y: 64, z: GZ.z });
+  t.teleport({ x: GZ.x + 30, y: 64, z: GZ.z });
+  sim.tick(40);
+  eq(t.getProperty("hollow:state"), "hold", "won't follow into the crater");
+  assert(/Not in there|without a suit/.test(chat(b)), "says so");
+  b.teleport({ x: GZ.x + 34, y: 64, z: GZ.z });
+  b.teleport({ x: GZ.x + 140, y: 64, z: GZ.z });
+  t.teleport({ x: GZ.x + 136, y: 64, z: GZ.z });
+  sim.tick(40);
+  eq(t.getProperty("hollow:state"), "follow", "picks up again once you're out");
+  noErrors(sim);
+});
+
+await test("island: searching the crew gives their notes once; the forest cabins never appear", () => {
+  const sim = islandWorld();
+  const p = sim.addPlayer("Alex", atSpawn());
+  sim.tick(800);
+  const bodies = sim.overworld.getEntities({ type: "hollow:crew_body" });
+  const rounds = p._inv.count("hollow:pistol_round");
+  for (const b of bodies) sim.fire("playerInteractWithEntity", { player: p, target: b });
+  for (const b of bodies) sim.fire("playerInteractWithEntity", { player: p, target: b });
+  sim.tick(40);
+  assert(journal(p).includes("okafor") && journal(p).includes("lindqvist"), "both notebooks");
+  eq(p._inv.count("hollow:pistol_round"), rounds + 7, "loot once");
+  sim.fire("scriptEventReceive", { id: "hollow:test", message: "on", sourceEntity: p });
+  for (let i = 0; i < 6; i++) {
+    p.teleport({ x: -100 - i * 300, y: 64, z: 100 });
+    sim.tick(1300);
+  }
+  const sites = JSON.parse(sim.world.getDynamicProperty("hollow:sites") ?? "[]");
+  eq(sites.length, 0, "no forest sites placed on the island");
+  noErrors(sim);
+});
+
 // =============================================================================== report
 const failed = results.filter((r) => !r.ok);
 for (const r of results) {

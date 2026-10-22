@@ -1,0 +1,28 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "hollow:trevor",
+      "materials": { "default": "entity_alphatest" },
+      "textures": { "default": "textures/entity/hollow/trevor" },
+      "geometry": { "default": "geometry.hollow.trevor" },
+      "animations": {
+        "idle": "animation.hollow.trevor.idle",
+        "walk": "animation.hollow.trevor.walk",
+        "run": "animation.hollow.trevor.run",
+        "aim": "animation.hollow.trevor.aim",
+        "downed": "animation.hollow.trevor.downed",
+        "work": "animation.hollow.trevor.work",
+        "look_at_target": "animation.hollow.trevor.look_at_target",
+        "locomotion": "controller.animation.hollow.trevor.locomotion",
+        "combat": "controller.animation.hollow.trevor.combat"
+      },
+      "scripts": {
+        "pre_animation": ["variable.state = query.property('hollow:state');"],
+        "animate": [{ "look_at_target": "variable.state != 'downed'" }, "locomotion", "combat"]
+      },
+      "render_controllers": ["controller.render.hollow.trevor"],
+      "spawn_egg": { "base_color": "#4a5034", "overlay_color": "#b8a06a" }
+    }
+  }
+}

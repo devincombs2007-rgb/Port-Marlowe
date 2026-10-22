@@ -228,6 +228,55 @@ def fog_for(biome, group, vanilla_fog_id):
 SKY = {group: "#" + "".join(f"{v:02X}" for v in rgb) for group, rgb in DAY_SKY.items() if group != "cave"}
 
 
+def island_overrides():
+    """Varrow Island (2.0) repurposes two biomes that never occur naturally on the island.
+
+    mushroom_island_shore = the Ground Zero crater lake: water that glows a sick radioactive green,
+    a low green mist hanging over it (Vibrant Visuals volumetrics) and greener light in the fog.
+    savanna_mutated = the blast ring around it: ash-grey air and a bleached, dusty sky.
+    In other worlds these are rare vanilla biomes; the looks stay subtle enough to suit them too.
+    """
+    # crater lake water: algae-green, cloudy, still
+    w = water("swamp")
+    ws = w["minecraft:water_settings"]
+    ws["description"]["identifier"] = "hollow:toxic_water"
+    ws["particle_concentrations"] = {"chlorophyll": 2.4, "suspended_sediment": 0.35, "cdom": 0.05}
+    ws["biome_water_color_contribution"] = 0.85
+    ws["caustics"] = {"enabled": True, "frame_length": 0.22, "scale": 0.5, "power": 2}
+    ws["waves"]["enabled"] = False
+    write("water/toxic_water.json", w)
+    biome = "mushroom_island_shore"
+    path = os.path.join(VP, "biomes", f"{biome}.client_biome.json")
+    doc = json.load(open(path))
+    comps = doc["minecraft:client_biome"]["components"]
+    comps["minecraft:water_appearance"] = {"surface_color": "#4CE05A", "surface_opacity": 0.92}
+    comps["minecraft:water_identifier"] = {"water_identifier": "hollow:toxic_water"}
+    comps["minecraft:sky_color"] = {"sky_color": "#4E5E4A"}
+    write(f"biomes/{biome}.client_biome.json", doc)
+    fog = json.load(open(os.path.join(VP, "fogs", f"{biome}.json")))
+    fs = fog["minecraft:fog_settings"]
+    fs["distance"]["air"] = {"fog_start": 0.35, "fog_end": 0.9, "fog_color": "#6F8F5E", "render_distance_type": "render"}
+    fs["distance"]["weather"] = {"fog_start": 0.2, "fog_end": 0.7, "fog_color": "#56704A", "render_distance_type": "render"}
+    if "water" in fs["distance"]:
+        fs["distance"]["water"] = {"fog_start": 0.0, "fog_end": 7.0, "fog_color": "#3F9A3A", "render_distance_type": "fixed"}
+    vol = fs["volumetric"]
+    vol["density"]["air"] = {"max_density": 0.16, "uniform": False, "zero_density_height": 70.0, "max_density_height": 58.0}
+    vol["media_coefficients"]["air"] = {"scattering": [0.020, 0.048, 0.016], "absorption": [0.010, 0.004, 0.012]}
+    write(f"fogs/{biome}.json", fog)
+    # the blast ring: ash and dust
+    biome = "savanna_mutated"
+    path = os.path.join(VP, "biomes", f"{biome}.client_biome.json")
+    doc = json.load(open(path))
+    doc["minecraft:client_biome"]["components"]["minecraft:sky_color"] = {"sky_color": "#6A6660"}
+    write(f"biomes/{biome}.client_biome.json", doc)
+    fog = json.load(open(os.path.join(VP, "fogs", f"{biome}.json")))
+    fs = fog["minecraft:fog_settings"]
+    fs["distance"]["air"] = {"fog_start": 0.5, "fog_end": 1.0, "fog_color": "#7E7870", "render_distance_type": "render"}
+    fs["volumetric"]["density"]["air"] = {"max_density": 0.07, "uniform": False, "zero_density_height": 96.0, "max_density_height": 62.0}
+    fs["volumetric"]["media_coefficients"]["air"] = {"scattering": [0.026, 0.024, 0.022], "absorption": [0.008, 0.008, 0.008]}
+    write(f"fogs/{biome}.json", fog)
+
+
 def main():
     # Fail before replacing generated files if the pinned biome inventory changes unexpectedly.
     assigned = [biome for biomes in GROUPS.values() for biome in biomes]
@@ -264,6 +313,7 @@ def main():
                 comps["minecraft:sky_color"] = {"sky_color": SKY[group]}
             write(f"biomes/{biome}.client_biome.json", doc)
             count += 1
+    island_overrides()
     # Soft, smoothly filtered sun/moon shadows with a soft falloff at their edges (rather than
     # shadows snapped to the 16x16 texel grid). Soft is the engine default, but stating it keeps
     # the look even if another pack in the stack asks for blocky shadows.
@@ -284,6 +334,7 @@ def main():
             "minecraft:campfire": {"light_color": "#FF9A4A", "light_type": "static_light"},
             "minecraft:soul_campfire": {"light_color": "#3FC6C0", "light_type": "static_light"},
             "minecraft:lit_pumpkin": {"light_color": "#FF9A3C", "light_type": "static_light"},
+            "minecraft:verdant_froglight": {"light_color": "#7DFF6A", "light_type": "static_light"},
             "hollow:heartwood_lantern": {"light_color": "#FF6A3D", "light_type": "point_light"},
             "hollow:rowan_ward": {"light_color": "#FF8A3A", "light_type": "static_light"},
         },

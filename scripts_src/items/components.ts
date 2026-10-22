@@ -152,7 +152,8 @@ export function registerItemComponents(ev: StartupEvent): void {
   ev.itemComponentRegistry.registerCustomComponent("hollow:journal", {
     onUse(e) {
       const p = e.source;
-      queueUse(p, ITEM.journal, () => void openJournal(p));
+      // the Field Journal and the Research Log open the same book
+      queueUse(p, e.itemStack?.typeId ?? ITEM.journal, () => void openJournal(p));
     },
   });
 

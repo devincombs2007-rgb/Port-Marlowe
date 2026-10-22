@@ -33,6 +33,10 @@
       "light_color": "#FF9A3C",
       "light_type": "static_light"
     },
+    "minecraft:verdant_froglight": {
+      "light_color": "#7DFF6A",
+      "light_type": "static_light"
+    },
     "hollow:heartwood_lantern": {
       "light_color": "#FF6A3D",
       "light_type": "point_light"

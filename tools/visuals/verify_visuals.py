@@ -18,6 +18,12 @@ LOOK_COMPONENTS = {
 }
 
 
+# Varrow Island (2.0) deliberately restyles one rare biome as the radioactive crater lake: green
+# water colour, its own water settings, a thicker low green mist and green underwater fog.
+# Those changes are allowed there only, within their own bounds (checked in verify()).
+ISLAND_TOXIC = "mushroom_island_shore.client_biome.json"
+
+
 def load(path):
     return json.loads(path.read_text())
 
@@ -62,24 +68,30 @@ def verify(pack):
         new = load(pack / "biomes" / name)["minecraft:client_biome"]
         assert new["description"] == base["description"], f"biome identity changed: {name}"
         a, b = base["components"], new["components"]
-        assert {k: v for k, v in a.items() if k not in LOOK_COMPONENTS} == {
-            k: v for k, v in b.items() if k not in LOOK_COMPONENTS
+        toxic = name == ISLAND_TOXIC
+        skip = LOOK_COMPONENTS | ({"minecraft:water_appearance"} if toxic else set())
+        assert {k: v for k, v in a.items() if k not in skip} == {
+            k: v for k, v in b.items() if k not in skip
         }, f"non-look components changed: {name}"
+        if toxic:
+            wa = b["minecraft:water_appearance"]
+            assert wa["surface_color"].startswith("#") and 0.5 <= wa.get("surface_opacity", 1) <= 1, "toxic water appearance"
         fog_id = a.get("minecraft:fog_appearance", {}).get("fog_identifier")
         old_fog = vanilla_fogs.get(fog_id, {})
         fog_name = name.split(".")[0] + ".json"
         fog = load(pack / "fogs" / fog_name)["minecraft:fog_settings"]
-        assert {k: v for k, v in old_fog.get("distance", {}).items() if k not in ("air", "weather")} == {
-            k: v for k, v in fog["distance"].items() if k not in ("air", "weather")
+        kept = ("air", "weather", "water") if toxic else ("air", "weather")
+        assert {k: v for k, v in old_fog.get("distance", {}).items() if k not in kept} == {
+            k: v for k, v in fog["distance"].items() if k not in kept
         }, f"underwater/lava distance fog changed: {name}"
         assert without_air(old_fog.get("volumetric", {})) == without_air(fog.get("volumetric", {})), f"underwater volume changed: {name}"
         for medium in ("air", "weather"):
             d = fog["distance"][medium]
             assert 0.2 <= d["fog_start"] < d["fog_end"] <= 1
             assert d["render_distance_type"] == "render"
-        assert fog["distance"]["air"]["fog_end"] == 1, "clear-air fog cuts off before render distance"
+        assert fog["distance"]["air"]["fog_end"] == 1 or toxic, "clear-air fog cuts off before render distance"
         density = fog["volumetric"]["density"]["air"]
-        bounded(density["max_density"], 0.0, 0.07)
+        bounded(density["max_density"], 0.0, 0.2 if toxic else 0.07)
         if not density["uniform"]:
             assert density["zero_density_height"] > density["max_density_height"], "inverted mist falloff"
     rows = []

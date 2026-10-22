@@ -5,8 +5,8 @@
     "description": "\u00a77Resource pack \u00b7 creatures, sounds, items. Works in Simple, Fancy and Vibrant Visuals.",
     "uuid": "f9d97f90-991f-5d34-918e-fed51bbefd88",
     "version": [
-      1,
-      1,
+      2,
+      0,
       0
     ],
     "min_engine_version": [
@@ -20,8 +20,8 @@
       "type": "resources",
       "uuid": "e9d651c2-9371-511d-8dd2-afb08381ae9d",
       "version": [
-        1,
-        1,
+        2,
+        0,
         0
       ]
     }

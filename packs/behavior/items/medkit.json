@@ -1,0 +1,33 @@
+{
+  "format_version": "1.26.30",
+  "minecraft:item": {
+    "description": {
+      "identifier": "hollow:medkit",
+      "menu_category": {
+        "category": "items"
+      }
+    },
+    "components": {
+      "minecraft:icon": {
+        "textures": {
+          "default": "hollow_medkit"
+        }
+      },
+      "minecraft:display_name": {
+        "value": "item.hollow:medkit.name"
+      },
+      "minecraft:max_stack_size": 4,
+      "hollow:medkit": {},
+      "minecraft:food": {
+        "nutrition": 0,
+        "saturation_modifier": 0,
+        "can_always_eat": true
+      },
+      "minecraft:use_animation": "none",
+      "minecraft:use_modifiers": {
+        "use_duration": 2.2,
+        "movement_modifier": 0.3
+      }
+    }
+  }
+}

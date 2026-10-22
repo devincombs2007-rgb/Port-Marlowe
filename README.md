@@ -1,5 +1,10 @@
 # THE HOLLOW: Survival Horror
 
+> **2.0 — Varrow Island (phase 1 of 6):** a prebuilt island world: a 1957 nuclear test site,
+> a helicopter crash, Trevor Hale (one AI companion shared by everyone), radiation and a Geiger
+> counter, and a service pistol. See **[docs/VARROW_ISLAND.md](docs/VARROW_ISLAND.md)**.
+> In any other world the add-on keeps the original forest story below.
+
 A survival-horror add-on for **Minecraft Bedrock Edition** that targets Xbox and Realms.
 The wilderness stays beautiful and your survival progression still matters. Something
 in it is patient, though. You are watched long before you are attacked.
@@ -26,7 +31,7 @@ in it is patient, though. You are watched long before you are attacked.
 
 > **Status:**
 > - Statically validated: 0 errors, 0 warnings.
-> - The real scripts pass 88/88 headless simulation scenarios, including server restarts mid-boss-fight.
+> - The real scripts pass 105/105 headless simulation scenarios, including server restarts mid-boss-fight.
 > - See [docs/VALIDATION_REPORT.md](docs/VALIDATION_REPORT.md).
 >
 > **Playtest feedback:** the user has seen the Borrowed and likes the Hollowed clicking sound.
@@ -40,10 +45,11 @@ Current development checkpoint and unfinished device checks: **[docs/DEVELOPMENT
 
 | File | What it is |
 |---|---|
-| [`dist/THE_HOLLOW_v1.1.0.mcaddon`](dist/THE_HOLLOW_v1.1.0.mcaddon) | Everything: behavior pack, resource pack and the optional Visuals pack. Open it to import. |
-| `dist/THE_HOLLOW_BP_v1.1.0.mcpack` | Behavior pack only |
-| `dist/THE_HOLLOW_RP_v1.1.0.mcpack` | Resource pack only (required) |
-| `dist/THE_HOLLOW_Visuals_v1.1.0.mcpack` | Optional Vibrant Visuals pack |
+| [`dist/THE_HOLLOW_Varrow_Island_v2.0.0.mcworld`](dist/THE_HOLLOW_Varrow_Island_v2.0.0.mcworld) | **Varrow Island**: the prebuilt island world with all packs embedded. |
+| [`dist/THE_HOLLOW_v2.0.0.mcaddon`](dist/THE_HOLLOW_v2.0.0.mcaddon) | Everything: behavior pack, resource pack and the optional Visuals pack. Open it to import. |
+| `dist/THE_HOLLOW_BP_v2.0.0.mcpack` | Behavior pack only |
+| `dist/THE_HOLLOW_RP_v2.0.0.mcpack` | Resource pack only (required) |
+| `dist/THE_HOLLOW_Visuals_v2.0.0.mcpack` | Optional Vibrant Visuals pack |
 
 Horror visual style and comparison steps: **[docs/VISUAL_TUNING.md](docs/VISUAL_TUNING.md)**.
 

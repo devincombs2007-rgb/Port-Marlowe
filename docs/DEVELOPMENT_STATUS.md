@@ -32,7 +32,24 @@
 Verification: strict TypeScript, static validation 0/0, visual verification, 93/93 simulations.
 Not verified in Minecraft: animation playback, texture appearance in VV, shadow style, sound mix.
 
-## Next: 2.0 — island story (planned with the user)
+## Latest: 2.0.0 — Varrow Island, phase 1 (the island and the crash)
+
+- `tools/island/`: a from-scratch Bedrock world writer (LevelDB, SubChunk v9 with a waterlog layer,
+  Data3D biomes, level.dat) with canonical block states, decoded back by an independent reader on
+  every build; the island generator (lobed coastline, organic biome edges, ragged crater, caves,
+  ores, trees, palms, mangroves, dead trees, ground cover, seagrass/kelp); the crash site
+  (voxelised helicopter wreck, furrow, tail boom, blades, eternal fires, signal smoke, barrels).
+  `python3 -m tools.island.build_island [--quick]`, previews with `tools.island.mapview/voxview`.
+- Story start (`scripts_src/island/story.ts`), Trevor (`trevor.ts`, entity `hollow:trevor` with model,
+  animations, pistol in hand only while aiming), radiation (`radiation.ts`), the pistol and gear
+  (`guns.ts`), Research Log chapters, island journal entries, crew bodies, tracer bullets.
+- New items, icons, journal art, sounds (pistol, distant shot, dry fire, reload, bullet hits,
+  five Geiger rates, tinnitus, title hit, gasp). Toxic crater and scorched ring looks in Visuals.
+- World rule: Trevor permanent death. Forest sites are not placed on the island.
+- Verification: 0 validator errors, visuals verified, 105/105 simulations (12 new). Not yet run in
+  Minecraft: the world import is the first real test. See docs/VARROW_ISLAND.md.
+
+## 2.0 — island story (planned with the user)
 
 The user wants the forest story replaced by an island story: a 1950s nuclear test site, present-day
 government researchers, a helicopter crash start, AI companion Trevor (shared by all players,

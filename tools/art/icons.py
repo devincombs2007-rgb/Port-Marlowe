@@ -369,6 +369,210 @@ icon("hearth_tea", {
     "................",
 ])
 
+# ------------------------------------------------------------------ Varrow Island (2.0)
+
+# Research Log: a manila case folder on a clipboard, typed pages and a red RESTRICTED band.
+icon("research_log", {
+    "o": "#3a2c18", "M": "#d8bd7c", "d": "#9a7c44", "r": "#a0281e", "w": "#ece6d6", "k": "#5a5040",
+    "c": "#9aa1a8",
+}, [
+    "......oooo......",
+    ".....occcco.....",
+    "..oooocccoooooo.",
+    "..oMMMMMMMMMMdo.",
+    "..oMwwwwwwwwMdo.",
+    "..oMwkkkwkkwMdo.",
+    "..oMwwwwwwwwMdo.",
+    "..oMwkkwkkkwMdo.",
+    "..oMwwwwwwwwMdo.",
+    "..oMrrrrrrrrMdo.",
+    "..oMwwwwwwwwMdo.",
+    "..oMwkkkkwkwMdo.",
+    "..oMwwwwwwwwMdo.",
+    "..oMMMMMMMMMMdo.",
+    "..oddddddddddoo.",
+    "...ooooooooooo..",
+])
+
+# Geiger counter: civil-defence yellow case, a cream dial with the needle swinging up, a red
+# test button, the carry handle and the probe cable.
+icon("geiger_counter", {
+    "o": "#2a2210", "Y": "#d9b23a", "d": "#8a6d14", "g": "#ece6cc", "n": "#b02a20", "b": "#1c1c1c",
+    "r": "#c0392b", "M": "#9aa0a6", "c": "#34383c",
+}, [
+    "................",
+    "....oooooooo....",
+    "...oMMMMMMMMo...",
+    "...oMo....oMo...",
+    ".oooooooooooooo.",
+    "oYYYYYYYYYYYYYdo",
+    "oYoooooooYYbbYdo",
+    "oYogggggoYYbbYdo",
+    "oYoggnggoYYYYYdo",
+    "oYogngggoYYrrYdo",
+    "oYonggggoYYrrYdo",
+    "oYoooooooYYYYYdo",
+    "oYYYYYYYYYYYYYdo",
+    "oddddddddddddddo",
+    ".ooooooooooooooc",
+    "..............cc",
+])
+
+# Service pistol: blued steel slide catching the light, checkered walnut grip.
+icon("service_pistol", {
+    "o": "#111214", "d": "#2a2d31", "m": "#43474d", "l": "#636870", "h": "#959ba3", "g": "#4a3424",
+    "G": "#6e4e34",
+}, [
+    "................",
+    "................",
+    "................",
+    "..oooooooooooo..",
+    ".ohhhhhhhhhhhlo.",
+    ".ollllllllllldo.",
+    ".ommmmmmmmmmmdo.",
+    ".odddoooooooooo.",
+    ".odGgo.o..o.....",
+    ".oGgGo..oo......",
+    ".ogGgo..........",
+    "oGgGgo..........",
+    "ogGgGo..........",
+    "oGgGgo..........",
+    "oooooo..........",
+    "................",
+])
+
+# Pistol rounds: three brass cases with copper-jacketed bullets.
+icon("pistol_round", {
+    "o": "#3a2a10", "B": "#e0b850", "b": "#b8892e", "d": "#7a5a1c", "C": "#e59a6a", "c": "#b8643a",
+}, [
+    "................",
+    "................",
+    "..o....o....o...",
+    ".oCo..oCo..oCo..",
+    ".oco..oco..oco..",
+    ".ooo..ooo..ooo..",
+    ".oBo..oBo..oBo..",
+    ".obo..obo..obo..",
+    ".oBo..oBo..oBo..",
+    ".obo..obo..obo..",
+    ".obo..obo..obo..",
+    ".odo..odo..odo..",
+    ".ooo..ooo..ooo..",
+    "................",
+    "................",
+    "................",
+])
+
+# Medkit: a scuffed white case with a red cross and a black carry handle.
+icon("medkit", {
+    "o": "#2c2c2c", "w": "#e8e4dc", "W": "#bdb6a8", "r": "#b0221c", "R": "#dc4a3e", "h": "#4a4a4a",
+}, [
+    "................",
+    "......oooo......",
+    ".....oh..ho.....",
+    ".oooooooooooooo.",
+    ".owwwwwwwwwwwWo.",
+    ".owwwwwrrwwwwWo.",
+    ".owwwwwRrwwwwWo.",
+    ".owwwrRRrrrwwWo.",
+    ".owwwrrrrrrwwWo.",
+    ".owwwwwRrwwwwWo.",
+    ".owwwwwrrwwwwWo.",
+    ".owwwwwwwwwwwWo.",
+    ".oWWWWWWWWWWWWo.",
+    ".oooooooooooooo.",
+    "................",
+    "................",
+])
+
+# Field ration: a sealed khaki pouch with a crimped top and a stencilled label.
+icon("ration_pack", {
+    "o": "#2a2014", "b": "#6b5a3a", "B": "#8a7650", "l": "#a8936a", "t": "#d8cfa8", "k": "#3a3226",
+}, [
+    "................",
+    "..oooooooooooo..",
+    "..oBlBlBlBlBlo..",
+    "..oooooooooooo..",
+    "..oBBBBBBBBBbo..",
+    "..oBttttttttbo..",
+    "..oBtkktkkktbo..",
+    "..oBttttttttbo..",
+    "..oBtkkkkkttbo..",
+    "..oBttttttttbo..",
+    "..oBBBBBBBBBbo..",
+    "..oBBBBBBBBBbo..",
+    "..obbbbbbbbbbo..",
+    "..oooooooooooo..",
+    "................",
+    "................",
+])
+
+# Survival hatchet: a bright honed edge on a dark head, hickory haft, black rubber grip.
+icon("survival_hatchet", {
+    "o": "#1c1c1e", "s": "#7e858c", "S": "#b9bfc5", "e": "#eef2f4", "W": "#8c6640", "g": "#2e2e2e",
+}, [
+    "................",
+    ".....oooooo.....",
+    "....oSSSSSSo....",
+    "...oeSSSSSssoo..",
+    "...oeSSSsssoWWo.",
+    "...oeSssssooWo..",
+    "....ooooo.oWo...",
+    ".........oWo....",
+    "........oWo.....",
+    ".......oWo......",
+    "......ogo.......",
+    ".....ogo........",
+    "....ogo.........",
+    "...ogo..........",
+    "...oo...........",
+    "................",
+])
+
+# Satellite radio: a rugged handset, its screen dark and the case split by a bright crack.
+icon("broken_radio", {
+    "o": "#141618", "m": "#454b52", "l": "#6a717a", "s": "#2c4a3c", "c": "#d6dade", "k": "#8a9098", "a": "#7a8088",
+}, [
+    ".....a..........",
+    ".....a..........",
+    ".....a..........",
+    "....ooooooo.....",
+    "...olllllllo....",
+    "...olsssssmo....",
+    "...olsscssmo....",
+    "...olssscsmo....",
+    "...olllclllo....",
+    "...olkcklkmo....",
+    "...olkkcckmo....",
+    "...olklkcklo....",
+    "...olkkkkcmo....",
+    "...ommmmmmco....",
+    "....ooooooo.....",
+    "................",
+])
+
+# Iodine tablets: a foil blister card with a red warning strip.
+icon("iodine_tablets", {
+    "o": "#3a3e44", "f": "#a9afb7", "F": "#dfe4ea", "p": "#f4f1e8", "P": "#c9c4b6", "r": "#a8322a",
+}, [
+    "................",
+    "................",
+    "..oooooooooooo..",
+    "..oFFFFFFFFFfo..",
+    "..oFppFppFppfo..",
+    "..oFpPFpPFpPfo..",
+    "..oFFFFFFFFFfo..",
+    "..oFppFppFppfo..",
+    "..oFpPFpPFpPfo..",
+    "..offffffffffo..",
+    "..orrrrrrrrrro..",
+    "..oooooooooooo..",
+    "................",
+    "................",
+    "................",
+    "................",
+])
+
 
 def hexrgb(h):
     h = h.lstrip("#")

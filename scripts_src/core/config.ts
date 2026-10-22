@@ -30,6 +30,9 @@ export interface WorldSettings {
   /** Dread: fear builds in the dark and alone; frightened players draw encounters and may see
    * things that are not there. Off = no fear meter, no hallucinations, normal encounter odds. */
   dread: boolean;
+  /** Varrow Island: when Trevor falls and nobody helps him up in time, he is gone for good
+   * (on) or limps back to camp at the next dawn (off, the default). */
+  trevorPermadeath: boolean;
 }
 
 export const WORLD_DEFAULTS: WorldSettings = {
@@ -48,6 +51,7 @@ export const WORLD_DEFAULTS: WorldSettings = {
   bossScaling: true,
   rareEvents: true,
   dread: true,
+  trevorPermadeath: false,
 };
 
 /** Per-player comfort preferences. Every player can change their own. */
@@ -110,7 +114,7 @@ function sanitizeWorld(s: WorldSettings): WorldSettings {
   out.graceDays = numberSetting(s.graceDays, out.graceDays, 0, 10);
   out.knockerNight = numberSetting(s.knockerNight, out.knockerNight, 1, 20);
   for (const key of ["watcher", "borrowed", "hollowed", "knocker", "mirebound", "destructive",
-    "sleepDisturbance", "sites", "bossScaling", "rareEvents", "dread"] as const) {
+    "sleepDisturbance", "sites", "bossScaling", "rareEvents", "dread", "trevorPermadeath"] as const) {
     if (typeof s[key] === "boolean") out[key] = s[key];
   }
   return out;

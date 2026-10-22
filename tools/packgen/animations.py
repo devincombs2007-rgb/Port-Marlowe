@@ -513,12 +513,140 @@ def mirebound():
     write("mirebound", A, C)
 
 
+# ------------------------------------------------------------------------------ TREVOR + CREW
+def trevor():
+    g = f"{DIST} * 20"
+    A = {
+        # Standing easy: slow breathing, weight shifting between feet, the head turning to scan
+        # the treeline every few seconds, a thumb hooked in his belt.
+        "animation.hollow.trevor.idle": anim({
+            "torso": {"rotation": [S(20, 1.2), 0, S(7, 1.2)], "scale": [f"1 + {S(20, 0.015, 90)}", 1, f"1 + {S(20, 0.02, 90)}"]},
+            "body": {"rotation": [0, 0, S(7, 1.6)], "position": [S(7, 0.25), 0, 0]},
+            "head": {"rotation": [S(11, 3), f"{S(9, 28)} * math.pow(math.abs(math.sin({LT} * 9)), 0.5)", 0]},
+            "left_arm": {"rotation": [6, 0, -6]},
+            "left_forearm": {"rotation": [-28, 0, 0]},
+            "right_arm": {"rotation": [S(20, 2), 0, 4]},
+            "right_forearm": {"rotation": [-8, 0, 0]},
+            "pack": {"rotation": [S(20, 0.8, 40), 0, 0]},
+        }),
+        # A steady field walk; arms swing opposite the legs, the pack bounces a beat behind.
+        "animation.hollow.trevor.walk": anim({
+            "right_leg": {"rotation": [f"math.cos({g}) * 32", 0, 0]},
+            "left_leg": {"rotation": [f"-math.cos({g}) * 32", 0, 0]},
+            "right_shin": {"rotation": [f"math.max(0, math.sin({g})) * 38", 0, 0]},
+            "left_shin": {"rotation": [f"math.max(0, -math.sin({g})) * 38", 0, 0]},
+            "right_arm": {"rotation": [f"-math.cos({g}) * 26", 0, 3]},
+            "left_arm": {"rotation": [f"math.cos({g}) * 26", 0, -3]},
+            "right_forearm": {"rotation": [f"-12 - math.max(0, math.cos({g})) * 18", 0, 0]},
+            "left_forearm": {"rotation": [f"-12 - math.max(0, -math.cos({g})) * 18", 0, 0]},
+            "body": {"position": [0, f"-math.abs(math.cos({g})) * 0.5", 0], "rotation": [0, f"math.cos({g}) * 4", 0]},
+            "torso": {"rotation": [f"4 + math.abs(math.sin({g})) * 2", f"-math.cos({g}) * 5", 0]},
+            "pack": {"rotation": [f"math.sin({g} - 50) * 4", 0, 0]},
+            "head": {"rotation": [-3, f"math.cos({g}) * 3", 0]},
+        }),
+        # Running: leaning in, longer strides, arms pumping.
+        "animation.hollow.trevor.run": anim({
+            "right_leg": {"rotation": [f"math.cos({g}) * 48", 0, 0]},
+            "left_leg": {"rotation": [f"-math.cos({g}) * 48", 0, 0]},
+            "right_shin": {"rotation": [f"math.max(0, math.sin({g})) * 70", 0, 0]},
+            "left_shin": {"rotation": [f"math.max(0, -math.sin({g})) * 70", 0, 0]},
+            "right_arm": {"rotation": [f"-math.cos({g}) * 50", 0, 4]},
+            "left_arm": {"rotation": [f"math.cos({g}) * 50", 0, -4]},
+            "right_forearm": {"rotation": [-60, 0, 0]},
+            "left_forearm": {"rotation": [-60, 0, 0]},
+            "body": {"position": [0, f"-math.abs(math.cos({g})) * 0.9", 0]},
+            "torso": {"rotation": [14, f"-math.cos({g}) * 8", 0]},
+            "pack": {"rotation": [f"math.sin({g} - 50) * 8", 0, 0]},
+            "head": {"rotation": [-12, 0, 0]},
+        }),
+        "animation.hollow.trevor.look_at_target": anim({
+            "head": {"rotation": ["math.clamp(query.target_x_rotation * 0.7, -30, 30)", "math.clamp(query.target_y_rotation * 0.8, -60, 60)", 0]},
+        }),
+        # Weapon up: a two-handed pistol grip at eye level, braced stance.
+        "animation.hollow.trevor.aim": anim({
+            "right_arm": {"rotation": ["-84 + query.target_x_rotation * 0.6", 0, -4]},
+            "right_forearm": {"rotation": [-6, 0, 0]},
+            "left_arm": {"rotation": ["-72 + query.target_x_rotation * 0.6", 0, 30]},
+            "left_forearm": {"rotation": [-24, 0, 0]},
+            "torso": {"rotation": [6, 0, 0]},
+            "right_leg": {"rotation": [-14, 0, 0]},
+            "left_leg": {"rotation": [12, 0, 0]},
+        }),
+        # Down: on his back in the dirt, one knee up, an arm pressed to his side, breathing hard,
+        # the other hand lifting now and then for help.
+        "animation.hollow.trevor.downed": anim({
+            "root": {"rotation": [-90, 0, 0], "position": [0, 2.6, 0]},
+            "torso": {"scale": [f"1 + {S(140, 0.03)}", 1, f"1 + {S(140, 0.04)}"]},
+            "head": {"rotation": [f"20 + {S(30, 6)}", S(11, 22), 0]},
+            "right_arm": {"rotation": [-10, 0, 18]},
+            "right_forearm": {"rotation": [-80, 0, 0]},
+            "left_arm": {"rotation": [f"-60 - {TW(23, 6)} * 70", 0, -12]},
+            "left_forearm": {"rotation": [f"-20 - {TW(23, 6)} * 30", 0, 0]},
+            "right_leg": {"rotation": [-40, 0, 0]},
+            "right_shin": {"rotation": [70, 0, 0]},
+            "left_leg": {"rotation": [0, 0, -6]},
+        }),
+        # Working (chopping, digging, picking up): a repeated overhead swing.
+        "animation.hollow.trevor.work": anim({
+            "right_arm": {"rotation": [f"-110 + math.max(0, math.sin(query.anim_time * 260)) * 100", 0, 0]},
+            "right_forearm": {"rotation": [-20, 0, 0]},
+            "torso": {"rotation": [f"10 + math.max(0, math.sin(query.anim_time * 260)) * 14", 0, 0]},
+            "left_arm": {"rotation": [-30, 0, 10]},
+        }, length=1.4),
+    }
+    C = {
+        "controller.animation.hollow.trevor.locomotion": ctrl("idle", {
+            "idle": {"animations": ["idle"], "transitions": [
+                {"downed": "variable.state == 'downed'"},
+                {"running": f"{Q}.modified_move_speed > 0.42"},
+                {"walking": f"{Q}.modified_move_speed > 0.06"}], "blend_transition": 0.3},
+            "walking": {"animations": [{"walk": MOVE_WEIGHT}], "transitions": [
+                {"downed": "variable.state == 'downed'"},
+                {"running": f"{Q}.modified_move_speed > 0.46"},
+                {"idle": f"{Q}.modified_move_speed < 0.03"}], "blend_transition": 0.3},
+            "running": {"animations": ["run"], "transitions": [
+                {"downed": "variable.state == 'downed'"},
+                {"walking": f"{Q}.modified_move_speed < 0.38"}], "blend_transition": 0.25},
+            "downed": {"animations": ["downed"], "transitions": [{"idle": "variable.state != 'downed'"}], "blend_transition": 0.5},
+        }),
+        "controller.animation.hollow.trevor.combat": ctrl("calm", {
+            "calm": {"transitions": [{"aiming": "query.has_target && variable.state != 'downed'"},
+                                     {"working": "variable.state == 'work'"}]},
+            "aiming": {"animations": ["aim"], "transitions": [{"calm": "!query.has_target || variable.state == 'downed'"}],
+                       "blend_transition": 0.2},
+            "working": {"animations": ["work"], "transitions": [{"calm": "variable.state != 'work'"}], "blend_transition": 0.3},
+        }),
+    }
+    write("trevor", A, C)
+
+
+def crew():
+    A = {
+        # Where they fell: one on its back, one twisted onto its side (variant chooses).
+        "animation.hollow.crew.pose": anim({
+            "root": {"rotation": ["query.variant == 1 ? -88 : -90", "query.variant == 1 ? 0 : 0", "query.variant == 1 ? 82 : 0"],
+                     "position": [0, "query.variant == 1 ? 3.2 : 2.6", 0]},
+            "head": {"rotation": [0, "query.variant == 1 ? -30 : 28", "query.variant == 1 ? 10 : 0"]},
+            "right_arm": {"rotation": ["query.variant == 1 ? -60 : 0", 0, "query.variant == 1 ? 10 : 42"]},
+            "right_forearm": {"rotation": ["query.variant == 1 ? -40 : -10", 0, 0]},
+            "left_arm": {"rotation": ["query.variant == 1 ? -100 : -24", 0, "query.variant == 1 ? 0 : -16"]},
+            "left_forearm": {"rotation": [-18, 0, 0]},
+            "right_leg": {"rotation": ["query.variant == 1 ? -30 : 0", 0, "query.variant == 1 ? 0 : 8"]},
+            "right_shin": {"rotation": ["query.variant == 1 ? 40 : 0", 0, 0]},
+            "left_leg": {"rotation": ["query.variant == 1 ? -10 : 0", 0, -12]},
+        }),
+    }
+    write("crew", A, {})
+
+
 def main():
     watcher()
     borrowed()
     hollowed()
     knocker()
     mirebound()
+    trevor()
+    crew()
     # syntax-check every Molang expression we just wrote
     from hollowkit.animpreview import check_all_molang
     check_all_molang(ANIMS)

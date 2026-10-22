@@ -14,6 +14,9 @@ export const ENT = {
   rootSpike: "hollow:root_spike",
   lure: "hollow:lure",
   phantom: "hollow:phantom",
+  trevor: "hollow:trevor",
+  crewBody: "hollow:crew_body",
+  bullet: "hollow:bullet",
 } as const;
 
 export const ITEM = {
@@ -32,6 +35,15 @@ export const ITEM = {
   ward: "hollow:rowan_ward",
   lantern: "hollow:heartwood_lantern",
   tea: "hollow:hearth_tea",
+  researchLog: "hollow:research_log",
+  geiger: "hollow:geiger_counter",
+  pistol: "hollow:service_pistol",
+  round: "hollow:pistol_round",
+  medkit: "hollow:medkit",
+  ration: "hollow:ration_pack",
+  iodine: "hollow:iodine_tablets",
+  hatchet: "hollow:survival_hatchet",
+  brokenRadio: "hollow:broken_radio",
 } as const;
 
 export const BLOCK = {
@@ -124,6 +136,15 @@ export const SND = {
   stepLeaves: "hollow.watcher.step",
   stepHeavy: "hollow.knocker.step",
   stepClaws: "hollow.hollowed.step",
+  pistol: "hollow.gun.pistol",
+  distantShot: "hollow.gun.distant",
+  dryFire: "hollow.gun.dry",
+  reload: "hollow.gun.reload",
+  bulletHit: "hollow.gun.hit",
+  geiger: ["hollow.geiger.1", "hollow.geiger.2", "hollow.geiger.3", "hollow.geiger.4", "hollow.geiger.5"],
+  ringing: "hollow.story.ringing",
+  titleHit: "hollow.story.title",
+  gasp: "hollow.story.gasp",
 } as const;
 
 export const PARTICLE = {
@@ -169,6 +190,14 @@ export const DP = {
   events: "hollow:events_done",
   lantern: "hollow:event_lantern",
   dread: "hollow:dread",
+  rad: "hollow:rad",
+  woke: "hollow:woke",
+  // world (island)
+  island: "hollow:island",
+  story: "hollow:story",
+  trevor: "hollow:trevor",
+  // item
+  mag: "hollow:mag",
   // entity
   owner: "hollow:owner",
   fight: "hollow:fight",

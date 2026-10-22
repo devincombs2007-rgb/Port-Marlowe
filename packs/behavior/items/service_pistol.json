@@ -1,0 +1,30 @@
+{
+  "format_version": "1.26.30",
+  "minecraft:item": {
+    "description": {
+      "identifier": "hollow:service_pistol",
+      "menu_category": {
+        "category": "equipment"
+      }
+    },
+    "components": {
+      "minecraft:icon": {
+        "textures": {
+          "default": "hollow_service_pistol"
+        }
+      },
+      "minecraft:display_name": {
+        "value": "item.hollow:service_pistol.name"
+      },
+      "minecraft:max_stack_size": 1,
+      "minecraft:interact_button": "Fire",
+      "hollow:pistol": {},
+      "minecraft:hand_equipped": true,
+      "minecraft:can_destroy_in_creative": false,
+      "minecraft:cooldown": {
+        "category": "hollow_pistol",
+        "duration": 0.3
+      }
+    }
+  }
+}

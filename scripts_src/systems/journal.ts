@@ -1,6 +1,8 @@
 import { EntityInventoryComponent, ItemLockMode, ItemStack, Player, system } from "@minecraft/server";
 import { ActionFormData, FormCancelationReason } from "@minecraft/server-ui";
-import { CHAPTERS, Chapter, ENTRIES, ENTRY_BY_ID, LORE_PAGES } from "../content/journal";
+import { Chapter, ENTRIES, ENTRY_BY_ID, LORE_PAGES, chaptersFor, entryVisible } from "../content/journal";
+import { isIsland } from "../island/mode";
+import { bandName, radState, rateAt } from "../island/radiation";
 import { ui } from "../core/audio";
 import { isOperator, settings } from "../core/config";
 import { notice } from "../core/fx";
@@ -104,7 +106,7 @@ export function unlockNextLore(p: Player): string | undefined {
 }
 
 export function journalStack(): ItemStack {
-  const s = new ItemStack(ITEM.journal, 1);
+  const s = new ItemStack(isIsland() ? ITEM.researchLog : ITEM.journal, 1);
   s.keepOnDeath = true;
   s.lockMode = ItemLockMode.inventory;
   return s;
@@ -118,7 +120,8 @@ export function ensureJournal(p: Player, force = false): void {
     if (!c) return;
     if (!force) {
       for (let i = 0; i < c.size; i++) {
-        if (c.getItem(i)?.typeId === ITEM.journal) return;
+        const id = c.getItem(i)?.typeId;
+        if (id === ITEM.journal || id === ITEM.researchLog) return;
       }
     }
     const left = c.addItem(journalStack());
@@ -132,6 +135,14 @@ export function ensureJournal(p: Player, force = false): void {
 
 function threatsAwake(): string {
   const s = settings();
+  if (isIsland()) {
+    return [
+      "§7• Find shelter before dark. Something walks the island at night.",
+      "§7• Mind your dose near Ground Zero. Never touch the green water.",
+      "§7• Someone shot us down. Stay off the north-west shore.",
+      "§7• Get to the relay tower on the north peak.",
+    ].join("\n");
+  }
   const day = hollowDay();
   const night = hollowNight();
   const hunting = day >= s.graceDays;
@@ -151,30 +162,41 @@ export async function openJournal(p: Player): Promise<void> {
 async function openJournalMenu(p: Player): Promise<void> {
   ui(p, SND.journalOpen, 0.9);
   const d = data(p);
-  const total = ENTRIES.length;
+  const island = isIsland();
+  const chapters = chaptersFor(island);
+  const total = ENTRIES.filter((e) => entryVisible(e, island)).length;
+  const have = d.u.filter((id) => entryVisible(ENTRY_BY_ID.get(id)!, island)).length;
   const form = new ActionFormData()
-    .title("§lField Journal")
+    .title(island ? "§lResearch Log" : "§lField Journal")
     .body(
-      `§7Day §f${hollowDay() + 1}§7 · Entries §f${d.u.length}/${total}\n\n` + threatsAwake(),
+      `§7Day §f${hollowDay() + 1}§7 · Entries §f${have}/${total}\n\n` + threatsAwake(),
     );
-  const unreadIn = (ch: Chapter) => ENTRIES.some((e) => e.chapter === ch && d.u.includes(e.id) && !d.r.includes(e.id));
-  for (const ch of CHAPTERS) {
-    const count = ENTRIES.filter((e) => e.chapter === ch.id && d.u.includes(e.id)).length;
+  const shown = (e: (typeof ENTRIES)[number]) => entryVisible(e, island) && d.u.includes(e.id);
+  const unreadIn = (ch: Chapter) => ENTRIES.some((e) => e.chapter === ch && shown(e) && !d.r.includes(e.id));
+  for (const ch of chapters) {
+    const count = ENTRIES.filter((e) => e.chapter === ch.id && shown(e)).length;
     form.button(`${ch.title}${unreadIn(ch.id) ? " §6(new)" : ""}\n§8${count} entries`, ch.icon);
   }
   form.button("Settings\n§8comfort & world rules", "textures/ui/hollow/settings");
   form.button("Field conditions & next steps\n§8your nerve, local checks and a suggested recipe", "textures/ui/hollow/journal/conditions");
   const r = await showForm(p, form);
   if (!r || r.canceled || r.selection === undefined) return;
-  if (r.selection < CHAPTERS.length) await openChapter(p, CHAPTERS[r.selection].id);
-  else if (r.selection === CHAPTERS.length) await openSettings(p, isOperator(p));
-  else if (r.selection === CHAPTERS.length + 1) await openFieldNotes(p);
+  if (r.selection < chapters.length) await openChapter(p, chapters[r.selection].id);
+  else if (r.selection === chapters.length) await openSettings(p, isOperator(p));
+  else if (r.selection === chapters.length + 1) await openFieldNotes(p);
 }
 
 async function openFieldNotes(p: Player): Promise<void> {
   while (p.isValid) {
     const report = fieldNotes(p, (id) => hasEntry(p, id));
-    const form = new ActionFormData().title("§lField Conditions").body(report.body);
+    let body = report.body;
+    if (isIsland()) {
+      const rs = radState(p);
+      const rate = rateAt(p);
+      body = `§lRadiation§r\n§7Here: §f${rate < 10 ? rate.toFixed(1) : Math.round(rate)} mSv/h§7 · your dose §f${Math.round(rs.dose)} mSv§7 (${bandName(rs.dose)})` +
+        (rs.dose >= 300 ? "\n§cLeave contaminated ground and rest; take iodine before going back." : "") + "\n\n" + body;
+    }
+    const form = new ActionFormData().title("§lField Conditions").body(body);
     form.button("Refresh", "textures/ui/hollow/journal/refresh");
     if (report.recipe) form.button("Read suggested recipe", ENTRY_BY_ID.get(report.recipe)!.icon);
     form.button("§8Back", "textures/ui/hollow/back");
@@ -188,9 +210,10 @@ async function openFieldNotes(p: Player): Promise<void> {
 
 async function openChapter(p: Player, ch: Chapter): Promise<void> {
   const d = data(p);
-  const unlocked = ENTRIES.filter((e) => e.chapter === ch && d.u.includes(e.id));
-  const locked = ENTRIES.filter((e) => e.chapter === ch && !d.u.includes(e.id)).length;
-  const title = CHAPTERS.find((c) => c.id === ch)!.title;
+  const island = isIsland();
+  const unlocked = ENTRIES.filter((e) => e.chapter === ch && entryVisible(e, island) && d.u.includes(e.id));
+  const locked = ENTRIES.filter((e) => e.chapter === ch && entryVisible(e, island) && !d.u.includes(e.id)).length;
+  const title = chaptersFor(island).find((c) => c.id === ch)?.title ?? "Notes";
   const form = new ActionFormData().title(`§l${title}`);
   form.body(
     unlocked.length === 0

@@ -1,5 +1,5 @@
 // ../../scripts_src/main.ts
-import { ItemStack as ItemStack9, Player as Player22, system as system7, world as world20 } from "@minecraft/server";
+import { ItemStack as ItemStack11, Player as Player26, system as system10, world as world23 } from "@minecraft/server";
 
 // ../../scripts_src/core/config.ts
 import { PlayerPermissionLevel } from "@minecraft/server";
@@ -15,7 +15,10 @@ var ENT = {
   vein: "hollow:heart_vein",
   rootSpike: "hollow:root_spike",
   lure: "hollow:lure",
-  phantom: "hollow:phantom"
+  phantom: "hollow:phantom",
+  trevor: "hollow:trevor",
+  crewBody: "hollow:crew_body",
+  bullet: "hollow:bullet"
 };
 var ITEM = {
   journal: "hollow:field_journal",
@@ -32,7 +35,16 @@ var ITEM = {
   chime: "hollow:hollow_chime",
   ward: "hollow:rowan_ward",
   lantern: "hollow:heartwood_lantern",
-  tea: "hollow:hearth_tea"
+  tea: "hollow:hearth_tea",
+  researchLog: "hollow:research_log",
+  geiger: "hollow:geiger_counter",
+  pistol: "hollow:service_pistol",
+  round: "hollow:pistol_round",
+  medkit: "hollow:medkit",
+  ration: "hollow:ration_pack",
+  iodine: "hollow:iodine_tablets",
+  hatchet: "hollow:survival_hatchet",
+  brokenRadio: "hollow:broken_radio"
 };
 var BLOCK = {
   chime: "hollow:hollow_chime",
@@ -120,7 +132,16 @@ var SND = {
   teaSip: "hollow.dread.calm",
   stepLeaves: "hollow.watcher.step",
   stepHeavy: "hollow.knocker.step",
-  stepClaws: "hollow.hollowed.step"
+  stepClaws: "hollow.hollowed.step",
+  pistol: "hollow.gun.pistol",
+  distantShot: "hollow.gun.distant",
+  dryFire: "hollow.gun.dry",
+  reload: "hollow.gun.reload",
+  bulletHit: "hollow.gun.hit",
+  geiger: ["hollow.geiger.1", "hollow.geiger.2", "hollow.geiger.3", "hollow.geiger.4", "hollow.geiger.5"],
+  ringing: "hollow.story.ringing",
+  titleHit: "hollow.story.title",
+  gasp: "hollow.story.gasp"
 };
 var PARTICLE = {
   shed: "hollow:watcher_shed",
@@ -163,6 +184,14 @@ var DP = {
   events: "hollow:events_done",
   lantern: "hollow:event_lantern",
   dread: "hollow:dread",
+  rad: "hollow:rad",
+  woke: "hollow:woke",
+  // world (island)
+  island: "hollow:island",
+  story: "hollow:story",
+  trevor: "hollow:trevor",
+  // item
+  mag: "hollow:mag",
   // entity
   owner: "hollow:owner",
   fight: "hollow:fight",
@@ -251,7 +280,8 @@ var WORLD_DEFAULTS = {
   sites: true,
   bossScaling: true,
   rareEvents: true,
-  dread: true
+  dread: true,
+  trevorPermadeath: false
 };
 var PREF_DEFAULTS = { ambience: 80, accents: 1, visualFx: true, hints: true, music: true, dreadFx: true };
 var worldCache;
@@ -295,7 +325,8 @@ function sanitizeWorld(s) {
     "sites",
     "bossScaling",
     "rareEvents",
-    "dread"
+    "dread",
+    "trevorPermadeath"
   ]) {
     if (typeof s[key] === "boolean") out[key] = s[key];
   }
@@ -1013,22 +1044,22 @@ function dreadChance(p) {
 }
 
 // ../../scripts_src/creatures/borrowed.ts
-import { Player as Player17, world as world15 } from "@minecraft/server";
+import { Player as Player18, world as world16 } from "@minecraft/server";
 
 // ../../scripts_src/items/blocks.ts
 import {
   BlockPermutation as BlockPermutation3,
-  EquipmentSlot as EquipmentSlot4,
-  GameMode as GameMode6,
+  EquipmentSlot as EquipmentSlot5,
+  GameMode as GameMode7,
   ItemStack as ItemStack5,
-  world as world14
+  world as world15
 } from "@minecraft/server";
 
 // ../../scripts_src/creatures/heart.ts
-import { EntityDamageCause, EquipmentSlot as EquipmentSlot3, GameMode as GameMode5, ItemStack as ItemStack4, Player as Player15, world as world13 } from "@minecraft/server";
+import { EntityDamageCause, EquipmentSlot as EquipmentSlot4, GameMode as GameMode6, ItemStack as ItemStack4, Player as Player16, world as world14 } from "@minecraft/server";
 
 // ../../scripts_src/systems/dread.ts
-import { GameMode as GameMode3, system as system5, world as world8 } from "@minecraft/server";
+import { GameMode as GameMode4, system as system5, world as world9 } from "@minecraft/server";
 
 // ../../scripts_src/systems/noise.ts
 import { Player as Player7, world as world6 } from "@minecraft/server";
@@ -1056,15 +1087,15 @@ function movementNoise(p, observeOnly = false) {
   if (p.isSneaking) return { radius: 0, kind: "move" };
   const v = p.getVelocity();
   const speed = Math.hypot(v.x, v.z);
-  const st4 = { ...moveState.get(p.id) ?? { airborne: false, lastLand: -999 } };
-  const wasAir = st4.airborne;
-  st4.airborne = !p.isOnGround;
+  const st6 = { ...moveState.get(p.id) ?? { airborne: false, lastLand: -999 } };
+  const wasAir = st6.airborne;
+  st6.airborne = !p.isOnGround;
   let landed = false;
-  if (wasAir && p.isOnGround && now() - st4.lastLand > 10) {
+  if (wasAir && p.isOnGround && now() - st6.lastLand > 10) {
     landed = true;
-    st4.lastLand = now();
+    st6.lastLand = now();
   }
-  if (!observeOnly) moveState.set(p.id, st4);
+  if (!observeOnly) moveState.set(p.id, st6);
   if (quietFloor(p)) return { radius: 0, kind: "move" };
   if (p.isSprinting && speed > 0.05) return { radius: 16, kind: "sprint" };
   if (landed || p.isJumping) return { radius: 8, kind: "jump" };
@@ -1115,8 +1146,113 @@ function startNoiseEvents() {
 import { ItemLockMode, ItemStack, system as system4 } from "@minecraft/server";
 import { ActionFormData as ActionFormData2, FormCancelationReason as FormCancelationReason2 } from "@minecraft/server-ui";
 
-// ../../scripts_src/content/journal.ts
+// ../../scripts_src/content/island_journal.ts
 var P = "§r\n\n";
+var J = "textures/ui/hollow/journal/";
+var ISLAND_ENTRIES = [
+  // ------------------------------------------------------------------ CONTRACT
+  {
+    id: "contract",
+    chapter: "contract",
+    island: true,
+    title: "Contract FLS-2026-114",
+    icon: `${J}item_research_log`,
+    body: "§lFederal Legacy Sites Program§r\n§7Field survey, Varrow Island (former Pacific test site, 1957)§r" + P + "§lScope.§r Take dose-rate readings at the six 1957 monitoring stations, collect soil, water and biological samples, and assess the condition of the remaining structures." + P + "§lTeam.§r Senior field technician §lTrevor Hale§r. Field researchers (you). Pilot §lDan Okafor§r, co-pilot §lRuth Lindqvist§r (Meridian Air Charter)." + P + "§lSchedule.§r Eight hours on the ground. Pickup at the south beach before dark." + P + "§lAdvisory.§r Unverified fishing-fleet reports of gunfire from the north-west shore. The island has been uninhabited since 1957. §oRecord and avoid.§r"
+  },
+  {
+    id: "crash",
+    chapter: "contract",
+    island: true,
+    title: "What Happened",
+    icon: `${J}crew`,
+    body: "§oWritten that first night, by firelight.§r" + P + "We came in low from the south at about two in the afternoon. Dan was pointing out the crater when the windscreen starred. Then again. Trevor saw muzzle flashes in the trees on the north-west side. §lSomeone shot at us. On purpose.§r" + P + "Dan was hit. Ruth fought it the whole way down. She got us to the beach. She didn't get herself out." + P + "The radio is cracked in half. Nobody knows we're down until we miss the pickup, and nobody is going to fly in here once they hear why. §lWe have to call out ourselves.§r"
+  },
+  {
+    id: "tower_hint",
+    chapter: "contract",
+    island: true,
+    title: "A Way Off",
+    icon: `${J}item_broken_radio`,
+    body: "The satellite radio is finished. Trevor says the 1957 test crews ran everything through a §lrelay tower on the north peak§r: valve transmitter, its own generator, a mast you could see from the ships." + P + "Seventy years of salt air. But the old gear was built to survive a bomb going off next to it." + P + "§lGoal:§r reach the north peak, see what's left of the relay, and find out what it needs." + P + "§8The peak is the high grey ridge across the island to the north. You can see it from the beach."
+  },
+  {
+    id: "okafor",
+    chapter: "contract",
+    island: true,
+    title: "Okafor's Kneeboard",
+    icon: `${J}crew`,
+    body: "Clipped to the pilot's leg, spattered:" + P + "§o14:02 feet wet. 14:09 island in sight, wind 12 kt from the SE. 14:11 GZ crater visible, water in it - GREEN??§r" + P + "§oNotes for the return leg: stay off the NW shore, fleet reports shots. LZ south beach. Fuel for 40 min loiter.§r" + P + 'On the back, in a different pen: §o"Ade - home Sunday. Save me some jollof."§r'
+  },
+  {
+    id: "lindqvist",
+    chapter: "contract",
+    island: true,
+    title: "Lindqvist's Notebook",
+    icon: `${J}crew`,
+    body: "A waterproof notebook in the co-pilot's vest. Mostly checklists, neat block capitals." + P + "The last page is a sketch of the island from the air: the crater, a grey ridge to the north with a tall mast drawn on it, a cluster of small square buildings in the middle, and on the north-west side a ring of huts with smoke rising, circled twice." + P + 'Under it: §o"PEOPLE?? 60 yrs exclusion zone. Ask T."§r'
+  },
+  {
+    id: "trevor1",
+    chapter: "contract",
+    island: true,
+    title: "Trevor Hale",
+    icon: `${J}trevor`,
+    body: "Thirty years of fieldwork: Bikini, Maralinga, the Nevada flats. Calm the way people get when they've stopped expecting things to go to plan." + P + "§lTalk to him§r (Use on him) to have him §lfollow§r you or §lhold§r a spot. Anyone can give orders; he says whose order he's on. He fights with his service pistol, carries medkits and patches up whoever is badly hurt, and he will not walk into the crater without a suit." + P + "§lIf he goes down§r, go to him and press Use, then stay beside him for a few seconds. You have a minute. If nobody reaches him, he crawls off and finds his way back at dawn §8(unless the world rules make his death permanent)§r."
+  },
+  {
+    id: "trevor_down",
+    chapter: "contract",
+    island: true,
+    title: "Close Call",
+    icon: `${J}trevor`,
+    body: "Trevor went down and I got him back on his feet. He laughed about it afterwards, but his hands were shaking when he reloaded." + P + `§o"Next time, you go first,"§r he said. I'm fairly sure he was joking.`
+  },
+  // ------------------------------------------------------------------ GEAR
+  {
+    id: "radiation1",
+    chapter: "craft",
+    island: true,
+    title: "Radiation and the Geiger Counter",
+    icon: `${J}item_geiger_counter`,
+    body: "Hold the counter to hear it: a few clicks a minute is background, a steady crackle means you should be moving, a roar means you're already in trouble. Use it to take a §lreading§r: the dose rate here, your total dose, and which way the reading climbs." + P + "Your §ldose§r adds up while you're exposed and falls only slowly once you're clear:" + P + "§l100 mSv§r metal taste, hunger.  §l300§r nausea.  §l600§r weakness.  §l1000§r radiation sickness.  §l1500§r your body starts to fail." + P + "The worst is §lGround Zero§r, east of the island's centre, and worst of all §lthe green water§r in the crater: it burns. Rock overhead blocks most of it. §lIodine tablets§r halve what you take in for five minutes."
+  },
+  {
+    id: "gear_pistol",
+    chapter: "craft",
+    island: true,
+    title: "Service Pistol",
+    icon: `${J}item_service_pistol`,
+    body: "Seven rounds in the magazine. Aim and press §lUse§r to fire; §lsneak + Use§r reloads from the 9mm rounds you carry. Hits are instant out to about 48 blocks, weaker at long range, and much harder to the head." + P + "§lEvery shot is heard for 48 blocks.§r Some things on this island hunt by sound. Shoot when it's the only choice, not the first one." + P + "§8Rounds: the crash crates, and whatever else you can find."
+  },
+  {
+    id: "gear_crash",
+    chapter: "craft",
+    island: true,
+    title: "What We Saved",
+    icon: `${J}item_medkit`,
+    body: "From the wreck: field rations, medkits, a survival hatchet, iodine tablets, spare 9mm rounds and the broken satellite radio." + P + "§lMedkit§r: hold Use to dress wounds (heals over a few seconds).\n§lField ration§r: a proper meal.\n§lSurvival hatchet§r: fells trees fast; a decent weapon.\n§lIodine tablets§r: halve radiation uptake for five minutes."
+  },
+  // ------------------------------------------------------------------ PLACES
+  {
+    id: "place_crash",
+    chapter: "places",
+    island: true,
+    title: "Crash Beach",
+    icon: `${J}item_broken_radio`,
+    body: "The south shore, where Ruth put us down. The wreck will burn for days. The smoke can be seen from anywhere on the island, which cuts both ways." + P + "§8Make camp nearby: Trevor treats this place as home until you build somewhere better."
+  },
+  {
+    id: "place_crater",
+    chapter: "places",
+    island: true,
+    title: "Ground Zero",
+    icon: `${J}item_geiger_counter`,
+    body: "The bomb went off in the air above this spot in May 1957. The ground for a long way round is flattened and black, dead trees snapped off at the same height, sand fused into green glass." + P + "In the middle, a crater full of water that §lglows§r at night. The counter doesn't click here. It screams." + P + "§cDon't linger. Don't drink. Don't swim."
+  }
+];
+
+// ../../scripts_src/content/journal.ts
+var P2 = "§r\n\n";
 var ENTRIES = [
   // ------------------------------------------------------------------ NOTES
   {
@@ -1124,14 +1260,14 @@ var ENTRIES = [
     chapter: "notes",
     title: "Ranger Marlowe's Field Journal",
     icon: "textures/ui/hollow/journal/item_field_journal",
-    body: "§oIf you are reading this, the station is empty and the journal found you instead of me.§r" + P + "These woods are beautiful. Fish the rivers, mine the hills, raise your house. But something here is wrong, and it is patient." + P + "§lThe first day is safe.§r Use it. Gather wood, find food, build walls and a §lclosed door§r." + P + "This journal fills itself in as you learn. When something new happens, look here first. Hold it and press §lUse§r to read. It stays with you when you fall."
+    body: "§oIf you are reading this, the station is empty and the journal found you instead of me.§r" + P2 + "These woods are beautiful. Fish the rivers, mine the hills, raise your house. But something here is wrong, and it is patient." + P2 + "§lThe first day is safe.§r Use it. Gather wood, find food, build walls and a §lclosed door§r." + P2 + "This journal fills itself in as you learn. When something new happens, look here first. Hold it and press §lUse§r to read. It stays with you when you fall."
   },
   {
     id: "shelter",
     chapter: "notes",
     title: "On Shelter",
     icon: "textures/ui/hollow/journal/shelter",
-    body: "Rules I keep:" + P + "§l1.§r A roof and a §lclosed door§r. Nothing out there opens doors." + P + "§l2.§r Light keeps the tall one back. Carry a torch or lantern after dusk." + P + "§l3.§r Hang a §lTelltale Chime§r. It rings when one of them comes near, long before you would hear it yourself." + P + "§l4.§r A §lRowan Ward§r by the door turns visitors away. It burns down with use; feed it charcoal." + P + "§l5.§r Sleep is still safe. If you hear knocking from bed, stay in bed."
+    body: "Rules I keep:" + P2 + "§l1.§r A roof and a §lclosed door§r. Nothing out there opens doors." + P2 + "§l2.§r Light keeps the tall one back. Carry a torch or lantern after dusk." + P2 + "§l3.§r Hang a §lTelltale Chime§r. It rings when one of them comes near, long before you would hear it yourself." + P2 + "§l4.§r A §lRowan Ward§r by the door turns visitors away. It burns down with use; feed it charcoal." + P2 + "§l5.§r Sleep is still safe. If you hear knocking from bed, stay in bed."
   },
   {
     id: "lore1",
@@ -1139,7 +1275,7 @@ var ENTRIES = [
     lore: 1,
     title: "Torn Page: Arrival",
     icon: "textures/ui/hollow/journal/page",
-    body: "§oDay 3 at the station.§r" + P + 'The previous ranger left in a hurry. Coffee still in the pot. Boots by the door. The logbook ends mid-sentence: §o"it stood at the edge of the clearing all night and when I"§r' + P + "I have decided the previous ranger was a dramatic person."
+    body: "§oDay 3 at the station.§r" + P2 + 'The previous ranger left in a hurry. Coffee still in the pot. Boots by the door. The logbook ends mid-sentence: §o"it stood at the edge of the clearing all night and when I"§r' + P2 + "I have decided the previous ranger was a dramatic person."
   },
   {
     id: "lore2",
@@ -1147,7 +1283,7 @@ var ENTRIES = [
     lore: 2,
     title: "Torn Page: The Count",
     icon: "textures/ui/hollow/journal/page",
-    body: "§oDay 9.§r" + P + "Counted the Hobbs flock at dusk. Thirty-one. Counted again at dawn. Thirty-one. But I only ever sold them thirty." + P + "One of them doesn't graze. It just stands at the back and watches the house."
+    body: "§oDay 9.§r" + P2 + "Counted the Hobbs flock at dusk. Thirty-one. Counted again at dawn. Thirty-one. But I only ever sold them thirty." + P2 + "One of them doesn't graze. It just stands at the back and watches the house."
   },
   {
     id: "lore3",
@@ -1155,7 +1291,7 @@ var ENTRIES = [
     lore: 3,
     title: "Torn Page: Underfoot",
     icon: "textures/ui/hollow/journal/page",
-    body: "§oDay 14.§r" + P + "The miners at the east camp say the deep tunnels §oclick§r, like someone tapping a tongue against their teeth. They say if you stand very still, it goes away." + P + "They moved camp the next day. Nobody told me where."
+    body: "§oDay 14.§r" + P2 + "The miners at the east camp say the deep tunnels §oclick§r, like someone tapping a tongue against their teeth. They say if you stand very still, it goes away." + P2 + "They moved camp the next day. Nobody told me where."
   },
   {
     id: "lore4",
@@ -1163,7 +1299,7 @@ var ENTRIES = [
     lore: 4,
     title: "Torn Page: Visitors",
     icon: "textures/ui/hollow/journal/page",
-    body: "§oDay 22.§r" + P + "Three knocks after midnight. I almost answered. There are no neighbours for miles." + P + "In the morning there was a long iron nail on the step, bent like a finger beckoning."
+    body: "§oDay 22.§r" + P2 + "Three knocks after midnight. I almost answered. There are no neighbours for miles." + P2 + "In the morning there was a long iron nail on the step, bent like a finger beckoning."
   },
   {
     id: "lore_prints",
@@ -1171,7 +1307,7 @@ var ENTRIES = [
     lore: 5,
     title: "Torn Page: Prints",
     icon: "textures/ui/hollow/journal/page",
-    body: "§oDay 17.§r" + P + "Bare footprints in the frost this morning, from the tree line straight to my door. Long feet. Too long. They stop at the step." + P + "There are no prints going back."
+    body: "§oDay 17.§r" + P2 + "Bare footprints in the frost this morning, from the tree line straight to my door. Long feet. Too long. They stop at the step." + P2 + "There are no prints going back."
   },
   {
     id: "lore_tower",
@@ -1179,7 +1315,7 @@ var ENTRIES = [
     lore: 6,
     title: "Torn Page: Fire Watch",
     icon: "textures/ui/hollow/journal/page",
-    body: "§oDay 25, from the tower.§r" + P + "From up here you can count the lights in the valley. Mine, the Hobbs farm, the camp by the river." + P + "Tonight there was a fourth. It moved when I looked away, and it went out when I looked at it."
+    body: "§oDay 25, from the tower.§r" + P2 + "From up here you can count the lights in the valley. Mine, the Hobbs farm, the camp by the river." + P2 + "Tonight there was a fourth. It moved when I looked away, and it went out when I looked at it."
   },
   {
     id: "lore_eye",
@@ -1187,7 +1323,7 @@ var ENTRIES = [
     lore: 7,
     title: "Torn Page: The Flock",
     icon: "textures/ui/hollow/journal/page",
-    body: "§oDay 27.§r" + P + "Every animal in the meadow stopped at once and turned to look at me. Cows, sheep, the chickens. Nobody moved for a long breath. Then they went back to grazing as if nothing happened." + P + "Something was looking out through them."
+    body: "§oDay 27.§r" + P2 + "Every animal in the meadow stopped at once and turned to look at me. Cows, sheep, the chickens. Nobody moved for a long breath. Then they went back to grazing as if nothing happened." + P2 + "Something was looking out through them."
   },
   {
     id: "lore5",
@@ -1195,7 +1331,7 @@ var ENTRIES = [
     lore: 8,
     title: "Torn Page: The Shrine",
     icon: "textures/ui/hollow/journal/page",
-    body: "§oDay 30.§r" + P + "Found an old map in the cabin floor. Beneath these hills there is a room older than any of us, where the roots of the forest meet. Something sleeps in it and §ldreams§r them all: the watcher, the borrowed things, the clickers, the knocker, the thing in the mire." + P + "They are not five monsters. They are one heart, thinking in five directions."
+    body: "§oDay 30.§r" + P2 + "Found an old map in the cabin floor. Beneath these hills there is a room older than any of us, where the roots of the forest meet. Something sleeps in it and §ldreams§r them all: the watcher, the borrowed things, the clickers, the knocker, the thing in the mire." + P2 + "They are not five monsters. They are one heart, thinking in five directions."
   },
   {
     id: "lore6",
@@ -1203,56 +1339,56 @@ var ENTRIES = [
     lore: 9,
     title: "Torn Page: Last Entry",
     icon: "textures/ui/hollow/journal/page",
-    body: "§oDay 41.§r" + P + "A piece from each of them, laid on the altar, wakes it. An offering of silence." + P + "I have them all now. If I'm right, I can still it. If I'm wrong, whoever reads this: do not go alone. Bring light, bring friends, and §lbreak the veins first§r."
+    body: "§oDay 41.§r" + P2 + "A piece from each of them, laid on the altar, wakes it. An offering of silence." + P2 + "I have them all now. If I'm right, I can still it. If I'm wrong, whoever reads this: do not go alone. Bring light, bring friends, and §lbreak the veins first§r."
   },
   {
     id: "tracks",
     chapter: "notes",
     title: "Reading Tracks",
     icon: "textures/ui/hollow/journal/tracks",
-    body: "The ground keeps what the night won't tell you. Prints fade within a day." + P + "§lThin, root-toed prints§r, far apart: the Watcher. Where there are two side by side, it stood still there a long time, looking at something." + P + "§lLong bare feet§r with a dragging heel: the Knocker. They come out of the trees and stop at a door." + P + "§lA wet smear§r from the bank into the shallows: something was dragged. Walk the banks." + P + "§lSheep hooves that turn into claws§r halfway along: a Borrowed stopped pretending." + P + "§7A Seer's Glass names fresh tracks within 8 blocks."
+    body: "The ground keeps what the night won't tell you. Prints fade within a day." + P2 + "§lThin, root-toed prints§r, far apart: the Watcher. Where there are two side by side, it stood still there a long time, looking at something." + P2 + "§lLong bare feet§r with a dragging heel: the Knocker. They come out of the trees and stop at a door." + P2 + "§lA wet smear§r from the bank into the shallows: something was dragged. Walk the banks." + P2 + "§lSheep hooves that turn into claws§r halfway along: a Borrowed stopped pretending." + P2 + "§7A Seer's Glass names fresh tracks within 8 blocks."
   },
   {
     id: "event_eye",
     chapter: "notes",
     title: "Every Eye",
     icon: "textures/ui/hollow/journal/event_eye",
-    body: "Every animal around me stopped, turned, and looked at me. For a long breath nothing moved. Then it let them go." + P + "It didn't hurt anyone. It wanted me to know it can look through anything that has eyes."
+    body: "Every animal around me stopped, turned, and looked at me. For a long breath nothing moved. Then it let them go." + P2 + "It didn't hurt anyone. It wanted me to know it can look through anything that has eyes."
   },
   {
     id: "event_lantern",
     chapter: "notes",
     title: "The Lantern",
     icon: "textures/ui/hollow/journal/event_lantern",
-    body: "A lantern burning on a stump, deep in the trees, with nobody near it. When I got close it went out." + P + "Someone left a page under it. Someone wanted it found."
+    body: "A lantern burning on a stump, deep in the trees, with nobody near it. When I got close it went out." + P2 + "Someone left a page under it. Someone wanted it found."
   },
   {
     id: "event_roof",
     chapter: "notes",
     title: "On the Roof",
     icon: "textures/ui/hollow/journal/event_roof",
-    body: "Footsteps on the roof. Slow, heavy, from one end to the other. Then nothing." + P + "It never came in. Things that can't open doors can still climb."
+    body: "Footsteps on the roof. Slow, heavy, from one end to the other. Then nothing." + P2 + "It never came in. Things that can't open doors can still climb."
   },
   {
     id: "dread1",
     chapter: "notes",
     title: "On Fear",
     icon: "textures/ui/hollow/journal/dread",
-    body: "My hands are shaking as I write this. Good. Fear is information. Learn to read it." + P + "§lIt builds§r in the dark, underground, in the woods and the swamp after sunset, when you are alone, and when you are hurt. Every one of them leaves some behind when it shows itself." + P + "§lIt eases§r with daylight, a light in your hand, a lit room with a roof, a campfire, friends close by, a Heartwood Lantern, and sleep. A bowl of §lHearth Tea§r takes the edge off quickly." + P + "§lIt draws them.§r When I am frightened, more of them come. When I'm calm and lit, they keep to the usual rules." + P + "At its worst you will hear your own heart, and the dark will seem to close in. Down in the deep tunnels, the blind ones can hear that heart too." + P + "§7Your current nerve is on the Field Conditions page."
+    body: "My hands are shaking as I write this. Good. Fear is information. Learn to read it." + P2 + "§lIt builds§r in the dark, underground, in the woods and the swamp after sunset, when you are alone, and when you are hurt. Every one of them leaves some behind when it shows itself." + P2 + "§lIt eases§r with daylight, a light in your hand, a lit room with a roof, a campfire, friends close by, a Heartwood Lantern, and sleep. A bowl of §lHearth Tea§r takes the edge off quickly." + P2 + "§lIt draws them.§r When I am frightened, more of them come. When I'm calm and lit, they keep to the usual rules." + P2 + "At its worst you will hear your own heart, and the dark will seem to close in. Down in the deep tunnels, the blind ones can hear that heart too." + P2 + "§7Your current nerve is on the Field Conditions page."
   },
   {
     id: "dread2",
     chapter: "notes",
     title: "Things That Aren't There",
     icon: "textures/ui/hollow/journal/phantom",
-    body: "Footsteps behind me that stopped when I stopped. A tall shape at the corner of my eye that was gone when I turned. A voice right at my ear." + P + "§lNone of it touched me.§r If it vanishes when you look straight at it, it was never there. If it doesn't vanish, it was." + P + "Nobody standing beside me ever saw them. Calm down, find light, and they stop."
+    body: "Footsteps behind me that stopped when I stopped. A tall shape at the corner of my eye that was gone when I turned. A voice right at my ear." + P2 + "§lNone of it touched me.§r If it vanishes when you look straight at it, it was never there. If it doesn't vanish, it was." + P2 + "Nobody standing beside me ever saw them. Calm down, find light, and they stop."
   },
   {
     id: "after",
     chapter: "notes",
     title: "Afterward",
     icon: "textures/ui/hollow/journal/after",
-    body: "The Heart is still." + P + "The forest will never be entirely quiet; things that were dreamed do not stop at once. But the dark is a little smaller now, and you made it so." + P + "§7Place a §lHeartwood Lantern§r§7 at home. Nothing that remains will cross its light."
+    body: "The Heart is still." + P2 + "The forest will never be entirely quiet; things that were dreamed do not stop at once. But the dark is a little smaller now, and you made it so." + P2 + "§7Place a §lHeartwood Lantern§r§7 at home. Nothing that remains will cross its light."
   },
   // ------------------------------------------------------------------ THREATS
   {
@@ -1260,49 +1396,49 @@ var ENTRIES = [
     chapter: "threats",
     title: "The Watcher",
     icon: "textures/ui/hollow/journal/watcher",
-    body: "A tall shape at the treeline. I took it for a dead sapling until the pale face turned to follow me." + P + "§lSigns:§r a pale face in the forest at dusk or night, far away. The woods go quiet first." + P + "It only appears in wooded country. It has not followed me into the open."
+    body: "A tall shape at the treeline. I took it for a dead sapling until the pale face turned to follow me." + P2 + "§lSigns:§r a pale face in the forest at dusk or night, far away. The woods go quiet first." + P2 + "It only appears in wooded country. It has not followed me into the open."
   },
   {
     id: "watcher2",
     chapter: "threats",
     title: "The Watcher: Staring Back",
     icon: "textures/ui/hollow/journal/watcher",
-    body: "§lIt does not like being watched back.§r" + P + "Hold your gaze on it for a breath or two and it steps back into the trees and is gone. Where it stood you will find §lWeeping Sap§r, bleeding from the bark it scraped." + P + "Sap glints faintly at night. It's the base of the §lSeer's Glass§r."
+    body: "§lIt does not like being watched back.§r" + P2 + "Hold your gaze on it for a breath or two and it steps back into the trees and is gone. Where it stood you will find §lWeeping Sap§r, bleeding from the bark it scraped." + P2 + "Sap glints faintly at night. It's the base of the §lSeer's Glass§r."
   },
   {
     id: "watcher3",
     chapter: "threats",
     title: "The Watcher: Turned Backs",
     icon: "textures/ui/hollow/journal/watcher",
-    body: "§lIt only moves while nobody is looking at it.§r" + P + "Ignore it and it creeps closer, tree by tree. In the dark it will close the last few steps and strike." + P + "§lCounterplay:§r turn and look at it; hold a torch or lantern; stay near placed lights. It will not approach a lit place, and it won't strike someone holding a light."
+    body: "§lIt only moves while nobody is looking at it.§r" + P2 + "Ignore it and it creeps closer, tree by tree. In the dark it will close the last few steps and strike." + P2 + "§lCounterplay:§r turn and look at it; hold a torch or lantern; stay near placed lights. It will not approach a lit place, and it won't strike someone holding a light."
   },
   {
     id: "borrowed1",
     chapter: "threats",
     title: "The Borrowed",
     icon: "textures/ui/hollow/journal/borrowed",
-    body: "One of the sheep is not a sheep." + P + "§lSigns:§r it never lowers its head to graze; its bleat is a little too low and ends in a soft §oclick§r; at night its eyes catch the light; it stands still when the others wander, and it faces you." + P + "By day it is harmless if left alone."
+    body: "One of the sheep is not a sheep." + P2 + "§lSigns:§r it never lowers its head to graze; its bleat is a little too low and ends in a soft §oclick§r; at night its eyes catch the light; it stands still when the others wander, and it faces you." + P2 + "By day it is harmless if left alone."
   },
   {
     id: "borrowed2",
     chapter: "threats",
     title: "The Borrowed: Tests",
     icon: "textures/ui/hollow/journal/borrowed",
-    body: "§lHow to tell:§r" + P + "• Hold §lwheat§r. Real sheep come to you. It does not move toward the wheat. It just watches you.§r\n• Try to §lshear§r it. The wool doesn't come off. It peels.§r\n• Look through a §lSeer's Glass§r. It cannot hold its shape.§r" + P + "Once revealed it hunts until hurt badly, then flees. At night, don't let it get close in the dark. Fight with your back to a wall. It drops §lFalse Fleece§r."
+    body: "§lHow to tell:§r" + P2 + "• Hold §lwheat§r. Real sheep come to you. It does not move toward the wheat. It just watches you.§r\n• Try to §lshear§r it. The wool doesn't come off. It peels.§r\n• Look through a §lSeer's Glass§r. It cannot hold its shape.§r" + P2 + "Once revealed it hunts until hurt badly, then flees. At night, don't let it get close in the dark. Fight with your back to a wall. It drops §lFalse Fleece§r."
   },
   {
     id: "hollowed1",
     chapter: "threats",
     title: "The Hollowed",
     icon: "textures/ui/hollow/journal/hollowed",
-    body: "Deep tunnels, darkness, and a rapid §oclick-click-click§r ahead of me. It hunts by sound. It has no eyes at all." + P + "§lSigns:§r echolocation clicks, distant breathing, scraping on stone."
+    body: "Deep tunnels, darkness, and a rapid §oclick-click-click§r ahead of me. It hunts by sound. It has no eyes at all." + P2 + "§lSigns:§r echolocation clicks, distant breathing, scraping on stone."
   },
   {
     id: "hollowed2",
     chapter: "threats",
     title: "The Hollowed: What It Hears",
     icon: "textures/ui/hollow/journal/hollowed",
-    body: "§lIt hears:§r sprinting (16 blocks), walking (6), jumping and landing (8), breaking blocks (12), placing blocks (8), doors, trapdoors, levers, buttons, pressure plates and chests (10), fighting (14), explosions (40), and things you throw landing nearby (12)." + P + "§lIt cannot hear:§r sneaking, and anyone walking on §lwool§r or §lcarpet§r." + P + "§lCounterplay:§r crouch past it. Throw a snowball, egg or arrow away from you; it goes to the sound. Within 3 blocks it finds you anyway, so keep your distance."
+    body: "§lIt hears:§r sprinting (16 blocks), walking (6), jumping and landing (8), breaking blocks (12), placing blocks (8), doors, trapdoors, levers, buttons, pressure plates and chests (10), fighting (14), explosions (40), and things you throw landing nearby (12)." + P2 + "§lIt cannot hear:§r sneaking, and anyone walking on §lwool§r or §lcarpet§r." + P2 + "§lCounterplay:§r crouch past it. Throw a snowball, egg or arrow away from you; it goes to the sound. Within 3 blocks it finds you anyway, so keep your distance."
   },
   {
     id: "hollowed3",
@@ -1316,49 +1452,49 @@ var ENTRIES = [
     chapter: "threats",
     title: "The Knocker",
     icon: "textures/ui/hollow/journal/knocker",
-    body: "§lThree knocks at the door, after dark.§r" + P + "It only comes to occupied shelters with a door, never before the fourth night, and rarely. Your Chime will ring as it approaches."
+    body: "§lThree knocks at the door, after dark.§r" + P2 + "It only comes to occupied shelters with a door, never before the fourth night, and rarely. Your Chime will ring as it approaches."
   },
   {
     id: "knocker2",
     chapter: "threats",
     title: "The Knocker: Don't Answer",
     icon: "textures/ui/hollow/journal/knocker",
-    body: "§lDo not open the door.§r It cannot open doors. It knocks, scratches, breathes against the wood. Then it gives up and leaves." + P + "When it leaves, it leaves a §lDoorstep Nail§r on the step." + P + "A §lRowan Ward§r near the door sends it away before it knocks."
+    body: "§lDo not open the door.§r It cannot open doors. It knocks, scratches, breathes against the wood. Then it gives up and leaves." + P2 + "When it leaves, it leaves a §lDoorstep Nail§r on the step." + P2 + "A §lRowan Ward§r near the door sends it away before it knocks."
   },
   {
     id: "knocker3",
     chapter: "threats",
     title: "The Knocker: I Opened It",
     icon: "textures/ui/hollow/journal/knocker",
-    body: "I answered. It was waiting with its arms already reaching." + P + "If you open the door while it's there, it comes in. It's slow but strong. Fight it in the light, step back through a doorway, or close the door again between you."
+    body: "I answered. It was waiting with its arms already reaching." + P2 + "If you open the door while it's there, it comes in. It's slow but strong. Fight it in the light, step back through a doorway, or close the door again between you."
   },
   {
     id: "mirebound1",
     chapter: "threats",
     title: "The Mirebound",
     icon: "textures/ui/hollow/journal/mirebound",
-    body: "In the swamps and along riverbanks there is a mossy hump in the shallows that wasn't there yesterday." + P + "§lSigns:§r bubbles rising where no fish swim, a low gurgle, two dull lights just under the surface at night."
+    body: "In the swamps and along riverbanks there is a mossy hump in the shallows that wasn't there yesterday." + P2 + "§lSigns:§r bubbles rising where no fish swim, a low gurgle, two dull lights just under the surface at night."
   },
   {
     id: "mirebound2",
     chapter: "threats",
     title: "The Mirebound: Breaking Free",
     icon: "textures/ui/hollow/journal/mirebound",
-    body: "It waits until you're close, then grabs you and drags you toward deeper water." + P + "§lPress Sneak (crouch) to wrench free.§r Hitting it also makes it let go. It can't hold you for long, and it can't follow you onto dry land for more than a few steps." + P + "Walk the banks, not the shallows. It drops a §lMire Pearl§r."
+    body: "It waits until you're close, then grabs you and drags you toward deeper water." + P2 + "§lPress Sneak (crouch) to wrench free.§r Hitting it also makes it let go. It can't hold you for long, and it can't follow you onto dry land for more than a few steps." + P2 + "Walk the banks, not the shallows. It drops a §lMire Pearl§r."
   },
   {
     id: "heart1",
     chapter: "threats",
     title: "The Heart Below",
     icon: "textures/ui/hollow/journal/heart_below",
-    body: "Something huge beneath the hills, rooted into stone, beating slow." + P + "§lIt is shielded§r while its §lveins§r pulse around the chamber. Break every vein to expose it. Watch the ground: roots burst where dust rises, and its pulse ring can be jumped."
+    body: "Something huge beneath the hills, rooted into stone, beating slow." + P2 + "§lIt is shielded§r while its §lveins§r pulse around the chamber. Break every vein to expose it. Watch the ground: roots burst where dust rises, and its pulse ring can be jumped."
   },
   {
     id: "heart2",
     chapter: "threats",
     title: "The Heart Below: Phases",
     icon: "textures/ui/hollow/journal/heart_below",
-    body: "§lFirst:§r root bursts (dust warns you) and slow pulses." + P + "§lSecond:§r the veins regrow once; young hollowed crawl out. Kill them first, they hunt by sound." + P + "§lLast:§r it opens. The bursts come faster and its gaze sweeps the room. Break line of sight behind the pillars." + P + "It grows stronger with every person in the chamber. Everyone who fights earns a share."
+    body: "§lFirst:§r root bursts (dust warns you) and slow pulses." + P2 + "§lSecond:§r the veins regrow once; young hollowed crawl out. Kill them first, they hunt by sound." + P2 + "§lLast:§r it opens. The bursts come faster and its gaze sweeps the room. Break line of sight behind the pillars." + P2 + "It grows stronger with every person in the chamber. Everyone who fights earns a share."
   },
   // ------------------------------------------------------------------ CRAFTING
   {
@@ -1366,49 +1502,49 @@ var ENTRIES = [
     chapter: "craft",
     title: "Telltale Chime",
     icon: "textures/ui/hollow/journal/item_hollow_chime",
-    body: "§lWarning device.§r Hang it under a ceiling, a porch roof or a beam. It rings softly when one of the Hollow comes within 14 blocks, at most once every few seconds. Use it to silence or unsilence it." + P + "§7Recipe (crafting table):§r\n  [   ] [String] [   ]\n  [Iron Nugget] [Copper Ingot] [Iron Nugget]\n  [   ] [Iron Nugget] [   ]" + P + "§7No fuel. Up to 32 chimes per world are active at once."
+    body: "§lWarning device.§r Hang it under a ceiling, a porch roof or a beam. It rings softly when one of the Hollow comes within 14 blocks, at most once every few seconds. Use it to silence or unsilence it." + P2 + "§7Recipe (crafting table):§r\n  [   ] [String] [   ]\n  [Iron Nugget] [Copper Ingot] [Iron Nugget]\n  [   ] [Iron Nugget] [   ]" + P2 + "§7No fuel. Up to 32 chimes per world are active at once."
   },
   {
     id: "craft_ward",
     chapter: "craft",
     title: "Rowan Ward",
     icon: "textures/ui/hollow/journal/item_rowan_ward",
-    body: "§lLimited protection.§r A charm of iron and smouldering charcoal. Within 10 blocks:" + P + "• the Knocker turns back before it reaches your door\n• the Watcher will not step closer\n• the Borrowed reveal themselves and flee§r" + P + "§lCharges:§r 4. One charge burns each time it turns something away (at most one per creature per night). Use §lcharcoal§r on it to add a charge back." + P + "§7Recipe:§r\n  [   ] [String] [   ]\n  [Iron Nugget] [Charcoal] [Iron Nugget]\n  [Iron Nugget] [Stick] [Iron Nugget]" + P + "§7It does not stop the Hollowed underground, the Mirebound, or the Heart."
+    body: "§lLimited protection.§r A charm of iron and smouldering charcoal. Within 10 blocks:" + P2 + "• the Knocker turns back before it reaches your door\n• the Watcher will not step closer\n• the Borrowed reveal themselves and flee§r" + P2 + "§lCharges:§r 4. One charge burns each time it turns something away (at most one per creature per night). Use §lcharcoal§r on it to add a charge back." + P2 + "§7Recipe:§r\n  [   ] [String] [   ]\n  [Iron Nugget] [Charcoal] [Iron Nugget]\n  [Iron Nugget] [Stick] [Iron Nugget]" + P2 + "§7It does not stop the Hollowed underground, the Mirebound, or the Heart."
   },
   {
     id: "craft_lens",
     chapter: "craft",
     title: "Seer's Glass",
     icon: "textures/ui/hollow/journal/item_hollow_lens",
-    body: "§lInvestigation tool.§r Use it to:" + P + "• reveal any Borrowed within 24 blocks (only you see it)\n• show the direction and distance of the nearest Hollow creature within 48 blocks\n• show how loud you are right now to the Hollowed§r" + P + "§l64 uses§r, 3 s cooldown. Repair with copper ingots at an anvil." + P + "§7Recipe:§r\n  [   ] [Copper Ingot] [   ]\n  [Copper Ingot] [Glass Pane] [Copper Ingot]\n  [   ] [Weeping Sap] [   ]"
+    body: "§lInvestigation tool.§r Use it to:" + P2 + "• reveal any Borrowed within 24 blocks (only you see it)\n• show the direction and distance of the nearest Hollow creature within 48 blocks\n• show how loud you are right now to the Hollowed§r" + P2 + "§l64 uses§r, 3 s cooldown. Repair with copper ingots at an anvil." + P2 + "§7Recipe:§r\n  [   ] [Copper Ingot] [   ]\n  [Copper Ingot] [Glass Pane] [Copper Ingot]\n  [   ] [Weeping Sap] [   ]"
   },
   {
     id: "craft_heartseeker",
     chapter: "craft",
     title: "Heartseeker",
     icon: "textures/ui/hollow/journal/item_heartseeker",
-    body: "§lBoss progression.§r A compass that beats instead of points. Use it to feel the direction, distance and depth of the shrine. It also marks the shrine on your locator bar." + P + "If no shrine has formed in this world yet, the first use draws one up from the deep beneath the hills nearby." + P + "§7Recipe (shapeless):§r Compass + Weeping Sap + 2 Echo Fangs"
+    body: "§lBoss progression.§r A compass that beats instead of points. Use it to feel the direction, distance and depth of the shrine. It also marks the shrine on your locator bar." + P2 + "If no shrine has formed in this world yet, the first use draws one up from the deep beneath the hills nearby." + P2 + "§7Recipe (shapeless):§r Compass + Weeping Sap + 2 Echo Fangs"
   },
   {
     id: "craft_offering",
     chapter: "craft",
     title: "Hush Offering",
     icon: "textures/ui/hollow/journal/item_offering_of_silence",
-    body: "§lBoss progression.§r A piece of each of them. Place it in the altar at the shrine to wake the Heart Below." + P + "§7Recipe:§r\n  [Echo Fang] [Weeping Sap] [Echo Fang]\n  [False Fleece] [Gold Ingot] [Doorstep Nail]\n  [   ] [Mire Pearl] [   ]" + P + "§7Cabin and campsite chests sometimes hold components. If a creature is switched off in World Rules, every new site chest holds its component instead."
+    body: "§lBoss progression.§r A piece of each of them. Place it in the altar at the shrine to wake the Heart Below." + P2 + "§7Recipe:§r\n  [Echo Fang] [Weeping Sap] [Echo Fang]\n  [False Fleece] [Gold Ingot] [Doorstep Nail]\n  [   ] [Mire Pearl] [   ]" + P2 + "§7Cabin and campsite chests sometimes hold components. If a creature is switched off in World Rules, every new site chest holds its component instead."
   },
   {
     id: "craft_lantern",
     chapter: "craft",
     title: "Heartwood Lantern",
     icon: "textures/ui/hollow/journal/item_heartwood_lantern",
-    body: "§lReward.§r Crafted from a Stilled Heart and a lantern. A permanent light: within 24 blocks no Hollow creature is drawn to you, the Knocker never visits, and nothing of theirs spawns." + P + "§7Recipe (shapeless):§r Stilled Heart + Lantern"
+    body: "§lReward.§r Crafted from a Stilled Heart and a lantern. A permanent light: within 24 blocks no Hollow creature is drawn to you, the Knocker never visits, and nothing of theirs spawns." + P2 + "§7Recipe (shapeless):§r Stilled Heart + Lantern"
   },
   {
     id: "craft_tea",
     chapter: "craft",
     title: "Hearth Tea",
     icon: "textures/ui/hollow/journal/item_hearth_tea",
-    body: "§7Recipe (shapeless):§r Bowl + Sugar + Sweet Berries §8(or an Apple)§r" + P + "Drink it when your nerve is going. It lowers Dread sharply and steadies you for two minutes: fear can still rise, but only half as fast and never past uneasy." + P + "§7It is also a little food. You can drink it even when you're full."
+    body: "§7Recipe (shapeless):§r Bowl + Sugar + Sweet Berries §8(or an Apple)§r" + P2 + "Drink it when your nerve is going. It lowers Dread sharply and steadies you for two minutes: fear can still rise, but only half as fast and never past uneasy." + P2 + "§7It is also a little food. You can drink it even when you're full."
   },
   // ------------------------------------------------------------------ PLACES
   {
@@ -1416,45 +1552,270 @@ var ENTRIES = [
     chapter: "places",
     title: "The Ranger Cabin",
     icon: "textures/ui/hollow/journal/place_cabin",
-    body: "A spruce cabin in the woods with a cold stove and a chest of supplies. Rangers kept spare notes here. Look for §lTorn Pages§r." + P + "§7Cabins appear in forests, well away from where you've built."
+    body: "A spruce cabin in the woods with a cold stove and a chest of supplies. Rangers kept spare notes here. Look for §lTorn Pages§r." + P2 + "§7Cabins appear in forests, well away from where you've built."
   },
   {
     id: "place_camp",
     chapter: "places",
     title: "The Ruined Campsite",
     icon: "textures/ui/hollow/journal/place_camp",
-    body: "Two collapsed tents and a dead fire. Whoever camped here left in the night and didn't take their pack. Check the barrel." + P + "§7Campsites appear on open ground and at forest edges."
+    body: "Two collapsed tents and a dead fire. Whoever camped here left in the night and didn't take their pack. Check the barrel." + P2 + "§7Campsites appear on open ground and at forest edges."
   },
   {
     id: "place_tower",
     chapter: "places",
     title: "The Fire Watch Tower",
     icon: "textures/ui/hollow/journal/place_tower",
-    body: "A spruce fire-watch tower above the trees. Its lantern is still lit. Nobody has climbed it in months." + P + "§7Towers stand in forests. Climb for the view, and check the lookout's chest."
+    body: "A spruce fire-watch tower above the trees. Its lantern is still lit. Nobody has climbed it in months." + P2 + "§7Towers stand in forests. Climb for the view, and check the lookout's chest."
   },
   {
     id: "place_leanto",
     chapter: "places",
     title: "The Lean-to",
     icon: "textures/ui/hollow/journal/place_leanto",
-    body: `A hunter's lean-to: bedroll turned back, fire cold, a note on a stake: §o"went to check the noise"§r.` + P + "§7Lean-tos appear at forest edges and in open country."
+    body: `A hunter's lean-to: bedroll turned back, fire cold, a note on a stake: §o"went to check the noise"§r.` + P2 + "§7Lean-tos appear at forest edges and in open country."
   },
   {
     id: "place_shrine",
     chapter: "places",
     title: "The Underground Shrine",
     icon: "textures/ui/hollow/journal/place_shrine",
-    body: "A root-choked chamber deep below the hills, lit by old candles. The altar at its centre takes the §lHush Offering§r." + P + "§7Follow the Heartseeker. Dig down carefully and bring a way back up."
+    body: "A root-choked chamber deep below the hills, lit by old candles. The altar at its centre takes the §lHush Offering§r." + P2 + "§7Follow the Heartseeker. Dig down carefully and bring a way back up."
   }
 ];
+ENTRIES.push(...ISLAND_ENTRIES);
 var ENTRY_BY_ID = new Map(ENTRIES.map((e) => [e.id, e]));
 var LORE_PAGES = ENTRIES.filter((e) => e.lore !== void 0).sort((a, b) => (a.lore ?? 0) - (b.lore ?? 0));
 var CHAPTERS = [
   { id: "notes", title: "Field Notes", icon: "textures/ui/hollow/journal/chapter_notes" },
+  { id: "contract", title: "The Contract", icon: "textures/ui/hollow/journal/item_research_log" },
   { id: "threats", title: "Threats", icon: "textures/ui/hollow/journal/chapter_threats" },
   { id: "craft", title: "Equipment", icon: "textures/ui/hollow/journal/chapter_craft" },
   { id: "places", title: "Places", icon: "textures/ui/hollow/journal/chapter_places" }
 ];
+var FOREST_PLACES = /* @__PURE__ */ new Set(["place_cabin", "place_camp", "place_tower", "place_leanto"]);
+function entryVisible(e, island) {
+  if (island) return !!e.island || e.chapter !== "notes" && !FOREST_PLACES.has(e.id);
+  return !e.island;
+}
+function chaptersFor(island) {
+  return island ? CHAPTERS.filter((c) => c.id !== "notes").map((c) => c.id === "craft" ? { ...c, title: "Gear & Equipment" } : c) : CHAPTERS.filter((c) => c.id !== "contract");
+}
+
+// ../../scripts_src/island/mode.ts
+import { world as world7 } from "@minecraft/server";
+
+// ../../scripts_src/content/island_layout.ts
+var CRATER_R = 44;
+var SITES = {
+  GZ: { x: 112, z: -12 },
+  CRASH: { x: -24, z: 262 },
+  SPAWN: { x: -30, z: 252 },
+  PENS: { x: 20, z: -40 },
+  MOCK_TOWN: { x: -64, z: 44 },
+  BLACKWOOD: { x: -200, z: 20 },
+  SUNFALL: { x: -150, z: -178 },
+  MANGROVES: { x: 236, z: 40 },
+  NORTH_PEAK: { x: 18, z: -226 },
+  TOWER: { x: 18, z: -232 },
+  DOCK: { x: 196, z: 214 },
+  DIORAMA: { x: 2400, z: 0 }
+};
+var SPAWN_POINT = { x: -30, y: 66, z: 252 };
+var CRASH_SMOKE = [{ "x": -22, "y": 63, "z": 256 }, { "x": -30, "y": 65, "z": 265 }, { "x": -17, "y": 65, "z": 267 }];
+var CRASH_CONTAINERS = [{ "x": -18, "y": 65, "z": 271 }, { "x": -32, "y": 65, "z": 258 }, { "x": -15, "y": 65, "z": 260 }];
+var CREW_BODIES = [{ "x": -20, "y": 65, "z": 265 }, { "x": -29, "y": 65, "z": 261 }, { "x": -23, "y": 65, "z": 270 }];
+
+// ../../scripts_src/island/mode.ts
+var cached;
+function isIsland() {
+  if (cached === void 0) cached = world7.getDynamicProperty(DP.island) === 1;
+  return cached;
+}
+function setIsland(on) {
+  cached = on;
+  world7.setDynamicProperty(DP.island, on ? 1 : 0);
+}
+function detectIsland(dim) {
+  if (isIsland()) return true;
+  if (world7.getDynamicProperty(DP.island) === 0) return false;
+  try {
+    const c = CRASH_CONTAINERS[0];
+    const s = CRASH_SMOKE[0];
+    if (!c || !s) return false;
+    if (!dim.isChunkLoaded(c) || !dim.isChunkLoaded(s)) return false;
+    const barrel = dim.getBlock(c)?.typeId === "minecraft:barrel";
+    const fire2 = dim.getBlock(s)?.typeId === "minecraft:campfire";
+    const hay = dim.getBlock({ x: s.x, y: s.y - 1, z: s.z })?.typeId === "minecraft:hay_block";
+    if (barrel && fire2 && hay) {
+      setIsland(true);
+      return true;
+    }
+  } catch {
+  }
+  return false;
+}
+
+// ../../scripts_src/island/radiation.ts
+import { EquipmentSlot as EquipmentSlot2, GameMode as GameMode2 } from "@minecraft/server";
+var DEFAULT = { dose: 0, iodine: 0, told: 0 };
+var cache = /* @__PURE__ */ new Map();
+var lastSave = /* @__PURE__ */ new Map();
+function radState(p) {
+  let s = cache.get(p.id);
+  if (!s) {
+    const raw = readEntity(p, DP.rad, DEFAULT);
+    s = {
+      dose: Number.isFinite(raw.dose) ? Math.max(0, Math.min(3e3, raw.dose)) : 0,
+      iodine: 0,
+      // runtime ticks do not survive a restart; the tablets wear off
+      told: Number.isFinite(raw.told) ? raw.told : 0
+    };
+    cache.set(p.id, s);
+  }
+  return s;
+}
+function save(p, s, force = false) {
+  const t = now();
+  if (!force && t - (lastSave.get(p.id) ?? -9999) < 200) return;
+  lastSave.set(p.id, t);
+  writeEntity(p, DP.rad, { dose: Math.round(s.dose * 10) / 10, iodine: 0, told: s.told });
+}
+function forgetRadiation(playerId) {
+  cache.delete(playerId);
+  lastSave.delete(playerId);
+}
+var GZ = SITES.GZ;
+function groundRate(at) {
+  const d = Math.hypot(at.x - GZ.x, at.z - GZ.z);
+  const core = 120 * Math.exp(-Math.max(0, d - 30) / 45);
+  return Math.max(0.1, core);
+}
+function inCraterLake(p) {
+  const d = Math.hypot(p.location.x - GZ.x, p.location.z - GZ.z);
+  return p.isInWater && d < CRATER_R + 6;
+}
+function shielded(p) {
+  try {
+    const dim = p.dimension;
+    const top = dim.getTopmostBlock({ x: p.location.x, z: p.location.z });
+    return !!top && top.location.y > p.location.y + 6;
+  } catch {
+    return false;
+  }
+}
+function rateAt(p) {
+  if (p.dimension.id !== "minecraft:overworld") return 0.1;
+  let r = groundRate(p.location);
+  if (inCraterLake(p)) r *= 4;
+  if (shielded(p)) r *= 0.3;
+  return Math.max(0.1, r);
+}
+function band(dose) {
+  return dose >= 1500 ? 5 : dose >= 1e3 ? 4 : dose >= 600 ? 3 : dose >= 300 ? 2 : dose >= 100 ? 1 : 0;
+}
+function bandName(dose) {
+  return ["none", "mild", "moderate", "serious", "severe", "critical"][band(dose)];
+}
+var BAND_TEXT = [
+  "",
+  "§eYour mouth tastes of metal. You've taken a real dose of radiation.",
+  "§6Nausea rolls through you. The dose is building: get away from the crater.",
+  "§cYour limbs feel heavy and weak. Radiation sickness is setting in.",
+  "§cYou're sick, properly sick. Get out of the contaminated ground and take iodine.",
+  "§4Your body is failing. Leave the zone now."
+];
+function holdsGeiger(p) {
+  try {
+    const eq = p.getComponent("minecraft:equippable");
+    return eq?.getEquipment(EquipmentSlot2.Mainhand)?.typeId === ITEM.geiger || eq?.getEquipment(EquipmentSlot2.Offhand)?.typeId === ITEM.geiger;
+  } catch {
+    return false;
+  }
+}
+function geigerLevel(rate) {
+  return rate < 0.6 ? 0 : rate < 5 ? 1 : rate < 25 ? 2 : rate < 70 ? 3 : 4;
+}
+function fmt(n) {
+  return n < 10 ? n.toFixed(1) : String(Math.round(n));
+}
+function tick(p) {
+  if (!isIsland()) return;
+  const gm = p.getGameMode();
+  if (gm === GameMode2.Creative || gm === GameMode2.Spectator) return;
+  const hp = p.getComponent("minecraft:health");
+  if (hp && hp.currentValue <= 0) return;
+  const s = radState(p);
+  const rate = rateAt(p);
+  const t = now();
+  if (rate >= 1) {
+    const iodine = s.iodine > t ? 0.5 : 1;
+    s.dose = Math.min(3e3, s.dose + rate / 120 * iodine);
+  } else {
+    s.dose = Math.max(0, s.dose - 0.4);
+  }
+  if (inCraterLake(p)) {
+    try {
+      p.addEffect("poison", 50, { amplifier: 1, showParticles: false });
+    } catch {
+    }
+    if (t % 100 < 20) notice(p, "§aThe water is warm, and it stings like acid. §7Get out.");
+  }
+  const b = band(s.dose);
+  try {
+    if (b >= 1 && t % 600 < 20) p.addEffect("hunger", 200, { amplifier: 0, showParticles: false });
+    if (b >= 2 && t % 900 < 20) p.addEffect("nausea", 160, { amplifier: 0, showParticles: false });
+    if (b >= 3) p.addEffect("weakness", 40, { amplifier: 0, showParticles: false });
+    if (b >= 4 && t % 400 < 20) p.addEffect("poison", 60, { amplifier: 0, showParticles: false });
+    if (b >= 5 && t % 600 < 20) p.addEffect("wither", 40, { amplifier: 0, showParticles: false });
+  } catch {
+  }
+  if (b > s.told) {
+    s.told = b;
+    notice(p, BAND_TEXT[b]);
+    save(p, s, true);
+  } else if (b < s.told - 1) {
+    s.told = b;
+  }
+  if (holdsGeiger(p)) {
+    ui(p, SND.geiger[geigerLevel(rate)], 0.9);
+    notice(p, `§a☢ §f${fmt(rate)} §7mSv/h   §8·   §7dose §f${fmt(s.dose)} §7mSv §8(${bandName(s.dose)})`);
+  }
+  save(p, s);
+}
+function geigerReading(p) {
+  const s = radState(p);
+  const rate = rateAt(p);
+  const dirs = [["N", 0, -1], ["NE", 1, -1], ["E", 1, 0], ["SE", 1, 1], ["S", 0, 1], ["SW", -1, 1], ["W", -1, 0], ["NW", -1, -1]];
+  let best = "";
+  let bestRate = groundRate(p.location);
+  for (const [name, dx, dz] of dirs) {
+    const k = 12 / Math.hypot(dx, dz);
+    const r = groundRate({ x: p.location.x + dx * k, y: p.location.y, z: p.location.z + dz * k });
+    if (r > bestRate * 1.04) {
+      bestRate = r;
+      best = name;
+    }
+  }
+  const trend = rate < 0.6 ? "Background only." : best ? `Climbing to the §f${best}§7.` : "Level all round.";
+  const iod = s.iodine > now() ? ` §8· iodine active (${Math.ceil((s.iodine - now()) / 1200)} min)` : "";
+  return `§a☢ Reading: §f${fmt(rate)} mSv/h§7. ${trend}
+§7Your dose: §f${fmt(s.dose)} mSv §7(${bandName(s.dose)})${iod}`;
+}
+function takeIodine(p) {
+  const s = radState(p);
+  s.iodine = now() + 6e3;
+  notice(p, "§7Iodine tablets: your thyroid is blocked. §fRadiation uptake halved for 5 minutes.");
+}
+function setDose(p, dose) {
+  const s = radState(p);
+  s.dose = Math.max(0, Math.min(3e3, dose));
+  s.told = band(s.dose);
+  save(p, s, true);
+}
+function startRadiation() {
+  everyPlayer("radiation", 20, tick);
+}
 
 // ../../scripts_src/systems/settings_ui.ts
 import { ActionFormData, ModalFormData } from "@minecraft/server-ui";
@@ -1486,7 +1847,7 @@ async function openPrefs(p) {
 }
 async function openWorld(p) {
   const s = rawSettings();
-  const f = new ModalFormData().title("§lWorld rules").dropdown("Horror intensity", ["Calm: rarer, no ambush strikes", "Standard", "Nightmare: frequent, bolder"], { defaultValueIndex: s.intensity }).slider("Encounter frequency (%)", 25, 200, { defaultValue: s.frequency, valueStep: 25 }).slider("Grace days before creatures hunt", 0, 10, { defaultValue: s.graceDays, valueStep: 1 }).slider("First night the Knocker may visit", 1, 20, { defaultValue: s.knockerNight, valueStep: 1 }).toggle("Creature: The Watcher", { defaultValue: s.watcher }).toggle("Creature: The Borrowed", { defaultValue: s.borrowed }).toggle("Creature: The Hollowed", { defaultValue: s.hollowed }).toggle("Creature: The Knocker", { defaultValue: s.knocker }).toggle("Creature: The Mirebound", { defaultValue: s.mirebound }).toggle("Destructive Knocker (may break wooden doors on Hard)", { defaultValue: s.destructive }).toggle("Rare bedtime knocking (harmless, never blocks sleep)", { defaultValue: s.sleepDisturbance }).toggle("Place cabins, camps, towers, lean-tos and the shrine", { defaultValue: s.sites }).toggle("Scale the Heart Below with player count", { defaultValue: s.bossScaling }).toggle("Rare one-off events (harmless, once per world)", { defaultValue: s.rareEvents }).toggle("Dread: fear, hallucinations, and fear drawing them closer", { defaultValue: s.dread }).submitButton("Save");
+  const f = new ModalFormData().title("§lWorld rules").dropdown("Horror intensity", ["Calm: rarer, no ambush strikes", "Standard", "Nightmare: frequent, bolder"], { defaultValueIndex: s.intensity }).slider("Encounter frequency (%)", 25, 200, { defaultValue: s.frequency, valueStep: 25 }).slider("Grace days before creatures hunt", 0, 10, { defaultValue: s.graceDays, valueStep: 1 }).slider("First night the Knocker may visit", 1, 20, { defaultValue: s.knockerNight, valueStep: 1 }).toggle("Creature: The Watcher", { defaultValue: s.watcher }).toggle("Creature: The Borrowed", { defaultValue: s.borrowed }).toggle("Creature: The Hollowed", { defaultValue: s.hollowed }).toggle("Creature: The Knocker", { defaultValue: s.knocker }).toggle("Creature: The Mirebound", { defaultValue: s.mirebound }).toggle("Destructive Knocker (may break wooden doors on Hard)", { defaultValue: s.destructive }).toggle("Rare bedtime knocking (harmless, never blocks sleep)", { defaultValue: s.sleepDisturbance }).toggle("Place cabins, camps, towers, lean-tos and the shrine", { defaultValue: s.sites }).toggle("Scale the Heart Below with player count", { defaultValue: s.bossScaling }).toggle("Rare one-off events (harmless, once per world)", { defaultValue: s.rareEvents }).toggle("Dread: fear, hallucinations, and fear drawing them closer", { defaultValue: s.dread }).toggle("Varrow Island: Trevor's death is permanent", { defaultValue: s.trevorPermadeath }).submitButton("Save");
   const r = await showForm(p, f);
   if (!r || r.canceled || !r.formValues || !isOperator(p)) return;
   const v = r.formValues;
@@ -1505,14 +1866,15 @@ async function openWorld(p) {
     sites: Boolean(v[11]),
     bossScaling: Boolean(v[12]),
     rareEvents: Boolean(v[13]),
-    dread: v[14] === void 0 ? s.dread : Boolean(v[14])
+    dread: v[14] === void 0 ? s.dread : Boolean(v[14]),
+    trevorPermadeath: v[15] === void 0 ? s.trevorPermadeath : Boolean(v[15])
   };
   saveSettings(next);
   notice(p, "§7World rules saved.");
 }
 
 // ../../scripts_src/systems/field_notes.ts
-import { Difficulty as Difficulty2, GameMode as GameMode2, world as world7 } from "@minecraft/server";
+import { Difficulty as Difficulty2, GameMode as GameMode3, world as world8 } from "@minecraft/server";
 function fieldNotes(p, has) {
   const c = ctx(p, 0);
   const s = settings();
@@ -1529,7 +1891,7 @@ function fieldNotes(p, has) {
   const charges = typeof used === "number" ? Math.max(0, Math.min(4, 4 - used)) : 0;
   const grace = Math.max(0, s.graceDays - hollowDay());
   const gm = p.getGameMode();
-  const pacing = world7.getDifficulty() === Difficulty2.Peaceful ? "Peaceful: regular hunts paused" : gm === GameMode2.Creative || gm === GameMode2.Spectator ? "Regular hunts paused in this game mode" : now() - rt(p).diedAt <= 1200 ? "Brief recovery period after respawn" : isNewcomer(p) && !isTestMode() ? "New arrival: settling-in period still active" : grace > 0 ? `World grace: regular hunts start on day ${s.graceDays + 1}` : "Regular encounter rules active";
+  const pacing = world8.getDifficulty() === Difficulty2.Peaceful ? "Peaceful: regular hunts paused" : gm === GameMode3.Creative || gm === GameMode3.Spectator ? "Regular hunts paused in this game mode" : now() - rt(p).diedAt <= 1200 ? "Brief recovery period after respawn" : isNewcomer(p) && !isTestMode() ? "New arrival: settling-in period still active" : grace > 0 ? `World grace: regular hunts start on day ${s.graceDays + 1}` : "Regular encounter rules active";
   const terrain = !c.overworld ? "beyond the Overworld" : c.underground ? "underground" : c.inWater ? "in water" : c.roofed ? "roof overhead" : "open sky";
   const light = holdingLight(p) ? "carrying a light" : inLitArea(p) ? "placed light nearby" : "no shelter light detected";
   const ward = w ? `charged ward within 10 blocks (${charges}/4)` : "no charged ward detected";
@@ -1581,25 +1943,25 @@ function nerve(p) {
 }
 
 // ../../scripts_src/systems/journal.ts
-var cache = /* @__PURE__ */ new Map();
+var cache2 = /* @__PURE__ */ new Map();
 var discoveries = /* @__PURE__ */ new Map();
 function data(p) {
-  let d = cache.get(p.id);
+  let d = cache2.get(p.id);
   if (!d) {
     const raw = readEntity(p, DP.journal, { u: [], r: [] });
     const valid = (v) => typeof v === "string" && ENTRY_BY_ID.has(v);
     const u = [...new Set(Array.isArray(raw.u) ? raw.u.filter(valid) : [])];
     d = { u, r: [...new Set(Array.isArray(raw.r) ? raw.r.filter((id) => valid(id) && u.includes(id)) : [])] };
-    cache.set(p.id, d);
+    cache2.set(p.id, d);
   }
   return d;
 }
-function save(p, d) {
+function save2(p, d) {
   writeEntity(p, DP.journal, d);
 }
 function forgetJournal(playerId) {
   cancelJournalNotices(playerId);
-  cache.delete(playerId);
+  cache2.delete(playerId);
 }
 function cancelJournalNotices(playerId) {
   const pending2 = discoveries.get(playerId);
@@ -1614,7 +1976,7 @@ function unlock(p, id, quiet = false) {
   const d = data(p);
   if (d.u.includes(id)) return false;
   d.u.push(id);
-  save(p, d);
+  save2(p, d);
   if (!quiet) {
     const pending2 = discoveries.get(p.id);
     if (pending2) pending2.ids.add(id);
@@ -1648,7 +2010,7 @@ function unlockNextLore(p) {
   return void 0;
 }
 function journalStack() {
-  const s = new ItemStack(ITEM.journal, 1);
+  const s = new ItemStack(isIsland() ? ITEM.researchLog : ITEM.journal, 1);
   s.keepOnDeath = true;
   s.lockMode = ItemLockMode.inventory;
   return s;
@@ -1660,7 +2022,8 @@ function ensureJournal(p, force = false) {
     if (!c) return;
     if (!force) {
       for (let i = 0; i < c.size; i++) {
-        if (c.getItem(i)?.typeId === ITEM.journal) return;
+        const id = c.getItem(i)?.typeId;
+        if (id === ITEM.journal || id === ITEM.researchLog) return;
       }
     }
     const left = c.addItem(journalStack());
@@ -1670,6 +2033,14 @@ function ensureJournal(p, force = false) {
 }
 function threatsAwake() {
   const s = settings();
+  if (isIsland()) {
+    return [
+      "§7• Find shelter before dark. Something walks the island at night.",
+      "§7• Mind your dose near Ground Zero. Never touch the green water.",
+      "§7• Someone shot us down. Stay off the north-west shore.",
+      "§7• Get to the relay tower on the north peak."
+    ].join("\n");
+  }
   const day = hollowDay();
   const night = hollowNight();
   const hunting = day >= s.graceDays;
@@ -1687,15 +2058,19 @@ async function openJournal(p) {
 async function openJournalMenu(p) {
   ui(p, SND.journalOpen, 0.9);
   const d = data(p);
-  const total = ENTRIES.length;
-  const form = new ActionFormData2().title("§lField Journal").body(
-    `§7Day §f${hollowDay() + 1}§7 · Entries §f${d.u.length}/${total}
+  const island = isIsland();
+  const chapters = chaptersFor(island);
+  const total = ENTRIES.filter((e) => entryVisible(e, island)).length;
+  const have = d.u.filter((id) => entryVisible(ENTRY_BY_ID.get(id), island)).length;
+  const form = new ActionFormData2().title(island ? "§lResearch Log" : "§lField Journal").body(
+    `§7Day §f${hollowDay() + 1}§7 · Entries §f${have}/${total}
 
 ` + threatsAwake()
   );
-  const unreadIn = (ch) => ENTRIES.some((e) => e.chapter === ch && d.u.includes(e.id) && !d.r.includes(e.id));
-  for (const ch of CHAPTERS) {
-    const count = ENTRIES.filter((e) => e.chapter === ch.id && d.u.includes(e.id)).length;
+  const shown = (e) => entryVisible(e, island) && d.u.includes(e.id);
+  const unreadIn = (ch) => ENTRIES.some((e) => e.chapter === ch && shown(e) && !d.r.includes(e.id));
+  for (const ch of chapters) {
+    const count = ENTRIES.filter((e) => e.chapter === ch.id && shown(e)).length;
     form.button(`${ch.title}${unreadIn(ch.id) ? " §6(new)" : ""}
 §8${count} entries`, ch.icon);
   }
@@ -1703,14 +2078,21 @@ async function openJournalMenu(p) {
   form.button("Field conditions & next steps\n§8your nerve, local checks and a suggested recipe", "textures/ui/hollow/journal/conditions");
   const r = await showForm(p, form);
   if (!r || r.canceled || r.selection === void 0) return;
-  if (r.selection < CHAPTERS.length) await openChapter(p, CHAPTERS[r.selection].id);
-  else if (r.selection === CHAPTERS.length) await openSettings(p, isOperator(p));
-  else if (r.selection === CHAPTERS.length + 1) await openFieldNotes(p);
+  if (r.selection < chapters.length) await openChapter(p, chapters[r.selection].id);
+  else if (r.selection === chapters.length) await openSettings(p, isOperator(p));
+  else if (r.selection === chapters.length + 1) await openFieldNotes(p);
 }
 async function openFieldNotes(p) {
   while (p.isValid) {
     const report = fieldNotes(p, (id) => hasEntry(p, id));
-    const form = new ActionFormData2().title("§lField Conditions").body(report.body);
+    let body = report.body;
+    if (isIsland()) {
+      const rs = radState(p);
+      const rate = rateAt(p);
+      body = `§lRadiation§r
+§7Here: §f${rate < 10 ? rate.toFixed(1) : Math.round(rate)} mSv/h§7 · your dose §f${Math.round(rs.dose)} mSv§7 (${bandName(rs.dose)})` + (rs.dose >= 300 ? "\n§cLeave contaminated ground and rest; take iodine before going back." : "") + "\n\n" + body;
+    }
+    const form = new ActionFormData2().title("§lField Conditions").body(body);
     form.button("Refresh", "textures/ui/hollow/journal/refresh");
     if (report.recipe) form.button("Read suggested recipe", ENTRY_BY_ID.get(report.recipe).icon);
     form.button("§8Back", "textures/ui/hollow/back");
@@ -1723,9 +2105,10 @@ async function openFieldNotes(p) {
 }
 async function openChapter(p, ch) {
   const d = data(p);
-  const unlocked = ENTRIES.filter((e) => e.chapter === ch && d.u.includes(e.id));
-  const locked = ENTRIES.filter((e) => e.chapter === ch && !d.u.includes(e.id)).length;
-  const title = CHAPTERS.find((c) => c.id === ch).title;
+  const island = isIsland();
+  const unlocked = ENTRIES.filter((e) => e.chapter === ch && entryVisible(e, island) && d.u.includes(e.id));
+  const locked = ENTRIES.filter((e) => e.chapter === ch && entryVisible(e, island) && !d.u.includes(e.id)).length;
+  const title = chaptersFor(island).find((c) => c.id === ch)?.title ?? "Notes";
   const form = new ActionFormData2().title(`§l${title}`);
   form.body(
     unlocked.length === 0 ? "§7Nothing written here yet." : locked > 0 ? `§7${locked} ${locked === 1 ? "page is" : "pages are"} still blank.` : "§7Complete."
@@ -1748,7 +2131,7 @@ async function openEntry(p, id, back) {
   const r = await showForm(p, form);
   if (r && r.cancelationReason !== FormCancelationReason2.UserBusy && !d.r.includes(id)) {
     d.r.push(id);
-    save(p, d);
+    save2(p, d);
   }
   if (!r || r.canceled) return;
   await openChapter(p, back);
@@ -1814,7 +2197,7 @@ function enabledFor(p) {
   if (isNewcomer(p) && !isTestMode()) return false;
   try {
     const gm = p.getGameMode();
-    return gm === GameMode3.Survival || gm === GameMode3.Adventure;
+    return gm === GameMode4.Survival || gm === GameMode4.Adventure;
   } catch {
     return false;
   }
@@ -2093,10 +2476,10 @@ function spawnPhantom(p, underground2) {
 function removePhantom(id, seen) {
   const ph = phantoms.get(id);
   phantoms.delete(id);
-  const e = world8.getEntity(id);
+  const e = world9.getEntity(id);
   if (!e || !e.isValid) return;
   if (seen && ph) {
-    const p = world8.getAllPlayers().find((o) => o.id === ph.playerId);
+    const p = world9.getAllPlayers().find((o) => o.id === ph.playerId);
     if (p) {
       personal(p, SND.vanish, 0.7, 1, e.location);
       particle(e.dimension, PARTICLE.shed, add(e.location, { x: 0, y: ph.form === FORM_HOLLOWED ? 0.5 : 1.6, z: 0 }));
@@ -2119,8 +2502,8 @@ function observedBy(p, e, form) {
 function tickPhantoms() {
   const t = now();
   for (const [id, ph] of phantoms) {
-    const e = world8.getEntity(id);
-    const p = world8.getAllPlayers().find((o) => o.id === ph.playerId);
+    const e = world9.getEntity(id);
+    const p = world9.getAllPlayers().find((o) => o.id === ph.playerId);
     if (!e || !e.isValid || !p || !p.isValid || p.dimension.id !== ph.dim) {
       removePhantom(id, false);
       continue;
@@ -2148,12 +2531,12 @@ function forcePhantom(p) {
 }
 function dreadSummary() {
   const parts = [];
-  for (const p of world8.getAllPlayers()) parts.push(`${p.name}:${Math.round(dreadLevel(p))}`);
+  for (const p of world9.getAllPlayers()) parts.push(`${p.name}:${Math.round(dreadLevel(p))}`);
   return parts.join(" ") || "-";
 }
 
 // ../../scripts_src/items/components.ts
-import { EquipmentSlot as EquipmentSlot2, GameMode as GameMode4, Player as Player13, system as system6, world as world11 } from "@minecraft/server";
+import { EquipmentSlot as EquipmentSlot3, GameMode as GameMode5, Player as Player14, system as system6, world as world12 } from "@minecraft/server";
 
 // ../../scripts_src/systems/sites.ts
 import {
@@ -2162,7 +2545,7 @@ import {
   LocationWaypoint,
   StructureRotation,
   WaypointTexture,
-  world as world9
+  world as world10
 } from "@minecraft/server";
 var DEFS = {
   cabin: { structures: ["hollow:cabin", "hollow:cabin_collapsed"], size: [11, 9, 11], sink: 1, spacing: 320, cap: 8, lootTable: "hollow/sites/cabin", journal: "place_cabin" },
@@ -2233,7 +2616,7 @@ function place(dim, t, origin) {
   const rot = pick([StructureRotation.None, StructureRotation.Rotate90, StructureRotation.Rotate180, StructureRotation.Rotate270]);
   const o = { x: Math.floor(origin.x), y: Math.floor(origin.y) - def.sink, z: Math.floor(origin.z) };
   try {
-    world9.structureManager.place(pick(def.structures), dim, o, { rotation: rot, includeEntities: false, waterlogged: false });
+    world10.structureManager.place(pick(def.structures), dim, o, { rotation: rot, includeEntities: false, waterlogged: false });
   } catch (e) {
     console.warn(`[hollow] could not place ${def.structures[0]}: ${e}`);
     return void 0;
@@ -2262,7 +2645,7 @@ function fill(dim, s) {
   const c = { x: s.x + Math.floor(s.sx / 2), y: s.y + 2, z: s.z + Math.floor(s.sz / 2) };
   const r = Math.max(s.sx, s.sz);
   const containers = findBlocks(dim, c, ["minecraft:chest", "minecraft:barrel"], Math.ceil(r / 2), s.sy, Math.ceil(r / 2), 4);
-  const mgr = world9.getLootTableManager();
+  const mgr = world10.getLootTableManager();
   const table = mgr.getLootTable(def.lootTable);
   for (const loc of containers) {
     const b = block(dim, loc);
@@ -2294,7 +2677,7 @@ function trySurfaceSite(p) {
   if (!c.overworld || c.underground || c.inWater || c.roofed) return;
   if (!chance(0.3)) return;
   const dim = p.dimension;
-  const spawn = world9.getDefaultSpawnLocation();
+  const spawn = world10.getDefaultSpawnLocation();
   if (distXZ(p.location, spawn) < 96) return;
   const bed = p.getSpawnPoint();
   if (c.biome !== "forest" && c.biome !== "open") return;
@@ -2400,13 +2783,15 @@ function discover(p) {
   }
 }
 function startSites() {
-  everyPlayer("sites.place", 1200, trySurfaceSite);
+  everyPlayer("sites.place", 1200, (p) => {
+    if (!isIsland()) trySurfaceSite(p);
+  });
   everyPlayer("sites.discover", 100, discover);
   every("sites.validate", 6e3, () => {
     for (const s of [...allSites()]) {
       let dim;
       try {
-        dim = world9.getDimension(s.d);
+        dim = world10.getDimension(s.d);
       } catch {
         continue;
       }
@@ -2439,7 +2824,7 @@ function forceSite(p, t) {
 }
 
 // ../../scripts_src/systems/tracks.ts
-import { BlockPermutation as BlockPermutation2, world as world10 } from "@minecraft/server";
+import { BlockPermutation as BlockPermutation2, world as world11 } from "@minecraft/server";
 var CAP = 96;
 var LIFETIME = 24e3;
 var GROUND = /* @__PURE__ */ new Set([
@@ -2484,7 +2869,7 @@ function pressTrack(dim, at, kind, facing) {
   } catch {
     return false;
   }
-  l.push({ d: dim.id, x: cell.x, y: cell.y, z: cell.z, t: world10.getAbsoluteTime() });
+  l.push({ d: dim.id, x: cell.x, y: cell.y, z: cell.z, t: world11.getAbsoluteTime() });
   persist();
   return true;
 }
@@ -2508,7 +2893,7 @@ function standingPrints(e, kind) {
 function removeAt(t) {
   let dim;
   try {
-    dim = world10.getDimension(t.d);
+    dim = world11.getDimension(t.d);
     if (!dim.isChunkLoaded(t)) return false;
   } catch {
     return false;
@@ -2534,7 +2919,7 @@ function removeOldest() {
 function expire() {
   const l = list();
   if (l.length === 0) return;
-  const now2 = world10.getAbsoluteTime();
+  const now2 = world11.getAbsoluteTime();
   let changed = false;
   for (let i = l.length - 1; i >= 0; i--) {
     if (now2 - l[i].t < LIFETIME) continue;
@@ -2582,33 +2967,33 @@ var CREATURE_NAMES = {
 };
 function survivalish(p) {
   const gm = p.getGameMode();
-  return gm === GameMode4.Survival || gm === GameMode4.Adventure;
+  return gm === GameMode5.Survival || gm === GameMode5.Adventure;
 }
 function wearHeld(p, typeId) {
   if (!survivalish(p)) return;
   const eq = p.getComponent("minecraft:equippable");
   if (!eq) return;
-  const item = eq.getEquipment(EquipmentSlot2.Mainhand);
+  const item = eq.getEquipment(EquipmentSlot3.Mainhand);
   if (!item || item.typeId !== typeId) return;
   const dur = item.getComponent("minecraft:durability");
   if (!dur) return;
   if (dur.damage + 1 >= dur.maxDurability) {
-    eq.setEquipment(EquipmentSlot2.Mainhand, void 0);
+    eq.setEquipment(EquipmentSlot3.Mainhand, void 0);
     p.playSound("random.break");
     return;
   }
   dur.damage += 1;
-  eq.setEquipment(EquipmentSlot2.Mainhand, item);
+  eq.setEquipment(EquipmentSlot3.Mainhand, item);
 }
 function consumeHeld(p, typeId) {
   if (!survivalish(p)) return;
   const eq = p.getComponent("minecraft:equippable");
-  const item = eq?.getEquipment(EquipmentSlot2.Mainhand);
+  const item = eq?.getEquipment(EquipmentSlot3.Mainhand);
   if (!eq || !item || item.typeId !== typeId) return;
   if (item.amount > 1) {
     item.amount -= 1;
-    eq.setEquipment(EquipmentSlot2.Mainhand, item);
-  } else eq.setEquipment(EquipmentSlot2.Mainhand, void 0);
+    eq.setEquipment(EquipmentSlot3.Mainhand, item);
+  } else eq.setEquipment(EquipmentSlot3.Mainhand, void 0);
 }
 var revealTimers = /* @__PURE__ */ new Map();
 var itemSessions = /* @__PURE__ */ new Map();
@@ -2695,7 +3080,7 @@ function registerItemComponents(ev) {
   ev.itemComponentRegistry.registerCustomComponent("hollow:journal", {
     onUse(e) {
       const p = e.source;
-      queueUse(p, ITEM.journal, () => void openJournal(p));
+      queueUse(p, e.itemStack?.typeId ?? ITEM.journal, () => void openJournal(p));
     }
   });
   ev.itemComponentRegistry.registerCustomComponent("hollow:torn_page", {
@@ -2729,7 +3114,7 @@ function registerItemComponents(ev) {
     // Hearth Tea: drinking it calms Dread sharply and steadies the nerves for two minutes.
     onConsume(e) {
       const p = e.source;
-      if (p instanceof Player13) system6.run(() => p.isValid && drinkTea(p));
+      if (p instanceof Player14) system6.run(() => p.isValid && drinkTea(p));
     }
   });
   ev.itemComponentRegistry.registerCustomComponent("hollow:material", {
@@ -2757,9 +3142,9 @@ function describeMaterial(p, id) {
   notice(p, h[1]);
 }
 function startMaterialPickups() {
-  world11.afterEvents.entityItemPickup.subscribe((ev) => {
+  world12.afterEvents.entityItemPickup.subscribe((ev) => {
     const p = ev.entity;
-    if (!(p instanceof Player13)) return;
+    if (!(p instanceof Player14)) return;
     for (const stack of ev.items) {
       const h = MATERIAL_HINTS[stack.typeId];
       if (h && !hasEntry(p, h[0])) describeMaterial(p, stack.typeId);
@@ -2773,7 +3158,7 @@ function giveOrDrop(p, stack) {
 }
 
 // ../../scripts_src/creatures/hollowed.ts
-import { Player as Player14, world as world12 } from "@minecraft/server";
+import { Player as Player15, world as world13 } from "@minecraft/server";
 var hs = /* @__PURE__ */ new Map();
 var lures = /* @__PURE__ */ new Map();
 var hollowedCount = () => hs.size;
@@ -2845,7 +3230,7 @@ function spawnJuvenile(dim, at) {
 function placeLure(dim, at) {
   for (const l of lures.values()) {
     if (l.dim === dim.id && distSq(l.at, at) < 16) {
-      const e = world12.getEntity(l.id);
+      const e = world13.getEntity(l.id);
       if (e?.isValid) {
         try {
           e.teleport(at);
@@ -2871,7 +3256,7 @@ function placeLure(dim, at) {
 }
 function removeLure(l) {
   lures.delete(l.id);
-  const e = world12.getEntity(l.id);
+  const e = world13.getEntity(l.id);
   if (e?.isValid) {
     try {
       e.remove();
@@ -2886,7 +3271,7 @@ function hear(n) {
     if (h.dim !== n.dim.id) continue;
     const d = dist(h.pos, n.at);
     if (d > n.radius) continue;
-    const e = world12.getEntity(h.id);
+    const e = world13.getEntity(h.id);
     if (!e?.isValid) continue;
     heard = true;
     if (now() - h.alertAt > 80) {
@@ -2923,7 +3308,7 @@ function update2() {
   const t = now();
   for (const l of [...lures.values()]) if (t - l.born > 200) removeLure(l);
   for (const h of [...hs.values()]) {
-    const e = world12.getEntity(h.id);
+    const e = world13.getEntity(h.id);
     if (!e?.isValid) {
       hs.delete(h.id);
       continue;
@@ -2983,7 +3368,7 @@ function update2() {
 }
 function onHollowedDied(id, killer) {
   hs.delete(id);
-  if (killer instanceof Player14) unlock(killer, "hollowed3");
+  if (killer instanceof Player15) unlock(killer, "hollowed3");
 }
 function startHollowed() {
   setListenerCheck(listenersNear);
@@ -3028,7 +3413,7 @@ function load() {
   }
   return boss;
 }
-function save2() {
+function save3() {
   writeWorld(DP.boss, boss);
 }
 function inBossArena(p) {
@@ -3054,7 +3439,7 @@ function arenaLoaded(dim) {
 }
 function dimOf() {
   try {
-    return world13.getDimension(boss.dim);
+    return world14.getDimension(boss.dim);
   } catch {
     return void 0;
   }
@@ -3070,7 +3455,7 @@ function arenaPlayers() {
 }
 function survival(p) {
   const gm = p.getGameMode();
-  return gm === GameMode5.Survival || gm === GameMode5.Adventure;
+  return gm === GameMode6.Survival || gm === GameMode6.Adventure;
 }
 function veinSpots(c) {
   const out = [];
@@ -3096,7 +3481,7 @@ function setAltar(dim, awake) {
 function useAltar(p, altar) {
   load();
   const eq = p.getComponent("minecraft:equippable");
-  const held = eq?.getEquipment(EquipmentSlot3.Mainhand);
+  const held = eq?.getEquipment(EquipmentSlot4.Mainhand);
   if (boss.active) {
     notice(p, "§7The Heart is already awake.");
     return;
@@ -3116,8 +3501,8 @@ function useAltar(p, altar) {
   if (survival(p)) {
     if (held.amount > 1) {
       held.amount -= 1;
-      eq.setEquipment(EquipmentSlot3.Mainhand, held);
-    } else eq.setEquipment(EquipmentSlot3.Mainhand, void 0);
+      eq.setEquipment(EquipmentSlot4.Mainhand, held);
+    } else eq.setEquipment(EquipmentSlot4.Mainhand, void 0);
   }
   awaken(dim, center, altar);
 }
@@ -3136,7 +3521,7 @@ function awaken(dim, center, altar) {
   const players = arenaPlayers();
   const n = Math.max(1, players.length);
   boss.scale = n;
-  save2();
+  save3();
   worldSound(dim, SND.altar, altar.center());
   worldSound(dim, SND.heartAwaken, center, 1);
   try {
@@ -3183,7 +3568,7 @@ function rise(dim) {
   nextBeat = now();
   nextDrone = now() + 40;
   lastPresence = now();
-  save2();
+  save3();
 }
 function spawnVeins(dim, count, players) {
   const spots = veinSpots(boss.center).slice(0, count);
@@ -3321,7 +3706,7 @@ function toPhase(dim, heart, phase) {
       hint(p, "§7It opens. Stay behind the pillars when it looks for you.");
     }
   }
-  save2();
+  save3();
 }
 function update3() {
   if (!load().active) return;
@@ -3350,7 +3735,7 @@ function update3() {
   }
   missingSince = -1;
   for (const p of players) pushFog(p, FOG.heart, "hollow_heart");
-  boss.veins = boss.veins.filter((id) => world13.getEntity(id)?.isValid);
+  boss.veins = boss.veins.filter((id) => world14.getEntity(id)?.isValid);
   if (boss.veins.length === 0 && heart.getProperty("hollow:shielded") === true) rebindVeins(dim);
   if (boss.veins.length === 0 && boss.phase < 3 && heart.getProperty("hollow:shielded") === true) {
     try {
@@ -3387,14 +3772,14 @@ function update3() {
   }
 }
 function findHeart(dim) {
-  const byId = world13.getEntity(boss.heartId);
+  const byId = world14.getEntity(boss.heartId);
   if (byId?.isValid) return byId;
   try {
     for (const e of dim.getEntities({ type: ENT.heart, location: boss.center, maxDistance: 24 })) {
       if (e.getDynamicProperty(FIGHT) === boss.token) {
         boss.heartId = e.id;
         rebindVeins(dim);
-        save2();
+        save3();
         return e;
       }
     }
@@ -3407,14 +3792,14 @@ function rebindVeins(dim) {
     const found = dim.getEntities({ type: ENT.vein, location: boss.center, maxDistance: 24 }).filter((e) => e.getDynamicProperty(FIGHT) === boss.token).map((e) => e.id);
     if (found.length > 0) {
       boss.veins = found;
-      save2();
+      save3();
     }
   } catch {
   }
 }
 function clearMinions() {
   for (const id of [...boss.veins, ...minions]) {
-    const e = world13.getEntity(id);
+    const e = world14.getEntity(id);
     if (e?.isValid) {
       try {
         e.remove();
@@ -3444,10 +3829,10 @@ function dormant(dim) {
     }
   }
   boss = { ...EMPTY, restUntilDay: boss.restUntilDay };
-  save2();
+  save3();
 }
 function onBossHurt(hurtEntity, amount, by) {
-  if (!isBossEntity(hurtEntity.id) || !(by instanceof Player15)) return;
+  if (!isBossEntity(hurtEntity.id) || !(by instanceof Player16)) return;
   boss.participants[by.id] = (boss.participants[by.id] ?? 0) + amount;
 }
 function onShieldHit(heart) {
@@ -3457,7 +3842,7 @@ function onShieldHit(heart) {
 function onVeinDied(id) {
   if (!load().active) return;
   boss.veins = boss.veins.filter((v) => v !== id);
-  save2();
+  save3();
 }
 function onHeartDied(id) {
   if (!load().active || id !== boss.heartId) return;
@@ -3465,7 +3850,7 @@ function onHeartDied(id) {
   const winners = new Set(Object.keys(boss.participants));
   for (const p of arenaPlayers()) winners.add(p.id);
   for (const pid of winners) {
-    const p = world13.getEntity(pid);
+    const p = world14.getEntity(pid);
     if (!p?.isValid) continue;
     giveOrDrop(p, new ItemStack4(ITEM.stilledHeart, 1));
     p.addExperience(150);
@@ -3480,14 +3865,14 @@ function onHeartDied(id) {
   clearMinions();
   if (dim) setAltar(dim, false);
   boss = { ...EMPTY, restUntilDay: hollowDay() + 3 };
-  save2();
+  save3();
 }
 function forgetBossPlayer(p) {
   popFog(p, "hollow_heart");
 }
 function forceBossPhase(phase) {
   if (!load().active || !boss.heartId) return "no Heart is awake (use the altar first)";
-  const heart = world13.getEntity(boss.heartId);
+  const heart = world14.getEntity(boss.heartId);
   const h = heart?.getComponent("minecraft:health");
   if (!heart || !h) return "the Heart is not loaded; stand in the arena";
   const set = (f) => h.setCurrentValue(Math.max(1, Math.floor(h.effectiveMax * f)));
@@ -3513,12 +3898,12 @@ function bossSummary() {
 var LIMITS = { [DP.chimes]: 32, [DP.wards]: 32, lanterns: 16 };
 var LANTERNS = "hollow:lanterns";
 var REGISTERED_TYPES = { [DP.chimes]: BLOCK.chime, [DP.wards]: BLOCK.ward, [LANTERNS]: BLOCK.lantern };
-var cache2 = /* @__PURE__ */ new Map();
+var cache3 = /* @__PURE__ */ new Map();
 function list2(key) {
-  let l = cache2.get(key);
+  let l = cache3.get(key);
   if (!l) {
     l = readWorldArray(key).filter((s) => s && typeof s.d === "string" && [s.x, s.y, s.z].every((v) => typeof v === "number" && Number.isFinite(v)));
-    cache2.set(key, l);
+    cache3.set(key, l);
   }
   return l;
 }
@@ -3532,7 +3917,7 @@ function register(key, b, limit) {
   for (const s of [...l]) {
     let dim;
     try {
-      dim = world14.getDimension(s.d);
+      dim = world15.getDimension(s.d);
     } catch {
       continue;
     }
@@ -3634,7 +4019,7 @@ function ringChimes() {
   for (const s of [...l]) {
     let dim;
     try {
-      dim = world14.getDimension(s.d);
+      dim = world15.getDimension(s.d);
     } catch {
       continue;
     }
@@ -3662,7 +4047,7 @@ function ringChimes() {
 }
 function isSurvivalish(p) {
   const gm = p.getGameMode();
-  return gm === GameMode6.Survival || gm === GameMode6.Adventure;
+  return gm === GameMode7.Survival || gm === GameMode7.Adventure;
 }
 function registerBlockComponents(ev) {
   ev.blockComponentRegistry.registerCustomComponent("hollow:chime", {
@@ -3724,7 +4109,7 @@ function registerBlockComponents(ev) {
         return;
       }
       const eq = p.getComponent("minecraft:equippable");
-      const held = eq?.getEquipment(EquipmentSlot4.Mainhand);
+      const held = eq?.getEquipment(EquipmentSlot5.Mainhand);
       if (held?.typeId === "minecraft:charcoal" && c < 4) {
         if (!setWardCharges(b, c + 1)) {
           notice(p, "§7The ward could not be recharged. No charcoal spent; try again when the area is loaded.");
@@ -3733,8 +4118,8 @@ function registerBlockComponents(ev) {
         if (isSurvivalish(p)) {
           if (held.amount > 1) {
             held.amount -= 1;
-            eq.setEquipment(EquipmentSlot4.Mainhand, held);
-          } else eq.setEquipment(EquipmentSlot4.Mainhand, void 0);
+            eq.setEquipment(EquipmentSlot5.Mainhand, held);
+          } else eq.setEquipment(EquipmentSlot5.Mainhand, void 0);
         }
         worldSound(e.dimension, SND.wardPlace, b.center(), 0.8, 1.2);
         particle(e.dimension, PARTICLE.wardGlow, b.center());
@@ -3860,7 +4245,7 @@ function update4() {
   if (encs.size === 0) return;
   const t = now();
   for (const enc of [...encs.values()]) {
-    const e = world15.getEntity(enc.id);
+    const e = world16.getEntity(enc.id);
     if (!e || !e.isValid) {
       encs.delete(enc.id);
       continue;
@@ -3956,19 +4341,19 @@ function onBorrowedSheared(e, by) {
 function onBorrowedHurt(e, by) {
   const enc = encs.get(e.id);
   if (!enc) return;
-  if (enc.state === "disguised") reveal(e, enc, "hurt", by instanceof Player17 ? by : void 0);
+  if (enc.state === "disguised") reveal(e, enc, "hurt", by instanceof Player18 ? by : void 0);
   else if (enc.state === "revealed" && hpFraction2(e) < 0.4) setState(e, enc, "fleeing");
 }
 function onBorrowedDied(id, killer) {
   encs.delete(id);
-  if (killer instanceof Player17) {
+  if (killer instanceof Player18) {
     unlock(killer, "borrowed1");
     unlock(killer, "borrowed2");
   }
 }
 function forgetBorrowedTarget(playerId) {
   for (const enc of [...encs.values()]) {
-    if (enc.target === playerId && (enc.state === "disguised" || enc.state === "revealing")) vanish(world15.getEntity(enc.id), enc);
+    if (enc.target === playerId && (enc.state === "disguised" || enc.state === "revealing")) vanish(world16.getEntity(enc.id), enc);
   }
 }
 function startBorrowed() {
@@ -3976,7 +4361,7 @@ function startBorrowed() {
 }
 
 // ../../scripts_src/creatures/knocker.ts
-import { Difficulty as Difficulty3, ItemStack as ItemStack6, Player as Player18, world as world16 } from "@minecraft/server";
+import { Difficulty as Difficulty3, ItemStack as ItemStack6, Player as Player19, world as world17 } from "@minecraft/server";
 var visit;
 var SAVE = DP.knocker;
 var knockerActive = () => !!visit;
@@ -3986,7 +4371,7 @@ function saved() {
   if (!savedCache) savedCache = readWorld(SAVE, { lastNight: -99, plannedKey: -1, planned: false, planTick: 0 });
   return savedCache;
 }
-function save3(s) {
+function save4(s) {
   savedCache = s;
   writeWorld(SAVE, s);
 }
@@ -4004,7 +4389,7 @@ function plan() {
     planned: eligible2 && chance(Math.min(0.9, 0.45 * chanceScale())),
     planTick: Math.round(rand(13600, 19e3))
   };
-  save3(next);
+  save4(next);
   return next;
 }
 function doorLower(dim, loc) {
@@ -4034,7 +4419,7 @@ function doorOpen(dim, door) {
 }
 function insidePlayers(v) {
   try {
-    return world16.getDimension(v.dim).getPlayers({ location: v.door, maxDistance: 18 });
+    return world17.getDimension(v.dim).getPlayers({ location: v.door, maxDistance: 18 });
   } catch {
     return [];
   }
@@ -4091,7 +4476,7 @@ function tryVisit() {
         broke: false,
         wardChecked: false
       };
-      save3({ ...saved(), lastNight: hollowNight(), planned: false });
+      save4({ ...saved(), lastNight: hollowNight(), planned: false });
       return;
     }
   }
@@ -4135,7 +4520,7 @@ function update5() {
     tryVisit();
     return;
   }
-  const e = world16.getEntity(v.id);
+  const e = world17.getEntity(v.id);
   if (!e?.isValid) {
     visit = void 0;
     return;
@@ -4185,7 +4570,7 @@ function update5() {
       return;
     }
     const cfg = settings();
-    if (!v.broke && cfg.destructive && world16.getDifficulty() === Difficulty3.Hard && inState >= 600 && chance(0.05)) {
+    if (!v.broke && cfg.destructive && world17.getDifficulty() === Difficulty3.Hard && inState >= 600 && chance(0.05)) {
       v.broke = true;
       try {
         e.triggerEvent("hollow:break_in");
@@ -4261,26 +4646,26 @@ function onKnockerHurt(e, by) {
   const v = visit;
   if (!v || v.id !== e.id) return;
   if (v.phase === "knock" || v.phase === "approach") {
-    if (by instanceof Player18) answered(e, v);
+    if (by instanceof Player19) answered(e, v);
   }
 }
 function onKnockerDied(id, killer) {
   if (visit?.id === id) visit = void 0;
-  if (killer instanceof Player18) {
+  if (killer instanceof Player19) {
     unlock(killer, "knocker1");
     unlock(killer, "knocker3");
   }
 }
 function forgetKnockerTarget(playerId) {
   if (visit?.target === playerId && (visit.phase === "approach" || visit.phase === "knock")) {
-    const e = world16.getEntity(visit.id);
+    const e = world17.getEntity(visit.id);
     if (e) setPhase(e, visit, "leave");
   }
 }
 function forceKnockerTonight() {
   if (visit) return "a visit is already under way";
   const t = tod();
-  save3({ ...saved(), plannedKey: nightKey(), planned: true, lastNight: -99, planTick: Math.max(13300, Math.min(21e3, t)) });
+  save4({ ...saved(), plannedKey: nightKey(), planned: true, lastNight: -99, planTick: Math.max(13300, Math.min(21e3, t)) });
   nextTry = 0;
   return t < 13300 || t > 21500 ? "planned: it comes after dusk (time 13300-21500) to a player indoors with a door" : "planned: stay indoors near a door";
 }
@@ -4289,7 +4674,7 @@ function startKnocker() {
 }
 
 // ../../scripts_src/creatures/mirebound.ts
-import { EntityDamageCause as EntityDamageCause2, Player as Player19, world as world17 } from "@minecraft/server";
+import { EntityDamageCause as EntityDamageCause2, Player as Player20, world as world18 } from "@minecraft/server";
 var ms = /* @__PURE__ */ new Map();
 var mireboundCount = () => ms.size;
 var isMireboundTracked = (id) => ms.has(id);
@@ -4372,10 +4757,10 @@ function tryStartMirebound(p) {
 }
 function release(m) {
   ms.delete(m.id);
-  const p = world17.getEntity(m.target);
+  const p = world18.getEntity(m.target);
   if (p?.isValid && rt(p).encounter === "mirebound") rt(p).encounter = void 0;
   if (m.victim) {
-    const v = world17.getEntity(m.victim);
+    const v = world18.getEntity(m.victim);
     if (v?.isValid) popFog(v, "hollow_mire");
   }
 }
@@ -4397,7 +4782,7 @@ function riding(p, e) {
   }
 }
 function letGo(e, m, why) {
-  const v = m.victim ? world17.getEntity(m.victim) : void 0;
+  const v = m.victim ? world18.getEntity(m.victim) : void 0;
   try {
     e.getComponent("minecraft:rideable")?.ejectRiders();
   } catch {
@@ -4415,7 +4800,7 @@ function update6() {
   if (ms.size === 0) return;
   const t = now();
   for (const m of [...ms.values()]) {
-    const e = world17.getEntity(m.id);
+    const e = world18.getEntity(m.id);
     if (!e?.isValid) {
       release(m);
       continue;
@@ -4455,7 +4840,7 @@ function update6() {
     }
     if (m.state === "erupt") {
       if (inState < 12) continue;
-      const v = m.victim ? world17.getEntity(m.victim) : void 0;
+      const v = m.victim ? world18.getEntity(m.victim) : void 0;
       if (!v?.isValid || dist(v.location, e.location) > 3.2 || !huntable(v) || protectedSpot(dim, v.location)) {
         m.victim = void 0;
         if (v?.isValid) notice(v, "§7It snaps at empty water. Get to dry land.");
@@ -4474,7 +4859,7 @@ function update6() {
       continue;
     }
     if (m.state === "grab") {
-      const v = m.victim ? world17.getEntity(m.victim) : void 0;
+      const v = m.victim ? world18.getEntity(m.victim) : void 0;
       if (!v?.isValid || v.getComponent("minecraft:health")?.currentValue === 0) {
         letGo(e, m, "death");
         continue;
@@ -4521,20 +4906,20 @@ function update6() {
 function onMireboundHurt(e, by) {
   const m = ms.get(e.id);
   if (!m) return;
-  if (m.state === "grab" && by instanceof Player19) letGo(e, m, "hit");
+  if (m.state === "grab" && by instanceof Player20) letGo(e, m, "hit");
   else if (m.state === "lurk") setState2(e, m, "retreat");
 }
 function onMireboundDied(id, killer) {
   const m = ms.get(id);
   if (m) release(m);
-  if (killer instanceof Player19) {
+  if (killer instanceof Player20) {
     unlock(killer, "mirebound1");
     unlock(killer, "mirebound2");
   }
 }
 function forgetMireboundTarget(playerId) {
   for (const m of [...ms.values()]) {
-    const e = world17.getEntity(m.id);
+    const e = world18.getEntity(m.id);
     if (m.victim === playerId && e?.isValid) letGo(e, m, "death");
     if (m.target === playerId && m.state === "lurk") vanish2(e, m);
   }
@@ -4544,7 +4929,7 @@ function startMirebound() {
 }
 
 // ../../scripts_src/creatures/watcher.ts
-import { EntityDamageCause as EntityDamageCause3, ItemStack as ItemStack7, Player as Player20, world as world18 } from "@minecraft/server";
+import { EntityDamageCause as EntityDamageCause3, ItemStack as ItemStack7, Player as Player21, world as world19 } from "@minecraft/server";
 
 // ../../scripts_src/systems/daily.ts
 function dailyCount(p, key) {
@@ -4676,7 +5061,7 @@ function tryStartWatcher(p) {
 }
 function release2(enc) {
   encounters.delete(enc.id);
-  const p = world18.getEntity(enc.target);
+  const p = world19.getEntity(enc.target);
   if (p && p.isValid) {
     if (rt(p).encounter === "watcher") rt(p).encounter = void 0;
     popFog(p, "hollow_watch");
@@ -4700,7 +5085,7 @@ function withdraw(e, enc, reason, by) {
   later("watcher.retreat", 12, () => {
     if (e.isValid) worldSound(dim, SND.watcherRetreat, e.location, 0.8);
   });
-  const target2 = world18.getEntity(enc.target);
+  const target2 = world19.getEntity(enc.target);
   if (target2) popFog(target2, "hollow_watch");
   if (reason === "stared" && by) {
     for (const p of dim.getPlayers({ location: e.location, maxDistance: 72 })) unlock(p, "watcher2");
@@ -4723,12 +5108,12 @@ function update7() {
   if (encounters.size === 0) return;
   const t = now();
   for (const enc of [...encounters.values()]) {
-    const e = world18.getEntity(enc.id);
+    const e = world19.getEntity(enc.id);
     if (!e || !e.isValid) {
       release2(enc);
       continue;
     }
-    const p = world18.getEntity(enc.target);
+    const p = world19.getEntity(enc.target);
     if (!p || !p.isValid || p.dimension.id !== e.dimension.id) {
       vanish3(e, enc);
       continue;
@@ -4816,7 +5201,7 @@ function onWatcherHurt(hurt2, cause, by) {
   const enc = encounters.get(hurt2.id);
   if (!enc) return;
   if (cause === EntityDamageCause3.fall) return;
-  withdraw(hurt2, enc, "hurt", by instanceof Player20 ? by : void 0);
+  withdraw(hurt2, enc, "hurt", by instanceof Player21 ? by : void 0);
 }
 function onWatcherStruck(watcher, victim) {
   const enc = encounters.get(watcher.id);
@@ -4834,7 +5219,7 @@ function onWatcherStruck(watcher, victim) {
 function onWatcherDied(id, killer) {
   const enc = encounters.get(id);
   if (enc) release2(enc);
-  if (killer instanceof Player20) {
+  if (killer instanceof Player21) {
     unlock(killer, "watcher1");
     unlock(killer, "watcher2");
   }
@@ -4842,7 +5227,7 @@ function onWatcherDied(id, killer) {
 function forgetWatcherTarget(playerId) {
   for (const enc of [...encounters.values()]) {
     if (enc.target !== playerId) continue;
-    vanish3(world18.getEntity(enc.id), enc);
+    vanish3(world19.getEntity(enc.id), enc);
   }
 }
 function startWatcher() {
@@ -4885,7 +5270,7 @@ function nearShrine(p) {
   const c = shrineCenter();
   return !!c && p.dimension.id === "minecraft:overworld" && distXZ(p.location, c) < 28 && Math.abs(p.location.y - c.y) < 16;
 }
-function tick(p) {
+function tick2(p) {
   const fresh = !state2.has(p.id);
   const s = st3(p);
   if (fresh) {
@@ -4940,7 +5325,7 @@ function tick(p) {
   }
 }
 function startMusic() {
-  everyPlayer("music", 200, tick);
+  everyPlayer("music", 200, tick2);
 }
 
 // ../../scripts_src/systems/events.ts
@@ -5105,7 +5490,7 @@ function onTheRoof(p) {
 function eligible(p) {
   return settings().rareEvents && huntable(p) && !isNewcomer(p) && !rt(p).encounter && !running;
 }
-function tick2(p) {
+function tick3(p) {
   watchLantern(p);
   if (!eligible(p) || !isNight() || !chance(0.04)) return;
   const c = ctx(p);
@@ -5126,7 +5511,7 @@ function forceEvent(p, id) {
   return `event ${id} started`;
 }
 function startEvents() {
-  everyPlayer("events", 400, tick2);
+  everyPlayer("events", 400, tick3);
 }
 
 // ../../scripts_src/systems/ambience.ts
@@ -5135,7 +5520,7 @@ function far(p, lo = 18, hi = 40) {
   const r = rand(lo, hi);
   return add(p.location, { x: d.x * r, y: rand(0, 4), z: d.z * r });
 }
-function tick3(p) {
+function tick4(p) {
   const c = ctx(p);
   if (!c.overworld) return;
   const night = isDarkHours();
@@ -5178,12 +5563,12 @@ function bedtime(p) {
   ambient(p, SND.bedtimeKnock, { volume: 0.9, minGap: 0, cueGap: 0 });
 }
 function startAmbience() {
-  everyPlayer("ambience", 120, tick3);
+  everyPlayer("ambience", 120, tick4);
   everyPlayer("bedtime", 40, bedtime);
 }
 
 // ../../scripts_src/systems/cleanup.ts
-import { world as world19 } from "@minecraft/server";
+import { world as world20 } from "@minecraft/server";
 var trackers = /* @__PURE__ */ new Map();
 function trackType(typeId, isTracked) {
   trackers.set(typeId, isTracked);
@@ -5211,14 +5596,14 @@ function cleanEntity(e) {
 function sweepLoaded() {
   for (const id of ["minecraft:overworld", "minecraft:nether", "minecraft:the_end"]) {
     try {
-      const dim = world19.getDimension(id);
+      const dim = world20.getDimension(id);
       for (const e of dim.getEntities({ families: [FAMILY.any] })) cleanEntity(e);
     } catch {
     }
   }
 }
 function startCleanup() {
-  world19.afterEvents.entityLoad.subscribe((ev) => {
+  world20.afterEvents.entityLoad.subscribe((ev) => {
     const e = ev.entity;
     if (e.typeId.startsWith("hollow:")) cleanEntity(e);
   });
@@ -5247,10 +5632,898 @@ function startDirector() {
   everyPlayer("director", PERIOD2, evaluate);
 }
 
+// ../../scripts_src/island/guns.ts
+import {
+  EntityDamageCause as EntityDamageCause4,
+  EquipmentSlot as EquipmentSlot6,
+  GameMode as GameMode8,
+  ItemStack as ItemStack9,
+  Player as Player23,
+  system as system7
+} from "@minecraft/server";
+var MAG_SIZE = 7;
+var RANGE = 48;
+var reloading = /* @__PURE__ */ new Map();
+function survivalish2(p) {
+  const gm = p.getGameMode();
+  return gm === GameMode8.Survival || gm === GameMode8.Adventure;
+}
+function magOf(item) {
+  if (!item) return 0;
+  const v = item.getDynamicProperty(DP.mag);
+  return typeof v === "number" ? Math.max(0, Math.min(MAG_SIZE, Math.round(v))) : MAG_SIZE;
+}
+function setMag(item, n) {
+  item.setDynamicProperty(DP.mag, n);
+  item.setLore([`§7Magazine: §f${n}§7/${MAG_SIZE}`, "§8Sneak + Use to reload"]);
+}
+function pistolStack(rounds = MAG_SIZE) {
+  const s = new ItemStack9(ITEM.pistol, 1);
+  setMag(s, rounds);
+  return s;
+}
+function heldPistol(p) {
+  const eq = p.getComponent("minecraft:equippable");
+  const item = eq?.getEquipment(EquipmentSlot6.Mainhand);
+  return item?.typeId === ITEM.pistol ? item : void 0;
+}
+function putBack(p, item) {
+  p.getComponent("minecraft:equippable")?.setEquipment(EquipmentSlot6.Mainhand, item);
+}
+function countRounds(p) {
+  const c = p.getComponent("minecraft:inventory")?.container;
+  if (!c) return 0;
+  let n = 0;
+  for (let i = 0; i < c.size; i++) {
+    const it = c.getItem(i);
+    if (it?.typeId === ITEM.round) n += it.amount;
+  }
+  return n;
+}
+function takeRounds(p, want) {
+  const c = p.getComponent("minecraft:inventory")?.container;
+  if (!c) return 0;
+  let got = 0;
+  for (let i = 0; i < c.size && got < want; i++) {
+    const it = c.getItem(i);
+    if (it?.typeId !== ITEM.round) continue;
+    const take = Math.min(it.amount, want - got);
+    got += take;
+    if (take >= it.amount) c.setItem(i, void 0);
+    else {
+      it.amount -= take;
+      c.setItem(i, it);
+    }
+  }
+  return got;
+}
+function reload(p) {
+  const item = heldPistol(p);
+  if (!item) return;
+  const mag = magOf(item);
+  if (mag >= MAG_SIZE) {
+    hint(p, "§7The magazine is full.");
+    return;
+  }
+  const creative = !survivalish2(p);
+  if (!creative && countRounds(p) === 0) {
+    ui(p, SND.dryFire, 0.8);
+    notice(p, "§7No 9mm rounds left. §8Check the crash crates, bunkers and the dead.");
+    return;
+  }
+  const until = system7.currentTick + 26;
+  reloading.set(p.id, until);
+  worldSound(p.dimension, SND.reload, p.location, 0.9);
+  system7.runTimeout(() => {
+    if (!p.isValid || reloading.get(p.id) !== until) return;
+    reloading.delete(p.id);
+    const now2 = heldPistol(p);
+    if (!now2) return;
+    const need = MAG_SIZE - magOf(now2);
+    const got = creative ? need : takeRounds(p, need);
+    setMag(now2, magOf(now2) + got);
+    putBack(p, now2);
+    hint(p, `§7Reloaded: §f${magOf(now2)}§7/${MAG_SIZE}  §8(${creative ? "∞" : countRounds(p)} spare)`);
+  }, 26);
+}
+function add2(a, b, k = 1) {
+  return { x: a.x + b.x * k, y: a.y + b.y * k, z: a.z + b.z * k };
+}
+function fire(p) {
+  const item = heldPistol(p);
+  if (!item) return;
+  if ((reloading.get(p.id) ?? 0) > system7.currentTick) return;
+  if (p.isSneaking) {
+    reload(p);
+    return;
+  }
+  const mag = magOf(item);
+  if (mag <= 0) {
+    ui(p, SND.dryFire, 0.9);
+    hint(p, "§7Click. Empty. §8Sneak + Use to reload.");
+    return;
+  }
+  setMag(item, mag - 1);
+  putBack(p, item);
+  const dim = p.dimension;
+  const eye = p.getHeadLocation();
+  const dir = p.getViewDirection();
+  const muzzle = add2(eye, dir, 0.9);
+  worldSound(dim, SND.pistol, eye, 1, 0.95 + Math.random() * 0.1);
+  particle(dim, "minecraft:basic_flame_particle", muzzle);
+  particle(dim, "minecraft:basic_smoke_particle", muzzle);
+  try {
+    p.runCommand("camerashake add @s 0.22 0.12 rotational");
+  } catch {
+  }
+  emitNoise({ dim, at: p.location, radius: 48, kind: "gunshot", source: p });
+  let hitAt;
+  let target2;
+  let distance = RANGE;
+  try {
+    const hits = p.getEntitiesFromViewDirection({
+      maxDistance: RANGE,
+      excludeTypes: ["minecraft:item", "minecraft:xp_orb", ENT.crewBody, ENT.bullet, ENT.trevor, ENT.lure, ENT.phantom],
+      excludeFamilies: ["inanimate"]
+    });
+    for (const h of hits) {
+      if (h.entity.id === p.id || h.entity.typeId === "minecraft:player") continue;
+      target2 = h.entity;
+      distance = h.distance;
+      break;
+    }
+  } catch {
+  }
+  if (target2) {
+    hitAt = add2(eye, dir, distance);
+    const falloff = distance <= 20 ? 1 : Math.max(0.57, 1 - (distance - 20) / 65);
+    let dmg = 7 * falloff;
+    try {
+      if (hitAt.y >= target2.getHeadLocation().y - 0.35) dmg *= 1.6;
+    } catch {
+    }
+    try {
+      target2.applyDamage(Math.round(dmg), { cause: EntityDamageCause4.entityAttack, damagingEntity: p });
+    } catch {
+    }
+    worldSound(dim, SND.bulletHit, hitAt, 0.9);
+    particle(dim, "minecraft:critical_hit_emitter", hitAt);
+  } else {
+    try {
+      const b = p.getBlockFromViewDirection({ maxDistance: RANGE });
+      if (b) {
+        hitAt = add2(b.block.location, b.faceLocation);
+        particle(dim, "minecraft:basic_smoke_particle", hitAt);
+        worldSound(dim, SND.bulletHit, hitAt, 0.5, 1.3);
+      }
+    } catch {
+    }
+  }
+  if (mag - 1 === 0) hint(p, "§7Last round. §8Sneak + Use to reload.");
+  unlock(p, "gear_pistol", true);
+}
+function forgetGuns(playerId) {
+  reloading.delete(playerId);
+}
+function heal(p) {
+  try {
+    p.addEffect("instant_health", 1, { amplifier: 0, showParticles: false });
+    p.addEffect("regeneration", 120, { amplifier: 1, showParticles: true });
+  } catch {
+  }
+  notice(p, "§7You clean and dress the wounds.");
+}
+function registerGearComponents(ev) {
+  const reg = ev.itemComponentRegistry;
+  reg.registerCustomComponent("hollow:pistol", {
+    onUse(e) {
+      const p = e.source;
+      system7.run(() => p.isValid && fire(p));
+    }
+  });
+  reg.registerCustomComponent("hollow:geiger", {
+    onUse(e) {
+      const p = e.source;
+      system7.run(() => {
+        if (!p.isValid) return;
+        if (!isIsland()) {
+          notice(p, "§7The needle barely moves. Background radiation only.");
+          return;
+        }
+        notice(p, geigerReading(p));
+        unlock(p, "radiation1");
+      });
+    }
+  });
+  reg.registerCustomComponent("hollow:medkit", {
+    onConsume(e) {
+      const p = e.source;
+      if (p instanceof Player23) system7.run(() => p.isValid && heal(p));
+    }
+  });
+  reg.registerCustomComponent("hollow:iodine", {
+    onConsume(e) {
+      const p = e.source;
+      if (p instanceof Player23) system7.run(() => p.isValid && takeIodine(p));
+    }
+  });
+  reg.registerCustomComponent("hollow:ration", {
+    onConsume(e) {
+      const p = e.source;
+      if (p instanceof Player23) system7.run(() => p.isValid && hint(p, "§7Beef stew and crackers, cold. It's the best thing you've ever eaten."));
+    }
+  });
+  reg.registerCustomComponent("hollow:broken_radio", {
+    onUse(e) {
+      const p = e.source;
+      system7.run(() => {
+        if (!p.isValid) return;
+        ui(p, "random.click", 0.6, 0.8);
+        notice(p, "§7Static. The board is cracked clean through and the battery is swollen.\n§fIt will never call the mainland. §7Something bigger might: the old relay on the north peak.");
+        unlock(p, "tower_hint");
+      });
+    }
+  });
+}
+
+// ../../scripts_src/island/story.ts
+import { ItemStack as ItemStack10, system as system9, world as world22 } from "@minecraft/server";
+
+// ../../scripts_src/island/trevor.ts
+import { system as system8, world as world21 } from "@minecraft/server";
+import { ActionFormData as ActionFormData3 } from "@minecraft/server-ui";
+var DEFAULT2 = {
+  mode: "follow",
+  downAt: 0,
+  awayDay: -1,
+  gone: false,
+  medkits: 3,
+  medkitDay: 0,
+  home: { x: SITES.SPAWN.x, y: 66, z: SITES.SPAWN.z },
+  lastNight: -1,
+  deaths: 0
+};
+var DOWN_TICKS = 1200;
+var REVIVE_TICKS = 60;
+var state3;
+var lineCooldown = /* @__PURE__ */ new Map();
+var reviving = /* @__PURE__ */ new Map();
+function st4() {
+  if (!state3) state3 = { ...DEFAULT2, ...readWorld(DP.trevor, DEFAULT2) };
+  return state3;
+}
+function saveState() {
+  writeWorld(DP.trevor, st4());
+}
+function trevorEntity() {
+  const s = st4();
+  if (s.id) {
+    try {
+      const e = world21.getEntity(s.id);
+      if (e?.isValid) return e;
+    } catch {
+    }
+  }
+  try {
+    const found = world21.getDimension("overworld").getEntities({ type: ENT.trevor });
+    if (found.length > 0) {
+      for (const extra of found.slice(1)) extra.triggerEvent("hollow:despawn");
+      s.id = found[0].id;
+      saveState();
+      return found[0];
+    }
+  } catch {
+  }
+  return void 0;
+}
+function trevorGone() {
+  return st4().gone;
+}
+function say(text, key, cooldownTicks = 0) {
+  if (key) {
+    const last = lineCooldown.get(key) ?? -999999;
+    if (now() - last < cooldownTicks) return false;
+    lineCooldown.set(key, now());
+  }
+  const e = trevorEntity();
+  const msg = `§2Trevor:§r ${text}`;
+  for (const p of world21.getAllPlayers()) {
+    if (!p.isValid) continue;
+    if (e && p.dimension.id === e.dimension.id) {
+      const d = Math.hypot(p.location.x - e.location.x, p.location.z - e.location.z);
+      if (d > 64) continue;
+    }
+    p.sendMessage(msg);
+  }
+  return true;
+}
+function spawnTrevor(at) {
+  const s = st4();
+  if (s.gone) return void 0;
+  const existing = trevorEntity();
+  if (existing) return existing;
+  try {
+    const e = world21.getDimension("overworld").spawnEntity(ENT.trevor, at);
+    e.nameTag = "Trevor";
+    s.id = e.id;
+    s.downAt = 0;
+    saveState();
+    return e;
+  } catch {
+    return void 0;
+  }
+}
+function setStateProp(e, mode) {
+  e.triggerEvent(mode === "follow" ? "hollow:follow" : "hollow:hold");
+}
+function orderFollow(p, quiet = false) {
+  const s = st4();
+  const e = trevorEntity();
+  s.mode = "follow";
+  s.leader = p.id;
+  s.leaderName = p.name;
+  saveState();
+  if (!e || isDown()) return;
+  e.triggerEvent("hollow:release");
+  system8.run(() => safe("trevor.tame", () => {
+    if (!e.isValid || !p.isValid) return;
+    const tame = e.getComponent("minecraft:tameable");
+    let ok = false;
+    try {
+      ok = !!tame?.tame(p);
+    } catch {
+      ok = false;
+    }
+    if (!ok) setStateProp(e, "follow");
+  }));
+  if (!quiet) say(pick([`Right behind you, ${p.name}.`, "Lead on.", `On you, ${p.name}.`, "I've got your back."]));
+}
+function orderHold(p, quiet = false) {
+  const s = st4();
+  const e = trevorEntity();
+  s.mode = "hold";
+  if (p) {
+    s.leader = p.id;
+    s.leaderName = p.name;
+  }
+  saveState();
+  if (!e || isDown()) return;
+  setStateProp(e, "hold");
+  if (!quiet) say(pick(["I'll hold here.", "Holding. Shout if you need me.", "Fine. I'll keep watch on this spot."]));
+}
+function isDown() {
+  return st4().downAt > 0;
+}
+function leader() {
+  const s = st4();
+  return world21.getAllPlayers().find((p) => p.id === s.leader && p.isValid);
+}
+function onDown(e) {
+  const s = st4();
+  if (s.downAt > 0) return;
+  s.downAt = world21.getAbsoluteTime();
+  saveState();
+  worldSound(e.dimension, "hollow.trevor.hurt", e.location, 1, 0.8);
+  say("§cI'm hit... I'm down! §7Somebody... get me up.");
+  for (const p of world21.getAllPlayers()) {
+    notice(p, "§cTrevor is down. §7Go to him and press Use on him to help him up (60 s).");
+  }
+}
+function helpUp(e, by) {
+  const s = st4();
+  s.downAt = 0;
+  saveState();
+  e.triggerEvent("hollow:revive");
+  try {
+    const hp = e.getComponent("minecraft:health");
+    hp?.setCurrentValue(Math.max(hp.currentValue, 22));
+  } catch {
+  }
+  system8.run(() => {
+    if (!e.isValid) return;
+    const l = leader();
+    if (s.mode === "follow" && l) orderFollow(l, true);
+    else setStateProp(e, "hold");
+  });
+  say(by ? pick([`Thanks, ${by.name}. I owe you one.`, "Ugh. That was close. Thank you.", "Okay... okay. I'm good. Let's move."]) : "On my feet again.");
+  if (by) unlock(by, "trevor_down", true);
+}
+function fallFor(e) {
+  const s = st4();
+  s.downAt = 0;
+  s.deaths += 1;
+  if (settings().trevorPermadeath) {
+    s.gone = true;
+    s.id = void 0;
+    saveState();
+    if (e?.isValid) {
+      try {
+        e.kill();
+      } catch {
+        e.triggerEvent("hollow:despawn");
+      }
+    }
+    for (const p of world21.getAllPlayers()) {
+      p.sendMessage("§8Trevor Hale is dead. Nobody reached him in time.");
+      notice(p, "§8Trevor is gone.");
+    }
+    return;
+  }
+  s.awayDay = world21.getDay();
+  s.id = void 0;
+  saveState();
+  if (e?.isValid) e.triggerEvent("hollow:despawn");
+  for (const p of world21.getAllPlayers()) {
+    p.sendMessage("§7Trevor crawled off into the brush. §8He'll find his way back to camp at dawn, if he can.");
+  }
+}
+function tickDowned(e) {
+  const s = st4();
+  const left = DOWN_TICKS - (world21.getAbsoluteTime() - s.downAt);
+  if (left <= 0) {
+    fallFor(e);
+    return;
+  }
+  for (const p of world21.getAllPlayers()) {
+    const n = reviving.get(p.id);
+    if (n === void 0) continue;
+    const d = Math.hypot(p.location.x - e.location.x, p.location.y - e.location.y, p.location.z - e.location.z);
+    if (!p.isValid || p.dimension.id !== e.dimension.id || d > 3.2) {
+      reviving.delete(p.id);
+      notice(p, "§7You moved away. §8Press Use on him again to help him up.");
+      continue;
+    }
+    const next = n + 10;
+    reviving.set(p.id, next);
+    const bars = Math.round(next / REVIVE_TICKS * 10);
+    notice(p, `§7Helping Trevor up  §a${"█".repeat(bars)}§8${"█".repeat(10 - bars)}`);
+    if (next >= REVIVE_TICKS) {
+      reviving.clear();
+      helpUp(e, p);
+      return;
+    }
+  }
+  if (left % 200 < 10) {
+    for (const p of world21.getAllPlayers()) {
+      if (!reviving.has(p.id)) notice(p, `§cTrevor is down §7(${Math.ceil(left / 20)} s left).`);
+    }
+  }
+}
+function statusLine(e) {
+  const s = st4();
+  if (s.gone) return "§8Trevor is dead.";
+  if (!e) return s.awayDay >= 0 ? "§7Trevor is somewhere out there, making his way back to camp." : "§7Trevor isn't nearby.";
+  const hp = e.getComponent("minecraft:health");
+  const pct = hp ? Math.round(hp.currentValue / hp.effectiveMax * 100) : 100;
+  const order = s.mode === "follow" ? `following §f${s.leaderName ?? "the group"}` : "holding his position";
+  return `§7Health §f${pct}%§7 · ${order}§7 · medkits §f${s.medkits}`;
+}
+function advice(p) {
+  const rate = rateAt(p);
+  if (rate > 40) return "That counter of yours is going mad. Whatever we're doing here, let's do it fast.";
+  if (isDarkHours()) return pick([
+    "Stay in the light tonight. Something's been circling us since the sun went down.",
+    "Sleep in shifts if you can. I'll take first watch.",
+    "If you hear clicking, freeze. Don't run. Trust me on that."
+  ]);
+  const dCrash = Math.hypot(p.location.x - SITES.CRASH.x, p.location.z - SITES.CRASH.z);
+  if (dCrash < 60) return pick([
+    "Shelter first. Walls, a roof, a door that shuts. Then we worry about getting off this rock.",
+    "The crates had rations and rounds. Don't leave anything in that wreck.",
+    "Dan had a flight bag. Check him, if you can stomach it. I couldn't."
+  ]);
+  return pick([
+    "The survey map put six monitoring stations on this island. If they're still standing, they'll have logs.",
+    "There's a relay tower on the north peak. If it has any power left, that's our phone home.",
+    "Those shots came from the north-west treeline. Whoever they were, they knew how to shoot.",
+    "Keep your dose low. Radiation doesn't hurt until it's far too late.",
+    "Seventy years since the test. Nothing here should still be this... alive."
+  ]);
+}
+async function talk(p, e) {
+  const s = st4();
+  if (isDown()) {
+    if (!reviving.has(p.id)) {
+      reviving.set(p.id, 0);
+      notice(p, "§7Stay beside him...");
+      ui(p, "random.click", 0.4, 0.6);
+    }
+    return;
+  }
+  await formSession(p, async () => {
+    const form = new ActionFormData3().title("§lTrevor Hale").body(`${statusLine(e)}
+
+§o"${advice(p)}"`).button("Follow me", "textures/ui/hollow/journal/trevor").button("Hold here", "textures/ui/hollow/world").button(s.medkits > 0 ? "Patch me up\n§8uses one of his medkits" : "Patch me up\n§8he's out of medkits", "textures/ui/hollow/journal/item_medkit").button("§8Chop trees · gather · build\n§8(coming with the next update)", "textures/ui/hollow/journal/item_survival_hatchet").button("§8Close", "textures/ui/hollow/back");
+    const r = await showForm(p, form);
+    if (!r || r.canceled || r.selection === void 0 || !e.isValid) return;
+    if (r.selection === 0) {
+      if (rateAt(p) > 60) say("Not in there. Not without a suit. Come back out and I'll follow you anywhere else.");
+      else orderFollow(p);
+    } else if (r.selection === 1) orderHold(p);
+    else if (r.selection === 2) patchUp(p);
+    else if (r.selection === 3) say("One thing at a time. Let's stay alive tonight first.");
+  });
+  unlock(p, "trevor1");
+}
+function patchUp(p) {
+  const s = st4();
+  const hp = p.getComponent("minecraft:health");
+  if (!hp) return;
+  if (hp.currentValue >= hp.effectiveMax - 1) {
+    say(`You're fine, ${p.name}. I'm saving these.`);
+    return;
+  }
+  if (s.medkits <= 0) {
+    say("I'm out. Bring me anything you find in the bunkers and I'll make it stretch.");
+    return;
+  }
+  s.medkits -= 1;
+  saveState();
+  try {
+    p.addEffect("instant_health", 1, { amplifier: 0, showParticles: false });
+    p.addEffect("regeneration", 120, { amplifier: 1 });
+  } catch {
+  }
+  say(pick(["Hold still. This'll sting.", "Pressure on it. There. You'll live.", "Clean, dressed. Try not to do that again."]));
+}
+var beats = 0;
+function awareness(e) {
+  const s = st4();
+  beats++;
+  if (beats % 20 === 0) {
+    try {
+      const hp = e.getComponent("minecraft:health");
+      if (hp && hp.currentValue < hp.effectiveMax) hp.setCurrentValue(Math.min(hp.effectiveMax, hp.currentValue + 1));
+    } catch {
+    }
+  }
+  if (world21.getDay() > s.medkitDay && s.medkits < 3) {
+    s.medkits += 1;
+    s.medkitDay = world21.getDay();
+    saveState();
+  }
+  const near = world21.getAllPlayers().filter((p) => p.isValid && p.dimension.id === e.dimension.id && Math.hypot(p.location.x - e.location.x, p.location.z - e.location.z) < 24);
+  for (const p of near) {
+    const hp = p.getComponent("minecraft:health");
+    if (!hp || hp.currentValue <= 0 || hp.currentValue > 6 || s.medkits <= 0) continue;
+    if (Math.hypot(p.location.x - e.location.x, p.location.z - e.location.z) > 8) continue;
+    const key = `medkit:${p.id}`;
+    if (now() - (lineCooldown.get(key) ?? -99999) < 1800) continue;
+    lineCooldown.set(key, now());
+    patchUp(p);
+  }
+  const l = leader();
+  if (s.mode === "follow" && l && rateAt(l) > 60 && Math.hypot(l.location.x - e.location.x, l.location.z - e.location.z) < 40) {
+    s.mode = "hold";
+    saveState();
+    setStateProp(e, "hold");
+    say("§eNo. Not in there without a suit. §rI'll wait right here. Don't be long.");
+    s.waitingFor = l.id;
+  }
+  const waiting = s.waitingFor;
+  if (s.mode === "hold" && waiting && l && l.id === waiting && rateAt(l) < 20 && Math.hypot(l.location.x - e.location.x, l.location.z - e.location.z) < 12) {
+    s.waitingFor = void 0;
+    orderFollow(l, true);
+    say("Good. Let's get away from that hole.");
+  }
+  if (s.mode === "follow" && l && l.dimension.id === e.dimension.id) {
+    const d = Math.hypot(l.location.x - e.location.x, l.location.z - e.location.z);
+    if (d > 40) {
+      const back = l.getViewDirection();
+      const g = groundNear(l.dimension, l.location.x - back.x * 4, l.location.y, l.location.z - back.z * 4, 6);
+      if (g) e.teleport(g);
+    }
+  }
+  if (isDarkHours() && s.lastNight !== nightKey()) {
+    s.lastNight = nightKey();
+    saveState();
+    say(pick(["Sun's going down. Stay close, stay in the light.", "Here comes the dark. Weapons where you can reach them.", "Night. Listen more than you look."]));
+  }
+  try {
+    const clickers = e.dimension.getEntities({ type: ENT.hollowed, location: e.location, maxDistance: 22 });
+    if (clickers.length > 0) say("§7(whispering)§r Hear that clicking? Don't move. Don't make a sound.", "hollowed", 3600);
+    const watcher = e.dimension.getEntities({ type: ENT.watcher, location: e.location, maxDistance: 40 });
+    if (watcher.length > 0) say("There's... someone standing in the trees. Don't take your eyes off it.", "watcher", 4800);
+  } catch {
+  }
+  if (tod() < 400 && s.lastNight >= 0) say(pick(["Made it to morning.", "Sun's up. We live another day."]), "dawn", 12e3);
+}
+function tick5() {
+  if (!isIsland()) return;
+  const s = st4();
+  if (s.gone) return;
+  const e = trevorEntity();
+  if (!e) {
+    if (s.awayDay >= 0 && world21.getDay() > s.awayDay && tod() < 3e3) {
+      const home = s.home;
+      const dim = world21.getDimension("overworld");
+      let at;
+      try {
+        if (dim.isChunkLoaded(home)) at = groundNear(dim, home.x, home.y, home.z, 12) ?? home;
+      } catch {
+        at = void 0;
+      }
+      if (!at) {
+        const p = world21.getAllPlayers().find((x) => x.dimension.id === "minecraft:overworld");
+        if (p) at = groundNear(dim, p.location.x + 6, p.location.y, p.location.z + 6, 8);
+      }
+      if (at) {
+        s.awayDay = -1;
+        saveState();
+        const back = spawnTrevor(at);
+        if (back) {
+          const hp = back.getComponent("minecraft:health");
+          try {
+            hp?.setCurrentValue(20);
+          } catch {
+          }
+          s.medkits = Math.max(0, s.medkits - 1);
+          saveState();
+          say("§7(limping)§r Took me all night to find you. Lost a medkit on the way. Don't ask.");
+          const l = leader();
+          if (l) orderFollow(l, true);
+        }
+      }
+    }
+    if (s.downAt > 0 && world21.getAbsoluteTime() - s.downAt > DOWN_TICKS) fallFor(void 0);
+    return;
+  }
+  if (isDown()) {
+    tickDowned(e);
+    return;
+  }
+  awareness(e);
+}
+function forgetTrevorPlayer(playerId) {
+  reviving.delete(playerId);
+}
+function trevorSummary() {
+  const s = st4();
+  const e = trevorEntity();
+  return `trevor: ${e ? "loaded" : "absent"} mode=${s.mode} leader=${s.leaderName ?? "-"} down=${s.downAt > 0} gone=${s.gone} away=${s.awayDay} medkits=${s.medkits} falls=${s.deaths}`;
+}
+function forceDown() {
+  const e = trevorEntity();
+  if (!e) return "Trevor is not loaded";
+  e.triggerEvent("hollow:down");
+  onDown(e);
+  return "Trevor is down";
+}
+function setHome(at) {
+  st4().home = { x: Math.floor(at.x), y: Math.floor(at.y), z: Math.floor(at.z) };
+  saveState();
+}
+function startTrevor() {
+  world21.afterEvents.playerInteractWithEntity.subscribe((ev) => safe("trevor.interact", () => {
+    if (ev.target.typeId !== ENT.trevor) return;
+    void talk(ev.player, ev.target);
+  }));
+  world21.afterEvents.dataDrivenEntityTrigger.subscribe((ev) => safe("trevor.trigger", () => {
+    if (ev.eventId === "hollow:down") onDown(ev.entity);
+  }), { entityTypes: [ENT.trevor] });
+  world21.afterEvents.entityDie.subscribe((ev) => safe("trevor.die", () => {
+    if (ev.deadEntity.typeId !== ENT.trevor) return;
+    if (st4().gone) return;
+    fallFor(void 0);
+  }), { entityTypes: [ENT.trevor] });
+  world21.afterEvents.entitySpawn.subscribe((ev) => safe("trevor.shot", () => {
+    const b = ev.entity;
+    if (!b.isValid || b.typeId !== ENT.bullet) return;
+    worldSound(b.dimension, SND.pistol, b.location, 1, 0.92 + Math.random() * 0.1);
+    particle(b.dimension, "minecraft:basic_smoke_particle", b.location);
+    emitNoise({ dim: b.dimension, at: b.location, radius: 48, kind: "gunshot" });
+    say(pick(["Contact!", "Get behind me!", "Shooting!", "Down, down!"]), "contact", 600);
+  }));
+  every("trevor", 10, tick5, 7);
+}
+
+// ../../scripts_src/island/story.ts
+var DEFAULT3 = { setup: false, bodies: [], searched: [], intro: false };
+var story;
+function st5() {
+  if (!story) story = { ...DEFAULT3, ...readWorld(DP.story, DEFAULT3) };
+  return story;
+}
+function save5() {
+  writeWorld(DP.story, st5());
+}
+var SUPPLIES = [
+  [[ITEM.ration, 4], [ITEM.medkit, 2], [ITEM.round, 14], [ITEM.iodine, 4]],
+  [[ITEM.hatchet, 1], [ITEM.brokenRadio, 1], [ITEM.ration, 2], [ITEM.round, 7]],
+  [[ITEM.medkit, 1], [ITEM.ration, 3], [ITEM.iodine, 2], [ITEM.round, 7]]
+];
+function stockCrates() {
+  const dim = world22.getDimension("overworld");
+  let ok = true;
+  CRASH_CONTAINERS.forEach((pos, i) => {
+    try {
+      if (!dim.isChunkLoaded(pos)) {
+        ok = false;
+        return;
+      }
+      const c = dim.getBlock(pos)?.getComponent("minecraft:inventory")?.container;
+      if (!c) return;
+      for (const [id, n] of SUPPLIES[i % SUPPLIES.length]) c.addItem(new ItemStack10(id, n));
+    } catch {
+      ok = false;
+    }
+  });
+  return ok;
+}
+function layBodies() {
+  const dim = world22.getDimension("overworld");
+  const ids = [];
+  CREW_BODIES.slice(0, 2).forEach((b, i) => {
+    try {
+      const e = dim.spawnEntity(ENT.crewBody, { x: b.x + 0.5, y: b.y, z: b.z + 0.5 });
+      e.triggerEvent(i === 0 ? "hollow:pilot" : "hollow:copilot");
+      e.setRotation({ x: 0, y: i === 0 ? 120 : -40 });
+      ids.push(e.id);
+    } catch {
+    }
+  });
+  return ids;
+}
+function setupWorld() {
+  const s = st5();
+  if (s.setup) return;
+  const dim = world22.getDimension("overworld");
+  if (!dim.isChunkLoaded({ x: SITES.CRASH.x, y: SPAWN_POINT.y, z: SITES.CRASH.z })) {
+    later("story.setup", 40, setupWorld);
+    return;
+  }
+  if (!stockCrates()) {
+    later("story.setup", 40, setupWorld);
+    return;
+  }
+  s.bodies = layBodies();
+  s.setup = true;
+  save5();
+  const at = groundNear(dim, SPAWN_POINT.x + 2, SPAWN_POINT.y, SPAWN_POINT.z - 2, 8) ?? { x: SPAWN_POINT.x + 2, y: SPAWN_POINT.y, z: SPAWN_POINT.z - 2 };
+  setHome(SPAWN_POINT);
+  if (!trevorGone()) spawnTrevor(at);
+}
+function issueKit(p) {
+  ensureJournal(p);
+  const geiger = new ItemStack10(ITEM.geiger, 1);
+  geiger.keepOnDeath = true;
+  giveOrDrop(p, geiger);
+  giveOrDrop(p, pistolStack());
+}
+function face(p, at) {
+  try {
+    p.teleport(p.location, { facingLocation: at });
+  } catch {
+  }
+}
+function wakeUp(p, first) {
+  const fx = prefs(p).visualFx;
+  face(p, { x: SITES.CRASH.x, y: SPAWN_POINT.y + 1, z: SITES.CRASH.z });
+  try {
+    if (fx) p.camera.fade({ fadeColor: { red: 0, green: 0, blue: 0 }, fadeTime: { fadeInTime: 0, holdTime: first ? 6 : 2, fadeOutTime: first ? 5 : 3 } });
+    p.addEffect("slowness", first ? 300 : 120, { amplifier: 2, showParticles: false });
+    p.addEffect("nausea", first ? 220 : 80, { amplifier: 0, showParticles: false });
+    if (fx) p.addEffect("darkness", first ? 200 : 60, { amplifier: 0, showParticles: false });
+  } catch {
+  }
+  ui(p, SND.ringing, 0.9);
+  const step = (ticks, fn) => later("story.wake", ticks, () => p.isValid && fn());
+  if (first) {
+    step(50, () => {
+      ui(p, SND.titleHit, 0.9);
+      p.onScreenDisplay.setTitle("§lVARROW ISLAND", {
+        subtitle: "§7South Pacific  ·  2026",
+        fadeInDuration: 30,
+        stayDuration: 90,
+        fadeOutDuration: 40
+      });
+    });
+    step(170, () => ui(p, SND.gasp, 0.9));
+    step(230, () => say("...hey. Hey! You're alive. Good. No, don't get up yet.", "wake1", 200));
+    step(330, () => say("Dan's gone. Ruth too. Someone was §lshooting§r at us from the trees. I saw the flashes.", "wake2", 200));
+    step(450, () => {
+      say("Get what you can out of the wreck before it all goes up. Rations, medkits, rounds. Your kit's here. Take it.", "wake3", 200);
+      issueKit(p);
+      unlock(p, "contract", true);
+      unlock(p, "crash");
+    });
+    step(600, () => say("Radio's cracked in half. Nobody's coming for us. We need shelter before dark, then we find a way to call out ourselves.", "wake4", 200));
+    step(640, () => notice(p, "§7Talk to §fTrevor§7 (Use on him). Read your §fResearch Log§7. Search the §fcrates§7 by the wreck."));
+  } else {
+    step(60, () => ui(p, SND.gasp, 0.8));
+    step(100, () => {
+      say(`${p.name}! Thank God. You were thrown clear down the beach. Here, your kit. Crates are by the wreck.`, `late:${p.id}`, 100);
+      issueKit(p);
+      unlock(p, "contract", true);
+      unlock(p, "crash");
+    });
+  }
+  later("story.follow", first ? 470 : 120, () => {
+    if (!p.isValid) return;
+    const e = trevorEntity();
+    if (e && !st5().intro) {
+      st5().intro = true;
+      save5();
+      orderFollow(p, true);
+    }
+  });
+}
+function onIslandSpawn(p, initial) {
+  if (!isIsland() && !(initial && detectIsland(p.dimension))) return;
+  setupWorld();
+  if (!initial) {
+    later("story.respawn", 20, () => p.isValid && ensureJournal(p));
+    return;
+  }
+  if (getNum(p, DP.woke, 0) === 1) {
+    later("story.rejoin", 40, () => p.isValid && ensureJournal(p));
+    return;
+  }
+  setNum(p, DP.woke, 1);
+  const first = !st5().intro && world22.getAllPlayers().length >= 1 && !anyoneAwake(p);
+  later("story.wake", 20, () => p.isValid && wakeUp(p, first));
+}
+function anyoneAwake(except) {
+  return world22.getAllPlayers().some((q) => q.id !== except.id && getNum(q, DP.woke, 0) === 1);
+}
+function searchBody(p, body) {
+  const s = st5();
+  let variant = 0;
+  try {
+    variant = body.getComponent("minecraft:variant")?.value ?? 0;
+  } catch {
+    variant = 0;
+  }
+  const first = !s.searched.includes(body.id);
+  if (variant === 0) {
+    notice(p, "§7Dan Okafor, the pilot. §8His kneeboard is still clipped to his leg.");
+    unlock(p, "okafor");
+    if (first) giveOrDrop(p, new ItemStack10(ITEM.round, 7));
+  } else {
+    notice(p, "§7Ruth Lindqvist, the co-pilot. §8A notebook in her vest, and a medkit she never got to open.");
+    unlock(p, "lindqvist");
+    if (first) giveOrDrop(p, new ItemStack10(ITEM.medkit, 1));
+  }
+  if (first) {
+    s.searched.push(body.id);
+    save5();
+    say(variant === 0 ? "Dan had two kids. I'll write to them myself, if we get out." : "She got us down. Remember that. She got us down.", `body${variant}`, 6e3);
+  }
+}
+function places(p) {
+  if (p.dimension.id !== "minecraft:overworld") return;
+  const d = (c) => Math.hypot(p.location.x - c.x, p.location.z - c.z);
+  if (!isIsland()) {
+    if (d(SITES.CRASH) < 48 && detectIsland(p.dimension)) onIslandSpawn(p, true);
+    return;
+  }
+  if (d(SITES.CRASH) < 40) unlock(p, "place_crash", true);
+  if (d(SITES.GZ) < CRATER_R + 70) {
+    if (unlock(p, "place_crater")) say("That's Ground Zero. Keep your counter out and your visit short.", "gz", 12e3);
+  }
+}
+function startStory() {
+  world22.afterEvents.playerInteractWithEntity.subscribe((ev) => safe("story.search", () => {
+    if (ev.target.typeId === ENT.crewBody) searchBody(ev.player, ev.target);
+  }));
+  everyPlayer("story.places", 100, places);
+  system9.run(() => safe("story.resume", () => {
+    if (isIsland()) setupWorld();
+  }));
+}
+function storySummary() {
+  const s = st5();
+  return `story: island=${isIsland()} setup=${s.setup} bodies=${s.bodies.length} searched=${s.searched.length} intro=${s.intro}`;
+}
+function giveIslandKit(p) {
+  issueKit(p);
+}
+
 // ../../scripts_src/main.ts
-system7.beforeEvents.startup.subscribe((ev) => {
+system10.beforeEvents.startup.subscribe((ev) => {
   registerItemComponents(ev);
   registerBlockComponents(ev);
+  registerGearComponents(ev);
 });
 var started = false;
 function init() {
@@ -5285,17 +6558,29 @@ function init() {
   startKnocker();
   startMirebound();
   startHeart();
+  startRadiation();
+  startTrevor();
+  startStory();
   later("sweep", 40, sweepLoaded);
   console.warn(`[hollow] THE HOLLOW initialised (day ${hollowDay()}).`);
 }
-world20.afterEvents.worldLoad.subscribe(() => safe("init", init));
-world20.afterEvents.playerSpawn.subscribe((ev) => safe("playerSpawn", () => {
+world23.afterEvents.worldLoad.subscribe(() => safe("init", init));
+world23.afterEvents.playerSpawn.subscribe((ev) => safe("playerSpawn", () => {
   const p = ev.player;
   clearAllFog(p);
+  const island = isIsland() || ev.initialSpawn && detectIsland(p.dimension);
   if (ev.initialSpawn) {
     rt(p);
+    if (island) {
+      onIslandSpawn(p, true);
+      return;
+    }
     later("welcome", 60, () => {
       if (!p.isValid) return;
+      if (detectIsland(p.dimension)) {
+        onIslandSpawn(p, true);
+        return;
+      }
       const fresh = unlock(p, "intro", true);
       unlock(p, "shelter", true);
       unlock(p, "craft_chime", true);
@@ -5308,7 +6593,8 @@ world20.afterEvents.playerSpawn.subscribe((ev) => safe("playerSpawn", () => {
     rt(p).ctx = void 0;
     resetDread(p);
     forgetEncounters(p.id);
-    later("journalBack", 20, () => p.isValid && ensureJournal(p));
+    if (island) onIslandSpawn(p, false);
+    else later("journalBack", 20, () => p.isValid && ensureJournal(p));
   }
 }));
 function forgetEncounters(playerId) {
@@ -5321,10 +6607,11 @@ function forgetEncounters(playerId) {
   forgetBorrowedTarget(playerId);
   forgetMireboundTarget(playerId);
   forgetKnockerTarget(playerId);
+  forgetTrevorPlayer(playerId);
 }
-world20.beforeEvents.playerLeave.subscribe((ev) => {
+world23.beforeEvents.playerLeave.subscribe((ev) => {
   const id = ev.player.id;
-  system7.run(() => safe("playerLeave", () => {
+  system10.run(() => safe("playerLeave", () => {
     forgetEncounters(id);
     forgetRuntime(id);
     forgetAudio(id);
@@ -5333,15 +6620,17 @@ world20.beforeEvents.playerLeave.subscribe((ev) => {
     forgetNoise(id);
     forgetMusic(id);
     forgetDread(id);
+    forgetRadiation(id);
+    forgetGuns(id);
   }));
 });
-world20.afterEvents.playerDimensionChange.subscribe((ev) => safe("dimChange", () => {
+world23.afterEvents.playerDimensionChange.subscribe((ev) => safe("dimChange", () => {
   rt(ev.player).ctx = void 0;
   forgetEncounters(ev.player.id);
   forgetBossPlayer(ev.player);
   clearAllFog(ev.player);
 }));
-world20.afterEvents.entityHurt.subscribe((ev) => safe("entityHurt", () => {
+world23.afterEvents.entityHurt.subscribe((ev) => safe("entityHurt", () => {
   const hurt2 = ev.hurtEntity;
   const by = ev.damageSource.damagingEntity;
   switch (hurt2.typeId) {
@@ -5358,11 +6647,11 @@ world20.afterEvents.entityHurt.subscribe((ev) => safe("entityHurt", () => {
       onMireboundHurt(hurt2, by);
       break;
   }
-  if (hurt2 instanceof Player22 && by?.typeId === ENT.watcher) onWatcherStruck(by, hurt2);
-  if (hurt2 instanceof Player22 && by?.typeId.startsWith("hollow:")) frighten(hurt2, 8);
+  if (hurt2 instanceof Player26 && by?.typeId === ENT.watcher) onWatcherStruck(by, hurt2);
+  if (hurt2 instanceof Player26 && by?.typeId.startsWith("hollow:")) frighten(hurt2, 8);
   if (hurt2.typeId === ENT.heart || hurt2.typeId === ENT.vein) onBossHurt(hurt2, ev.damage, by);
 }));
-world20.afterEvents.entityDie.subscribe((ev) => safe("entityDie", () => {
+world23.afterEvents.entityDie.subscribe((ev) => safe("entityDie", () => {
   const dead = ev.deadEntity;
   const killer = ev.damageSource.damagingEntity;
   switch (dead.typeId) {
@@ -5392,7 +6681,7 @@ world20.afterEvents.entityDie.subscribe((ev) => safe("entityDie", () => {
       break;
   }
 }));
-world20.afterEvents.dataDrivenEntityTrigger.subscribe((ev) => safe("ddTrigger", () => {
+world23.afterEvents.dataDrivenEntityTrigger.subscribe((ev) => safe("ddTrigger", () => {
   if (ev.eventId === "hollow:watcher_struck") onWatcherStruck(ev.entity, nearestPlayer(ev.entity, 5));
   else if (ev.eventId === "hollow:sheared") onBorrowedSheared(ev.entity, nearestPlayer(ev.entity, 6));
   else if (ev.eventId === "hollow:shield_hit") onShieldHit(ev.entity);
@@ -5406,13 +6695,13 @@ function testCommand(p, arg) {
       setTestMode(false);
       return "test mode off: normal rules";
     case "night":
-      world20.setTimeOfDay(13e3);
+      world23.setTimeOfDay(13e3);
       return "dusk (13000)";
     case "midnight":
-      world20.setTimeOfDay(18e3);
+      world23.setTimeOfDay(18e3);
       return "midnight (18000)";
     case "day":
-      world20.setTimeOfDay(1e3);
+      world23.setTimeOfDay(1e3);
       return "morning (1000)";
     case "kit": {
       const kit = [
@@ -5434,7 +6723,7 @@ function testCommand(p, arg) {
         ["minecraft:snowball", 16],
         ["hollow:hearth_tea", 2]
       ];
-      for (const [id, n] of kit) giveOrDrop(p, new ItemStack9(id, n));
+      for (const [id, n] of kit) giveOrDrop(p, new ItemStack11(id, n));
       ensureJournal(p);
       return "test kit given";
     }
@@ -5452,12 +6741,32 @@ function testCommand(p, arg) {
       return forceEvent(p, arg);
     case "phantom":
       return forcePhantom(p);
+    case "island":
+      setIsland(true);
+      onIslandSpawn(p, true);
+      return "Varrow Island mode ON for this world (story, Trevor, radiation)";
+    case "forest":
+      setIsland(false);
+      return "Varrow Island mode OFF: the original forest story";
+    case "islandkit":
+      giveIslandKit(p);
+      return "Research Log, Geiger counter and pistol given";
+    case "trevordown":
+      return forceDown();
+    case "rad":
+      return `dose ${Math.round(radState(p).dose)} mSv`;
     default:
+      if (arg.startsWith("dose")) {
+        const v = Number(arg.slice(4).trim());
+        if (!Number.isFinite(v)) return "usage: /scriptevent hollow:test dose <0-3000>";
+        setDose(p, v);
+        return `dose set to ${v} mSv`;
+      }
       if (arg.startsWith("dread")) {
         const v = Number(arg.slice(5).trim());
         return Number.isFinite(v) ? setDread(p, v) : "usage: /scriptevent hollow:test dread <0-100>";
       }
-      return "usage: /scriptevent hollow:test on|off|night|midnight|day|kit|journal|knocker|boss2|boss3|eye|lantern|roof|phantom|dread <0-100>";
+      return "usage: /scriptevent hollow:test on|off|night|midnight|day|kit|journal|knocker|boss2|boss3|eye|lantern|roof|phantom|dread <0-100>|island|forest|islandkit|trevordown|rad|dose <mSv>";
   }
 }
 function nearestPlayer(e, r) {
@@ -5467,9 +6776,9 @@ function nearestPlayer(e, r) {
     return void 0;
   }
 }
-system7.afterEvents.scriptEventReceive.subscribe((ev) => safe("scriptevent", () => {
+system10.afterEvents.scriptEventReceive.subscribe((ev) => safe("scriptevent", () => {
   const p = ev.sourceEntity;
-  if (!(p instanceof Player22)) return;
+  if (!(p instanceof Player26)) return;
   switch (ev.id) {
     case "hollow:journal":
       void openJournal(p);
@@ -5477,7 +6786,7 @@ system7.afterEvents.scriptEventReceive.subscribe((ev) => safe("scriptevent", () 
     case "hollow:status":
       if (!isOperator(p)) return;
       p.sendMessage(
-        `§7[hollow] day ${hollowDay()} · watcher ${watcherCount()} · borrowed ${borrowedCount()} · hollowed ${hollowedCount()} · mirebound ${mireboundCount()} · knocker ${knockerActive() ? 1 : 0} · heart ${bossSummary()} · dread ${dreadSummary()} · failures: ${failureReport()}`
+        `§7[hollow] day ${hollowDay()} · watcher ${watcherCount()} · borrowed ${borrowedCount()} · hollowed ${hollowedCount()} · mirebound ${mireboundCount()} · knocker ${knockerActive() ? 1 : 0} · heart ${bossSummary()} · dread ${dreadSummary()} · ${storySummary()} · ${trevorSummary()} · failures: ${failureReport()}`
       );
       return;
     case "hollow:debug":

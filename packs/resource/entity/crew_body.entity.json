@@ -1,0 +1,14 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "hollow:crew_body",
+      "materials": { "default": "entity_alphatest" },
+      "textures": { "default": "textures/entity/hollow/crew" },
+      "geometry": { "default": "geometry.hollow.crew" },
+      "animations": { "pose": "animation.hollow.crew.pose" },
+      "scripts": { "animate": ["pose"] },
+      "render_controllers": ["controller.render.hollow.default"]
+    }
+  }
+}

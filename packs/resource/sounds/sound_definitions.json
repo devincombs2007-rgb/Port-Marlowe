@@ -1327,6 +1327,268 @@
         }
       ],
       "subtitle": "subtitles.hollow.dread.calm"
+    },
+    "hollow.gun.pistol": {
+      "category": "player",
+      "sounds": [
+        {
+          "name": "sounds/hollow/island/gun_pistol_1",
+          "volume": 1.0
+        },
+        {
+          "name": "sounds/hollow/island/gun_pistol_2",
+          "volume": 1.0
+        },
+        {
+          "name": "sounds/hollow/island/gun_pistol_3",
+          "volume": 1.0
+        }
+      ],
+      "subtitle": "subtitles.hollow.gun.pistol",
+      "min_distance": 6.0,
+      "max_distance": 96.0
+    },
+    "hollow.gun.distant": {
+      "category": "ambient",
+      "sounds": [
+        {
+          "name": "sounds/hollow/island/gun_distant_1",
+          "volume": 0.8
+        },
+        {
+          "name": "sounds/hollow/island/gun_distant_2",
+          "volume": 0.8
+        },
+        {
+          "name": "sounds/hollow/island/gun_distant_3",
+          "volume": 0.8
+        }
+      ],
+      "subtitle": "subtitles.hollow.gun.distant"
+    },
+    "hollow.gun.dry": {
+      "category": "player",
+      "sounds": [
+        {
+          "name": "sounds/hollow/island/gun_dry_1",
+          "volume": 0.8
+        },
+        {
+          "name": "sounds/hollow/island/gun_dry_2",
+          "volume": 0.8
+        }
+      ],
+      "subtitle": "subtitles.hollow.gun.dry",
+      "min_distance": 1.0,
+      "max_distance": 12.0
+    },
+    "hollow.gun.reload": {
+      "category": "player",
+      "sounds": [
+        {
+          "name": "sounds/hollow/island/gun_reload_1",
+          "volume": 0.8
+        }
+      ],
+      "subtitle": "subtitles.hollow.gun.reload",
+      "min_distance": 1.0,
+      "max_distance": 16.0
+    },
+    "hollow.gun.hit": {
+      "category": "hostile",
+      "sounds": [
+        {
+          "name": "sounds/hollow/island/gun_hit_1",
+          "volume": 0.8
+        },
+        {
+          "name": "sounds/hollow/island/gun_hit_2",
+          "volume": 0.8
+        },
+        {
+          "name": "sounds/hollow/island/gun_hit_3",
+          "volume": 0.8
+        }
+      ],
+      "subtitle": "subtitles.hollow.gun.hit",
+      "min_distance": 2.0,
+      "max_distance": 24.0
+    },
+    "hollow.geiger.1": {
+      "category": "player",
+      "sounds": [
+        {
+          "name": "sounds/hollow/island/geiger_1_1",
+          "volume": 0.6
+        },
+        {
+          "name": "sounds/hollow/island/geiger_1_2",
+          "volume": 0.6
+        },
+        {
+          "name": "sounds/hollow/island/geiger_1_3",
+          "volume": 0.6
+        }
+      ],
+      "subtitle": "subtitles.hollow.geiger.1"
+    },
+    "hollow.geiger.2": {
+      "category": "player",
+      "sounds": [
+        {
+          "name": "sounds/hollow/island/geiger_2_1",
+          "volume": 0.6
+        },
+        {
+          "name": "sounds/hollow/island/geiger_2_2",
+          "volume": 0.6
+        },
+        {
+          "name": "sounds/hollow/island/geiger_2_3",
+          "volume": 0.6
+        }
+      ],
+      "subtitle": "subtitles.hollow.geiger.2"
+    },
+    "hollow.geiger.3": {
+      "category": "player",
+      "sounds": [
+        {
+          "name": "sounds/hollow/island/geiger_3_1",
+          "volume": 0.6
+        },
+        {
+          "name": "sounds/hollow/island/geiger_3_2",
+          "volume": 0.6
+        },
+        {
+          "name": "sounds/hollow/island/geiger_3_3",
+          "volume": 0.6
+        }
+      ],
+      "subtitle": "subtitles.hollow.geiger.3"
+    },
+    "hollow.geiger.4": {
+      "category": "player",
+      "sounds": [
+        {
+          "name": "sounds/hollow/island/geiger_4_1",
+          "volume": 0.6
+        },
+        {
+          "name": "sounds/hollow/island/geiger_4_2",
+          "volume": 0.6
+        },
+        {
+          "name": "sounds/hollow/island/geiger_4_3",
+          "volume": 0.6
+        }
+      ],
+      "subtitle": "subtitles.hollow.geiger.4"
+    },
+    "hollow.geiger.5": {
+      "category": "player",
+      "sounds": [
+        {
+          "name": "sounds/hollow/island/geiger_5_1",
+          "volume": 0.6
+        },
+        {
+          "name": "sounds/hollow/island/geiger_5_2",
+          "volume": 0.6
+        },
+        {
+          "name": "sounds/hollow/island/geiger_5_3",
+          "volume": 0.6
+        }
+      ],
+      "subtitle": "subtitles.hollow.geiger.5"
+    },
+    "hollow.story.ringing": {
+      "category": "player",
+      "sounds": [
+        {
+          "name": "sounds/hollow/island/story_ringing_1",
+          "volume": 0.8
+        }
+      ],
+      "subtitle": "subtitles.hollow.story.ringing"
+    },
+    "hollow.story.title": {
+      "category": "music",
+      "sounds": [
+        {
+          "name": "sounds/hollow/island/story_title_1",
+          "volume": 0.9
+        }
+      ]
+    },
+    "hollow.story.gasp": {
+      "category": "player",
+      "sounds": [
+        {
+          "name": "sounds/hollow/island/story_gasp_1",
+          "volume": 0.8
+        },
+        {
+          "name": "sounds/hollow/island/story_gasp_2",
+          "volume": 0.8
+        }
+      ],
+      "subtitle": "subtitles.hollow.story.gasp"
+    },
+    "hollow.trevor.hurt": {
+      "category": "neutral",
+      "sounds": [
+        {
+          "name": "sounds/damage/hit1",
+          "volume": 1.0
+        },
+        {
+          "name": "sounds/damage/hit2",
+          "volume": 1.0
+        },
+        {
+          "name": "sounds/damage/hit3",
+          "volume": 1.0
+        }
+      ],
+      "subtitle": "subtitles.hollow.trevor.hurt"
+    },
+    "hollow.trevor.death": {
+      "category": "neutral",
+      "sounds": [
+        {
+          "name": "sounds/damage/hit1",
+          "volume": 1.0
+        },
+        {
+          "name": "sounds/damage/hit3",
+          "volume": 1.0
+        }
+      ],
+      "subtitle": "subtitles.hollow.trevor.death"
+    },
+    "hollow.trevor.step": {
+      "category": "neutral",
+      "sounds": [
+        {
+          "name": "sounds/step/gravel1",
+          "volume": 0.3
+        },
+        {
+          "name": "sounds/step/gravel2",
+          "volume": 0.3
+        },
+        {
+          "name": "sounds/step/gravel3",
+          "volume": 0.3
+        },
+        {
+          "name": "sounds/step/gravel4",
+          "volume": 0.3
+        }
+      ]
     }
   }
 }

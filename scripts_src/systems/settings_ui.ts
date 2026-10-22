@@ -66,6 +66,7 @@ async function openWorld(p: Player): Promise<void> {
     .toggle("Scale the Heart Below with player count", { defaultValue: s.bossScaling })
     .toggle("Rare one-off events (harmless, once per world)", { defaultValue: s.rareEvents })
     .toggle("Dread: fear, hallucinations, and fear drawing them closer", { defaultValue: s.dread })
+    .toggle("Varrow Island: Trevor's death is permanent", { defaultValue: s.trevorPermadeath })
     .submitButton("Save");
   const r = await showForm(p, f);
   if (!r || r.canceled || !r.formValues || !isOperator(p)) return;
@@ -87,6 +88,7 @@ async function openWorld(p: Player): Promise<void> {
     bossScaling: Boolean(v[12]),
     rareEvents: Boolean(v[13]),
     dread: v[14] === undefined ? s.dread : Boolean(v[14]),
+    trevorPermadeath: v[15] === undefined ? s.trevorPermadeath : Boolean(v[15]),
   };
   saveSettings(next);
   notice(p, "§7World rules saved.");

@@ -4,7 +4,7 @@ The real bundled behavior-pack scripts run against a fake Minecraft API (`tools/
 This checks script logic: scheduling, events, persistence, reloads, state machines, caps, cooldowns and rewards.
 It is **not** an in-game test: there is no engine pathfinding, melee, physics, rendering or audio.
 
-Result: **93/93 scenarios passed**
+Result: **105/105 scenarios passed**
 
 | Scenario | Result |
 |---|---|
@@ -101,7 +101,19 @@ Result: **93/93 scenarios passed**
 | dread: a phantom is seen only by the frightened player and vanishes when looked at | pass |
 | dread: death resets it; a frightened player draws encounters (Watcher) | pass |
 | load: 8 players, all creatures, Nightmare 200% for a full day - caps hold | pass |
+| island: the crash site is recognised; crates stocked, crew laid, Trevor on his feet | pass |
+| island: the wake-up plays once, gives the kit and the contract, and Trevor follows you | pass |
+| island: a later arrival gets the short wake-up and their own kit; restart keeps one Trevor | pass |
+| island: recognised even when the crash site was not loaded at the moment of spawning | pass |
+| island: an ordinary world keeps the forest story (no Trevor, Field Journal) | pass |
+| radiation: dose builds at Ground Zero, the green water poisons, distance and time bring it down | pass |
+| radiation: severe dose brings sickness; iodine halves uptake; nothing happens off the island | pass |
+| pistol: seven shots that hurt, a dry click, sneak-reload from rounds, every shot heard | pass |
+| trevor: goes down instead of dying; standing beside him brings him round | pass |
+| trevor: nobody comes - he limps back at dawn; with permanent death on he is gone for good | pass |
+| trevor: anyone can order him; he patches up the badly hurt and won't follow into the crater | pass |
+| island: searching the crew gives their notes once; the forest cabins never appear | pass |
 
 - music: 3 night track(s) over 4 nights; 129 ticks of night music while a Watcher was stalking
 - dread draw: watcher encounters over twelve nights - calm 25, terrified 29
-- load: peak creature counts {"hollow:borrowed":2,"hollow:watcher":3,"hollow:phantom":2}; script time per tick avg 0.153 ms, p99 1.163 ms, max 6.29 ms (Node on a dev machine against the fake world - not an Xbox measurement)
+- load: peak creature counts {"hollow:borrowed":2,"hollow:watcher":3,"hollow:phantom":2}; script time per tick avg 0.247 ms, p99 2.115 ms, max 41.45 ms (Node on a dev machine against the fake world - not an Xbox measurement)

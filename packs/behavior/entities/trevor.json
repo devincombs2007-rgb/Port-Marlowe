@@ -1,0 +1,372 @@
+{
+  "format_version": "1.26.50",
+  "minecraft:entity": {
+    "description": {
+      "identifier": "hollow:trevor",
+      "is_spawnable": true,
+      "is_summonable": true,
+      "spawn_category": "creature",
+      "properties": {
+        "hollow:state": {
+          "type": "enum",
+          "values": [
+            "follow",
+            "hold",
+            "downed",
+            "work"
+          ],
+          "default": "follow",
+          "client_sync": true
+        }
+      }
+    },
+    "component_groups": {
+      "hollow:wild": {
+        "minecraft:tameable": {
+          "probability": 0.0,
+          "tame_items": "minecraft:structure_void",
+          "tame_event": {
+            "event": "hollow:tamed",
+            "target": "self"
+          }
+        }
+      },
+      "hollow:follow": {
+        "minecraft:is_tamed": {},
+        "minecraft:behavior.follow_owner": {
+          "priority": 5,
+          "speed_multiplier": 1.15,
+          "start_distance": 7,
+          "stop_distance": 3,
+          "can_teleport": true
+        },
+        "minecraft:behavior.owner_hurt_by_target": {
+          "priority": 1
+        },
+        "minecraft:behavior.owner_hurt_target": {
+          "priority": 2
+        }
+      },
+      "hollow:hold": {
+        "minecraft:is_tamed": {},
+        "minecraft:behavior.owner_hurt_by_target": {
+          "priority": 1
+        },
+        "minecraft:behavior.random_look_around": {
+          "priority": 8
+        }
+      },
+      "hollow:combat": {
+        "minecraft:behavior.hurt_by_target": {
+          "priority": 1,
+          "entity_types": {
+            "filters": {
+              "test": "is_family",
+              "subject": "other",
+              "operator": "not",
+              "value": "player"
+            }
+          }
+        },
+        "minecraft:behavior.nearest_attackable_target": {
+          "priority": 3,
+          "must_see": true,
+          "must_see_forget_duration": 4,
+          "reselect_targets": true,
+          "within_radius": 18,
+          "scan_interval": 10,
+          "entity_types": [
+            {
+              "filters": {
+                "all_of": [
+                  {
+                    "test": "is_family",
+                    "subject": "other",
+                    "value": "monster"
+                  },
+                  {
+                    "test": "is_family",
+                    "subject": "other",
+                    "operator": "not",
+                    "value": "hollow_phantom"
+                  },
+                  {
+                    "test": "is_family",
+                    "subject": "other",
+                    "operator": "not",
+                    "value": "cult"
+                  }
+                ]
+              },
+              "max_dist": 18
+            }
+          ]
+        },
+        "minecraft:behavior.ranged_attack": {
+          "priority": 2,
+          "attack_interval_min": 0.9,
+          "attack_interval_max": 1.7,
+          "attack_radius": 16,
+          "attack_radius_min": 3,
+          "speed_multiplier": 0.9,
+          "target_in_sight_time": 0.4
+        },
+        "minecraft:shooter": {
+          "def": "hollow:bullet"
+        }
+      },
+      "hollow:downed": {
+        "minecraft:movement": {
+          "value": 0.0
+        },
+        "minecraft:damage_sensor": {
+          "triggers": [
+            {
+              "cause": "all",
+              "deals_damage": "no"
+            }
+          ]
+        },
+        "minecraft:knockback_resistance": {
+          "value": 1.0
+        }
+      },
+      "hollow:despawn": {
+        "minecraft:instant_despawn": {}
+      }
+    },
+    "components": {
+      "minecraft:type_family": {
+        "family": [
+          "trevor",
+          "hollow_ally",
+          "npc",
+          "mob"
+        ]
+      },
+      "minecraft:health": {
+        "value": 40,
+        "max": 40
+      },
+      "minecraft:collision_box": {
+        "width": 0.6,
+        "height": 1.9
+      },
+      "minecraft:movement": {
+        "value": 0.3
+      },
+      "minecraft:navigation.walk": {
+        "can_path_over_water": false,
+        "can_swim": true,
+        "avoid_water": true,
+        "avoid_damage_blocks": true,
+        "can_open_doors": true,
+        "can_pass_doors": true
+      },
+      "minecraft:movement.basic": {},
+      "minecraft:jump.static": {},
+      "minecraft:can_climb": {},
+      "minecraft:physics": {},
+      "minecraft:persistent": {},
+      "minecraft:nameable": {
+        "always_show": false,
+        "allow_name_tag_renaming": false
+      },
+      "minecraft:breathable": {
+        "total_supply": 20,
+        "suffocate_time": 0,
+        "breathes_air": true,
+        "breathes_water": false
+      },
+      "minecraft:healable": {
+        "items": [
+          {
+            "item": "minecraft:cooked_beef",
+            "heal_amount": 6
+          },
+          {
+            "item": "minecraft:bread",
+            "heal_amount": 4
+          }
+        ]
+      },
+      "minecraft:damage_sensor": {
+        "triggers": [
+          {
+            "cause": "all",
+            "on_damage": {
+              "filters": {
+                "all_of": [
+                  {
+                    "test": "actor_health",
+                    "subject": "self",
+                    "operator": "<=",
+                    "value": 14
+                  },
+                  {
+                    "test": "enum_property",
+                    "subject": "self",
+                    "domain": "hollow:state",
+                    "operator": "not",
+                    "value": "downed"
+                  }
+                ]
+              },
+              "event": "hollow:down",
+              "target": "self"
+            },
+            "deals_damage": "no"
+          },
+          {
+            "cause": "fall",
+            "damage_multiplier": 0.5
+          },
+          {
+            "cause": "all",
+            "damage_multiplier": 0.7
+          }
+        ]
+      },
+      "minecraft:interact": {
+        "interactions": [
+          {
+            "on_interact": {
+              "filters": {
+                "test": "is_family",
+                "subject": "other",
+                "value": "player"
+              },
+              "event": "hollow:talk",
+              "target": "self"
+            },
+            "interact_text": "action.interact.hollow.talk"
+          }
+        ]
+      },
+      "minecraft:behavior.float": {
+        "priority": 0
+      },
+      "minecraft:behavior.look_at_player": {
+        "priority": 7,
+        "look_distance": 8,
+        "probability": 0.02
+      },
+      "minecraft:behavior.random_look_around": {
+        "priority": 9
+      },
+      "minecraft:conditional_bandwidth_optimization": {}
+    },
+    "events": {
+      "minecraft:entity_spawned": {
+        "add": {
+          "component_groups": [
+            "hollow:wild",
+            "hollow:combat"
+          ]
+        }
+      },
+      "hollow:tamed": {
+        "remove": {
+          "component_groups": [
+            "hollow:wild",
+            "hollow:hold"
+          ]
+        },
+        "add": {
+          "component_groups": [
+            "hollow:follow"
+          ]
+        },
+        "set_property": {
+          "hollow:state": "follow"
+        }
+      },
+      "hollow:follow": {
+        "remove": {
+          "component_groups": [
+            "hollow:hold",
+            "hollow:downed"
+          ]
+        },
+        "add": {
+          "component_groups": [
+            "hollow:follow",
+            "hollow:combat"
+          ]
+        },
+        "set_property": {
+          "hollow:state": "follow"
+        }
+      },
+      "hollow:hold": {
+        "remove": {
+          "component_groups": [
+            "hollow:follow",
+            "hollow:downed"
+          ]
+        },
+        "add": {
+          "component_groups": [
+            "hollow:hold",
+            "hollow:combat"
+          ]
+        },
+        "set_property": {
+          "hollow:state": "hold"
+        }
+      },
+      "hollow:release": {
+        "remove": {
+          "component_groups": [
+            "hollow:follow",
+            "hollow:hold"
+          ]
+        },
+        "add": {
+          "component_groups": [
+            "hollow:wild"
+          ]
+        }
+      },
+      "hollow:down": {
+        "remove": {
+          "component_groups": [
+            "hollow:combat",
+            "hollow:follow"
+          ]
+        },
+        "add": {
+          "component_groups": [
+            "hollow:downed"
+          ]
+        },
+        "set_property": {
+          "hollow:state": "downed"
+        }
+      },
+      "hollow:revive": {
+        "remove": {
+          "component_groups": [
+            "hollow:downed"
+          ]
+        },
+        "add": {
+          "component_groups": [
+            "hollow:combat"
+          ]
+        },
+        "set_property": {
+          "hollow:state": "hold"
+        }
+      },
+      "hollow:talk": {},
+      "hollow:despawn": {
+        "add": {
+          "component_groups": [
+            "hollow:despawn"
+          ]
+        }
+      }
+    }
+  }
+}

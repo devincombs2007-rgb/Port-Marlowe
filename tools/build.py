@@ -1,6 +1,7 @@
 """Build THE HOLLOW.
 
   python3 tools/build.py            registries + TypeScript + validation + packaging
+  python3 tools/build.py --no-island   skip generating the Varrow Island world (faster)
   python3 tools/build.py --assets   also regenerate every generated asset (models, textures,
                                     icons, particles, sounds, structures, visuals) first
 
@@ -19,8 +20,8 @@ PACKS = {"behavior": "THE_HOLLOW_BP", "resource": "THE_HOLLOW_RP", "visuals": "T
 
 ASSET_STEPS = [
     "creatures/watcher.py", "creatures/borrowed.py", "creatures/hollowed.py", "creatures/knocker.py",
-    "creatures/mirebound.py", "creatures/heart.py", "blocks/blocks.py", "art/icons.py", "art/journal_art.py", "art/particles.py",
-    "art/pack_icon.py", "sounds/sourced.py", "sounds/dread.py", "structures/build_structures.py", "visuals/build_visuals.py",
+    "creatures/mirebound.py", "creatures/heart.py", "creatures/trevor.py", "blocks/blocks.py", "art/icons.py", "art/journal_art.py", "art/particles.py",
+    "art/pack_icon.py", "sounds/sourced.py", "sounds/dread.py", "sounds/island.py", "structures/build_structures.py", "visuals/build_visuals.py",
 ]
 CONTENT_STEPS = ["packgen/content.py", "packgen/registry.py", "packgen/animations.py"]
 
@@ -101,12 +102,17 @@ def main():
             py(s)
     for s in CONTENT_STEPS:
         py(s)
+    # Varrow Island world: terrain, vegetation, crash site; also writes scripts_src/content/island_layout.ts
+    if "--no-island" not in sys.argv:
+        run([sys.executable, "-m", "tools.island.build_island", "--no-package"])
     compile_scripts()
     run([sys.executable, os.path.join(HERE, "validate.py"), "--report", "docs/VALIDATION_REPORT.generated.md"])
     run([sys.executable, os.path.join(HERE, "visuals", "verify_visuals.py"), "--report", "docs/VISUAL_REPORT.generated.md"])
     # headless simulation of the real scripts against a fake Minecraft API (logic, reloads, caps)
     run(["node", os.path.join(HERE, "simtest", "run.mjs"), "--report", "docs/SIMULATION_REPORT.generated.md"])
     package()
+    if "--no-island" not in sys.argv:
+        run([sys.executable, "-m", "tools.island.build_island", "--package-only"])
 
 
 if __name__ == "__main__":

@@ -179,6 +179,40 @@
           "*": "query.property('hollow:visible')"
         }
       ]
+    },
+    "controller.render.hollow.trevor": {
+      "geometry": "Geometry.default",
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "textures": [
+        "Texture.default"
+      ],
+      "part_visibility": [
+        {
+          "*": true
+        },
+        {
+          "gun": "query.has_target && query.property('hollow:state') != 'downed'"
+        },
+        {
+          "holstered": "!query.has_target || query.property('hollow:state') == 'downed'"
+        }
+      ]
+    },
+    "controller.render.hollow.tracer": {
+      "geometry": "Geometry.default",
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "textures": [
+        "Texture.default"
+      ],
+      "ignore_lighting": true
     }
   }
 }

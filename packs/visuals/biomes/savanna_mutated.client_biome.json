@@ -31,7 +31,7 @@
         "underwater_loop": "ambient.underwater.loop"
       },
       "minecraft:sky_color": {
-        "sky_color": "#425260"
+        "sky_color": "#6A6660"
       }
     }
   }

@@ -1,7 +1,9 @@
 // Field journal content. Entries unlock through play; nothing here spoils a creature before the
 // player has met it. Text uses Minecraft formatting codes (§7 gray, §o italic, §l bold, §r reset).
 
-export type Chapter = "notes" | "threats" | "craft" | "places";
+import { ISLAND_ENTRIES } from "./island_journal";
+
+export type Chapter = "notes" | "contract" | "threats" | "craft" | "places";
 
 export interface Entry {
   id: string;
@@ -11,6 +13,8 @@ export interface Entry {
   body: string;
   /** Lore pages are unlocked in order by Torn Pages. */
   lore?: number;
+  /** Varrow Island only (2.0). */
+  island?: boolean;
 }
 
 const P = "§r\n\n";
@@ -430,12 +434,30 @@ export const ENTRIES: Entry[] = [
   },
 ];
 
+ENTRIES.push(...ISLAND_ENTRIES);
+
 export const ENTRY_BY_ID = new Map(ENTRIES.map((e) => [e.id, e]));
 export const LORE_PAGES = ENTRIES.filter((e) => e.lore !== undefined).sort((a, b) => (a.lore ?? 0) - (b.lore ?? 0));
 
 export const CHAPTERS: { id: Chapter; title: string; icon: string }[] = [
   { id: "notes", title: "Field Notes", icon: "textures/ui/hollow/journal/chapter_notes" },
+  { id: "contract", title: "The Contract", icon: "textures/ui/hollow/journal/item_research_log" },
   { id: "threats", title: "Threats", icon: "textures/ui/hollow/journal/chapter_threats" },
   { id: "craft", title: "Equipment", icon: "textures/ui/hollow/journal/chapter_craft" },
   { id: "places", title: "Places", icon: "textures/ui/hollow/journal/chapter_places" },
 ];
+
+/** Places from the forest story that never exist on Varrow Island. */
+const FOREST_PLACES = new Set(["place_cabin", "place_camp", "place_tower", "place_leanto"]);
+
+/** Which entries belong to this world's story. */
+export function entryVisible(e: Entry, island: boolean): boolean {
+  if (island) return !!e.island || (e.chapter !== "notes" && !FOREST_PLACES.has(e.id));
+  return !e.island;
+}
+
+export function chaptersFor(island: boolean): { id: Chapter; title: string; icon: string }[] {
+  return island
+    ? CHAPTERS.filter((c) => c.id !== "notes").map((c) => (c.id === "craft" ? { ...c, title: "Gear & Equipment" } : c))
+    : CHAPTERS.filter((c) => c.id !== "contract");
+}
