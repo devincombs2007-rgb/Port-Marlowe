@@ -2,36 +2,185 @@
   "color_grading": {
     "identifier_prefix": "pm:vivid_",
     "tone_mapping_operator": "auto",
-    "midtones": { "saturation_scale": 1.12, "contrast_scale": 1.04 },
-    "highlights": { "saturation_scale": 1.06, "contrast_scale": 1.0 },
-    "shadows": { "saturation_scale": 1.0, "contrast_scale": 1.0 }
+    "midtones": {
+      "saturation_scale": 1.12,
+      "contrast_scale": 1.04
+    },
+    "highlights": {
+      "saturation_scale": 1.06,
+      "contrast_scale": 1.0
+    },
+    "shadows": {
+      "saturation_scale": 1.0,
+      "contrast_scale": 1.0
+    },
+    "split_toning": {
+      "highlights": {
+        "highlightsMin": 1.6,
+        "gain_tint": [1.03, 1.0, 0.96]
+      },
+      "shadows": {
+        "shadowsMax": 0.5,
+        "gain_tint": [0.97, 0.99, 1.03]
+      }
+    }
   },
   "water": {
-    "waves": { "enabled": true, "octaves": 16 },
+    "waves": {
+      "enabled": true,
+      "octaves": 16
+    },
     "default": "pm:water_default",
     "rules": [
-      { "biomes": ["warm_ocean", "deep_warm_ocean", "lukewarm_ocean", "deep_lukewarm_ocean"], "water": "pm:water_warm_ocean" },
-      { "biomes": ["cold_ocean", "deep_cold_ocean", "frozen_ocean", "deep_frozen_ocean", "legacy_frozen_ocean"], "water": "pm:water_cold_ocean" },
-      { "biomes": ["ocean", "deep_ocean"], "water": "pm:water_ocean" },
-      { "biomes": ["river", "frozen_river"], "water": "pm:water_river" },
-      { "biomes": ["swampland", "swampland_mutated", "mangrove_swamp"], "water": "pm:water_swamp" }
+      {
+        "biomes": ["warm_ocean", "deep_warm_ocean", "lukewarm_ocean", "deep_lukewarm_ocean"],
+        "water": "pm:water_warm_ocean"
+      },
+      {
+        "biomes": ["cold_ocean", "deep_cold_ocean", "frozen_ocean", "deep_frozen_ocean", "legacy_frozen_ocean"],
+        "water": "pm:water_cold_ocean"
+      },
+      {
+        "biomes": ["ocean", "deep_ocean"],
+        "water": "pm:water_ocean"
+      },
+      {
+        "biomes": ["river", "frozen_river"],
+        "water": "pm:water_river"
+      },
+      {
+        "biomes": ["swampland", "swampland_mutated", "mangrove_swamp"],
+        "water": "pm:water_swamp"
+      }
     ]
   },
   "ambient": [
     {
       "biomes": ["plains", "sunflower_plains", "meadow", "savanna", "savanna_mutated", "savanna_plateau", "savanna_plateau_mutated", "cherry_grove"],
       "loop": "pm.ambient.grassland.loop",
-      "addition": { "asset": "pm.ambient.grassland.additions", "chance": 0.006 }
+      "addition": {
+        "asset": "pm.ambient.grassland.additions",
+        "chance": 0.006
+      }
     },
     {
       "biomes": ["forest", "forest_hills", "flower_forest", "dappled_forest", "birch_forest", "birch_forest_hills", "birch_forest_mutated", "birch_forest_hills_mutated", "taiga", "taiga_hills", "taiga_mutated", "mega_taiga", "mega_taiga_hills", "redwood_taiga_mutated", "redwood_taiga_hills_mutated", "roofed_forest", "roofed_forest_mutated"],
       "loop": "pm.ambient.forest.loop",
-      "addition": { "asset": "pm.ambient.forest.additions", "chance": 0.006 }
+      "addition": {
+        "asset": "pm.ambient.forest.additions",
+        "chance": 0.006
+      }
     },
     {
       "biomes": ["beach", "stone_beach", "cold_beach"],
       "loop": "pm.ambient.shore.loop",
-      "addition": { "asset": "pm.ambient.shore.additions", "chance": 0.004 }
+      "addition": {
+        "asset": "pm.ambient.shore.additions",
+        "chance": 0.004
+      }
     }
-  ]
+  ],
+  "lighting": {
+    "identifier_prefix": "pm:cine_",
+    "moon_illuminance_scale": 1.75,
+    "orbital_offset_degrees": 20.0
+  },
+  "atmospherics": {
+    "identifier_prefix": "pm:sky_",
+    "rayleigh_strength_scale": 1.12,
+    "sun_mie_strength_scale": 1.2
+  },
+  "fog": {
+    "identifier_prefix": "pm:fog_",
+    "skip_biomes": ["hell", "crimson_forest", "warped_forest", "soulsand_valley", "basalt_deltas", "the_end", "deep_dark", "pale_garden"],
+    "groups": [
+      {
+        "name": "forest light shafts",
+        "biomes": ["forest", "forest_hills", "flower_forest", "dappled_forest", "birch_forest*", "roofed_forest*", "taiga*", "mega_taiga*", "redwood_taiga*", "cold_taiga*", "cherry_grove"],
+        "air": {
+          "max_density": 0.06,
+          "zero_density_height": 120.0,
+          "max_density_height": 64.0
+        },
+        "scattering": [0.05, 0.05, 0.05],
+        "henyey_greenstein_g": 0.85
+      },
+      {
+        "name": "jungle shafts",
+        "biomes": ["jungle*", "bamboo_jungle*"],
+        "henyey_greenstein_g": 0.8
+      },
+      {
+        "name": "meadow haze",
+        "biomes": ["plains", "sunflower_plains", "meadow", "savanna*"],
+        "air": {
+          "max_density": 0.025,
+          "zero_density_height": 140.0,
+          "max_density_height": 64.0
+        },
+        "scattering": [0.035, 0.035, 0.035],
+        "henyey_greenstein_g": 0.8
+      },
+      {
+        "name": "wetland mist",
+        "biomes": ["swampland*", "mangrove_swamp", "river", "frozen_river"],
+        "air": {
+          "max_density": 0.08,
+          "zero_density_height": 100.0,
+          "max_density_height": 62.0
+        },
+        "scattering": [0.06, 0.06, 0.06],
+        "henyey_greenstein_g": 0.6,
+        "underwater_max_density": 0.45
+      },
+      {
+        "name": "valley cloud",
+        "biomes": ["extreme_hills*", "stony_peaks", "jagged_peaks", "frozen_peaks", "snowy_slopes", "grove"],
+        "air": {
+          "max_density": 0.045,
+          "zero_density_height": 170.0,
+          "max_density_height": 90.0
+        },
+        "scattering": [0.05, 0.05, 0.05],
+        "henyey_greenstein_g": 0.75
+      },
+      {
+        "name": "tropical sea",
+        "biomes": ["warm_ocean", "deep_warm_ocean", "lukewarm_ocean", "deep_lukewarm_ocean"],
+        "air": {
+          "max_density": 0.03,
+          "zero_density_height": 110.0,
+          "max_density_height": 62.0
+        },
+        "scattering": [0.04, 0.04, 0.04],
+        "henyey_greenstein_g": 0.7,
+        "underwater_max_density": 0.12
+      },
+      {
+        "name": "sea haze",
+        "biomes": ["*ocean", "beach", "stone_beach", "cold_beach", "mushroom_island_shore"],
+        "air": {
+          "max_density": 0.03,
+          "zero_density_height": 110.0,
+          "max_density_height": 62.0
+        },
+        "scattering": [0.04, 0.04, 0.04],
+        "henyey_greenstein_g": 0.7
+      }
+    ],
+    "rain_haze": {
+      "max_density": 0.06,
+      "uniform": true,
+      "skip_biomes": ["desert*", "mesa*", "savanna*"]
+    },
+    "underwater": {
+      "density": {
+        "max_density": 0.25,
+        "uniform": true
+      },
+      "scattering": [0.01811, 0.02126, 0.027953],
+      "absorption": [0.2, 0.07874, 0.083465],
+      "henyey_greenstein_g": 0.6
+    }
+  }
 }

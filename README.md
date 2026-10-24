@@ -3,9 +3,11 @@
 A Realm world for **Xbox Series X** with a realistic, vibrant **Vibrant Visuals** overhaul. It is delivered
 as configuration plus a build pipeline rather than as baked art:
 
-1. **PBR materials and atmosphere.** Hand-drawn normal maps on every block, tuned Vibrant Visuals lighting,
-   per-biome vivid color grading, six physically-parameterised water bodies with waves and caustics, soft
-   shadows, and colored block light.
+1. **PBR materials and atmosphere.** Hand-drawn normal maps on every block, tuned Vibrant Visuals lighting
+   with a tilted sun path and moonlit nights, deeper skies, volumetric fog for every overworld biome (forest
+   light shafts, valley cloud, swamp mist, rain haze, underwater rays), per-biome vivid split-toned color
+   grading, six physically-parameterised water bodies with full-detail waves and caustics, soft shadows,
+   and colored light for 61 block types.
 2. **Realistic farm animals.** Cows, chickens, pigs and sheep come in breeds (Holstein, Hereford, Brahman,
    Gir, Highland; Leghorn, Rhode Island Red and Brahma hens and roosters; Large White, Duroc, Mangalica)
    with MERS/normal materials. Breeds come from vanilla's own server-synced variant properties, so every

@@ -130,8 +130,14 @@ The animal and audio checks apply once Port Marlowe: Fauna and Port Marlowe: Aud
 
 * [ ] Content Log History shows no errors from the Port Marlowe packs
 * [ ] **Water**: moving waves and caustics on the bed. Rivers look silty, swamps tea-brown, warm oceans turquoise.
-* [ ] **Light**: torches warm orange-white, soul lanterns cyan; shadows soft; colors richer than default
-      Vibrant Visuals without crushed blacks
+* [ ] **Light**: torches warm orange-white, soul lanterns cyan, sea lanterns aqua, portals and amethyst
+      purple, glow-berry caves golden; shadows soft; colors richer than default Vibrant Visuals without
+      crushed blacks. Bright areas lean slightly warm, shade slightly cool.
+* [ ] **Sun and moon**: at noon, shadows still fall at an angle (tilted sun path); moonlit nights are dark
+      but readable
+* [ ] **Fog and light shafts**: sunbeams through forest canopies in the morning and evening; mist lying low
+      over swamps and rivers; cloud pooled in mountain valleys with clear peaks; light haze over plains
+      and the sea; the world greys out in a rainstorm; light rays underwater, clearer in tropical seas
 * [ ] **Blocks**: stone, bricks and planks show relief from the hand-drawn normal maps when the sun is low
 * [ ] **Animals**: cows in plains are Holstein or Hereford; in savanna, desert or jungle they are Brahman or
       Gir; in taiga or mountains they are Highland. About half of chickens are roosters (comb, sickle tail).
@@ -170,6 +176,11 @@ Change one thing at a time, rebuild, re-upload and compare.
 | Frame drops everywhere | *Favor Performance* preset; render distance 12–16 |
 | Shadows look worse than they cost | Delete `packs/pm_atmos/shadows/global.json`, which hands shadows back to the vendor's blocky style |
 | Colors too strong | Lower the `saturation_scale` / `contrast_scale` values in `config/atmosphere_profile.json` |
+| Fog too thick or too thin | `fog.groups[].air.max_density` per biome group, `fog.rain_haze.max_density`, `fog.underwater` in `config/atmosphere_profile.json` |
+| Light shafts too strong or too weak | `henyey_greenstein_g` per fog group (0.6 soft, 0.85 strong) |
+| Prefer the sun straight overhead | `lighting.orbital_offset_degrees` to `0.0` |
+| Nights too bright or too dark | `lighting.moon_illuminance_scale` (1.0 = the lighting pack's own moon) |
+| Warm/cool tint unwanted | Delete `color_grading.split_toning` |
 
 ## 7. Updating later
 

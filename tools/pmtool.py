@@ -162,6 +162,13 @@ class Vanilla:
             self._defs = load_json(path).get("sound_definitions", {}) if path.exists() else {}
         return self._defs
 
+    def block_ids(self) -> set | None:
+        """Runtime block identifiers from Mojang's metadata, or None if the checkout lacks it."""
+        path = self.rp.parent / "metadata" / "vanilladata_modules" / "mojang-blocks.json"
+        if not path.exists():
+            return None
+        return {b.get("name") for b in load_json(path).get("data_items", []) if isinstance(b, dict)}
+
     def render_controllers(self) -> dict:
         if self._controllers is None:
             self._controllers = collect_render_controllers(self.rp)
@@ -181,10 +188,11 @@ def cmd_fetch_vanilla(args, cfg) -> int:
         cfg["vanilla_samples"]["url"], str(dest))
     run("git", "-C", str(dest), "sparse-checkout", "set", "--no-cone",
         "/resource_pack/animations/", "/resource_pack/animation_controllers/",
-        "/resource_pack/biomes/", "/resource_pack/color_grading/", "/resource_pack/entity/",
+        "/resource_pack/biomes/", "/resource_pack/color_grading/", "/resource_pack/lighting/",
+        "/resource_pack/atmospherics/", "/resource_pack/fogs/", "/resource_pack/water/", "/resource_pack/entity/",
         "/resource_pack/render_controllers/", "/resource_pack/models/entity/",
         "/resource_pack/sounds.json", "/resource_pack/sounds/sound_definitions.json",
-        "/resource_pack/blocks.json", "/version.json")
+        "/resource_pack/blocks.json", "/metadata/vanilladata_modules/mojang-blocks.json", "/version.json")
     print(f"Fetched bedrock-samples {ref} into {dest}")
     return 0
 
@@ -605,6 +613,12 @@ def validate_pack(pack: Path, cfg: dict, report: Report, vanilla: Vanilla, stack
             validate_entity(ef, pack, report, vanilla, stack_sound_defs)
     if (pack / "sounds" / "sound_definitions.json").exists() or (pack / "sounds.json").exists():
         validate_audio(pack, report, vanilla)
+    local = pack / "local_lighting" / "local_lighting.json"
+    known_blocks = vanilla.block_ids()
+    if local.exists() and known_blocks:
+        for block in load_json(local).get("minecraft:local_light_settings", {}):
+            if block not in known_blocks:
+                report.error(f"local_lighting.json: '{block}' is not a vanilla block identifier")
     return m
 
 
@@ -853,23 +867,67 @@ def merged_biomes(vanilla_rp: Path, vendors: list) -> list:
     return merged
 
 
-def generate_color_grading(atmos: Path, vanilla_rp: Path, vendors: list, profile: dict, biomes: list) -> tuple:
-    """Write a vivid copy of every grading the biomes reference. Returns (old id -> new id, operator)."""
-    cg = profile["color_grading"]
+def collect_configs(roots: list, folder: str, schema: str) -> dict:
+    """identifier -> file for every config of one kind; later roots (higher priority) win on identical ids."""
     files = {}
-    for root in [vanilla_rp] + vendors:  # lowest priority first, so higher layers win on identical ids
-        for f in sorted((root / "color_grading").glob("*.json")) if (root / "color_grading").is_dir() else []:
+    for root in roots:
+        d = root / folder
+        for f in sorted(d.rglob("*.json")) if d.is_dir() else []:
             try:
-                ident = load_json(f)["minecraft:color_grading_settings"]["description"]["identifier"]
-            except (ValueError, KeyError):
+                ident = load_json(f)[schema]["description"]["identifier"]
+            except (ValueError, KeyError, TypeError):
                 continue
             files[ident] = f
+    return files
+
+
+def biome_usage(biomes: list, comp: str, field: str) -> dict:
+    """identifier -> number of biomes that reference it."""
     usage = {}
     for _, doc, _ in biomes:
-        ident = (doc["minecraft:client_biome"]["components"].get("minecraft:color_grading_identifier") or {}) \
-            .get("color_grading_identifier")
-        if ident in files:
+        ident = (doc["minecraft:client_biome"]["components"].get(comp) or {}).get(field)
+        if ident:
             usage[ident] = usage.get(ident, 0) + 1
+    return usage
+
+
+def scale_keyframed(value, factor: float, lo: float | None = None, hi: float | None = None):
+    """Scale a number or a {time: number} keyframe table, clamped to the schema range."""
+    if isinstance(value, dict):
+        return {k: scale_keyframed(v, factor, lo, hi) for k, v in value.items()}
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        v = value * factor
+        if lo is not None:
+            v = max(lo, v)
+        if hi is not None:
+            v = min(hi, v)
+        return round(v, 5)
+    return value
+
+
+def derive_configs(atmos: Path, roots: list, biomes: list, kind: dict, transform) -> dict:
+    """Write a transformed copy of every config of one kind that the biomes reference. Returns old id -> new id."""
+    files = collect_configs(roots, kind["folder"], kind["schema"])
+    mapping = {}
+    for old_id in sorted(biome_usage(biomes, kind["component"], kind["field"])):
+        if old_id not in files:
+            continue  # built into the game; left as is
+        doc = load_json(files[old_id])
+        body = doc[kind["schema"]]
+        stem = old_id.replace(":", "_")
+        body["description"]["identifier"] = kind["prefix"] + stem
+        transform(body)
+        dump_json(atmos / kind["folder"] / f"{kind['file_prefix']}{stem}.json", doc)
+        mapping[old_id] = body["description"]["identifier"]
+    return mapping
+
+
+def generate_color_grading(atmos: Path, roots: list, profile: dict, biomes: list) -> tuple:
+    """Vivid copies of every grading the biomes reference. Returns (old id -> new id, operator)."""
+    cg = profile["color_grading"]
+    files = collect_configs(roots, "color_grading", "minecraft:color_grading_settings")
+    usage = {i: n for i, n in biome_usage(biomes, "minecraft:color_grading_identifier",
+                                          "color_grading_identifier").items() if i in files}
     operator = cg["tone_mapping_operator"]
     if operator == "auto":  # the operator most biomes already use; operators cannot blend between biomes
         votes = {}
@@ -878,7 +936,6 @@ def generate_color_grading(atmos: Path, vanilla_rp: Path, vendors: list, profile
             if op:
                 votes[op] = votes.get(op, 0) + count
         operator = max(votes, key=votes.get) if votes else "generic"
-    files = {ident: f for ident, f in files.items() if ident in usage}
 
     def scale(section: dict, rules: dict) -> None:
         for field, lo, hi in (("saturation", 0.0, 10.0), ("contrast", 0.0, 4.0)):
@@ -886,20 +943,116 @@ def generate_color_grading(atmos: Path, vanilla_rp: Path, vendors: list, profile
             if field in section and isinstance(section[field], list):
                 section[field] = [round(min(hi, max(lo, v * factor)), 4) for v in section[field]]
 
-    mapping = {}
-    for old_id, f in sorted(files.items()):
-        doc = load_json(f)
-        body = doc["minecraft:color_grading_settings"]
-        new_id = cg["identifier_prefix"] + old_id.replace(":", "_")
-        body["description"]["identifier"] = new_id
+    def transform(body: dict) -> None:
         grading = body.setdefault("color_grading", {})
         for section in ("midtones", "highlights", "shadows"):
             if section in grading:
                 scale(grading[section], cg.get(section, {}))
+        # Split toning: warm highlights, cool shadows. An enabled range replaces the midtone parameters for
+        # its pixels, so it starts as a copy of the midtones and only the gain is tinted.
+        for section, threshold in (("highlights", "highlightsMin"), ("shadows", "shadowsMax")):
+            tone = cg.get("split_toning", {}).get(section)
+            if not tone or grading.get(section, {}).get("enabled"):
+                continue
+            new = copy.deepcopy(grading.get("midtones", {}))
+            gain = new.get("gain", [1.0, 1.0, 1.0])
+            new["gain"] = [round(min(10.0, max(0.0, g * t)), 4) for g, t in zip(gain, tone["gain_tint"])]
+            new["enabled"] = True
+            new[threshold] = tone[threshold]
+            grading[section] = new
         body["tone_mapping"] = {"operator": operator}
-        dump_json(atmos / "color_grading" / f"pm_vivid_{old_id.replace(':', '_')}.json", doc)
-        mapping[old_id] = new_id
-    return mapping, operator
+
+    kind = {"folder": "color_grading", "schema": "minecraft:color_grading_settings",
+            "component": "minecraft:color_grading_identifier", "field": "color_grading_identifier",
+            "prefix": cg["identifier_prefix"], "file_prefix": "pm_vivid_"}
+    return derive_configs(atmos, roots, biomes, kind, transform), operator
+
+
+def generate_lighting(atmos: Path, roots: list, profile: dict, biomes: list) -> dict:
+    """Cinematic copies of every lighting config the biomes reference."""
+    cfg = profile["lighting"]
+
+    def transform(body: dict) -> None:
+        lights = body.get("directional_lights", {})
+        orbital = lights.get("orbital", lights)  # pre-1.21.80 files keep sun/moon directly here
+        moon = orbital.get("moon")
+        if moon and "illuminance" in moon:
+            moon["illuminance"] = scale_keyframed(moon["illuminance"], cfg["moon_illuminance_scale"], 0.0)
+        if "sun" in orbital and "orbital_offset_degrees" in cfg:
+            # cannot blend between biomes, so every generated lighting file carries the same value
+            orbital["orbital_offset_degrees"] = cfg["orbital_offset_degrees"]
+
+    kind = {"folder": "lighting", "schema": "minecraft:lighting_settings",
+            "component": "minecraft:lighting_identifier", "field": "lighting_identifier",
+            "prefix": cfg["identifier_prefix"], "file_prefix": "pm_cine_"}
+    return derive_configs(atmos, roots, biomes, kind, transform)
+
+
+def generate_atmospherics(atmos: Path, roots: list, profile: dict, biomes: list) -> dict:
+    """Richer-sky copies of every atmosphere config the biomes reference."""
+    cfg = profile["atmospherics"]
+
+    def transform(body: dict) -> None:
+        for field, factor in (("rayleigh_strength", cfg["rayleigh_strength_scale"]),
+                              ("sun_mie_strength", cfg["sun_mie_strength_scale"])):
+            if field in body:
+                body[field] = scale_keyframed(body[field], factor, 0.0)
+
+    kind = {"folder": "atmospherics", "schema": "minecraft:atmosphere_settings",
+            "component": "minecraft:atmosphere_identifier", "field": "atmosphere_identifier",
+            "prefix": cfg["identifier_prefix"], "file_prefix": "pm_sky_"}
+    return derive_configs(atmos, roots, biomes, kind, transform)
+
+
+def generate_fog(atmos: Path, roots: list, profile: dict, biomes: list) -> dict:
+    """One fog per overworld biome: the biome's current fog plus Port Marlowe's volumetric layers.
+
+    Returns biome name -> new fog id. Fog has no keyframes, so every value here holds all day.
+    """
+    cfg = profile["fog"]
+    files = collect_configs(roots, "fogs", "minecraft:fog_settings")
+    mapping = {}
+    for name, doc, _ in biomes:
+        biome = name.split(".")[0]
+        if any(fnmatch.fnmatch(biome, pat) for pat in cfg["skip_biomes"]):
+            continue
+        comps = doc["minecraft:client_biome"]["components"]
+        src_id = (comps.get("minecraft:fog_appearance") or {}).get("fog_identifier")
+        if src_id in files:
+            src = load_json(files[src_id])
+            body, fv = src["minecraft:fog_settings"], version_tuple(src.get("format_version", "0"))
+        else:
+            body, fv = {}, (0,)
+        vol = body.setdefault("volumetric", {})
+        density = vol.setdefault("density", {})
+        coeffs = vol.setdefault("media_coefficients", {})
+        hg = vol.setdefault("henyey_greenstein_g", {})
+        group = next((g for g in cfg["groups"] if any(fnmatch.fnmatch(biome, p) for p in g["biomes"])), None)
+        if group:
+            if "air" in group:
+                density["air"] = dict(group["air"])
+            if "scattering" in group:
+                air = coeffs.setdefault("air", {})
+                air["scattering"] = list(group["scattering"])
+                air.setdefault("absorption", [0.0, 0.0, 0.0])
+            if "henyey_greenstein_g" in group:
+                hg["air"] = {"henyey_greenstein_g": group["henyey_greenstein_g"]}
+        haze = cfg.get("rain_haze")
+        if haze and not any(fnmatch.fnmatch(biome, p) for p in haze.get("skip_biomes", [])):
+            density["weather"] = {k: v for k, v in haze.items() if k != "skip_biomes"}
+        under = cfg.get("underwater")
+        if under:
+            density["water"] = dict(under["density"])
+            if group and "underwater_max_density" in group:
+                density["water"]["max_density"] = group["underwater_max_density"]
+            coeffs["water"] = {"scattering": list(under["scattering"]), "absorption": list(under["absorption"])}
+            hg["water"] = {"henyey_greenstein_g": under["henyey_greenstein_g"]}
+        body.setdefault("description", {})["identifier"] = cfg["identifier_prefix"] + biome
+        fv = max(fv, (1, 21, 90))  # henyey_greenstein_g needs 1.21.90
+        dump_json(atmos / "fogs" / f"pm_fog_{biome}.json",
+                  {"format_version": ".".join(map(str, fv)), "minecraft:fog_settings": body})
+        mapping[biome] = body["description"]["identifier"]
+    return mapping
 
 
 def apply_water_waves(atmos: Path, profile: dict) -> None:
@@ -912,15 +1065,19 @@ def apply_water_waves(atmos: Path, profile: dict) -> None:
         dump_json(f, doc)
 
 
-def generate_biomes(atmos: Path, biomes: list, profile: dict, cg_map: dict, live_sounds: set) -> int:
+def generate_biomes(atmos: Path, biomes: list, profile: dict, remaps: dict, fog_map: dict,
+                    live_sounds: set) -> int:
     """Write complete client biome files: vanilla <- vendor components <- Port Marlowe remaps."""
     count = 0
     for name, doc, fv in biomes:
         comps = doc["minecraft:client_biome"]["components"]
         biome = name.split(".")[0]
-        cgc = comps.get("minecraft:color_grading_identifier")
-        if cgc and cgc.get("color_grading_identifier") in cg_map:
-            cgc["color_grading_identifier"] = cg_map[cgc["color_grading_identifier"]]
+        for comp, (field, mapping) in remaps.items():
+            current = comps.get(comp)
+            if current and current.get(field) in mapping:
+                current[field] = mapping[current[field]]
+        if biome in fog_map:
+            comps["minecraft:fog_appearance"] = {"fog_identifier": fog_map[biome]}
         water = profile["water"]["default"]
         for rule in profile["water"]["rules"]:
             if any(fnmatch.fnmatch(biome, pat) for pat in rule["biomes"]):
@@ -975,6 +1132,19 @@ def check_biome_references(atmos: Path, packs: list, vanilla_rp: Path, report: R
                 missing.setdefault(ident, []).append(f.name.split(".")[0])
     for ident, biomes in sorted(missing.items()):
         report.error(f"biomes: '{ident}' is referenced by {len(biomes)} biome(s) (e.g. {biomes[0]}) but no pack defines it")
+
+
+def check_shared_lighting(atmos: Path, biomes: list, prefix: str, report: Report) -> None:
+    """Orbital offset cannot blend between biomes; flag biomes left on a lighting file we did not generate."""
+    stray = set()
+    for name, _, _ in biomes:
+        comps = load_json(atmos / "biomes" / name)["minecraft:client_biome"]["components"]
+        ident = (comps.get("minecraft:lighting_identifier") or {}).get("lighting_identifier")
+        if ident and not ident.startswith(prefix):
+            stray.add(ident)
+    if stray:
+        report.warn(f"biomes still use lighting {sorted(stray)}; if their sun-path tilt differs, biome borders "
+                    f"will jump")
 
 
 def check_tone_mapping(atmos: Path, prefix: str, report: Report) -> None:
@@ -1121,11 +1291,20 @@ def cmd_build(args, cfg) -> int:
         atmos = keys["pm_atmos"]
         vendors = vendor_layers(stack, cfg)
         biomes = merged_biomes(vanilla_rp, vendors)
-        cg_map, operator = generate_color_grading(atmos, vanilla_rp, vendors, atmos_profile, biomes)
+        roots = [vanilla_rp] + vendors
+        cg_map, operator = generate_color_grading(atmos, roots, atmos_profile, biomes)
+        light_map = generate_lighting(atmos, roots, atmos_profile, biomes)
+        sky_map = generate_atmospherics(atmos, roots, atmos_profile, biomes)
+        fog_map = generate_fog(atmos, roots, atmos_profile, biomes)
         apply_water_waves(atmos, atmos_profile)
-        n = generate_biomes(atmos, biomes, atmos_profile, cg_map, live_sounds)
-        Report.info(f"atmosphere: {len(cg_map)} vivid color gradings (tone mapping '{operator}') and "
-                    f"{n} client biome remaps generated")
+        remaps = {"minecraft:color_grading_identifier": ("color_grading_identifier", cg_map),
+                  "minecraft:lighting_identifier": ("lighting_identifier", light_map),
+                  "minecraft:atmosphere_identifier": ("atmosphere_identifier", sky_map)}
+        n = generate_biomes(atmos, biomes, atmos_profile, remaps, fog_map, live_sounds)
+        Report.info(f"atmosphere: {len(cg_map)} vivid gradings (tone mapping '{operator}'), {len(light_map)} "
+                    f"cinematic lightings, {len(sky_map)} skies, {len(fog_map)} volumetric fogs, "
+                    f"{n} client biome remaps")
+        check_shared_lighting(atmos, biomes, atmos_profile["lighting"]["identifier_prefix"], report)
         check_biome_references(atmos, [p for _, _, p, _ in stack] + vendors, vanilla_rp, report)
         check_tone_mapping(atmos, atmos_profile["color_grading"]["identifier_prefix"], report)
     if "pm_fauna" in keys:

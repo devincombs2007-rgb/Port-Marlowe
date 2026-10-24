@@ -235,13 +235,37 @@ polished and metal surfaces below ~76 if they should mirror the scene.
 | `water/*.json` (format 1.26.0) | Six water bodies with particle concentrations in mg/L. Waves are **enabled** everywhere (vanilla ships them off). The `xbox` profile uses **28 octaves**, as in Mojang's documented example; `xbox_lite` uses 16. Waves on/off and caustics cannot blend between biomes, so the build stamps `water.waves` (from `config/atmosphere_profile.json` plus the profile's `atmosphere_overrides`) into every file. |
 | `shadows/global.json` | `soft_shadows` |
 | `pbr/global.json` | MERS fallback for anything without a texture set |
-| `local_lighting/local_lighting.json` (1.21.120) | Colored block light. The torch, lantern, candle, end rod and redstone torch families stay `point_light` (the engine forces this); everything else is `static_light`. Every block ID was checked against vanilla `blocks.json`. |
-| `color_grading/pm_vivid_*.json` (generated) | A vivid copy of every grading the biomes use, vanilla's and the vendor's: midtone saturation ×1.12 and contrast ×1.04 (`config/atmosphere_profile.json`). Operators cannot blend between biomes, so one operator is stamped into all of them. `"auto"` takes the vendor's choice (`hable` for Vanilla Vibrant Visuals), else vanilla's `generic`. |
+| `local_lighting/local_lighting.json` (1.21.120) | Colored block light for **61 blocks**: warm torches and lanterns, cyan soul fire, sea lanterns and conduits, purple portals, amethyst and respawn anchors, teal sculk, glow-berry vines, copper bulbs, fireflies, the creaking heart, trial spawners and more. The torch, lantern, candle, end rod and redstone torch families stay `point_light` (the engine forces this); everything else is `static_light`. The build checks every ID against Mojang's runtime block list (`metadata/vanilladata_modules/mojang-blocks.json`). |
+| `color_grading/pm_vivid_*.json` (generated) | A vivid copy of every grading the biomes use, vanilla's and the vendor's: midtone saturation ×1.12 and contrast ×1.04, plus **split toning**: highlights (above 1.6× average luminance) get a warm gain tint `[1.03, 1.0, 0.96]`, shadows (below 0.5×) a cool one `[0.97, 0.99, 1.03]`. An enabled range replaces the midtone parameters for its pixels, so each starts as a copy of the midtones. Operators cannot blend between biomes, so one operator is stamped into all of them; `"auto"` takes the one most biomes already use (`hable` for Vanilla Vibrant Visuals). |
+| `lighting/pm_cine_*.json` (generated) | **Cinematic lighting**: a copy of every lighting file the biomes use, with moon illuminance ×1.75 (Vanilla Vibrant Visuals' 0.4 → 0.7) for readable moonlit nights, and the sun path tilted **20°** (`orbital_offset_degrees`), like a mid-latitude sun that never stands straight overhead. Noon shadows keep length and direction, and light shafts slant through trees. The offset cannot blend between biomes, so every generated lighting file carries the same value and the build warns if any biome is left on another. All keyframes are preserved. |
+| `atmospherics/pm_sky_*.json` (generated) | **Richer skies**: Rayleigh strength ×1.12 (deeper blue) and sun Mie strength ×1.2 (stronger glow around a low sun), keyframes preserved, so zeros stay zero |
+| `fogs/pm_fog_*.json` (generated) | **Volumetric atmosphere** for 81 overworld biomes; see below |
 | `biomes/*.client_biome.json` (generated) | See §5 |
 
-Lighting and atmospherics are deliberately left to the lowest layer that defines them: the Vanilla Vibrant
-Visuals lighting-only subpack in the Xbox profile, otherwise Mojang's per-biome files. Both are tuned for
-real-world lux values and auto-exposure. Port Marlowe changes color, water and shadows, not exposure.
+Sun brightness, sunrise colours and exposure stay as the lowest layer tuned them: the Vanilla Vibrant
+Visuals lighting-only pack in the Xbox profile, otherwise Mojang's per-biome files. Port Marlowe changes the
+moon, the sun's path, the sky's scattering, colour, fog, water and shadows on top.
+
+### Volumetric atmosphere (generated fog)
+
+Vanilla Vibrant Visuals gives forests, plains, savannas, oceans, rivers and most hills **no volumetric fog
+at all**, so they have no light shafts. Every overworld biome now gets its own fog file: the biome's current
+fog (distance fog included), plus these layers from `config/atmosphere_profile.json`:
+
+| Group | Biomes | Air density (max / fades out by y) | Scattering, HG g | Look |
+|---|---|---|---|---|
+| Forest light shafts | forests, birch, dark oak, taiga, cherry grove | 0.06 at y≤64 / 0 by y=120 | 0.05, **0.85** | Ground-hugging mist; strong forward scattering throws shafts through canopies |
+| Jungle shafts | jungles, bamboo | vendor's density | vendor's, **0.8** | Same density, sharper sun beams |
+| Meadow haze | plains, sunflower plains, meadow, savanna | 0.025 at y≤64 / 0 by y=140 | 0.035, 0.8 | Soft aerial perspective on open land |
+| Wetland mist | swamps, mangroves, rivers | 0.08 at y≤62 / 0 by y=100 | 0.06, 0.6 | Low mist over water; murky underwater (0.45) |
+| Valley cloud | windswept hills, peaks, slopes, grove | 0.045 at y≤90 / 0 by y=170 | 0.05, 0.75 | Cloud pooled in valleys, clear summits |
+| Tropical sea / sea haze | oceans, beaches | 0.03 at y≤62 / 0 by y=110 | 0.04, 0.7 | Sea haze; clear tropical water (0.12) |
+| Every overworld biome | n/a | rain haze 0.06 (not deserts, badlands, savanna) | n/a | The world greys out in storms |
+| Every overworld biome | n/a | underwater 0.25 unless the group overrides it | Microsoft's documented water coefficients, g 0.6 | Underwater light rays |
+
+The Nether, the End, the deep dark, caves and the pale garden keep their original fog. Fog has no keyframes,
+so these values hold all day. They are deliberately modest; tune them in the profile and judge on the
+console. Henyey-Greenstein `g` needs fog format 1.21.90, which the generator stamps.
 
 Soft shadows override the vendor's blocky shadows because realism is the goal. Neither Microsoft nor the
 pack author documents a cost difference; if you test both on the Series X and blocky is faster, delete
@@ -378,8 +402,9 @@ sound, and the rooster's appearance comes from the synced property, so everyone 
    subpack. Vanilla Vibrant Visuals, for example, points every biome at its own `vv_redirected:*` lighting,
    atmosphere and grading.
 3. **Port Marlowe** remaps:
-   * every color grading (`minecraft:*` or vendor) → its vivid copy, e.g.
-     `vv_redirected:default_color_grading` → `pm:vivid_vv_redirected_default_color_grading`
+   * every color grading, lighting and atmosphere (`minecraft:*` or vendor) → its generated copy, e.g.
+     `vv_redirected:default_lighting` → `pm:cine_vv_redirected_default_lighting`
+   * the biome's fog → its own `pm:fog_<biome>` with the volumetric layers above
    * `minecraft:water_identifier` → the water body chosen by the rules in `config/atmosphere_profile.json`
    * `minecraft:ambient_sounds`: adds `loop`/`addition` beds where recordings exist, and keeps
      vanilla's `underwater_*` and `mood` keys
@@ -388,19 +413,20 @@ Result for plains under the `xbox` profile (from an actual build with the real V
 Vibrant Visuals packs):
 
 ```json
-"minecraft:fog_appearance": { "fog_identifier": "vv_redirected:fog_plains" },
+"minecraft:fog_appearance": { "fog_identifier": "pm:fog_plains" },
 "minecraft:water_appearance": { "surface_color": "#44AFF5" },
-"minecraft:atmosphere_identifier": { "atmosphere_identifier": "vv_redirected:default_atmospherics" },
+"minecraft:atmosphere_identifier": { "atmosphere_identifier": "pm:sky_vv_redirected_default_atmospherics" },
 "minecraft:color_grading_identifier": { "color_grading_identifier": "pm:vivid_vv_redirected_default_color_grading" },
-"minecraft:lighting_identifier": { "lighting_identifier": "vv_redirected:default_lighting" },
+"minecraft:lighting_identifier": { "lighting_identifier": "pm:cine_vv_redirected_default_lighting" },
 "minecraft:water_identifier": { "water_identifier": "pm:water_default" },
 "minecraft:ambient_sounds": { "underwater_addition": { "asset": "ambient.underwater.additions", "chance": 0.01 },
                               "underwater_loop": "ambient.underwater.loop",
                               "loop": "pm.ambient.grassland.loop" }
 ```
 
-That build generated 13 vivid gradings (one per grading the biomes actually reference) with the `hable`
-operator, because Vanilla Vibrant Visuals' default grading, used by 24 biomes, specifies `hable`.
+That build generated 13 vivid gradings, 13 cinematic lightings, 17 skies and 81 volumetric fogs (one per
+config the biomes actually reference). Gradings use the `hable` operator, because Vanilla Vibrant Visuals'
+default grading, used by 24 biomes, specifies `hable`.
 
 The build then checks that every referenced identifier (color grading, water, lighting, atmosphere,
 cubemap, fog) is defined somewhere in the stack or the base game.
