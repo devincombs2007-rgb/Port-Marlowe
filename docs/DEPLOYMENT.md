@@ -40,8 +40,9 @@ What the build does for the phone route:
   after importing assets and they appear.
 * **Budget check.** The texture budget table must say *fits* for tier 4 (Xbox Series X).
 
-Visuals-only bundle (October 2026): Port Marlowe: Atmosphere, Vibrant Normals, and the lighting-only repack,
-about 3 MB, using about 7 MB of the 3 GB texture budget.
+Visuals-only bundle (October 2026, Port Marlowe: Atmosphere 1.0.1 with full-detail water): Port Marlowe:
+Atmosphere, Vibrant Normals, and the lighting-only repack. About 3 MB to download, about 7 MB of the 3 GB
+texture budget.
 
 ## 2. Install the bundle on the phone
 
@@ -73,18 +74,53 @@ under Settings → **Global Resources**; they belong to the world, not the whole
 Some phones also show **Edit Realm → Resource Packs** for applying packs to the Realm directly. If yours
 does, that works too, but Replace World is the route recent guides report as reliable for custom packs.
 
-## 4. Set up the Xbox
+## 4. Set up the Xbox for the best picture
 
-1. **Settings → Video → Graphics Mode → Vibrant Visuals.** Start with the *Favor Visuals* preset. If frame
-   rate suffers, switch to *Favor Performance* or turn individual features down under **Vibrant Visuals Options**.
-2. **Render distance: 16–20 chunks.** Players report that Vibrant Visuals on Series X tops out around 24–28
-   chunks and does not hold 60 fps at Ultra with 24 chunks. The rooster chorus (96 blocks) and every other
-   effect fits inside 16 chunks.
-3. **Settings → Global Resources**: deactivate any global pack that changes blocks, entities or sounds. A
+Vibrant Visuals **is** the shader on Xbox. These settings get the most out of it on a Series X:
+
+1. **Settings → Video → Graphics Mode → Vibrant Visuals**, preset **Favor Visuals**.
+2. Expand **Vibrant Visuals Options** and max them: shadow quality, point light quality, volumetric fog
+   quality and reflections at their highest level (Ultra), bloom at 100%, upscaling **TAAU** with the
+   resolution at native/100%. These labels come from published setting guides; Mojang may word them slightly
+   differently in your version.
+3. **Render distance 16–20 chunks.** This is the main frame-rate lever. Players report that Series X
+   doesn't hold 60 fps at Ultra with 24 chunks, and distance costs far more than texture detail. Everything
+   Port Marlowe adds (water, colour, lights, the rooster chorus at up to 96 blocks) shows fully inside 16 chunks.
+4. If it stutters, lower render distance first, then reflections, then volumetric fog. Ask for the
+   `xbox_lite` bundle (lighter water) only if water is still the problem.
+5. **Settings → Global Resources**: deactivate any global pack that changes blocks, entities or sounds. A
    global pack can override the same files.
 4. **Settings → Creator → Enable Content Log GUI**, for the first session at least. On Xbox, read past
    messages from the **Profile** screen → **Content Log History** (the Ctrl+H shortcut is keyboard-only).
 5. Join the Realm and **accept the resource pack download**.
+
+### About "shaders" on Xbox
+
+Bedrock "shader packs" come in two kinds:
+
+* **Packs that replace Minecraft's own render files** (often called RenderDragon or `material.bin`
+  shaders). They need a patched game install, which a console can't have, so they never work on Xbox.
+* **Vibrant Visuals packs**: ordinary resource packs that tune lighting, sky, fog, water and colour through
+  JSON. These do work on Xbox. Port Marlowe: Atmosphere plus the Vanilla Vibrant Visuals lighting pack already
+  fill this role. Adding a second lighting or "shader" pack on top would fight them for the same biome
+  settings, so pick one look.
+
+### Optional: sharper, more realistic blocks
+
+Vibrant Normals keeps vanilla's 16-pixel textures and adds depth. For photo-real blocks, add a high-resolution
+Vibrant Visuals block pack on your phone (candidates in SOURCING.md) and stack it like this:
+
+1. Port Marlowe: Atmosphere
+2. **your high-resolution block pack**
+3. Vibrant Normals (keep it: it covers any block the high-res pack leaves out)
+4. Vanilla Vibrant Visuals: Lighting Only [Port Marlowe repack]
+
+Rules for Xbox:
+* Use the **64x or 128x** version. 256x fits the Series X memory budget (1.2 GB per pack) but makes the
+  Realm download much bigger. 512x does not fit.
+* It must say it supports **Vibrant Visuals** (`pbr`). An RTX-only pack does nothing on Xbox.
+* Check its terms allow sharing. A Realm hands the pack to every member who joins, and some paid or Patreon
+  packs forbid that.
 
 ## 5. Verify
 
@@ -129,7 +165,7 @@ Change one thing at a time, rebuild, re-upload and compare.
 
 | Symptom | Knob |
 |---|---|
-| Frame drops looking at water | `config/atmosphere_profile.json` → `water.waves.octaves` 16 → 8, or `"enabled": false` (vanilla's own setting) |
+| Frame drops looking at water | Build `--profile xbox_lite` (16 wave octaves instead of 28). If that's still too heavy, set `water.waves.enabled` to `false` in `config/atmosphere_profile.json` (vanilla's own setting). Run `pmtool bump` first so the phone accepts the new file. |
 | Frame drops at big farms | Re-import animal textures at `--max-size 256`; keep models under the 160-cube warning; fewer animals per pen |
 | Frame drops everywhere | *Favor Performance* preset; render distance 12–16 |
 | Shadows look worse than they cost | Delete `packs/pm_atmos/shadows/global.json`, which hands shadows back to the vendor's blocky style |

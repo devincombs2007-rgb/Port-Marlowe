@@ -21,9 +21,10 @@ No textures, models or audio are included. They come from the community packs an
 | | |
 |---|---|
 | Graphics mode | **Vibrant Visuals** (supported on Series X\|S). Ray tracing (RTX) is Windows-only and never appears on Xbox. |
+| Shaders | Vibrant Visuals *is* the Xbox shader. Packs that patch the game's render files can't run on consoles; Port Marlowe tunes Vibrant Visuals through data instead. |
 | Memory class | Memory Performance **Tier 4**: 1.2 GB texture budget per resource pack, 3 GB per world. The build checks both. |
 | Getting it onto the console | Consoles can't open pack files. Install the one-file bundle on your **phone**, apply it to the Realm world there, **Replace World**, then join from the Xbox. |
-| Suggested in-game settings | Vibrant Visuals on, render distance **16–20 chunks**; switch the preset to *Favor Performance* if frame rate dips |
+| Best-looking settings | Vibrant Visuals, *Favor Visuals*, every Vibrant Visuals Option at Ultra, TAAU at native resolution, render distance **16–20 chunks** (DEPLOYMENT.md §4) |
 
 ## Repository layout
 

@@ -4,7 +4,7 @@
     "name": "Port Marlowe: Fauna",
     "description": "Realistic farm animal breeds (cow, chicken, pig, sheep) with PBR materials",
     "uuid": "0a5e9ee6-7ae2-4164-b521-9a48f0815ab8",
-    "version": [1, 0, 0],
+    "version": [1, 0, 1],
     "min_engine_version": [1, 26, 50],
     "pack_scope": "world"
   },
@@ -13,16 +13,20 @@
       "description": "Client entity overrides, render controllers, geometry and texture sets",
       "type": "resources",
       "uuid": "eb3947b4-3f4f-49f9-be5d-ef041168a1d2",
-      "version": [1, 0, 0]
+      "version": [1, 0, 1]
     }
   ],
   "capabilities": [
     "pbr"
   ],
   "metadata": {
-    "authors": ["Port Marlowe"],
+    "authors": [
+      "Port Marlowe"
+    ],
     "generated_with": {
-      "pmtool": ["1.0.0"]
+      "pmtool": [
+        "1.0.0"
+      ]
     }
   }
 }

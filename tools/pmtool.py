@@ -80,7 +80,10 @@ def load_json(path: Path):
 
 def dump_json(path: Path, obj) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(obj, indent=2) + "\n", encoding="utf-8")
+    text = json.dumps(obj, indent=2)
+    # keep short number lists ([1, 0, 0], RGB colours) on one line, as hand-written Bedrock files do
+    text = re.sub(r"\[\s+(-?[\d.]+(?:,\s+-?[\d.]+){0,3})\s+\]", lambda m: "[" + re.sub(r",\s+", ", ", m.group(1)) + "]", text)
+    path.write_text(text + "\n", encoding="utf-8")
 
 
 def version_tuple(v) -> tuple:
@@ -809,6 +812,14 @@ def drop_empty_packs(stack: list, report: Report) -> list:
     return kept
 
 
+def deep_merge(base: dict, override: dict) -> dict:
+    """Return base with override applied key by key (dicts merge, everything else replaces)."""
+    out = copy.deepcopy(base)
+    for key, value in override.items():
+        out[key] = deep_merge(out[key], value) if isinstance(value, dict) and isinstance(out.get(key), dict) else value
+    return out
+
+
 def vendor_layers(stack: list, cfg: dict) -> list:
     """Vendor pack folders lowest priority first; a selected subpack overrides its pack's root."""
     layers = []
@@ -1050,7 +1061,8 @@ def cmd_build(args, cfg) -> int:
     vanilla = Vanilla(vanilla_rp)
     profile_name = args.profile
     profile = cfg["profiles"][profile_name]
-    atmos_profile = load_json(ROOT / "config" / "atmosphere_profile.json")
+    atmos_profile = deep_merge(load_json(ROOT / "config" / "atmosphere_profile.json"),
+                               profile.get("atmosphere_overrides", {}))
     out = (ROOT / "build" / profile_name).resolve()
     if out.exists():
         shutil.rmtree(out)

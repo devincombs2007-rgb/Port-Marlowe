@@ -4,11 +4,26 @@
     "name": "Xbox Series X",
     "memory_performance_tier": 4,
     "texture_budget_mb": {
-      "1": { "resource_pack": 300, "world": 750 },
-      "2": { "resource_pack": 450, "world": 1000 },
-      "3": { "resource_pack": 600, "world": 1500 },
-      "4": { "resource_pack": 1200, "world": 3000 },
-      "5": { "resource_pack": 1600, "world": 4000 }
+      "1": {
+        "resource_pack": 300,
+        "world": 750
+      },
+      "2": {
+        "resource_pack": 450,
+        "world": 1000
+      },
+      "3": {
+        "resource_pack": 600,
+        "world": 1500
+      },
+      "4": {
+        "resource_pack": 1200,
+        "world": 3000
+      },
+      "5": {
+        "resource_pack": 1600,
+        "world": 4000
+      }
     },
     "tier_platforms": {
       "1": "Nintendo Switch",
@@ -41,7 +56,9 @@
       "subpack": "a",
       "flatten_subpack": true,
       "credit": "Cubeir (github.com/vanilla-rtx/Vanilla-PBR)",
-      "credit_authors": ["Cubeir"],
+      "credit_authors": [
+        "Cubeir"
+      ],
       "license_url": "https://github.com/Cubeir/Vanilla-RTX/blob/master/LICENSE.txt",
       "url": "https://github.com/vanilla-rtx/Vanilla-PBR"
     },
@@ -49,24 +66,74 @@
   },
   "profiles": {
     "xbox": {
-      "description": "Xbox Series X: Vibrant Visuals, hand-drawn block normals + Vanilla VV lighting-only subpack",
-      "stack": ["pm_fauna", "pm_audio", "pm_atmos", "vibrant_normals", "vanilla_vibrant_visuals:b"]
+      "description": "Xbox Series X, best looking: Vibrant Visuals, hand-drawn block normals, Vanilla VV lighting, full-detail water",
+      "stack": [
+        "pm_fauna",
+        "pm_audio",
+        "pm_atmos",
+        "vibrant_normals",
+        "vanilla_vibrant_visuals:b"
+      ],
+      "atmosphere_overrides": {
+        "water": {
+          "waves": {
+            "enabled": true,
+            "octaves": 28
+          }
+        }
+      }
+    },
+    "xbox_lite": {
+      "description": "Xbox Series X, lighter water (16 wave octaves) if the full-detail profile drops frames",
+      "stack": [
+        "pm_fauna",
+        "pm_audio",
+        "pm_atmos",
+        "vibrant_normals",
+        "vanilla_vibrant_visuals:b"
+      ],
+      "atmosphere_overrides": {
+        "water": {
+          "waves": {
+            "enabled": true,
+            "octaves": 16
+          }
+        }
+      }
     },
     "vibrant": {
       "description": "Vibrant Visuals with the full Vanilla Vibrant Visuals pack (textures + lighting)",
-      "stack": ["pm_fauna", "pm_audio", "pm_atmos", "vanilla_vibrant_visuals:a"]
+      "stack": [
+        "pm_fauna",
+        "pm_audio",
+        "pm_atmos",
+        "vanilla_vibrant_visuals:a"
+      ]
     },
     "hybrid": {
       "description": "PC guests only: RTX on Windows DXR GPUs; Xbox falls back to Vibrant Visuals with RTX-tuned blocks",
-      "stack": ["pm_fauna", "pm_audio", "pm_atmos", "vanilla_rtx_opus"]
+      "stack": [
+        "pm_fauna",
+        "pm_audio",
+        "pm_atmos",
+        "vanilla_rtx_opus"
+      ]
     }
   },
   "fauna_material_mode": "mers",
   "sound_fallbacks": {
-    "pm.calf.say": { "sound": "mob.cow.say" },
-    "pm.calf.hurt": { "sound": "mob.cow.hurt" },
-    "pm.lamb.say": { "sound": "mob.sheep.say" },
-    "pm.sheep.hurt": { "sound": "mob.sheep.say" },
+    "pm.calf.say": {
+      "sound": "mob.cow.say"
+    },
+    "pm.calf.hurt": {
+      "sound": "mob.cow.hurt"
+    },
+    "pm.lamb.say": {
+      "sound": "mob.sheep.say"
+    },
+    "pm.sheep.hurt": {
+      "sound": "mob.sheep.say"
+    },
     "pm.pig.hurt": "mob.pig.say",
     "pm.chicken.plop_thud": "mob.chicken.plop"
   }

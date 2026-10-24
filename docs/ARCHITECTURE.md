@@ -23,8 +23,9 @@ Port Marlowe is built for a Realm played on an **Xbox Series X**. Every budget a
 | Texture budget | Tier 4: **1.2 GB per resource pack, 3 GB per world** (texels × 4 bytes, uncompressed) | Microsoft "Texture Budgets" | `pmtool build` fails if a pack or the world exceeds them |
 | Folder names | World pack folders must be **≤ 10 characters** because of an Xbox long-path issue | Microsoft "Create a World Template" | Enforced by the validator (`pm_fauna`, `vnd_vvn`, …) |
 | Point lights | Disabled only on Android, PS4 and Xbox One; Series X keeps them | 1.26.30 release notes | Torch-family blocks stay engine point lights (colour only changed); everything else is static light |
-| Performance | No official spec. Player reports (Mojang feedback site, 2025–2026): Vibrant Visuals render distance tops out around **24–28 chunks**, and **60 fps is not held** at Ultra + 24 chunks; water was a hotspot in preview builds. | feedback.minecraft.net threads | Waves cut from 28 to **16 octaves**; rooster logic runs only on roosters; fauna limits of **512 px** textures and **160 cubes** per model; recommended render distance **16–20 chunks** |
+| Performance | No official spec. Player reports (Mojang feedback site, 2025–2026): Vibrant Visuals render distance tops out around **24–28 chunks**, and **60 fps is not held** at Ultra + 24 chunks; water was a hotspot in preview builds. | feedback.minecraft.net threads | `xbox` keeps full-detail water (**28 wave octaves**, Mojang's documented example) because looks come first; `xbox_lite` drops to 16. Rooster logic runs only on roosters; fauna limits of **512 px** textures and **160 cubes** per model; recommended render distance **16–20 chunks** |
 | File import | Consoles cannot open `.mcworld` files. Microsoft's documented console route is to upload the world to a Realm from Windows, then join from the console. | Microsoft "Getting Started" (Realms/Console tab) | `package-world` produces a Realm-ready `.mcworld`; see [DEPLOYMENT.md](DEPLOYMENT.md) |
+| Custom shaders | Packs that replace Minecraft's render files (RenderDragon / `material.bin` shaders) need a patched install, which consoles can't have. Vibrant Visuals' JSON configuration is the only shader control on Xbox. | Assessment from how those packs install | Port Marlowe tunes Vibrant Visuals through data only |
 | Debugging | Content Log is in Settings → Creator; history is reachable from the Profile screen (the Ctrl+H shortcut is keyboard-only) | Microsoft "Content Error Log" | Verification steps use the Profile-screen history on Xbox |
 
 Engine rules that shape the packs (Microsoft documentation):
@@ -42,7 +43,8 @@ Engine rules that shape the packs (Microsoft documentation):
 
 | Profile | Vendor packs (below the Port Marlowe packs) | Use it when |
 |---|---|---|
-| `xbox` (default) | **Vibrant Normals** (hand-drawn 16x normals for every block) + **Vanilla Vibrant Visuals, subpack `b` "Lighting Only (No Textures)"**, repackaged as a standalone pack (§2) | The Realm is played on Xbox Series X. The lighting-only subpack exists so its tuned lighting, atmosphere and fog can sit under another texture pack. |
+| `xbox` (default, best looking) | **Vibrant Normals** (hand-drawn 16x normals for every block) + **Vanilla Vibrant Visuals, subpack `b` "Lighting Only (No Textures)"**, repackaged as a standalone pack (§2) | The Realm is played on Xbox Series X. The lighting-only subpack exists so its tuned lighting, atmosphere and fog can sit under another texture pack. |
+| `xbox_lite` | Same as `xbox` with 16 wave octaves | Only if water drops frames on the console |
 | `vibrant` | Vanilla Vibrant Visuals, subpack `a` (full textures + lighting) | You prefer that pack's block materials over hand-drawn normals |
 | `hybrid` | Vanilla RTX Opus (`raytraced`) | Only if PC players with RTX GPUs join. Xbox players still get Vibrant Visuals (a `raytraced` pack also activates it), but with block materials tuned for path tracing. |
 
@@ -230,7 +232,7 @@ polished and metal surfaces below ~76 if they should mirror the scene.
 
 | File | Purpose |
 |---|---|
-| `water/*.json` (format 1.26.0) | Six water bodies with particle concentrations in mg/L. Waves are **enabled** everywhere (vanilla ships them off) at **16 octaves** instead of the documented example's 28, to protect Series X frame rate. Waves on/off and caustics cannot blend between biomes, so the build stamps `water.waves` from `config/atmosphere_profile.json` into every file. Set `"enabled": false` there if water still costs too much. |
+| `water/*.json` (format 1.26.0) | Six water bodies with particle concentrations in mg/L. Waves are **enabled** everywhere (vanilla ships them off). The `xbox` profile uses **28 octaves**, as in Mojang's documented example; `xbox_lite` uses 16. Waves on/off and caustics cannot blend between biomes, so the build stamps `water.waves` (from `config/atmosphere_profile.json` plus the profile's `atmosphere_overrides`) into every file. |
 | `shadows/global.json` | `soft_shadows` |
 | `pbr/global.json` | MERS fallback for anything without a texture set |
 | `local_lighting/local_lighting.json` (1.21.120) | Colored block light. The torch, lantern, candle, end rod and redstone torch families stay `point_light` (the engine forces this); everything else is `static_light`. Every block ID was checked against vanilla `blocks.json`. |

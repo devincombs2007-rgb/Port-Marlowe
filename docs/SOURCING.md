@@ -35,7 +35,25 @@ Optional or PC-only:
 | `vendor/vanilla_rtx_opus` (`hybrid` profile, PC guests only) | **Vanilla RTX Opus** by Cubeir | **Verified**: github.com/Cubeir/Vanilla-RTX, v1.26.34, updated 22 Oct 2026 | `raytraced`, `min_engine_version` 1.26.50, UUID `7c87f859-4d79-4d51-8887-bf450b2b2bfa` | Same licence. Ray tracing never activates on Xbox; Xbox players would see its RTX-tuned materials through Vibrant Visuals. |
 | *(optional)* | PrizmaRTX by Al3xis5 | **Listed** on MCPEDL as v1.3.1 (Sept 2025), **RTX-only, so useless on Xbox**. A user comment reports breakage after 1.21.70. | Unknown | Unknown. The same author's newer **Prizma Visuals 2.0** (with Starfish Studios) is listed as a Vibrant Visuals pack; check its terms and size before trying it on Xbox. |
 | *(optional)* | Defined PBR | Java Edition LabPBR pack, not a Bedrock pack | n/a | Unknown. `pmtool convert-labpbr` converts its `_s`/`_n` maps to MERS/normal per texture, but a full port also needs a Java→Bedrock filename map. Only do this if the licence allows redistribution. |
-| n/a | "Legendary Bedrock RTX" | **Not found** | n/a | Not recommended |
+| *(optional)* | **Legendary Bedrock PBR Textures** (legendaryrttextures.com) | **Listed**: described as built for Vibrant Visuals, in HD and FHD versions, for PC, mobile and console. I couldn't open the site from the build environment. | Unknown | Unknown. Check whether it is paid and whether Realm sharing is allowed. (An earlier version of this file wrongly said this pack could not be found.) |
+
+### Higher-resolution Vibrant Visuals block packs (optional, for the most realistic blocks)
+
+These are listed as Vibrant Visuals compatible and higher resolution than Vibrant Normals. The download
+sites (CurseForge, MCPEDL, legendaryrttextures.com) are blocked from this build environment, so none of
+them is verified here. Download on your phone, read the page's terms and version, and stack the pack as
+described in DEPLOYMENT.md §4.
+
+| Pack | What the listing says |
+|---|---|
+| Optimum Realism for Bedrock [Vibrant Visuals Compatible] (CurseForge) | 64x, 690+ PBR materials, "runs on PC, console, and mobile with PBR" |
+| Legendary Bedrock PBR Textures (legendaryrttextures.com) | HD and FHD versions; Vibrant Visuals; console listed |
+| Enhanced Vibrant Visuals \| Official (CurseForge) | Heightmaps, normal maps and MER via a high-resolution subpack |
+| RealSource REALISTIC | Realistic, RTX and Vibrant Visuals support, LOW and HD versions |
+| Revolution Vibrant Visuals; PLUS for Vibrant Visuals; Immersive Visuals for Vibrant Visuals (CurseForge) | Vibrant Visuals packs; check whether they ship block textures or only lighting |
+
+Xbox rule of thumb: 64x–128x. 256x fits the 1.2 GB per-pack budget but bloats the Realm download; 512x
+does not fit. Avoid packs that only change lighting, because they compete with Port Marlowe: Atmosphere.
 
 To swap a vendor pack, add it to `vendor_packs` in `config/build.json`. Use a folder name of 10 characters
 or fewer (an Xbox requirement), then reference it from a profile's `stack`; `key:subpack` selects a
@@ -156,6 +174,9 @@ loudness, and writes mono OGG for positional slots. Run `pmtool status` for the 
 
 * Vanilla RTX repository and licence: <https://github.com/Cubeir/Vanilla-RTX>, <https://github.com/Cubeir/Vanilla-RTX/blob/master/LICENSE.txt>
 * Vanilla PBR (Vibrant Visuals) repository: <https://github.com/vanilla-rtx/Vanilla-PBR>
+* Legendary Bedrock PBR Textures: <https://legendaryrttextures.com/project/legendary-bedrock-pbr-textures/>
+* Optimum Realism for Bedrock: <https://www.curseforge.com/minecraft-bedrock/texture-packs/optimum-realism-bedrock>
+* Enhanced Vibrant Visuals: <https://www.curseforge.com/minecraft-bedrock/texture-packs/enhanced-vibrant-visuals-official>
 * PrizmaRTX listing: <https://mcpedl.com/lumenrtx/>. Prizma Visuals 2.0: <https://starfishstudios.notion.site/Prizma-Visuals-2-0-Resource-Pack-279a9a61c3f1804390d3df9fd2cb6d21>
 * Better Farm Animals (Bedrock): <https://mcpedl.com/remodeled-default/>
 * Better Animals Plus listings: <https://www.mc-mod.net/?p=381876>, <https://www.9minecraft.net/creator/mrblueyeti/>
