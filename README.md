@@ -22,7 +22,7 @@ No textures, models or audio are included. They come from the community packs an
 |---|---|
 | Graphics mode | **Vibrant Visuals** (supported on Series X\|S). Ray tracing (RTX) is Windows-only and never appears on Xbox. |
 | Memory class | Memory Performance **Tier 4**: 1.2 GB texture budget per resource pack, 3 GB per world. The build checks both. |
-| Getting the world onto the console | Consoles can't open `.mcworld` files. Upload the world to your **Realm** from a Windows PC or phone, then join from the Xbox. |
+| Getting it onto the console | Consoles can't open pack files. Install the one-file bundle on your **phone**, apply it to the Realm world there, **Replace World**, then join from the Xbox. |
 | Suggested in-game settings | Vibrant Visuals on, render distance **16–20 chunks**; switch the preset to *Favor Performance* if frame rate dips |
 
 ## Repository layout
@@ -53,10 +53,11 @@ python3 tools/pmtool.py fetch-vanilla               # Mojang bedrock-samples v1.
 python3 tools/pmtool.py status                      # every empty slot
 # …drop vendor packs into vendor/, import assets (see docs/SOURCING.md)…
 python3 tools/pmtool.py build                       # xbox profile: validate, assemble, biome remaps, budgets
-python3 tools/pmtool.py package-world --world PortMarlowe_base.mcworld --out build/PortMarlowe.mcworld
+# → build/xbox/dist/port_marlowe_xbox.mcaddon  (the one file your phone needs)
 ```
 
-Then follow [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) to upload to the Realm and verify on the Xbox.
+Then follow [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md): install on the phone, apply to the Realm world,
+Replace World, verify on the Xbox.
 
 ## Pack stack, `xbox` profile (top = highest priority)
 
@@ -66,7 +67,7 @@ Then follow [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) to upload to the Realm and 
 | 2 | `pm_audio` | Port Marlowe: Audio | `pbr` |
 | 3 | `pm_atmos` | Port Marlowe: Atmosphere | `pbr` |
 | 4 | `vnd_vvn` | Vibrant Normals: hand-drawn 16x normals for every block | `pbr` |
-| 5 | `vnd_vvv` | Vanilla Vibrant Visuals, subpack `b`: "Lighting Only (No Textures)" | `pbr` |
+| 5 | `vnd_vvv` | Vanilla Vibrant Visuals: Lighting Only, repackaged by the build as a standalone pack so no device has to pick a subpack | `pbr` |
 
 Other profiles: `vibrant` (Vanilla Vibrant Visuals with its own textures) and `hybrid` (Vanilla RTX, only
 useful if PC players with RTX GPUs also join).

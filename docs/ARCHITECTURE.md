@@ -42,7 +42,7 @@ Engine rules that shape the packs (Microsoft documentation):
 
 | Profile | Vendor packs (below the Port Marlowe packs) | Use it when |
 |---|---|---|
-| `xbox` (default) | **Vibrant Normals** (hand-drawn 16x normals for every block) + **Vanilla Vibrant Visuals, subpack `b` "Lighting Only (No Textures)"** | The Realm is played on Xbox Series X. The lighting-only subpack exists so its tuned lighting, atmosphere and fog can sit under another texture pack. |
+| `xbox` (default) | **Vibrant Normals** (hand-drawn 16x normals for every block) + **Vanilla Vibrant Visuals, subpack `b` "Lighting Only (No Textures)"**, repackaged as a standalone pack (§2) | The Realm is played on Xbox Series X. The lighting-only subpack exists so its tuned lighting, atmosphere and fog can sit under another texture pack. |
 | `vibrant` | Vanilla Vibrant Visuals, subpack `a` (full textures + lighting) | You prefer that pack's block materials over hand-drawn normals |
 | `hybrid` | Vanilla RTX Opus (`raytraced`) | Only if PC players with RTX GPUs join. Xbox players still get Vibrant Visuals (a `raytraced` pack also activates it), but with block materials tuned for path tracing. |
 
@@ -90,7 +90,7 @@ PortMarlowe.mcworld  (zip)
     │   ├── color_grading/pm_vivid_*.json                       ← generated (vanilla + vendor gradings)
     │   └── biomes/*.client_biome.json                          ← generated (89)
     ├── vnd_vvn/                      Vibrant Normals, unmodified
-    └── vnd_vvv/                      Vanilla Vibrant Visuals, unmodified (subpack b selected)
+    └── vnd_vvv/                      Vanilla Vibrant Visuals lighting-only, repackaged (see below)
 ```
 
 ### `world_resource_packs.json` (xbox profile)
@@ -101,14 +101,18 @@ PortMarlowe.mcworld  (zip)
   { "pack_id": "6d71cbe3-2a5e-4844-9287-17ed7b7fd418", "version": [1, 0, 0] },
   { "pack_id": "ea16a581-64ac-4c59-aa92-8508cea57b57", "version": [1, 0, 0] },
   { "pack_id": "ee5958bc-0f43-4e12-94a9-c948a19d78af", "version": [1, 0, 0] },
-  { "pack_id": "a9c70898-4c7a-4dfd-aa57-a8f2f8764c57", "version": [3, 3, 0], "subpack": "b" }
+  { "pack_id": "1fbec0df-9e26-54fa-9baa-b29a85c77a1a", "version": [3, 3, 0] }
 ]
 ```
 
-The last two entries are Vibrant Normals 1.0.0 and Vanilla Vibrant Visuals 3.3.0 as published in the
-vanilla-rtx/Vanilla-PBR repository (Oct 2026). The build reads vendor UUIDs, versions and declared subpacks
-from each vendor manifest, so this file always matches what you dropped in, and it fails if a profile asks
-for a subpack the manifest does not declare.
+The last two entries are Vibrant Normals 1.0.0 (unchanged) and the lighting-only repack of Vanilla Vibrant
+Visuals 3.3.0. Vanilla Vibrant Visuals declares two subpacks with the same `memory_tier`. Microsoft documents
+that a device then picks the **last one listed**, which is the full-texture subpack, not the lighting-only one
+this stack needs. With `flatten_subpack`, the build merges the chosen subpack into the pack root, removes the
+subpack list, and derives new deterministic UUIDs (`uuid5` of the original UUID plus subpack). The repack is
+named *[Port Marlowe repack]* and credits Cubeir, as the Vanilla RTX licence asks of modified copies. Other
+vendor UUIDs and versions are read from their manifests, and the build fails if a profile asks for a subpack
+the manifest doesn't declare.
 
 ### Manifest (`packs/pm_fauna/manifest.json`)
 

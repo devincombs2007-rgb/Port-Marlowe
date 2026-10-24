@@ -35,7 +35,16 @@
   },
   "vendor_packs": {
     "vibrant_normals": { "source": "vendor/vibrant_normals", "folder": "vnd_vvn" },
-    "vanilla_vibrant_visuals": { "source": "vendor/vanilla_vibrant_visuals", "folder": "vnd_vvv", "subpack": "a" },
+    "vanilla_vibrant_visuals": {
+      "source": "vendor/vanilla_vibrant_visuals",
+      "folder": "vnd_vvv",
+      "subpack": "a",
+      "flatten_subpack": true,
+      "credit": "Cubeir (github.com/vanilla-rtx/Vanilla-PBR)",
+      "credit_authors": ["Cubeir"],
+      "license_url": "https://github.com/Cubeir/Vanilla-RTX/blob/master/LICENSE.txt",
+      "url": "https://github.com/vanilla-rtx/Vanilla-PBR"
+    },
     "vanilla_rtx_opus": { "source": "vendor/vanilla_rtx_opus", "folder": "vnd_vrtx" }
   },
   "profiles": {

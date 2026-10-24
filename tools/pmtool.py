@@ -22,6 +22,7 @@ import signal
 import subprocess
 import sys
 import tempfile
+import uuid
 import zipfile
 from pathlib import Path
 
@@ -753,6 +754,61 @@ def convert_fauna_to_mer(pack: Path, report: Report) -> None:
     report.info("fauna: texture sets converted to MER (format 1.16.100) for RTX-first Realms")
 
 
+def flatten_subpack(pack: Path, subpack: str, spec: dict) -> None:
+    """Merge one subpack into the pack root and give the result its own identity.
+
+    When subpacks tie on memory tier, the device picks the last one listed, so a world cannot rely on
+    the player (or the Realm) choosing the intended one. The repack carries new deterministic UUIDs so
+    it never collides with the original release, and credits the original author.
+    """
+    manifest = load_json(pack / "manifest.json")
+    chosen = next(s for s in manifest["subpacks"] if s.get("folder_name") == subpack)
+    sub_dir = pack / "subpacks" / subpack
+    for f in sorted(sub_dir.rglob("*")):
+        if f.is_file() and not f.name.startswith("__"):
+            target = pack / f.relative_to(sub_dir)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(f, target)
+    shutil.rmtree(pack / "subpacks")
+    header = manifest["header"]
+    original = f"{header['name']} {'.'.join(map(str, header['version']))}"
+    seed = f"port-marlowe:repack:{header['uuid']}:{subpack}"
+    header["uuid"] = str(uuid.uuid5(uuid.NAMESPACE_URL, seed))
+    for i, mod in enumerate(manifest.get("modules", [])):
+        mod["uuid"] = str(uuid.uuid5(uuid.NAMESPACE_URL, f"{seed}:module:{i}"))
+    header["name"] = f"{header['name']}: {chosen.get('name', subpack)} [Port Marlowe repack]"
+    header["description"] = (f"Unofficial repack of {original} ({chosen.get('name', subpack)}) for Port Marlowe. "
+                             f"Original by {spec.get('credit', 'its author')}.")
+    del manifest["subpacks"]
+    meta = manifest.setdefault("metadata", {})
+    if spec.get("credit_authors"):
+        meta.setdefault("authors", spec["credit_authors"])
+    if spec.get("license_url"):
+        meta.setdefault("license", spec["license_url"])
+    if spec.get("url"):
+        meta.setdefault("url", spec["url"])
+    dump_json(pack / "manifest.json", manifest)
+
+
+def drop_empty_packs(stack: list, report: Report) -> list:
+    """Leave out first-party packs that would ship nothing, so players only see packs that do something."""
+    kept = []
+    for key, folder, path, subpack in stack:
+        empty = False
+        if key == "pm_fauna":
+            empty = not any((path / "entity").glob("*.json"))
+        elif key == "pm_audio":
+            defs = load_json(path / "sounds" / "sound_definitions.json")["sound_definitions"]
+            sounds = load_json(path / "sounds.json")
+            empty = not defs and not (sounds.get("entity_sounds", {}).get("entities"))
+        if empty:
+            report.warn(f"{folder}: nothing to ship yet (no assets imported); left out of this build")
+            shutil.rmtree(path)
+        else:
+            kept.append((key, folder, path, subpack))
+    return kept
+
+
 def vendor_layers(stack: list, cfg: dict) -> list:
     """Vendor pack folders lowest priority first; a selected subpack overrides its pack's root."""
     layers = []
@@ -1023,6 +1079,11 @@ def cmd_build(args, cfg) -> int:
             declared = [s.get("folder_name") for s in load_json(dest / "manifest.json").get("subpacks", [])]
             if subpack and subpack not in declared:
                 report.error(f"vendor/{key}: subpack '{subpack}' is not declared in its manifest ({declared})")
+            elif subpack and spec.get("flatten_subpack"):
+                flatten_subpack(dest, subpack, spec)
+                Report.info(f"vendor/{key}: subpack '{subpack}' repackaged as a standalone pack (no subpack choice "
+                            f"left to the device)")
+                subpack = None
             stack.append((key, spec["folder"], dest, subpack))
         else:
             report.error(f"profile stack entry '{entry}' is not defined in config/build.json")
@@ -1041,6 +1102,8 @@ def cmd_build(args, cfg) -> int:
     if "pm_fauna" in keys and "pm.chicken.rooster_crow" not in live_sounds:
         strip_rooster(keys["pm_fauna"])
         report.warn("audio: no rooster crow recordings; dawn crow controller removed from the chicken")
+    stack = drop_empty_packs(stack, report)
+    keys = {k: p for k, _, p, _ in stack}
     print("\n[atmosphere]")
     if "pm_atmos" in keys:
         atmos = keys["pm_atmos"]

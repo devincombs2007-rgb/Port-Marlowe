@@ -23,7 +23,7 @@ Xbox Series X stack (`xbox` profile, the default):
 | Folder | Pack | Status | Capability / version | Licence summary |
 |---|---|---|---|---|
 | `vendor/vibrant_normals` | **Vibrant Normals**: Vibrant Visuals conversion of Vanilla RTX Normals, hand-drawn 16x normal maps for every vanilla block (1,111 texture sets) | **Verified**: github.com/vanilla-rtx/Vanilla-PBR, updated 15 Oct 2026 | `pbr`, v1.0.0, UUID `ee5958bc-0f43-4e12-94a9-c948a19d78af` | "Default Vanilla RTX License Applies": free; redistribution in maps, servers and Realms allowed with clear credit and the licence file or a link to it; non-commercial. **Copy `LICENSE.txt` into the vendor folder.** |
-| `vendor/vanilla_vibrant_visuals` | **Vanilla Vibrant Visuals**, used with subpack **`b` "Lighting Only (No Textures)"**: the author's tuned lighting, atmospherics, fog and biome mapping, designed to sit under another texture pack | **Verified** (same repo) | `pbr`, v3.3.0, UUID `a9c70898-4c7a-4dfd-aa57-a8f2f8764c57`, subpacks `a` (full) and `b` (lighting only) | Same licence |
+| `vendor/vanilla_vibrant_visuals` | **Vanilla Vibrant Visuals**, used as subpack **`b` "Lighting Only (No Textures)"**: the author's tuned lighting, atmospherics, fog and biome mapping, designed to sit under another texture pack. The build repackages that subpack as a standalone pack with its own UUID and credit, so no device picks the wrong subpack. | **Verified** (same repo) | `pbr`, v3.3.0, UUID `a9c70898-4c7a-4dfd-aa57-a8f2f8764c57`, subpacks `a` (full) and `b` (lighting only) | Same licence |
 
 Measured in a real build: the two vendor packs in the `xbox` stack use about 7 MB of the 3 GB tier-4 texture
 budget. The `vibrant` profile (subpack `a`, with textures) uses about 35 MB.

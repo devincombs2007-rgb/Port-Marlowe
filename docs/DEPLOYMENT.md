@@ -3,85 +3,77 @@
 Goal: a Realm that plays on an **Xbox Series X** with Vibrant Visuals, realistic animals and field-recorded
 audio, with no pack-sync failures.
 
+**The route:** build the packs → install them on your **phone** → apply them to a phone copy of the Realm
+world → **Replace World** from the phone → play on the Xbox. The Xbox never has to open a file: it downloads
+the packs from the Realm when you join.
+
 ## 0. What you need
 
 | Item | Why |
 |---|---|
 | Xbox Series X with Minecraft Bedrock **1.26.50 or newer**, and a **Realms** subscription you own | The console plays the world from the Realm |
-| A **bridge device** with Minecraft Bedrock, signed in to the same Microsoft account as the Realm owner: a Windows 10/11 PC (Microsoft's documented console route), or an Android/iOS phone or tablet (these also open `.mcworld` files and have the same Realm settings) | **Consoles cannot open `.mcworld` files.** The bridge device imports the world and uploads it to the Realm. Bedrock on PC or phone is a separate purchase from the Xbox copy. |
-| Any computer with Python 3.9+, `pip install Pillow`, `ffmpeg` with libvorbis (audio import), `git` | Runs `pmtool`. It does not need Minecraft. |
+| An Android or iPhone with **Minecraft Bedrock**, signed in to the **same Microsoft account** as the Realm owner | **Consoles cannot open pack or world files.** The phone imports the packs and uploads the world to the Realm. |
+| Somewhere to run `pmtool` (Python 3.9+, Pillow, ffmpeg) | Builds the packs. No computer? This Claude Code session can run the build and send the finished `.mcaddon` straight to your phone. |
 
-There is an unofficial Xbox-only route: the third-party **MC Addons Manager** app from the Xbox Store, plus
-the Edge browser to download the file. The guides for it date from 2020–2021 and I could not confirm it
-still works, so the Realm route below is the supported one.
-
-## 1. Assemble the packs
+## 1. Build the phone bundle
 
 ```bash
-python3 tools/pmtool.py fetch-vanilla                    # Mojang bedrock-samples v1.26.50.4 into .cache/
-
-# vendor packs for the xbox profile (see SOURCING.md); manifest.json must sit at each folder's root
-#   vendor/vibrant_normals/          ← Vibrant Normals
-#   vendor/vanilla_vibrant_visuals/  ← Vanilla Vibrant Visuals (the build selects its lighting-only subpack "b")
-# copy the Vanilla RTX licence file into both folders
-
-# fauna: one call per slot (pmtool status prints every slot). Textures are capped at 512 px for Xbox.
-python3 tools/pmtool.py import-model   --species cow --slot temperate --src ~/models/holstein.geo.json
-python3 tools/pmtool.py import-texture --species cow --slot holstein \
-        --albedo holstein.png --mers holstein_mers.png --normal holstein_n.png --max-size 256
-# audio: whole folders map onto numbered takes
-python3 tools/pmtool.py convert-audio --slot chicken/rooster_crow --src ~/recordings/rooster/
-python3 tools/pmtool.py convert-audio --slot ambient/grassland_loop --src meadow_loop.wav --lufs -23
-
-python3 tools/pmtool.py status                           # what is still missing
-python3 tools/pmtool.py build                            # xbox profile; must end with "0 error(s)"
+python3 tools/pmtool.py fetch-vanilla      # Mojang bedrock-samples v1.26.50.4 into .cache/
+# vendor/vibrant_normals/ and vendor/vanilla_vibrant_visuals/ hold the two block packs (see SOURCING.md)
+python3 tools/pmtool.py status             # which animal/audio slots are still empty
+python3 tools/pmtool.py build              # xbox profile; must end with "0 error(s)"
 ```
 
-The build prints a **texture budget** table. The world must fit tier 4 (Xbox Series X, PS5): 3 GB per
-world, 1.2 GB per pack. It also shows whether a Series S (tier 3) guest would fit.
+The file to put on the phone is **`build/xbox/dist/port_marlowe_xbox.mcaddon`**. One file installs every pack
+in the stack.
 
-Missing assets are not fatal. An incomplete species is left vanilla, and a missing sound keeps the vanilla
-sound. The build log lists each fallback.
+What the build does for the phone route:
 
-## 2. Get the base world onto the bridge device
+* **Lighting-only repack.** Vanilla Vibrant Visuals offers two subpacks with the same memory tier. Microsoft
+  documents that a device picks the *last* subpack listed when tiers tie, which in this pack is the
+  full-texture one, not the lighting-only one this stack needs. The build therefore merges the lighting-only
+  subpack into a standalone pack, *Vanilla Vibrant Visuals: Lighting Only (No Textures) [Port Marlowe repack]*.
+  It has its own UUID, credits Cubeir, and includes the licence, as the Vanilla RTX licence asks of
+  modified copies. There is no subpack setting for you to get wrong on the phone or the Xbox.
+* **No empty packs.** Until animal models or recordings are imported, Port Marlowe: Fauna and Port
+  Marlowe: Audio are left out of the bundle, so you only install packs that do something. Re-run the build
+  after importing assets and they appear.
+* **Budget check.** The texture budget table must say *fits* for tier 4 (Xbox Series X).
 
-**If the Realm already holds the world you play in** (keep your builds and progress):
+Visuals-only bundle (October 2026): Port Marlowe: Atmosphere, Vibrant Normals, and the lighting-only repack,
+about 3 MB, using about 7 MB of the 3 GB texture budget.
 
-1. On the bridge device: Realms → **Edit Realm** (pencil) → **Download World**. This is also your backup.
-2. Edit World on the downloaded copy → **Export World** → `PortMarlowe_base.mcworld`.
+## 2. Install the bundle on the phone
 
-**If you are starting fresh:**
+* **Android:** save the `.mcaddon` to internal storage (Downloads). Open it from the **Files** app →
+  **Open with Minecraft**. If the download was renamed to `.zip`, rename it back to `.mcaddon` first.
+* **iPhone:** save it to the **Files** app, tap it, then **Share → Minecraft** (or *Open in Minecraft*).
 
-1. On the bridge device: **Create New World** with the seed and rules you want, and **every Experiment off**.
-   Port Marlowe needs none, and experiments limit Realm options.
-2. Don't add resource packs; the pipeline injects them. Let spawn generate, exit, then **Export World**.
+Minecraft shows one "Import started / successfully imported" message per pack. Don't switch the packs on
+under Settings → **Global Resources**; they belong to the world, not the whole game.
 
-## 3. Inject the stack and package
+## 3. Apply the packs to the Realm world (on the phone)
 
-```bash
-python3 tools/pmtool.py package-world --world PortMarlowe_base.mcworld --out build/PortMarlowe.mcworld
-```
+1. Make sure nobody is playing on the Realm, so no progress is lost.
+2. **Realms → Edit Realm (pencil) → Download World.** This gives you a local copy and a backup.
+3. **Play → Worlds →** pencil on the downloaded copy → **Resource Packs → Available/My Packs**: activate the
+   Port Marlowe packs, then use the arrows so **Active** reads, top to bottom:
+   1. Port Marlowe: Fauna *(once animal assets exist)*
+   2. Port Marlowe: Audio *(once recordings exist)*
+   3. Port Marlowe: Atmosphere
+   4. Vibrant Normals
+   5. Vanilla Vibrant Visuals: Lighting Only (No Textures) [Port Marlowe repack]
+4. Leave **Experiments off**. Port Marlowe needs none.
+5. Optional check: **Settings → Creator → Enable Content Log GUI**, open the world once on the phone, and
+   confirm there are no errors mentioning `pm_`, `texture_set`, `geometry.pm` or `sound`. The phone may
+   not run Vibrant Visuals itself; that's fine, the Xbox does.
+6. Back out, then **Realms → Edit Realm → Replace World** → pick that world → confirm. The phone uploads
+   the world **with** its resource packs.
 
-`package-world` re-roots the archive if `level.dat` was nested inside a folder. It copies every pack into
-`resource_packs/<folder ≤10 chars>/` (an Xbox path requirement), writes `world_resource_packs.json` in
-priority order (with `"subpack": "b"` for Vanilla Vibrant Visuals), and checks that every listed pack and
-version is physically inside the world. If any check fails it writes nothing. `--drop-unknown` removes stale
-entries for packs that aren't in the world.
+Some phones also show **Edit Realm → Resource Packs** for applying packs to the Realm directly. If yours
+does, that works too, but Replace World is the route recent guides report as reliable for custom packs.
 
-## 4. Check on the bridge device, then upload
-
-1. Open `build/PortMarlowe.mcworld` with Minecraft on the bridge device (double-click on Windows, "Open with
-   Minecraft" on a phone).
-2. **Edit World → Resource Packs → Active** should read, top to bottom: Port Marlowe: Fauna, Port Marlowe:
-   Audio, Port Marlowe: Atmosphere, Vibrant Normals, Vanilla Vibrant Visuals (Lighting Only).
-3. **Settings → Creator**: enable the Content Log GUI and load the world once. There should be no errors
-   mentioning `pm_`, `texture_set`, `geometry.pm`, `controller.render.pm` or `sound`.
-4. Optional but worthwhile: run the command-based checks in §6.2 here. Cheats in this local copy don't
-   touch the Realm.
-5. Realms → **Edit Realm** → **Replace World** → choose the Port Marlowe world. Bedrock uploads it with its
-   `resource_packs/`.
-
-## 5. Set up the Xbox
+## 4. Set up the Xbox
 
 1. **Settings → Video → Graphics Mode → Vibrant Visuals.** Start with the *Favor Visuals* preset. If frame
    rate suffers, switch to *Favor Performance* or turn individual features down under **Vibrant Visuals Options**.
@@ -94,9 +86,11 @@ entries for packs that aren't in the world.
    messages from the **Profile** screen → **Content Log History** (the Ctrl+H shortcut is keyboard-only).
 5. Join the Realm and **accept the resource pack download**.
 
-## 6. Verify
+## 5. Verify
 
-### 6.1 On the Xbox, no cheats needed
+### 5.1 On the Xbox, no cheats needed
+
+The animal and audio checks apply once Port Marlowe: Fauna and Port Marlowe: Audio are in the bundle.
 
 * [ ] Content Log History shows no errors from the Port Marlowe packs
 * [ ] **Water**: moving waves and caustics on the bed. Rivers look silty, swamps tea-brown, warm oceans turquoise.
@@ -115,12 +109,12 @@ entries for packs that aren't in the world.
       stay awake and watch the sky lighten before sunrise.
 * [ ] **Audio**: turn on Settings → Accessibility → Subtitles. Walk away from a cow: its moo is full volume
       within 4 blocks and fades out by 48.
-* [ ] **Frame rate** holds at the farm, by water, and in a forest at sunset. If not, see §7.
+* [ ] **Frame rate** holds at the farm, by water, and in a forest at sunset. If not, see §6.
 
-### 6.2 Command checks (bridge-device copy, or a Realm with cheats on)
+### 5.2 Command checks (phone copy, or a Realm with cheats on)
 
-Enabling cheats on the Realm permanently disables achievements for that world, so run these on the local
-copy from §4 unless you don't mind.
+Enabling cheats on the Realm permanently disables achievements for that world, so run these on the phone's
+local copy from §3 unless you don't mind.
 
 | Test | Command | Expected |
 |---|---|---|
@@ -129,7 +123,7 @@ copy from §4 unless you don't mind.
 | Dawn window | `/gamerule dodaylightcycle true`, `/time set 22800` | Crows begin within about two minutes of game time |
 | Normal-map direction | `/time set 23500` (low sun); look at a ridged hide from the sun side | Ridges are lit on the sun-facing side. If they're lit on the far side, re-import with `--flip-normal-green`. |
 
-## 7. Performance tuning for Series X
+## 6. Performance tuning for Series X
 
 Change one thing at a time, rebuild, re-upload and compare.
 
@@ -141,7 +135,7 @@ Change one thing at a time, rebuild, re-upload and compare.
 | Shadows look worse than they cost | Delete `packs/pm_atmos/shadows/global.json`, which hands shadows back to the vendor's blocky style |
 | Colors too strong | Lower the `saturation_scale` / `contrast_scale` values in `config/atmosphere_profile.json` |
 
-## 8. Updating later
+## 7. Updating later
 
 Clients, including the Xbox, cache packs by **UUID + version**. Changing files without bumping the version
 leaves players on the stale copy or fails the sync.
@@ -151,19 +145,26 @@ python3 tools/pmtool.py bump          # patch +1 on every first-party pack (head
 python3 tools/pmtool.py build
 ```
 
-Then **download the current Realm world first** (§2) so you keep everything built since the last upload. Run
-`package-world` on that fresh export and Replace World again.
+Then, on the phone:
 
-## 9. Troubleshooting
+1. Import the new `port_marlowe_xbox.mcaddon`. A higher version replaces the old one.
+2. **Download the current Realm world** again (§3, step 2) so you keep everything built since the last upload.
+3. Edit World → Resource Packs: deactivate the Port Marlowe packs, activate them again (now the new
+   version), and check the order.
+4. **Replace World**.
+
+## 8. Troubleshooting
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| Xbox stuck at "Downloading resource packs", or the sync fails | `world_resource_packs.json` lists a UUID or version that isn't inside `resource_packs/` | Re-run `package-world`; it refuses to write such a world |
+| Xbox stuck at "Downloading resource packs", or the sync fails | The world lists a pack version that wasn't uploaded with it | On the phone: deactivate and reactivate the packs in Edit World, then Replace World again |
+| Tapping the `.mcaddon` on Android does nothing or opens a zip viewer | The download was renamed to `.zip`, or it was saved to an SD card Minecraft can't read | Rename to `.mcaddon`, move it to internal Downloads, open with Minecraft |
+| "Duplicate pack" or the import is skipped on the phone | Same UUID and version already installed | `pmtool bump`, rebuild, import again |
 | Packs missing on Xbox only | Pack folder name longer than 10 characters | Folder names come from `config/build.json`; the validator enforces the limit |
 | Xbox still shows the old version | Version not bumped | `pmtool bump`, rebuild, replace |
 | No Vibrant Visuals option | Graphics Mode setting, or a non-PBR global pack active | Check Settings → Video; deactivate non-PBR global packs (every Port Marlowe and vendor pack declares `pbr`) |
 | Looking for Ray Tracing on Xbox | Not supported on consoles | Expected. Vibrant Visuals is the Xbox pipeline. |
-| Lighting looks like plain vanilla Vibrant Visuals | Vanilla Vibrant Visuals missing from `vendor/`, or subpack `b` not selected | The build warns when a vendor pack is missing; check the stack in Edit World |
+| Lighting looks like plain vanilla Vibrant Visuals | The lighting-only repack is not active, or sits above Port Marlowe: Atmosphere | Fix the order in Edit World (§3) and Replace World |
 | Animals look vanilla | Species skipped at build because a slot was missing, or a global pack overrides the entity | Read the build log and `pmtool status`; remove conflicting packs |
 | Invisible or mangled animal | Missing bones or a bad geometry identifier | Build errors name the bone; re-import with `import-model` |
 | Silent animal | Definition pruned and fallback missing | The build log lists pruned definitions; add files or a `sound_fallbacks` entry |
@@ -177,3 +178,17 @@ tuned for path tracing rather than for Vibrant Visuals. The `xbox` profile is th
 Realm. If you do use `hybrid` and ray tracing won't activate on the PC, Vanilla RTX documents a workaround
 for MCPE-191513 and MCPE-121850. In the main menu, turn on *Allow In-Game Graphics Mode Switching*, join a
 world, enable Ray Tracing, exit to the menu and rejoin.
+
+## Appendix: `.mcworld` route (needs a computer)
+
+If you later have a computer, `pmtool package-world` can bake the packs into an exported world instead of
+activating them by hand on the phone:
+
+```bash
+python3 tools/pmtool.py package-world --world PortMarlowe_base.mcworld --out build/PortMarlowe.mcworld
+```
+
+It re-roots archives where `level.dat` sits inside a folder, copies the packs into `resource_packs/`
+(folder names ≤ 10 characters, an Xbox requirement), writes `world_resource_packs.json` in priority order,
+and refuses to write a world that lists a pack it doesn't contain. Open the result on the phone, then Replace
+World as in §3.
