@@ -1,0 +1,53 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "minecraft:pig",
+      "min_engine_version": "1.8.0",
+      "materials": {
+        "default": "pig_v3"
+      },
+      "textures": {
+        "temperate": "textures/entity/pm/pig/large_white",
+        "warm": "textures/entity/pm/pig/duroc",
+        "cold": "textures/entity/pm/pig/mangalica",
+        "baby_temperate": "textures/entity/pm/pig/piglet_temperate",
+        "baby_warm": "textures/entity/pm/pig/piglet_warm",
+        "baby_cold": "textures/entity/pm/pig/piglet_cold",
+        "saddle": "textures/entity/pm/pig/saddle"
+      },
+      "geometry": {
+        "default": "geometry.pm.pig.adult",
+        "baby": "geometry.pm.pig.baby"
+      },
+      "animations": {
+        "setup": "animation.pig.setup",
+        "walk": "animation.quadruped.walk",
+        "look_at_target": "animation.common.look_at_target"
+      },
+      "scripts": {
+        "pre_animation": [
+          "t.climate = query.property('minecraft:climate_variant');",
+          "v.climate = (t.climate == 'warm') ? 1 : ((t.climate == 'cold') ? 2 : 0);",
+          "t.voice = query.property('minecraft:sound_variant');",
+          "v.size = (t.voice == 'big') ? 1.08 : ((t.voice == 'mini') ? 0.9 : 1.0);"
+        ],
+        "animate": [
+          "setup",
+          {
+            "walk": "query.modified_move_speed"
+          },
+          "look_at_target"
+        ],
+        "scale": "query.is_baby ? 2.0 : v.size"
+      },
+      "render_controllers": [
+        "controller.render.saddle",
+        "controller.render.pm.pig"
+      ],
+      "spawn_egg": {
+        "texture": "spawn_egg_pig"
+      }
+    }
+  }
+}

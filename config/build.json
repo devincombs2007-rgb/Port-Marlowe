@@ -1,0 +1,42 @@
+{
+  "target_engine_version": [1, 26, 50],
+  "vanilla_samples": {
+    "url": "https://github.com/Mojang/bedrock-samples",
+    "ref": "v1.26.50.4",
+    "path": ".cache/bedrock-samples"
+  },
+  "packs": {
+    "pm_fauna": { "source": "packs/pm_fauna", "assets": "assets/pm_fauna", "folder": "pm_fauna" },
+    "pm_audio": { "source": "packs/pm_audio", "assets": "assets/pm_audio", "folder": "pm_audio" },
+    "pm_atmos": { "source": "packs/pm_atmos", "assets": "assets/pm_atmos", "folder": "pm_atmos" }
+  },
+  "vendor_packs": {
+    "vanilla_rtx_opus": { "source": "vendor/vanilla_rtx_opus", "folder": "vnd_vrtx" },
+    "vanilla_rtx_normals": { "source": "vendor/vanilla_rtx_normals", "folder": "vnd_vrtxn" },
+    "vanilla_vibrant_visuals": { "source": "vendor/vanilla_vibrant_visuals", "folder": "vnd_vvv", "subpack": "a" },
+    "vibrant_normals": { "source": "vendor/vibrant_normals", "folder": "vnd_vvn" }
+  },
+  "profiles": {
+    "hybrid": {
+      "description": "RTX on capable Windows PCs, Vibrant Visuals everywhere else",
+      "stack": ["pm_fauna", "pm_audio", "pm_atmos", "vanilla_rtx_opus"]
+    },
+    "vibrant": {
+      "description": "Vibrant Visuals only, tuned for mobile/console-heavy Realms",
+      "stack": ["pm_fauna", "pm_audio", "pm_atmos", "vanilla_vibrant_visuals"]
+    },
+    "vibrant_normals": {
+      "description": "Vibrant Visuals with hand-drawn 16x normal maps on every vanilla block",
+      "stack": ["pm_fauna", "pm_audio", "pm_atmos", "vibrant_normals"]
+    }
+  },
+  "fauna_material_mode": "mers",
+  "sound_fallbacks": {
+    "pm.calf.say": { "sound": "mob.cow.say" },
+    "pm.calf.hurt": { "sound": "mob.cow.hurt" },
+    "pm.lamb.say": { "sound": "mob.sheep.say" },
+    "pm.sheep.hurt": { "sound": "mob.sheep.say" },
+    "pm.pig.hurt": "mob.pig.say",
+    "pm.chicken.plop_thud": "mob.chicken.plop"
+  }
+}

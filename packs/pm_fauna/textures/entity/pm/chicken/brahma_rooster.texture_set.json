@@ -1,0 +1,8 @@
+{
+  "format_version": "1.21.30",
+  "minecraft:texture_set": {
+    "color": "brahma_rooster",
+    "metalness_emissive_roughness_subsurface": "brahma_rooster_mers",
+    "normal": "brahma_rooster_normal"
+  }
+}

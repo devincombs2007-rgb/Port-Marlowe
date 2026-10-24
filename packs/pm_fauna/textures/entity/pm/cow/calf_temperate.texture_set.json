@@ -1,0 +1,8 @@
+{
+  "format_version": "1.21.30",
+  "minecraft:texture_set": {
+    "color": "calf_temperate",
+    "metalness_emissive_roughness_subsurface": "calf_temperate_mers",
+    "normal": "calf_temperate_normal"
+  }
+}

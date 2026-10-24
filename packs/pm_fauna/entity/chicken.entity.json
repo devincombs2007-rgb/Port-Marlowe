@@ -1,0 +1,70 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "minecraft:chicken",
+      "min_engine_version": "1.12.0",
+      "materials": {
+        "default": "chicken",
+        "legs": "chicken_legs",
+        "cold": "chicken_cold"
+      },
+      "textures": {
+        "temperate_hen": "textures/entity/pm/chicken/leghorn_hen",
+        "temperate_rooster": "textures/entity/pm/chicken/leghorn_rooster",
+        "warm_hen": "textures/entity/pm/chicken/rhode_island_red_hen",
+        "warm_rooster": "textures/entity/pm/chicken/rhode_island_red_rooster",
+        "cold_hen": "textures/entity/pm/chicken/brahma_hen",
+        "cold_rooster": "textures/entity/pm/chicken/brahma_rooster",
+        "baby_temperate": "textures/entity/pm/chicken/chick_temperate",
+        "baby_warm": "textures/entity/pm/chicken/chick_warm",
+        "baby_cold": "textures/entity/pm/chicken/chick_cold"
+      },
+      "geometry": {
+        "hen": "geometry.pm.chicken.hen",
+        "hen_cold": "geometry.pm.chicken.hen_cold",
+        "rooster": "geometry.pm.chicken.rooster",
+        "rooster_cold": "geometry.pm.chicken.rooster_cold",
+        "baby": "geometry.pm.chicken.baby"
+      },
+      "animations": {
+        "move": "animation.chicken.move",
+        "general": "animation.chicken.general",
+        "look_at_target": "animation.common.look_at_target",
+        "rooster_tick": "animation.pm.chicken.rooster_tick",
+        "rooster_crow": "animation.pm.chicken.rooster_crow",
+        "rooster_rest": "animation.pm.chicken.rooster_rest",
+        "rooster_controller": "controller.animation.pm.chicken.rooster"
+      },
+      "scripts": {
+        "pre_animation": [
+          "t.climate = query.property('minecraft:climate_variant');",
+          "v.climate = (t.climate == 'warm') ? 1 : ((t.climate == 'cold') ? 2 : 0);",
+          "v.is_rooster = !query.is_baby && query.property('minecraft:sound_variant') == 'picky';",
+          "t.tod = query.time_of_day;",
+          "v.is_dawn = t.tod > 0.2 && t.tod < 0.3;",
+          "v.is_day = t.tod >= 0.3 && t.tod < 0.7;"
+        ],
+        "animate": [
+          "general",
+          {
+            "move": "query.modified_move_speed"
+          },
+          "look_at_target",
+          "rooster_controller"
+        ],
+        "scale": "query.is_baby ? 2.0 : 1.0",
+        "should_update_effects_offscreen": "1.0"
+      },
+      "sound_effects": {
+        "crow": "pm.chicken.rooster_crow"
+      },
+      "render_controllers": [
+        "controller.render.pm.chicken"
+      ],
+      "spawn_egg": {
+        "texture": "spawn_egg_chicken"
+      }
+    }
+  }
+}

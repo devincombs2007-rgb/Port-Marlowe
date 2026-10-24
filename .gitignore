@@ -1,0 +1,21 @@
+# Build output and the vanilla reference cache
+/build/
+/.cache/
+
+# Third-party packs and sourced assets carry their own licences; keep them out of git by default.
+/vendor/*
+!/vendor/README.md
+/assets/**/*.png
+/assets/**/*.tga
+/assets/**/*.jpg
+/assets/**/*.jpeg
+/assets/**/*.ogg
+/assets/**/*.wav
+/assets/**/*.json
+!/assets/README.md
+
+*.mcworld
+*.mcpack
+*.mcaddon
+__pycache__/
+.DS_Store

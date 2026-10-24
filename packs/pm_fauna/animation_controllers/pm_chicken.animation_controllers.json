@@ -1,0 +1,46 @@
+{
+  "format_version": "1.10.0",
+  "animation_controllers": {
+    "controller.animation.pm.chicken.rooster": {
+      "initial_state": "wait",
+      "states": {
+        "wait": {
+          "animations": [
+            "rooster_tick"
+          ],
+          "transitions": [
+            { "roll": "query.all_animations_finished" }
+          ]
+        },
+        "roll": {
+          "on_entry": [
+            "v.crow_roll = math.random(0.0, 1.0);"
+          ],
+          "transitions": [
+            { "crow": "v.is_rooster && !query.is_in_water && v.crow_roll < (v.is_dawn ? 0.06 : (v.is_day ? 0.0015 : 0.0))" },
+            { "wait": "1.0" }
+          ]
+        },
+        "crow": {
+          "animations": [
+            "rooster_crow"
+          ],
+          "sound_effects": [
+            { "effect": "crow" }
+          ],
+          "transitions": [
+            { "rest": "query.all_animations_finished" }
+          ]
+        },
+        "rest": {
+          "animations": [
+            "rooster_rest"
+          ],
+          "transitions": [
+            { "wait": "query.all_animations_finished" }
+          ]
+        }
+      }
+    }
+  }
+}

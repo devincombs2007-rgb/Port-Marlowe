@@ -1,0 +1,8 @@
+{
+  "format_version": "1.21.30",
+  "minecraft:texture_set": {
+    "color": "piglet_cold",
+    "metalness_emissive_roughness_subsurface": "piglet_cold_mers",
+    "normal": "piglet_cold_normal"
+  }
+}

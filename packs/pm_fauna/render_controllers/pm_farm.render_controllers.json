@@ -1,0 +1,119 @@
+{
+  "format_version": "1.8.0",
+  "render_controllers": {
+    "controller.render.pm.cow": {
+      "arrays": {
+        "textures": {
+          "Array.cow_skins": [
+            "Texture.temperate_default",
+            "Texture.temperate_moody",
+            "Texture.warm_default",
+            "Texture.warm_moody",
+            "Texture.cold_default",
+            "Texture.cold_moody"
+          ],
+          "Array.calf_skins": [
+            "Texture.baby_temperate",
+            "Texture.baby_warm",
+            "Texture.baby_cold"
+          ]
+        },
+        "geometries": {
+          "Array.cow_geos": [
+            "Geometry.temperate",
+            "Geometry.warm",
+            "Geometry.cold"
+          ]
+        }
+      },
+      "geometry": "query.is_baby ? Geometry.baby : Array.cow_geos[v.climate]",
+      "materials": [
+        { "*": "v.climate == 2 ? Material.cold : Material.default" }
+      ],
+      "textures": [
+        "query.is_baby ? Array.calf_skins[v.climate] : Array.cow_skins[v.climate * 2 + v.voice]"
+      ]
+    },
+    "controller.render.pm.chicken": {
+      "arrays": {
+        "textures": {
+          "Array.hen_skins": [
+            "Texture.temperate_hen",
+            "Texture.warm_hen",
+            "Texture.cold_hen"
+          ],
+          "Array.rooster_skins": [
+            "Texture.temperate_rooster",
+            "Texture.warm_rooster",
+            "Texture.cold_rooster"
+          ],
+          "Array.chick_skins": [
+            "Texture.baby_temperate",
+            "Texture.baby_warm",
+            "Texture.baby_cold"
+          ]
+        },
+        "geometries": {
+          "Array.hen_geos": [
+            "Geometry.hen",
+            "Geometry.hen",
+            "Geometry.hen_cold"
+          ],
+          "Array.rooster_geos": [
+            "Geometry.rooster",
+            "Geometry.rooster",
+            "Geometry.rooster_cold"
+          ]
+        }
+      },
+      "geometry": "query.is_baby ? Geometry.baby : (v.is_rooster ? Array.rooster_geos[v.climate] : Array.hen_geos[v.climate])",
+      "materials": [
+        { "*": "v.climate == 2 ? Material.cold : Material.default" },
+        { "leg*": "Material.legs" }
+      ],
+      "textures": [
+        "query.is_baby ? Array.chick_skins[v.climate] : (v.is_rooster ? Array.rooster_skins[v.climate] : Array.hen_skins[v.climate])"
+      ]
+    },
+    "controller.render.pm.pig": {
+      "arrays": {
+        "textures": {
+          "Array.pig_skins": [
+            "Texture.temperate",
+            "Texture.warm",
+            "Texture.cold"
+          ],
+          "Array.piglet_skins": [
+            "Texture.baby_temperate",
+            "Texture.baby_warm",
+            "Texture.baby_cold"
+          ]
+        }
+      },
+      "geometry": "query.is_baby ? Geometry.baby : Geometry.default",
+      "materials": [
+        { "*": "Material.default" }
+      ],
+      "textures": [
+        "query.is_baby ? Array.piglet_skins[v.climate] : Array.pig_skins[v.climate]"
+      ]
+    },
+    "controller.render.pm.sheep": {
+      "arrays": {
+        "geometries": {
+          "Array.fleece_geos": [
+            "Geometry.default",
+            "Geometry.sheared"
+          ]
+        }
+      },
+      "geometry": "query.is_baby ? Geometry.baby : Array.fleece_geos[query.is_sheared]",
+      "materials": [
+        { "*": "Material.default" }
+      ],
+      "textures": [
+        "query.is_baby ? Texture.baby : Texture.default"
+      ]
+    }
+  }
+}

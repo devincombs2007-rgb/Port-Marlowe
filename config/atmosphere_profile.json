@@ -1,0 +1,36 @@
+{
+  "color_grading": {
+    "identifier_prefix": "pm:vivid_",
+    "tone_mapping_operator": "generic",
+    "midtones": { "saturation_scale": 1.12, "contrast_scale": 1.04 },
+    "highlights": { "saturation_scale": 1.06, "contrast_scale": 1.0 },
+    "shadows": { "saturation_scale": 1.0, "contrast_scale": 1.0 }
+  },
+  "water": {
+    "default": "pm:water_default",
+    "rules": [
+      { "biomes": ["warm_ocean", "deep_warm_ocean", "lukewarm_ocean", "deep_lukewarm_ocean"], "water": "pm:water_warm_ocean" },
+      { "biomes": ["cold_ocean", "deep_cold_ocean", "frozen_ocean", "deep_frozen_ocean", "legacy_frozen_ocean"], "water": "pm:water_cold_ocean" },
+      { "biomes": ["ocean", "deep_ocean"], "water": "pm:water_ocean" },
+      { "biomes": ["river", "frozen_river"], "water": "pm:water_river" },
+      { "biomes": ["swampland", "swampland_mutated", "mangrove_swamp"], "water": "pm:water_swamp" }
+    ]
+  },
+  "ambient": [
+    {
+      "biomes": ["plains", "sunflower_plains", "meadow", "savanna", "savanna_mutated", "savanna_plateau", "savanna_plateau_mutated", "cherry_grove"],
+      "loop": "pm.ambient.grassland.loop",
+      "addition": { "asset": "pm.ambient.grassland.additions", "chance": 0.006 }
+    },
+    {
+      "biomes": ["forest", "forest_hills", "flower_forest", "dappled_forest", "birch_forest", "birch_forest_hills", "birch_forest_mutated", "birch_forest_hills_mutated", "taiga", "taiga_hills", "taiga_mutated", "mega_taiga", "mega_taiga_hills", "redwood_taiga_mutated", "redwood_taiga_hills_mutated", "roofed_forest", "roofed_forest_mutated"],
+      "loop": "pm.ambient.forest.loop",
+      "addition": { "asset": "pm.ambient.forest.additions", "chance": 0.006 }
+    },
+    {
+      "biomes": ["beach", "stone_beach", "cold_beach"],
+      "loop": "pm.ambient.shore.loop",
+      "addition": { "asset": "pm.ambient.shore.additions", "chance": 0.004 }
+    }
+  ]
+}

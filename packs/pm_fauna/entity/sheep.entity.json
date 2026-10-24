@@ -1,0 +1,42 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "minecraft:sheep",
+      "min_engine_version": "1.8.0",
+      "materials": {
+        "default": "sheep"
+      },
+      "textures": {
+        "default": "textures/entity/pm/sheep/sheep",
+        "baby": "textures/entity/pm/sheep/lamb"
+      },
+      "geometry": {
+        "default": "geometry.pm.sheep.fleece",
+        "sheared": "geometry.pm.sheep.sheared",
+        "baby": "geometry.pm.sheep.baby"
+      },
+      "animations": {
+        "setup": "animation.sheep.setup.v2",
+        "grazing": "animation.sheep.grazing.v2",
+        "walk": "animation.quadruped.walk",
+        "look_at_target": "animation.common.look_at_target",
+        "move": "controller.animation.sheep.move"
+      },
+      "scripts": {
+        "animate": [
+          "setup",
+          "look_at_target",
+          "move"
+        ],
+        "scale": "query.is_baby ? 2.0 : 1.0"
+      },
+      "render_controllers": [
+        "controller.render.pm.sheep"
+      ],
+      "spawn_egg": {
+        "texture": "spawn_egg_sheep"
+      }
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "format_version": "1.21.30",
+  "minecraft:texture_set": {
+    "color": "leghorn_hen",
+    "metalness_emissive_roughness_subsurface": "leghorn_hen_mers",
+    "normal": "leghorn_hen_normal"
+  }
+}

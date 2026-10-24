@@ -1,0 +1,1831 @@
+{
+  "format_version": "1.20.20",
+  "sound_definitions": {
+    "mob.cow.say": {
+      "category": "neutral",
+      "min_distance": 4.0,
+      "max_distance": 48.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/cow/moo_dairy_01",
+          "volume": 0.9,
+          "weight": 3,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/cow/moo_dairy_02",
+          "volume": 0.9,
+          "weight": 3,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/cow/moo_dairy_03",
+          "volume": 0.9,
+          "weight": 3,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/cow/moo_dairy_04",
+          "volume": 0.9,
+          "weight": 3,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/cow/moo_dairy_05",
+          "volume": 0.9,
+          "weight": 3,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/cow/moo_dairy_06",
+          "volume": 0.9,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/cow/moo_dairy_07",
+          "volume": 0.9,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/cow/moo_dairy_08",
+          "volume": 0.9,
+          "weight": 1,
+          "is3D": true
+        }
+      ],
+      "subtitle": "subtitles.entity.cow.ambient"
+    },
+    "mob.moody_cow.say": {
+      "category": "neutral",
+      "min_distance": 4.0,
+      "max_distance": 48.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/cow/moo_deep_01",
+          "volume": 0.9,
+          "weight": 3,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/cow/moo_deep_02",
+          "volume": 0.9,
+          "weight": 3,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/cow/moo_deep_03",
+          "volume": 0.9,
+          "weight": 2,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/cow/moo_deep_04",
+          "volume": 0.9,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/cow/moo_deep_05",
+          "volume": 0.9,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/cow/moo_deep_06",
+          "volume": 0.9,
+          "weight": 1,
+          "is3D": true
+        }
+      ],
+      "subtitle": "subtitles.entity.cow.ambient"
+    },
+    "mob.cow.hurt": {
+      "category": "neutral",
+      "min_distance": 2.0,
+      "max_distance": 24.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/cow/hurt_01",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/cow/hurt_02",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/cow/hurt_03",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/cow/hurt_04",
+          "weight": 1,
+          "is3D": true
+        }
+      ],
+      "subtitle": "subtitles.entity.cow.hurt"
+    },
+    "mob.moody_cow.hurt": {
+      "category": "neutral",
+      "min_distance": 2.0,
+      "max_distance": 24.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/cow/hurt_deep_01",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/cow/hurt_deep_02",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/cow/hurt_deep_03",
+          "weight": 1,
+          "is3D": true
+        }
+      ],
+      "subtitle": "subtitles.entity.cow.hurt"
+    },
+    "mob.moody_cow.death": {
+      "category": "neutral",
+      "min_distance": 2.0,
+      "max_distance": 24.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/cow/death_01",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/cow/death_02",
+          "weight": 1,
+          "is3D": true
+        }
+      ],
+      "subtitle": "subtitles.entity.cow.hurt"
+    },
+    "mob.cow.step": {
+      "category": "neutral",
+      "min_distance": 1.0,
+      "max_distance": 16.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/cow/hoof_grass_01",
+          "volume": 0.6,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/cow/hoof_grass_02",
+          "volume": 0.6,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/cow/hoof_grass_03",
+          "volume": 0.6,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/cow/hoof_grass_04",
+          "volume": 0.6,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/cow/hoof_grass_05",
+          "volume": 0.6,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/cow/hoof_grass_06",
+          "volume": 0.6,
+          "weight": 1,
+          "is3D": true
+        }
+      ],
+      "subtitle": "subtitles.block.generic.footsteps"
+    },
+    "mob.cow.milk": {
+      "category": "neutral",
+      "min_distance": 1.0,
+      "max_distance": 12.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/cow/milk_squirt_01",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/cow/milk_squirt_02",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/cow/milk_squirt_03",
+          "weight": 1,
+          "is3D": true
+        }
+      ],
+      "subtitle": "subtitles.entity.cow.milk"
+    },
+    "pm.calf.say": {
+      "category": "neutral",
+      "min_distance": 3.0,
+      "max_distance": 40.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/cow/calf_bawl_01",
+          "volume": 0.85,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/cow/calf_bawl_02",
+          "volume": 0.85,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/cow/calf_bawl_03",
+          "volume": 0.85,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/cow/calf_bawl_04",
+          "volume": 0.85,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/cow/calf_bawl_05",
+          "volume": 0.85,
+          "weight": 1,
+          "is3D": true
+        }
+      ],
+      "subtitle": "subtitles.entity.cow.ambient"
+    },
+    "pm.calf.hurt": {
+      "category": "neutral",
+      "min_distance": 2.0,
+      "max_distance": 24.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/cow/calf_hurt_01",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/cow/calf_hurt_02",
+          "weight": 1,
+          "is3D": true
+        }
+      ],
+      "subtitle": "subtitles.entity.cow.hurt"
+    },
+    "mob.chicken.say": {
+      "category": "neutral",
+      "min_distance": 1.5,
+      "max_distance": 24.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/chicken/hen_cluck_01",
+          "volume": 0.8,
+          "weight": 4,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/chicken/hen_cluck_02",
+          "volume": 0.8,
+          "weight": 4,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/chicken/hen_cluck_03",
+          "volume": 0.8,
+          "weight": 4,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/chicken/hen_cluck_04",
+          "volume": 0.8,
+          "weight": 4,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/chicken/hen_cluck_05",
+          "volume": 0.8,
+          "weight": 4,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/chicken/hen_cluck_06",
+          "volume": 0.8,
+          "weight": 4,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/chicken/hen_cluck_07",
+          "volume": 0.8,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/chicken/hen_cluck_08",
+          "volume": 0.8,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/chicken/hen_cluck_09",
+          "volume": 0.8,
+          "weight": 2,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/chicken/hen_cluck_10",
+          "volume": 0.8,
+          "weight": 2,
+          "is3D": true
+        }
+      ],
+      "subtitle": "subtitles.entity.chicken.ambient"
+    },
+    "mob.chicken.hurt": {
+      "category": "neutral",
+      "min_distance": 2.0,
+      "max_distance": 24.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/chicken/hen_squawk_01",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/chicken/hen_squawk_02",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/chicken/hen_squawk_03",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/chicken/hen_squawk_04",
+          "weight": 1,
+          "is3D": true
+        }
+      ],
+      "subtitle": "subtitles.entity.chicken.hurt"
+    },
+    "mob.chicken.plop": {
+      "category": "neutral",
+      "min_distance": 2.0,
+      "max_distance": 32.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/chicken/egg_song_01",
+          "volume": 0.9,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/chicken/egg_song_02",
+          "volume": 0.9,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/chicken/egg_song_03",
+          "volume": 0.9,
+          "weight": 1,
+          "is3D": true
+        }
+      ],
+      "subtitle": "subtitles.block.sniffer_egg.plop"
+    },
+    "pm.chicken.plop_thud": {
+      "category": "neutral",
+      "min_distance": 1.0,
+      "max_distance": 8.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/chicken/egg_thud_01",
+          "volume": 0.6,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/chicken/egg_thud_02",
+          "volume": 0.6,
+          "weight": 1,
+          "is3D": true
+        }
+      ],
+      "subtitle": "subtitles.block.sniffer_egg.plop"
+    },
+    "mob.chicken.step": {
+      "category": "neutral",
+      "min_distance": 1.0,
+      "max_distance": 8.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/chicken/scratch_step_01",
+          "volume": 0.2,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/chicken/scratch_step_02",
+          "volume": 0.2,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/chicken/scratch_step_03",
+          "volume": 0.2,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/chicken/scratch_step_04",
+          "volume": 0.2,
+          "weight": 1,
+          "is3D": true
+        }
+      ],
+      "subtitle": "subtitles.block.generic.footsteps"
+    },
+    "mob.picky_chicken.say": {
+      "category": "neutral",
+      "min_distance": 2.0,
+      "max_distance": 32.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/chicken/rooster_cluck_01",
+          "volume": 0.85,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/chicken/rooster_cluck_02",
+          "volume": 0.85,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/chicken/rooster_cluck_03",
+          "volume": 0.85,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/chicken/rooster_cluck_04",
+          "volume": 0.85,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/chicken/rooster_cluck_05",
+          "volume": 0.85,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/chicken/rooster_cluck_06",
+          "volume": 0.85,
+          "weight": 1,
+          "is3D": true
+        }
+      ],
+      "subtitle": "subtitles.entity.chicken.ambient"
+    },
+    "mob.picky_chicken.hurt": {
+      "category": "neutral",
+      "min_distance": 2.0,
+      "max_distance": 24.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/chicken/rooster_squawk_01",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/chicken/rooster_squawk_02",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/chicken/rooster_squawk_03",
+          "weight": 1,
+          "is3D": true
+        }
+      ],
+      "subtitle": "subtitles.entity.chicken.hurt"
+    },
+    "mob.picky_chicken.death": {
+      "category": "neutral",
+      "min_distance": 2.0,
+      "max_distance": 24.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/chicken/rooster_death_01",
+          "weight": 1,
+          "is3D": true
+        }
+      ],
+      "subtitle": "subtitles.entity.chicken.hurt"
+    },
+    "pm.chicken.rooster_crow": {
+      "category": "neutral",
+      "min_distance": 8.0,
+      "max_distance": 96.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/chicken/rooster_crow_01",
+          "volume": 1.0,
+          "weight": 3,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/chicken/rooster_crow_02",
+          "volume": 1.0,
+          "weight": 3,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/chicken/rooster_crow_03",
+          "volume": 1.0,
+          "weight": 3,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/chicken/rooster_crow_04",
+          "volume": 1.0,
+          "weight": 3,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/chicken/rooster_crow_05",
+          "volume": 1.0,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/chicken/rooster_crow_06",
+          "volume": 1.0,
+          "weight": 1,
+          "is3D": true
+        }
+      ],
+      "subtitle": "subtitles.entity.chicken.ambient"
+    },
+    "mob.baby_chicken.ambient": {
+      "category": "neutral",
+      "min_distance": 1.0,
+      "max_distance": 16.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/chicken/chick_peep_01",
+          "volume": 0.7,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/chicken/chick_peep_02",
+          "volume": 0.7,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/chicken/chick_peep_03",
+          "volume": 0.7,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/chicken/chick_peep_04",
+          "volume": 0.7,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/chicken/chick_peep_05",
+          "volume": 0.7,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/chicken/chick_peep_06",
+          "volume": 0.7,
+          "weight": 1,
+          "is3D": true
+        }
+      ],
+      "subtitle": "subtitles.entity.baby_chicken.ambient"
+    },
+    "mob.baby_chicken.hurt": {
+      "category": "neutral",
+      "min_distance": 1.0,
+      "max_distance": 16.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/chicken/chick_distress_01",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/chicken/chick_distress_02",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/chicken/chick_distress_03",
+          "weight": 1,
+          "is3D": true
+        }
+      ],
+      "subtitle": "subtitles.entity.baby_chicken.hurt"
+    },
+    "mob.baby_chicken.death": {
+      "category": "neutral",
+      "min_distance": 1.0,
+      "max_distance": 16.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/chicken/chick_distress_01",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/chicken/chick_distress_02",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/chicken/chick_distress_03",
+          "weight": 1,
+          "is3D": true
+        }
+      ],
+      "subtitle": "subtitles.entity.baby_chicken.death"
+    },
+    "mob.pig.say": {
+      "category": "neutral",
+      "min_distance": 1.5,
+      "max_distance": 20.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/pig/grunt_01",
+          "weight": 3,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/grunt_02",
+          "weight": 3,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/grunt_03",
+          "weight": 3,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/grunt_04",
+          "weight": 3,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/grunt_05",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/grunt_06",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/grunt_07",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/grunt_08",
+          "weight": 1,
+          "is3D": true
+        }
+      ],
+      "subtitle": "subtitles.entity.pig.ambient"
+    },
+    "pm.pig.hurt": {
+      "category": "neutral",
+      "min_distance": 2.0,
+      "max_distance": 32.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/pig/squeal_01",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/squeal_02",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/squeal_03",
+          "weight": 1,
+          "is3D": true
+        }
+      ],
+      "subtitle": "subtitles.entity.pig.ambient"
+    },
+    "mob.pig.death": {
+      "category": "neutral",
+      "min_distance": 2.0,
+      "max_distance": 32.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/pig/squeal_long_01",
+          "weight": 1,
+          "is3D": true
+        }
+      ],
+      "subtitle": "subtitles.entity.pig.death"
+    },
+    "mob.pig.eat": {
+      "category": "neutral",
+      "min_distance": 1.0,
+      "max_distance": 12.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/pig/eat_chomp_01",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/eat_chomp_02",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/eat_chomp_03",
+          "weight": 1,
+          "is3D": true
+        }
+      ]
+    },
+    "mob.pig.step": {
+      "category": "neutral",
+      "min_distance": 1.0,
+      "max_distance": 12.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/pig/trotter_01",
+          "volume": 0.5,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/trotter_02",
+          "volume": 0.5,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/trotter_03",
+          "volume": 0.5,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/trotter_04",
+          "volume": 0.5,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/trotter_05",
+          "volume": 0.5,
+          "weight": 1,
+          "is3D": true
+        }
+      ],
+      "subtitle": "subtitles.block.generic.footsteps"
+    },
+    "mob.big_pig.say": {
+      "category": "neutral",
+      "min_distance": 2.0,
+      "max_distance": 24.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/pig/boar_grunt_01",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/boar_grunt_02",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/boar_grunt_03",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/boar_grunt_04",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/boar_grunt_05",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/boar_grunt_06",
+          "weight": 1,
+          "is3D": true
+        }
+      ]
+    },
+    "mob.big_pig.hurt": {
+      "category": "neutral",
+      "min_distance": 2.0,
+      "max_distance": 32.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/pig/boar_squeal_01",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/boar_squeal_02",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/boar_squeal_03",
+          "weight": 1,
+          "is3D": true
+        }
+      ]
+    },
+    "mob.big_pig.death": {
+      "category": "neutral",
+      "min_distance": 2.0,
+      "max_distance": 32.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/pig/boar_death_01",
+          "weight": 1,
+          "is3D": true
+        }
+      ]
+    },
+    "mob.big_pig.eat": {
+      "category": "neutral",
+      "min_distance": 1.0,
+      "max_distance": 12.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/pig/eat_chomp_01",
+          "pitch": 0.9,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/eat_chomp_02",
+          "pitch": 0.9,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/eat_chomp_03",
+          "pitch": 0.9,
+          "weight": 1,
+          "is3D": true
+        }
+      ]
+    },
+    "mob.mini_pig.say": {
+      "category": "neutral",
+      "min_distance": 1.5,
+      "max_distance": 16.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/pig/gilt_grunt_01",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/gilt_grunt_02",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/gilt_grunt_03",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/gilt_grunt_04",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/gilt_grunt_05",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/gilt_grunt_06",
+          "weight": 1,
+          "is3D": true
+        }
+      ]
+    },
+    "mob.mini_pig.hurt": {
+      "category": "neutral",
+      "min_distance": 2.0,
+      "max_distance": 24.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/pig/gilt_squeal_01",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/gilt_squeal_02",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/gilt_squeal_03",
+          "weight": 1,
+          "is3D": true
+        }
+      ]
+    },
+    "mob.mini_pig.death": {
+      "category": "neutral",
+      "min_distance": 2.0,
+      "max_distance": 24.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/pig/gilt_squeal_01",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/gilt_squeal_02",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/gilt_squeal_03",
+          "weight": 1,
+          "is3D": true
+        }
+      ]
+    },
+    "mob.mini_pig.eat": {
+      "category": "neutral",
+      "min_distance": 1.0,
+      "max_distance": 12.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/pig/eat_chomp_01",
+          "pitch": 1.1,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/eat_chomp_02",
+          "pitch": 1.1,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/eat_chomp_03",
+          "pitch": 1.1,
+          "weight": 1,
+          "is3D": true
+        }
+      ]
+    },
+    "mob.baby_pig.ambient": {
+      "category": "neutral",
+      "min_distance": 1.0,
+      "max_distance": 16.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/pig/piglet_squeak_01",
+          "volume": 0.7,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/piglet_squeak_02",
+          "volume": 0.7,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/piglet_squeak_03",
+          "volume": 0.7,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/piglet_squeak_04",
+          "volume": 0.7,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/piglet_squeak_05",
+          "volume": 0.7,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/piglet_squeak_06",
+          "volume": 0.7,
+          "weight": 1,
+          "is3D": true
+        }
+      ],
+      "subtitle": "subtitles.entity.baby_pig.ambient"
+    },
+    "mob.baby_pig.hurt": {
+      "category": "neutral",
+      "min_distance": 1.5,
+      "max_distance": 24.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/pig/piglet_squeal_01",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/piglet_squeal_02",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/piglet_squeal_03",
+          "weight": 1,
+          "is3D": true
+        }
+      ],
+      "subtitle": "subtitles.entity.baby_pig.hurt"
+    },
+    "mob.baby_pig.death": {
+      "category": "neutral",
+      "min_distance": 1.5,
+      "max_distance": 24.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/pig/piglet_squeal_01",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/piglet_squeal_02",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/pig/piglet_squeal_03",
+          "weight": 1,
+          "is3D": true
+        }
+      ],
+      "subtitle": "subtitles.entity.baby_pig.death"
+    },
+    "mob.sheep.say": {
+      "category": "neutral",
+      "min_distance": 3.0,
+      "max_distance": 40.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/sheep/bleat_ewe_01",
+          "volume": 0.85,
+          "weight": 3,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/sheep/bleat_ewe_02",
+          "volume": 0.85,
+          "weight": 3,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/sheep/bleat_ewe_03",
+          "volume": 0.85,
+          "weight": 3,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/sheep/bleat_ewe_04",
+          "volume": 0.85,
+          "weight": 3,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/sheep/bleat_ewe_05",
+          "volume": 0.85,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/sheep/bleat_ewe_06",
+          "volume": 0.85,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/sheep/bleat_ewe_07",
+          "volume": 0.85,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/sheep/bleat_ewe_08",
+          "volume": 0.85,
+          "weight": 1,
+          "is3D": true
+        }
+      ],
+      "subtitle": "subtitles.entity.sheep.ambient"
+    },
+    "pm.sheep.hurt": {
+      "category": "neutral",
+      "min_distance": 2.0,
+      "max_distance": 32.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/sheep/bleat_distress_01",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/sheep/bleat_distress_02",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/sheep/bleat_distress_03",
+          "weight": 1,
+          "is3D": true
+        }
+      ],
+      "subtitle": "subtitles.entity.sheep.ambient"
+    },
+    "pm.lamb.say": {
+      "category": "neutral",
+      "min_distance": 2.0,
+      "max_distance": 32.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/sheep/bleat_lamb_01",
+          "volume": 0.75,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/sheep/bleat_lamb_02",
+          "volume": 0.75,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/sheep/bleat_lamb_03",
+          "volume": 0.75,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/sheep/bleat_lamb_04",
+          "volume": 0.75,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/sheep/bleat_lamb_05",
+          "volume": 0.75,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/sheep/bleat_lamb_06",
+          "volume": 0.75,
+          "weight": 1,
+          "is3D": true
+        }
+      ],
+      "subtitle": "subtitles.entity.sheep.ambient"
+    },
+    "mob.sheep.step": {
+      "category": "neutral",
+      "min_distance": 1.0,
+      "max_distance": 12.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/sheep/hoof_01",
+          "volume": 0.45,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/sheep/hoof_02",
+          "volume": 0.45,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/sheep/hoof_03",
+          "volume": 0.45,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/sheep/hoof_04",
+          "volume": 0.45,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/sheep/hoof_05",
+          "volume": 0.45,
+          "weight": 1,
+          "is3D": true
+        }
+      ],
+      "subtitle": "subtitles.block.generic.footsteps"
+    },
+    "mob.sheep.shear": {
+      "category": "player",
+      "min_distance": 1.0,
+      "max_distance": 16.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/sheep/shear_01",
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/sheep/shear_02",
+          "weight": 1,
+          "is3D": true
+        }
+      ],
+      "subtitle": "subtitles.item.shears.shear"
+    },
+    "step.grass": {
+      "category": "player",
+      "min_distance": 1.0,
+      "max_distance": 16.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/step/grass_01",
+          "volume": 0.45,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/step/grass_02",
+          "volume": 0.45,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/step/grass_03",
+          "volume": 0.45,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/step/grass_04",
+          "volume": 0.45,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/step/grass_05",
+          "volume": 0.45,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/step/grass_06",
+          "volume": 0.45,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/step/grass_07",
+          "volume": 0.45,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/step/grass_08",
+          "volume": 0.45,
+          "weight": 1,
+          "is3D": true
+        }
+      ],
+      "subtitle": "subtitles.block.generic.footsteps"
+    },
+    "step.gravel": {
+      "category": "player",
+      "min_distance": 1.0,
+      "max_distance": 16.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/step/gravel_01",
+          "volume": 0.35,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/step/gravel_02",
+          "volume": 0.35,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/step/gravel_03",
+          "volume": 0.35,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/step/gravel_04",
+          "volume": 0.35,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/step/gravel_05",
+          "volume": 0.35,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/step/gravel_06",
+          "volume": 0.35,
+          "weight": 1,
+          "is3D": true
+        }
+      ],
+      "subtitle": "subtitles.block.generic.footsteps"
+    },
+    "step.stone": {
+      "category": "player",
+      "min_distance": 1.0,
+      "max_distance": 16.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/step/stone_01",
+          "volume": 0.4,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/step/stone_02",
+          "volume": 0.4,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/step/stone_03",
+          "volume": 0.4,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/step/stone_04",
+          "volume": 0.4,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/step/stone_05",
+          "volume": 0.4,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/step/stone_06",
+          "volume": 0.4,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/step/stone_07",
+          "volume": 0.4,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/step/stone_08",
+          "volume": 0.4,
+          "weight": 1,
+          "is3D": true
+        }
+      ],
+      "subtitle": "subtitles.block.generic.footsteps"
+    },
+    "step.wood": {
+      "category": "player",
+      "min_distance": 1.0,
+      "max_distance": 16.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/step/wood_01",
+          "volume": 0.4,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/step/wood_02",
+          "volume": 0.4,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/step/wood_03",
+          "volume": 0.4,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/step/wood_04",
+          "volume": 0.4,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/step/wood_05",
+          "volume": 0.4,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/step/wood_06",
+          "volume": 0.4,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/step/wood_07",
+          "volume": 0.4,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/step/wood_08",
+          "volume": 0.4,
+          "weight": 1,
+          "is3D": true
+        }
+      ],
+      "subtitle": "subtitles.block.generic.footsteps"
+    },
+    "step.sand": {
+      "category": "player",
+      "min_distance": 1.0,
+      "max_distance": 16.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/step/sand_01",
+          "volume": 0.4,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/step/sand_02",
+          "volume": 0.4,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/step/sand_03",
+          "volume": 0.4,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/step/sand_04",
+          "volume": 0.4,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/step/sand_05",
+          "volume": 0.4,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/step/sand_06",
+          "volume": 0.4,
+          "weight": 1,
+          "is3D": true
+        }
+      ],
+      "subtitle": "subtitles.block.generic.footsteps"
+    },
+    "step.snow": {
+      "category": "player",
+      "min_distance": 1.0,
+      "max_distance": 16.0,
+      "sounds": [
+        {
+          "name": "sounds/pm/step/snow_01",
+          "volume": 0.4,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/step/snow_02",
+          "volume": 0.4,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/step/snow_03",
+          "volume": 0.4,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/step/snow_04",
+          "volume": 0.4,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/step/snow_05",
+          "volume": 0.4,
+          "weight": 1,
+          "is3D": true
+        },
+        {
+          "name": "sounds/pm/step/snow_06",
+          "volume": 0.4,
+          "weight": 1,
+          "is3D": true
+        }
+      ],
+      "subtitle": "subtitles.block.generic.footsteps"
+    },
+    "ambient.weather.thunder": {
+      "category": "weather",
+      "min_distance": 100.0,
+      "max_distance": null,
+      "sounds": [
+        {
+          "name": "sounds/pm/ambient/thunder_01",
+          "volume": 1.0,
+          "weight": 1,
+          "is3D": true,
+          "stream": true
+        },
+        {
+          "name": "sounds/pm/ambient/thunder_02",
+          "volume": 1.0,
+          "weight": 1,
+          "is3D": true,
+          "stream": true
+        },
+        {
+          "name": "sounds/pm/ambient/thunder_03",
+          "volume": 1.0,
+          "weight": 1,
+          "is3D": true,
+          "stream": true
+        },
+        {
+          "name": "sounds/pm/ambient/thunder_04",
+          "volume": 1.0,
+          "weight": 1,
+          "is3D": true,
+          "stream": true
+        }
+      ],
+      "subtitle": "subtitles.entity.lightning_bolt.thunder"
+    },
+    "pm.ambient.grassland.loop": {
+      "category": "ambient",
+      "min_distance": null,
+      "max_distance": null,
+      "sounds": [
+        {
+          "name": "sounds/pm/ambient/grassland_loop",
+          "volume": 0.5,
+          "is3D": false,
+          "stream": true,
+          "allow_concurrent_streaming": false
+        }
+      ]
+    },
+    "pm.ambient.forest.loop": {
+      "category": "ambient",
+      "min_distance": null,
+      "max_distance": null,
+      "sounds": [
+        {
+          "name": "sounds/pm/ambient/forest_loop",
+          "volume": 0.5,
+          "is3D": false,
+          "stream": true,
+          "allow_concurrent_streaming": false
+        }
+      ]
+    },
+    "pm.ambient.shore.loop": {
+      "category": "ambient",
+      "min_distance": null,
+      "max_distance": null,
+      "sounds": [
+        {
+          "name": "sounds/pm/ambient/shore_loop",
+          "volume": 0.5,
+          "is3D": false,
+          "stream": true,
+          "allow_concurrent_streaming": false
+        }
+      ]
+    },
+    "pm.ambient.grassland.additions": {
+      "category": "ambient",
+      "min_distance": null,
+      "max_distance": null,
+      "sounds": [
+        {
+          "name": "sounds/pm/ambient/grassland_birds_01",
+          "volume": 0.35,
+          "weight": 1,
+          "is3D": false
+        },
+        {
+          "name": "sounds/pm/ambient/grassland_birds_02",
+          "volume": 0.35,
+          "weight": 1,
+          "is3D": false
+        },
+        {
+          "name": "sounds/pm/ambient/grassland_birds_03",
+          "volume": 0.35,
+          "weight": 1,
+          "is3D": false
+        },
+        {
+          "name": "sounds/pm/ambient/grassland_birds_04",
+          "volume": 0.35,
+          "weight": 1,
+          "is3D": false
+        },
+        {
+          "name": "sounds/pm/ambient/grassland_birds_05",
+          "volume": 0.35,
+          "weight": 1,
+          "is3D": false
+        },
+        {
+          "name": "sounds/pm/ambient/grassland_birds_06",
+          "volume": 0.35,
+          "weight": 1,
+          "is3D": false
+        },
+        {
+          "name": "sounds/pm/ambient/grassland_birds_07",
+          "volume": 0.35,
+          "weight": 1,
+          "is3D": false
+        },
+        {
+          "name": "sounds/pm/ambient/grassland_birds_08",
+          "volume": 0.35,
+          "weight": 1,
+          "is3D": false
+        }
+      ]
+    },
+    "pm.ambient.forest.additions": {
+      "category": "ambient",
+      "min_distance": null,
+      "max_distance": null,
+      "sounds": [
+        {
+          "name": "sounds/pm/ambient/forest_birds_01",
+          "volume": 0.35,
+          "weight": 1,
+          "is3D": false
+        },
+        {
+          "name": "sounds/pm/ambient/forest_birds_02",
+          "volume": 0.35,
+          "weight": 1,
+          "is3D": false
+        },
+        {
+          "name": "sounds/pm/ambient/forest_birds_03",
+          "volume": 0.35,
+          "weight": 1,
+          "is3D": false
+        },
+        {
+          "name": "sounds/pm/ambient/forest_birds_04",
+          "volume": 0.35,
+          "weight": 1,
+          "is3D": false
+        },
+        {
+          "name": "sounds/pm/ambient/forest_birds_05",
+          "volume": 0.35,
+          "weight": 1,
+          "is3D": false
+        },
+        {
+          "name": "sounds/pm/ambient/forest_birds_06",
+          "volume": 0.35,
+          "weight": 1,
+          "is3D": false
+        },
+        {
+          "name": "sounds/pm/ambient/forest_birds_07",
+          "volume": 0.35,
+          "weight": 1,
+          "is3D": false
+        },
+        {
+          "name": "sounds/pm/ambient/forest_birds_08",
+          "volume": 0.35,
+          "weight": 1,
+          "is3D": false
+        }
+      ]
+    },
+    "pm.ambient.shore.additions": {
+      "category": "ambient",
+      "min_distance": null,
+      "max_distance": null,
+      "sounds": [
+        {
+          "name": "sounds/pm/ambient/shore_gulls_01",
+          "volume": 0.3,
+          "weight": 1,
+          "is3D": false
+        },
+        {
+          "name": "sounds/pm/ambient/shore_gulls_02",
+          "volume": 0.3,
+          "weight": 1,
+          "is3D": false
+        },
+        {
+          "name": "sounds/pm/ambient/shore_gulls_03",
+          "volume": 0.3,
+          "weight": 1,
+          "is3D": false
+        },
+        {
+          "name": "sounds/pm/ambient/shore_gulls_04",
+          "volume": 0.3,
+          "weight": 1,
+          "is3D": false
+        },
+        {
+          "name": "sounds/pm/ambient/shore_gulls_05",
+          "volume": 0.3,
+          "weight": 1,
+          "is3D": false
+        },
+        {
+          "name": "sounds/pm/ambient/shore_gulls_06",
+          "volume": 0.3,
+          "weight": 1,
+          "is3D": false
+        }
+      ]
+    }
+  }
+}

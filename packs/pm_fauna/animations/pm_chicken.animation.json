@@ -1,0 +1,27 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.pm.chicken.rooster_tick": {
+      "animation_length": 1.0,
+      "loop": false
+    },
+    "animation.pm.chicken.rooster_crow": {
+      "animation_length": 2.6,
+      "loop": false,
+      "bones": {
+        "head": {
+          "rotation": {
+            "0.0": [0.0, 0.0, 0.0],
+            "0.35": [-32.0, 0.0, 0.0],
+            "1.9": [-38.0, 0.0, 0.0],
+            "2.6": [0.0, 0.0, 0.0]
+          }
+        }
+      }
+    },
+    "animation.pm.chicken.rooster_rest": {
+      "animation_length": 40.0,
+      "loop": false
+    }
+  }
+}

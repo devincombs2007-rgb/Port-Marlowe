@@ -1,0 +1,8 @@
+{
+  "format_version": "1.21.30",
+  "minecraft:texture_set": {
+    "color": "rhode_island_red_hen",
+    "metalness_emissive_roughness_subsurface": "rhode_island_red_hen_mers",
+    "normal": "rhode_island_red_hen_normal"
+  }
+}

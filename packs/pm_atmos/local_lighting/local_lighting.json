@@ -1,0 +1,32 @@
+{
+  "format_version": "1.21.120",
+  "minecraft:local_light_settings": {
+    "minecraft:torch": { "light_color": "#FFB46B", "light_type": "point_light" },
+    "minecraft:lantern": { "light_color": "#FFA95C", "light_type": "point_light" },
+    "minecraft:candle": { "light_color": "#FFB46B", "light_type": "point_light" },
+    "minecraft:soul_torch": { "light_color": "#5CE1E6", "light_type": "point_light" },
+    "minecraft:soul_lantern": { "light_color": "#5CE1E6", "light_type": "point_light" },
+    "minecraft:redstone_torch": { "light_color": "#FF3A1F", "light_type": "point_light" },
+    "minecraft:end_rod": { "light_color": "#F3F0FF", "light_type": "point_light" },
+    "minecraft:campfire": { "light_color": "#FF9A3C", "light_type": "static_light" },
+    "minecraft:soul_campfire": { "light_color": "#5CE1E6", "light_type": "static_light" },
+    "minecraft:fire": { "light_color": "#FF9A3C", "light_type": "static_light" },
+    "minecraft:soul_fire": { "light_color": "#5CE1E6", "light_type": "static_light" },
+    "minecraft:lava": { "light_color": "#FF6A1F", "light_type": "static_light" },
+    "minecraft:flowing_lava": { "light_color": "#FF6A1F", "light_type": "static_light" },
+    "minecraft:magma": { "light_color": "#FF6A1F", "light_type": "static_light" },
+    "minecraft:glowstone": { "light_color": "#FFD9A0", "light_type": "static_light" },
+    "minecraft:shroomlight": { "light_color": "#FFA95C", "light_type": "static_light" },
+    "minecraft:lit_pumpkin": { "light_color": "#FFA95C", "light_type": "static_light" },
+    "minecraft:lit_redstone_lamp": { "light_color": "#FFD9A0", "light_type": "static_light" },
+    "minecraft:lit_furnace": { "light_color": "#FF9A3C", "light_type": "static_light" },
+    "minecraft:lit_blast_furnace": { "light_color": "#FF9A3C", "light_type": "static_light" },
+    "minecraft:lit_smoker": { "light_color": "#FF9A3C", "light_type": "static_light" },
+    "minecraft:ochre_froglight": { "light_color": "#FFE8A3", "light_type": "static_light" },
+    "minecraft:verdant_froglight": { "light_color": "#C9FFB0", "light_type": "static_light" },
+    "minecraft:pearlescent_froglight": { "light_color": "#F6D2FF", "light_type": "static_light" },
+    "minecraft:beacon": { "light_color": "#E8FAFF", "light_type": "static_light" },
+    "minecraft:crying_obsidian": { "light_color": "#A050FF", "light_type": "static_light" },
+    "minecraft:glow_lichen": { "light_color": "#C9FFE6", "light_type": "static_light" }
+  }
+}
