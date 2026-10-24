@@ -11,7 +11,9 @@ as configuration plus a build pipeline rather than as baked art:
 2. **Realistic farm animals.** Cows, chickens, pigs and sheep come in breeds (Holstein, Hereford, Brahman,
    Gir, Highland; Leghorn, Rhode Island Red and Brahma hens and roosters; Large White, Duroc, Mangalica)
    with MERS/normal materials. Breeds come from vanilla's own server-synced variant properties, so every
-   Realm member sees the same animal, and no behavior pack or experiment is needed.
+   Realm member sees the same animal, and no behavior pack or experiment is needed. **Living herds**
+   already animate the vanilla animals: breathing, cows grazing, pigs rooting, chickens pecking and
+   head-bobbing.
 3. **Field-recorded audio.** Weighted take pools, explicit attenuation radii, natural pitch ranges,
    calf/lamb/chick/piglet voices, a dawn rooster chorus, footsteps and biome ambience beds.
 

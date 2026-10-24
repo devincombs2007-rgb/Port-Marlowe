@@ -391,6 +391,40 @@ Expected rate: about 2–3 crows per rooster over the 2-minute dawn window, abou
 cluster of roosters produces a staggered chorus. Each client rolls independently. That is fine for ambient
 sound, and the rooster's appearance comes from the synced property, so everyone agrees which bird is the rooster.
 
+### Living herds (motion, works today on vanilla models)
+
+Motion needs no art, only animation data on bones every farm model already has (`body`, `head`, legs,
+wings). The build adds it to whichever client entity ships for a species:
+
+* a Port Marlowe model, once its assets are imported, or
+* **the vanilla model**, until then. The build copies Mojang's client entity for that species from the
+  pinned bedrock-samples version and adds the motion, so vanilla cows, pigs, sheep and chickens come alive
+  right away. Textures, models, variants and render controllers stay vanilla's own.
+
+| Species | Always | Walking | Idle (rolled once per second while standing on ground, out of water) |
+|---|---|---|---|
+| Cow | Breathing, 2.2 s cycle, ±1.2% body scale | vanilla walk | **Grazes**: head down 50° and 9 px, chewing nibble, 4 s; chance 5%/s |
+| Pig | Breathing, 2.8 s, ±1.4% | vanilla walk | **Roots**: snout down 30°, snuffling side to side, 3 s; 6%/s |
+| Sheep | Breathing, 2.4 s, ±1.2% | vanilla walk | vanilla grazing (driven by the game when it eats grass) |
+| Chicken | Breathing, 2.0 s, ±1.5% | **Head bob**: the head thrusts forward on every step, timed from vanilla's step cycle (`modified_distance_moved × 38.17`) | **Pecks**: two quick pecks at the ground, 1 s; 15%/s |
+
+Breathing cycles are seamless (each animation's length equals its sine period), and every animal gets a
+random phase in `initialize`, so a herd never breathes in unison. Idle behaviours come from one shared
+controller, `controller.animation.pm.life.idle`, which uses the same once-per-second roll as the rooster.
+An idle animation stops (blending out over 0.3 s) the moment the animal moves. All of it is client-side and
+cosmetic: gameplay, AI and hitboxes are untouched.
+
+Two consequences of the vanilla-model mode:
+
+* **Rebuild after every Minecraft update.** The overrides are copies of Mojang's 1.26.50 client entities.
+  If Mojang changes a farm animal's client entity, rebuild against the new bedrock-samples tag
+  (`fetch-vanilla --ref …` and `target_engine_version`) so the copy stays current.
+* The vanilla baby chicken has no `head` bone, so chicks breathe but don't bob or peck. The build reports
+  this as info rather than an error, because the model is Mojang's.
+
+Tuning lives in `config/build.json` → `living_herds` (`idle_chance` per species, animation per species,
+`on_vanilla_models`, or `enabled: false`).
+
 ---
 
 ## 5. Atmosphere generator (per-biome remap)

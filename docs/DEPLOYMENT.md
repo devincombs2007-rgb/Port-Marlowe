@@ -35,9 +35,11 @@ What the build does for the phone route:
   subpack into a standalone pack, *Vanilla Vibrant Visuals: Lighting Only (No Textures) [Port Marlowe repack]*.
   It has its own UUID, credits Cubeir, and includes the licence, as the Vanilla RTX licence asks of
   modified copies. There is no subpack setting for you to get wrong on the phone or the Xbox.
-* **No empty packs.** Until animal models or recordings are imported, Port Marlowe: Fauna and Port
-  Marlowe: Audio are left out of the bundle, so you only install packs that do something. Re-run the build
-  after importing assets and they appear.
+* **Animals come alive now.** Until realistic animal models are imported, Port Marlowe: Fauna animates the
+  *vanilla* cows, pigs, sheep and chickens (breathing, grazing, rooting, pecking, head-bobbing). Once models
+  are imported, the same motion moves to them.
+* **No empty packs.** Until recordings are imported, Port Marlowe: Audio is left out of the bundle, so you
+  only install packs that do something.
 * **Budget check.** The texture budget table must say *fits* for tier 4 (Xbox Series X).
 
 Visuals-only bundle (October 2026, Port Marlowe: Atmosphere 1.0.1 with full-detail water): Port Marlowe:
@@ -59,7 +61,7 @@ under Settings → **Global Resources**; they belong to the world, not the whole
 2. **Realms → Edit Realm (pencil) → Download World.** This gives you a local copy and a backup.
 3. **Play → Worlds →** pencil on the downloaded copy → **Resource Packs → Available/My Packs**: activate the
    Port Marlowe packs, then use the arrows so **Active** reads, top to bottom:
-   1. Port Marlowe: Fauna *(once animal assets exist)*
+   1. Port Marlowe: Fauna
    2. Port Marlowe: Audio *(once recordings exist)*
    3. Port Marlowe: Atmosphere
    4. Vibrant Normals
@@ -126,7 +128,8 @@ Rules for Xbox:
 
 ### 5.1 On the Xbox, no cheats needed
 
-The animal and audio checks apply once Port Marlowe: Fauna and Port Marlowe: Audio are in the bundle.
+The breed, baby, sheep-dye and saddle checks apply once realistic animal models are imported; the audio
+checks once recordings are.
 
 * [ ] Content Log History shows no errors from the Port Marlowe packs
 * [ ] **Water**: moving waves and caustics on the bed. Rivers look silty, swamps tea-brown, warm oceans turquoise.
@@ -139,6 +142,8 @@ The animal and audio checks apply once Port Marlowe: Fauna and Port Marlowe: Aud
       over swamps and rivers; cloud pooled in mountain valleys with clear peaks; light haze over plains
       and the sea; the world greys out in a rainstorm; light rays underwater, clearer in tropical seas
 * [ ] **Blocks**: stone, bricks and planks show relief from the hand-drawn normal maps when the sun is low
+* [ ] **Living herds**: animals breathe gently and out of step with each other; standing cows lower their
+      heads to graze, pigs root at the ground, chickens peck; walking chickens bob their heads
 * [ ] **Animals**: cows in plains are Holstein or Hereford; in savanna, desert or jungle they are Brahman or
       Gir; in taiga or mountains they are Highland. About half of chickens are roosters (comb, sickle tail).
       Pigs come in three sizes.
@@ -181,6 +186,8 @@ Change one thing at a time, rebuild, re-upload and compare.
 | Prefer the sun straight overhead | `lighting.orbital_offset_degrees` to `0.0` |
 | Nights too bright or too dark | `lighting.moon_illuminance_scale` (1.0 = the lighting pack's own moon) |
 | Warm/cool tint unwanted | Delete `color_grading.split_toning` |
+| Animals graze, root or peck too often | `living_herds.species.<animal>.idle_chance` in `config/build.json` (per second while standing) |
+| No animal motion at all | `living_herds.enabled` to `false` |
 
 ## 7. Updating later
 
@@ -199,6 +206,11 @@ Then, on the phone:
 3. Edit World → Resource Packs: deactivate the Port Marlowe packs, activate them again (now the new
    version), and check the order.
 4. **Replace World**.
+
+**After every Minecraft update**, rebuild against the new version. Port Marlowe: Fauna carries copies of
+Mojang's farm-animal client entities, and an out-of-date copy could hide a new vanilla change. Say which
+version the Xbox shows (Settings, bottom of the screen) and the build is redone against that bedrock-samples
+tag.
 
 ## 8. Troubleshooting
 

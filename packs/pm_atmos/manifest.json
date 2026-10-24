@@ -4,7 +4,7 @@
     "name": "Port Marlowe: Atmosphere",
     "description": "Vibrant Visuals lighting, water, color grading, shadows and volumetric fog",
     "uuid": "ea16a581-64ac-4c59-aa92-8508cea57b57",
-    "version": [1, 0, 2],
+    "version": [1, 0, 3],
     "min_engine_version": [1, 26, 50],
     "pack_scope": "world"
   },
@@ -13,7 +13,7 @@
       "description": "Vibrant Visuals configuration and per-biome remaps",
       "type": "resources",
       "uuid": "3eccc7be-b55f-4a00-995d-3de8e2f5b6cc",
-      "version": [1, 0, 2]
+      "version": [1, 0, 3]
     }
   ],
   "capabilities": [

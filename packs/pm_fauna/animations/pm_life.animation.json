@@ -1,0 +1,144 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.pm.life.tick": {
+      "animation_length": 1.0,
+      "loop": false
+    },
+    "animation.pm.life.breathe_cow": {
+      "animation_length": 2.2,
+      "loop": true,
+      "bones": {
+        "body": {
+          "scale": [
+            "1.0 + math.sin((query.anim_time + variable.life_phase) * 163.636) * 0.012",
+            "1.0 + math.sin((query.anim_time + variable.life_phase) * 163.636) * 0.012",
+            "1.0 + math.sin((query.anim_time + variable.life_phase) * 163.636) * 0.012"
+          ]
+        }
+      }
+    },
+    "animation.pm.life.breathe_sheep": {
+      "animation_length": 2.4,
+      "loop": true,
+      "bones": {
+        "body": {
+          "scale": [
+            "1.0 + math.sin((query.anim_time + variable.life_phase) * 150.0) * 0.012",
+            "1.0 + math.sin((query.anim_time + variable.life_phase) * 150.0) * 0.012",
+            "1.0 + math.sin((query.anim_time + variable.life_phase) * 150.0) * 0.012"
+          ]
+        }
+      }
+    },
+    "animation.pm.life.breathe_pig": {
+      "animation_length": 2.8,
+      "loop": true,
+      "bones": {
+        "body": {
+          "scale": [
+            "1.0 + math.sin((query.anim_time + variable.life_phase) * 128.571) * 0.014",
+            "1.0 + math.sin((query.anim_time + variable.life_phase) * 128.571) * 0.014",
+            "1.0 + math.sin((query.anim_time + variable.life_phase) * 128.571) * 0.014"
+          ]
+        }
+      }
+    },
+    "animation.pm.life.breathe_chicken": {
+      "animation_length": 2.0,
+      "loop": true,
+      "bones": {
+        "body": {
+          "scale": [
+            "1.0 + math.sin((query.anim_time + variable.life_phase) * 180.0) * 0.015",
+            "1.0 + math.sin((query.anim_time + variable.life_phase) * 180.0) * 0.015",
+            "1.0 + math.sin((query.anim_time + variable.life_phase) * 180.0) * 0.015"
+          ]
+        }
+      }
+    },
+    "animation.pm.life.chicken_head_bob": {
+      "anim_time_update": "query.modified_distance_moved",
+      "loop": true,
+      "bones": {
+        "head": {
+          "position": [0.0, 0.0, "-math.abs(math.sin(query.anim_time * 38.17)) * 1.0"]
+        }
+      }
+    },
+    "animation.pm.life.chicken_peck": {
+      "animation_length": 1.0,
+      "loop": false,
+      "bones": {
+        "head": {
+          "rotation": {
+            "0.0": [0.0, 0.0, 0.0],
+            "0.12": [55.0, 0.0, 0.0],
+            "0.25": [0.0, 0.0, 0.0],
+            "0.4": [55.0, 0.0, 0.0],
+            "0.55": [0.0, 0.0, 0.0]
+          },
+          "position": {
+            "0.0": [0.0, 0.0, 0.0],
+            "0.12": [0.0, -2.5, -1.5],
+            "0.25": [0.0, 0.0, 0.0],
+            "0.4": [0.0, -2.5, -1.5],
+            "0.55": [0.0, 0.0, 0.0]
+          }
+        }
+      }
+    },
+    "animation.pm.life.cow_graze": {
+      "animation_length": 4.0,
+      "loop": false,
+      "bones": {
+        "head": {
+          "position": {
+            "0.0": [0.0, 0.0, 0.0],
+            "0.5": [0.0, "query.is_baby ? -3.0 : -9.0", -1.0],
+            "3.5": [0.0, "query.is_baby ? -3.0 : -9.0", -1.0],
+            "4.0": [0.0, 0.0, 0.0]
+          },
+          "rotation": {
+            "0.0": [0.0, 0.0, 0.0],
+            "0.5": {
+              "pre": [50.0, 0.0, 0.0],
+              "post": ["50.0 + 5.0 * math.sin(query.key_frame_lerp_time * 1440.0)", 0.0, 0.0]
+            },
+            "3.5": {
+              "pre": ["50.0 + 5.0 * math.sin(query.key_frame_lerp_time * 1440.0)", 0.0, 0.0],
+              "post": [50.0, 0.0, 0.0]
+            },
+            "4.0": [0.0, 0.0, 0.0]
+          }
+        }
+      }
+    },
+    "animation.pm.life.pig_root": {
+      "animation_length": 3.0,
+      "loop": false,
+      "bones": {
+        "head": {
+          "position": {
+            "0.0": [0.0, 0.0, 0.0],
+            "0.4": [0.0, "query.is_baby ? -1.0 : -2.0", -0.5],
+            "2.6": [0.0, "query.is_baby ? -1.0 : -2.0", -0.5],
+            "3.0": [0.0, 0.0, 0.0]
+          },
+          "rotation": {
+            "0.0": [0.0, 0.0, 0.0],
+            "0.4": {
+              "pre": [30.0, 0.0, 0.0],
+              "post": ["30.0 + 4.0 * math.sin(query.key_frame_lerp_time * 2160.0)", "6.0 * math.sin(query.key_frame_lerp_time * 1080.0)", 0.0]
+            },
+            "2.6": {
+              "pre": ["30.0 + 4.0 * math.sin(query.key_frame_lerp_time * 2160.0)", "6.0 * math.sin(query.key_frame_lerp_time * 1080.0)", 0.0],
+              "post": [30.0, 0.0, 0.0]
+            },
+            "3.0": [0.0, 0.0, 0.0]
+          }
+        }
+      }
+    }
+  }
+}

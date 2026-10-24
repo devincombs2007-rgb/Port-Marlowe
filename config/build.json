@@ -44,36 +44,46 @@
     "path": ".cache/bedrock-samples"
   },
   "packs": {
-    "pm_fauna": { "source": "packs/pm_fauna", "assets": "assets/pm_fauna", "folder": "pm_fauna" },
-    "pm_audio": { "source": "packs/pm_audio", "assets": "assets/pm_audio", "folder": "pm_audio" },
-    "pm_atmos": { "source": "packs/pm_atmos", "assets": "assets/pm_atmos", "folder": "pm_atmos" }
+    "pm_fauna": {
+      "source": "packs/pm_fauna",
+      "assets": "assets/pm_fauna",
+      "folder": "pm_fauna"
+    },
+    "pm_audio": {
+      "source": "packs/pm_audio",
+      "assets": "assets/pm_audio",
+      "folder": "pm_audio"
+    },
+    "pm_atmos": {
+      "source": "packs/pm_atmos",
+      "assets": "assets/pm_atmos",
+      "folder": "pm_atmos"
+    }
   },
   "vendor_packs": {
-    "vibrant_normals": { "source": "vendor/vibrant_normals", "folder": "vnd_vvn" },
+    "vibrant_normals": {
+      "source": "vendor/vibrant_normals",
+      "folder": "vnd_vvn"
+    },
     "vanilla_vibrant_visuals": {
       "source": "vendor/vanilla_vibrant_visuals",
       "folder": "vnd_vvv",
       "subpack": "a",
       "flatten_subpack": true,
       "credit": "Cubeir (github.com/vanilla-rtx/Vanilla-PBR)",
-      "credit_authors": [
-        "Cubeir"
-      ],
+      "credit_authors": ["Cubeir"],
       "license_url": "https://github.com/Cubeir/Vanilla-RTX/blob/master/LICENSE.txt",
       "url": "https://github.com/vanilla-rtx/Vanilla-PBR"
     },
-    "vanilla_rtx_opus": { "source": "vendor/vanilla_rtx_opus", "folder": "vnd_vrtx" }
+    "vanilla_rtx_opus": {
+      "source": "vendor/vanilla_rtx_opus",
+      "folder": "vnd_vrtx"
+    }
   },
   "profiles": {
     "xbox": {
       "description": "Xbox Series X, best looking: Vibrant Visuals, hand-drawn block normals, Vanilla VV lighting, full-detail water",
-      "stack": [
-        "pm_fauna",
-        "pm_audio",
-        "pm_atmos",
-        "vibrant_normals",
-        "vanilla_vibrant_visuals:b"
-      ],
+      "stack": ["pm_fauna", "pm_audio", "pm_atmos", "vibrant_normals", "vanilla_vibrant_visuals:b"],
       "atmosphere_overrides": {
         "water": {
           "waves": {
@@ -85,13 +95,7 @@
     },
     "xbox_lite": {
       "description": "Xbox Series X, lighter water (16 wave octaves) if the full-detail profile drops frames",
-      "stack": [
-        "pm_fauna",
-        "pm_audio",
-        "pm_atmos",
-        "vibrant_normals",
-        "vanilla_vibrant_visuals:b"
-      ],
+      "stack": ["pm_fauna", "pm_audio", "pm_atmos", "vibrant_normals", "vanilla_vibrant_visuals:b"],
       "atmosphere_overrides": {
         "water": {
           "waves": {
@@ -103,21 +107,11 @@
     },
     "vibrant": {
       "description": "Vibrant Visuals with the full Vanilla Vibrant Visuals pack (textures + lighting)",
-      "stack": [
-        "pm_fauna",
-        "pm_audio",
-        "pm_atmos",
-        "vanilla_vibrant_visuals:a"
-      ]
+      "stack": ["pm_fauna", "pm_audio", "pm_atmos", "vanilla_vibrant_visuals:a"]
     },
     "hybrid": {
       "description": "PC guests only: RTX on Windows DXR GPUs; Xbox falls back to Vibrant Visuals with RTX-tuned blocks",
-      "stack": [
-        "pm_fauna",
-        "pm_audio",
-        "pm_atmos",
-        "vanilla_rtx_opus"
-      ]
+      "stack": ["pm_fauna", "pm_audio", "pm_atmos", "vanilla_rtx_opus"]
     }
   },
   "fauna_material_mode": "mers",
@@ -136,5 +130,32 @@
     },
     "pm.pig.hurt": "mob.pig.say",
     "pm.chicken.plop_thud": "mob.chicken.plop"
+  },
+  "living_herds": {
+    "enabled": true,
+    "on_vanilla_models": true,
+    "species": {
+      "cow": {
+        "breathe": "animation.pm.life.breathe_cow",
+        "idle": "animation.pm.life.cow_graze",
+        "idle_chance": 0.05
+      },
+      "pig": {
+        "breathe": "animation.pm.life.breathe_pig",
+        "idle": "animation.pm.life.pig_root",
+        "idle_chance": 0.06
+      },
+      "sheep": {
+        "breathe": "animation.pm.life.breathe_sheep"
+      },
+      "chicken": {
+        "breathe": "animation.pm.life.breathe_chicken",
+        "idle": "animation.pm.life.chicken_peck",
+        "idle_chance": 0.15,
+        "moving": {
+          "pm_head_bob": "animation.pm.life.chicken_head_bob"
+        }
+      }
+    }
   }
 }

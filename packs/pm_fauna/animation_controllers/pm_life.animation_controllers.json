@@ -1,0 +1,36 @@
+{
+  "format_version": "1.10.0",
+  "animation_controllers": {
+    "controller.animation.pm.life.idle": {
+      "initial_state": "wait",
+      "states": {
+        "wait": {
+          "animations": [
+            "pm_life_tick"
+          ],
+          "transitions": [
+            { "roll": "query.all_animations_finished" }
+          ]
+        },
+        "roll": {
+          "on_entry": [
+            "variable.life_roll = math.random(0.0, 1.0);"
+          ],
+          "transitions": [
+            { "act": "variable.life_idle && variable.life_roll < variable.life_idle_chance" },
+            { "wait": "1.0" }
+          ]
+        },
+        "act": {
+          "animations": [
+            "pm_idle_act"
+          ],
+          "blend_transition": 0.3,
+          "transitions": [
+            { "wait": "query.all_animations_finished || !variable.life_idle" }
+          ]
+        }
+      }
+    }
+  }
+}

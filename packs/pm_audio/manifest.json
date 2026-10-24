@@ -4,7 +4,7 @@
     "name": "Port Marlowe: Audio",
     "description": "Field-recorded farm animals, rooster dawn chorus, footsteps and ambience",
     "uuid": "6d71cbe3-2a5e-4844-9287-17ed7b7fd418",
-    "version": [1, 0, 2],
+    "version": [1, 0, 3],
     "min_engine_version": [1, 26, 50],
     "pack_scope": "world"
   },
@@ -13,7 +13,7 @@
       "description": "sounds.json and sound_definitions.json overrides",
       "type": "resources",
       "uuid": "d7fd5cd5-bb0b-4b8e-97ac-a625f47c6be6",
-      "version": [1, 0, 2]
+      "version": [1, 0, 3]
     }
   ],
   "capabilities": [

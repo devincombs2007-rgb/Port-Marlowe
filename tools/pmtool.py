@@ -162,6 +162,11 @@ class Vanilla:
             self._defs = load_json(path).get("sound_definitions", {}) if path.exists() else {}
         return self._defs
 
+    def geometry(self) -> dict:
+        if getattr(self, "_geos", None) is None:
+            self._geos = collect_geometry(self.rp)
+        return self._geos
+
     def block_ids(self) -> set | None:
         """Runtime block identifiers from Mojang's metadata, or None if the checkout lacks it."""
         path = self.rp.parent / "metadata" / "vanilladata_modules" / "mojang-blocks.json"
@@ -433,14 +438,19 @@ def required_entity_assets(entity_file: Path, pack: Path) -> tuple:
 
 
 def validate_entity(entity_file: Path, pack: Path, report: Report, vanilla: Vanilla,
-                    sound_defs: dict) -> None:
+                    sound_defs: dict, vanilla_derived: bool = False) -> None:
+    """Check one client entity. Vanilla-derived entities use the game's own textures and models."""
     rel = entity_file.relative_to(pack)
     desc, missing_tex, missing_geo = required_entity_assets(entity_file, pack)
+    geos = collect_geometry(pack)
+    if vanilla_derived:
+        geos = {**vanilla.geometry(), **geos}
+        missing_geo = [g for g in missing_geo if g not in geos]
+        missing_tex = []
     for t in missing_tex:
         report.error(f"{rel}: texture '{t}' not found")
     for g in missing_geo:
         report.error(f"{rel}: geometry '{g}' not defined in models/")
-    geos = collect_geometry(pack)
     anims = dict(vanilla.animations())
     anims.update(collect_animations(pack))
     needed_bones = set()
@@ -455,10 +465,12 @@ def validate_entity(entity_file: Path, pack: Path, report: Report, vanilla: Vani
             continue
         names = {b.get("name") for b in g["bones"]}
         missing = sorted(needed_bones - names)
-        if missing:
+        if missing and vanilla_derived:
+            Report.info(f"{rel}: vanilla '{gid}' has no {missing} bone(s); those animation channels are skipped")
+        elif missing:
             report.error(f"{rel}: geometry '{gid}' lacks bones {missing} driven by its animations; rename the "
                          f"bones or point 'animations' at the model's own animation file")
-        if g["desc"].get("_legacy_parent"):
+        if g["desc"].get("_legacy_parent") and not vanilla_derived:
             report.error(f"{rel}: geometry '{gid}' uses legacy inheritance; flatten it in Blockbench")
     # Render controller references must resolve against this entity's maps.
     controllers = dict(vanilla.render_controllers())
@@ -477,7 +489,8 @@ def validate_entity(entity_file: Path, pack: Path, report: Report, vanilla: Vani
     for short, sound in (desc.get("sound_effects") or {}).items():
         if sound not in sound_defs and sound not in vanilla.sound_definitions():
             report.error(f"{rel}: sound effect '{short}' -> '{sound}' has no sound definition")
-    check_species_specifics(desc, pack, geos, report, rel)
+    if not vanilla_derived:
+        check_species_specifics(desc, pack, geos, report, rel)
 
 
 def check_species_specifics(desc: dict, pack: Path, geos: dict, report: Report, rel) -> None:
@@ -595,7 +608,7 @@ def iter_entity_events(body: dict):
 
 
 def validate_pack(pack: Path, cfg: dict, report: Report, vanilla: Vanilla, stack_sound_defs: dict,
-                  folder_name: str | None = None) -> dict | None:
+                  folder_name: str | None = None, vanilla_derived: set = frozenset()) -> dict | None:
     m = validate_manifest(pack, cfg, report, folder_name)
     for f in pack.rglob("*.json"):
         try:
@@ -610,7 +623,7 @@ def validate_pack(pack: Path, cfg: dict, report: Report, vanilla: Vanilla, stack
     entity_dir = pack / "entity"
     if entity_dir.is_dir():
         for ef in sorted(entity_dir.glob("*.json")):
-            validate_entity(ef, pack, report, vanilla, stack_sound_defs)
+            validate_entity(ef, pack, report, vanilla, stack_sound_defs, ef.name in vanilla_derived)
     if (pack / "sounds" / "sound_definitions.json").exists() or (pack / "sounds.json").exists():
         validate_audio(pack, report, vanilla)
     local = pack / "local_lighting" / "local_lighting.json"
@@ -699,6 +712,52 @@ def strip_rooster(pack: Path) -> None:
                                   if a != "rooster_controller" and not (isinstance(a, dict) and "rooster_controller" in a)]
     desc["scripts"].pop("should_update_effects_offscreen", None)
     dump_json(ef, doc)
+
+
+def inject_life(desc: dict, spec: dict) -> None:
+    """Add breathing, walking extras and idle behaviour to a client entity description."""
+    anims = desc.setdefault("animations", {})
+    scripts = desc.setdefault("scripts", {})
+    animate = scripts.setdefault("animate", [])
+    initialize = scripts.setdefault("initialize", [])
+    initialize.append("variable.life_phase = math.random(0.0, 10.0);")  # herds breathe out of step
+    anims["pm_breathe"] = spec["breathe"]
+    animate.append("pm_breathe")
+    for short, anim in spec.get("moving", {}).items():
+        anims[short] = anim
+        animate.append({short: "query.modified_move_speed"})
+    if spec.get("idle"):
+        anims["pm_life_tick"] = "animation.pm.life.tick"
+        anims["pm_idle_act"] = spec["idle"]
+        anims["pm_life_idle"] = "controller.animation.pm.life.idle"
+        initialize.append(f"variable.life_idle_chance = {spec['idle_chance']};")
+        scripts.setdefault("pre_animation", []).append(
+            "variable.life_idle = query.modified_move_speed < 0.05 && query.is_on_ground && !query.is_in_water;")
+        animate.append("pm_life_idle")
+
+
+def apply_living_herds(pack: Path, shipped: list, vanilla_rp: Path, cfg: dict, report: Report) -> set:
+    """Animate shipped Port Marlowe animals, and vanilla animals where no Port Marlowe model exists yet.
+
+    Returns the entity file names derived from vanilla (validated against vanilla models, not pack assets).
+    """
+    herds = cfg.get("living_herds", {})
+    derived = set()
+    if not herds.get("enabled"):
+        return derived
+    for species, spec in herds.get("species", {}).items():
+        target = pack / "entity" / f"{species}.entity.json"
+        if species in shipped:
+            doc = load_json(target)
+        elif herds.get("on_vanilla_models") and (vanilla_rp / "entity" / f"{species}.entity.json").exists():
+            doc = load_json(vanilla_rp / "entity" / f"{species}.entity.json")
+            derived.add(target.name)
+        else:
+            continue
+        inject_life(doc["minecraft:client_entity"]["description"], spec)
+        dump_json(target, doc)
+        Report.info(f"living herds: {species} animated ({'Port Marlowe model' if species in shipped else 'vanilla model'})")
+    return derived
 
 
 def prune_audio(pack: Path, cfg: dict, report: Report, vanilla: Vanilla) -> set:
@@ -1272,8 +1331,10 @@ def cmd_build(args, cfg) -> int:
 
     keys = {k: p for k, _, p, _ in stack}
     print("\n[fauna]")
+    vanilla_derived = set()
     if "pm_fauna" in keys:
-        prune_fauna(keys["pm_fauna"], report)
+        shipped = prune_fauna(keys["pm_fauna"], report)
+        vanilla_derived = apply_living_herds(keys["pm_fauna"], shipped, vanilla_rp, cfg, report)
         if cfg.get("fauna_material_mode") == "mer":
             convert_fauna_to_mer(keys["pm_fauna"], report)
     print("\n[audio]")
@@ -1324,7 +1385,8 @@ def cmd_build(args, cfg) -> int:
         if key in cfg["vendor_packs"]:
             m = validate_manifest(path, cfg, report, folder)
         else:
-            m = validate_pack(path, cfg, report, vanilla, live_sound_defs, folder)
+            m = validate_pack(path, cfg, report, vanilla, live_sound_defs, folder,
+                              vanilla_derived if key == "pm_fauna" else frozenset())
         if not m:
             continue
         for uid in manifest_ids(m):
