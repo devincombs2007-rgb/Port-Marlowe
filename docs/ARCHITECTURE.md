@@ -10,21 +10,27 @@ community or commissioned assets into fixed slots, and `tools/pmtool.py` validat
 
 ---
 
-## 1. Rendering targets: Vibrant Visuals vs RTX
+## 1. Target platform: Xbox Series X
 
-| | Vibrant Visuals (deferred PBR) | Ray tracing (RTX) |
-|---|---|---|
-| Platforms | Cross-platform on supported devices | Windows only, DirectX ray tracing GPU (GeForce RTX 20+, Radeon RX 6000+) |
-| Manifest capability | `"pbr"` with `min_engine_version` ≥ 1.21.120 | `"raytraced"` |
-| Texture set layers | color, normal **or** heightmap, **MERS** (adds subsurface) or MER | color, normal **or** heightmap, MER; subsurface is ignored |
-| Lighting/atmosphere | Data-driven JSON: `lighting/`, `atmospherics/`, `color_grading/`, `water/`, `shadows/`, `local_lighting/`, `pbr/`, `cubemaps/` | `fogs/` volumetric media coefficients |
-| Status (Microsoft docs) | Current pipeline | "Still supported, largely superseded by Vibrant Visuals" |
+Port Marlowe is built for a Realm played on an **Xbox Series X**. Every budget and default in
+`config/build.json` follows from the platform facts below.
 
-Key rules from Microsoft's documentation:
+| Area | Xbox Series X fact | Source | What Port Marlowe does |
+|---|---|---|---|
+| Graphics mode | **Vibrant Visuals is supported** on Xbox Series X\|S (also Xbox One/PS4 with possible degradation). | minecraft.net Vibrant Visuals page | Every pack declares `"pbr"`; the Xbox profile uses Vibrant-Visuals-native vendor packs |
+| Ray tracing | **Not available.** Minecraft's ray-tracing mode is Windows-only (DirectX ray-tracing GPU), so Xbox never offers it, even though the Series X GPU supports hardware ray tracing. | Microsoft "Getting Started with Ray Tracing" | No RTX pack in the default stack. MERS materials (subsurface) are kept because RTX compatibility is moot. |
+| Memory class | **Memory Performance Tier 4** (`memory_tier` 24–28, 8–12 GB class), shared with PS5 | Microsoft "Building Sub-Packs" | The build measures texture memory against tier 4 and prints how the world fares on tiers 1–5 |
+| Texture budget | Tier 4: **1.2 GB per resource pack, 3 GB per world** (texels × 4 bytes, uncompressed) | Microsoft "Texture Budgets" | `pmtool build` fails if a pack or the world exceeds them |
+| Folder names | World pack folders must be **≤ 10 characters** because of an Xbox long-path issue | Microsoft "Create a World Template" | Enforced by the validator (`pm_fauna`, `vnd_vvn`, …) |
+| Point lights | Disabled only on Android, PS4 and Xbox One; Series X keeps them | 1.26.30 release notes | Torch-family blocks stay engine point lights (colour only changed); everything else is static light |
+| Performance | No official spec. Player reports (Mojang feedback site, 2025–2026): Vibrant Visuals render distance tops out around **24–28 chunks**, and **60 fps is not held** at Ultra + 24 chunks; water was a hotspot in preview builds. | feedback.minecraft.net threads | Waves cut from 28 to **16 octaves**; rooster logic runs only on roosters; fauna limits of **512 px** textures and **160 cubes** per model; recommended render distance **16–20 chunks** |
+| File import | Consoles cannot open `.mcworld` files. Microsoft's documented console route is to upload the world to a Realm from Windows, then join from the console. | Microsoft "Getting Started" (Realms/Console tab) | `package-world` produces a Realm-ready `.mcworld`; see [DEPLOYMENT.md](DEPLOYMENT.md) |
+| Debugging | Content Log is in Settings → Creator; history is reachable from the Profile screen (the Ctrl+H shortcut is keyboard-only) | Microsoft "Content Error Log" | Verification steps use the Profile-screen history on Xbox |
 
-* A pack with the `"raytraced"` capability **also activates Vibrant Visuals**, because RTX assets are a subset
-  of what Vibrant Visuals uses. That is why the recommended `hybrid` profile works on every device.
-* `metalness_emissive_roughness_subsurface` (MERS) is Vibrant-Visuals-only. RTX ignores the subsurface channel.
+Engine rules that shape the packs (Microsoft documentation):
+
+* `metalness_emissive_roughness_subsurface` (MERS) is Vibrant Visuals' material layer; subsurface scattering
+  is what makes fur, wool, ears, combs and leaves glow when back-lit.
 * MER and MERS are mutually exclusive in one texture set. So are normal and heightmap.
 * A texture set can only reference images in **its own pack**, and texture sets do not merge: the
   highest-priority pack's set wins.
@@ -34,15 +40,14 @@ Key rules from Microsoft's documentation:
 
 ### Profiles
 
-| Profile | Block PBR vendor pack | Who sees what |
+| Profile | Vendor packs (below the Port Marlowe packs) | Use it when |
 |---|---|---|
-| `hybrid` (default) | Vanilla RTX Opus (`raytraced`) | RTX PCs: path tracing. Everyone else: Vibrant Visuals with Port Marlowe grading, water and fauna |
-| `vibrant` | Vanilla Vibrant Visuals (`pbr`, subpack `a`) | Vibrant Visuals everywhere, tuned for VV |
-| `vibrant_normals` | Vibrant Normals (`pbr`) | Vibrant Visuals with hand-drawn 16x normal maps |
+| `xbox` (default) | **Vibrant Normals** (hand-drawn 16x normals for every block) + **Vanilla Vibrant Visuals, subpack `b` "Lighting Only (No Textures)"** | The Realm is played on Xbox Series X. The lighting-only subpack exists so its tuned lighting, atmosphere and fog can sit under another texture pack. |
+| `vibrant` | Vanilla Vibrant Visuals, subpack `a` (full textures + lighting) | You prefer that pack's block materials over hand-drawn normals |
+| `hybrid` | Vanilla RTX Opus (`raytraced`) | Only if PC players with RTX GPUs join. Xbox players still get Vibrant Visuals (a `raytraced` pack also activates it), but with block materials tuned for path tracing. |
 
-`config/build.json` sets `fauna_material_mode`. `mers` (the default) gives fur, wool and skin subsurface
-scattering in Vibrant Visuals. `mer` rewrites the fauna texture sets to the 1.16.100 MER format for an
-RTX-first Realm.
+`fauna_material_mode` stays `mers`. The `mer` option (RTX-format fauna materials) only matters for the
+`hybrid` profile.
 
 ---
 
@@ -82,25 +87,28 @@ PortMarlowe.mcworld  (zip)
     │   ├── shadows/global.json
     │   ├── pbr/global.json
     │   ├── local_lighting/local_lighting.json
-    │   ├── color_grading/pm_vivid_*.json                       ← generated (14)
+    │   ├── color_grading/pm_vivid_*.json                       ← generated (vanilla + vendor gradings)
     │   └── biomes/*.client_biome.json                          ← generated (89)
-    └── vnd_vrtx/                     vendor block PBR pack, unmodified
+    ├── vnd_vvn/                      Vibrant Normals, unmodified
+    └── vnd_vvv/                      Vanilla Vibrant Visuals, unmodified (subpack b selected)
 ```
 
-### `world_resource_packs.json` (hybrid profile)
+### `world_resource_packs.json` (xbox profile)
 
 ```json
 [
   { "pack_id": "0a5e9ee6-7ae2-4164-b521-9a48f0815ab8", "version": [1, 0, 0] },
   { "pack_id": "6d71cbe3-2a5e-4844-9287-17ed7b7fd418", "version": [1, 0, 0] },
   { "pack_id": "ea16a581-64ac-4c59-aa92-8508cea57b57", "version": [1, 0, 0] },
-  { "pack_id": "7c87f859-4d79-4d51-8887-bf450b2b2bfa", "version": [1, 26, 34] }
+  { "pack_id": "ee5958bc-0f43-4e12-94a9-c948a19d78af", "version": [1, 0, 0] },
+  { "pack_id": "a9c70898-4c7a-4dfd-aa57-a8f2f8764c57", "version": [3, 3, 0], "subpack": "b" }
 ]
 ```
 
-The last entry is Vanilla RTX Opus 1.26.34 as published on 22 Oct 2026. The build reads vendor UUIDs and
-versions from the vendor manifest, so this file always matches what you dropped in. For the `vibrant`
-profile the vendor entry also carries `"subpack": "a"`.
+The last two entries are Vibrant Normals 1.0.0 and Vanilla Vibrant Visuals 3.3.0 as published in the
+vanilla-rtx/Vanilla-PBR repository (Oct 2026). The build reads vendor UUIDs, versions and declared subpacks
+from each vendor manifest, so this file always matches what you dropped in, and it fails if a profile asks
+for a subpack the manifest does not declare.
 
 ### Manifest (`packs/pm_fauna/manifest.json`)
 
@@ -168,7 +176,8 @@ Vibrant Visuals (`templates/blocks/vibrant_visuals/*.texture_set.json` and every
 }
 ```
 
-RTX (`templates/blocks/rtx/*.texture_set.json`):
+RTX (`templates/blocks/rtx/*.texture_set.json`; only relevant to the `hybrid` profile for PC guests, never
+used on Xbox):
 
 ```json
 {
@@ -217,15 +226,20 @@ polished and metal surfaces below ~76 if they should mirror the scene.
 
 | File | Purpose |
 |---|---|
-| `water/*.json` (format 1.26.0) | Six water bodies with particle concentrations in mg/L. Waves are **enabled** everywhere (vanilla ships them off). Waves on/off and caustics cannot blend between biomes, so those values are identical in every file. |
+| `water/*.json` (format 1.26.0) | Six water bodies with particle concentrations in mg/L. Waves are **enabled** everywhere (vanilla ships them off) at **16 octaves** instead of the documented example's 28, to protect Series X frame rate. Waves on/off and caustics cannot blend between biomes, so the build stamps `water.waves` from `config/atmosphere_profile.json` into every file. Set `"enabled": false` there if water still costs too much. |
 | `shadows/global.json` | `soft_shadows` |
 | `pbr/global.json` | MERS fallback for anything without a texture set |
 | `local_lighting/local_lighting.json` (1.21.120) | Colored block light. The torch, lantern, candle, end rod and redstone torch families stay `point_light` (the engine forces this); everything else is `static_light`. Every block ID was checked against vanilla `blocks.json`. |
-| `color_grading/pm_vivid_*.json` (generated) | Each vanilla per-biome grading with midtone saturation ×1.12 and contrast ×1.04 (`config/atmosphere_profile.json`). The tone-mapping operator is forced to `generic` everywhere because operators cannot blend between biomes. |
+| `color_grading/pm_vivid_*.json` (generated) | A vivid copy of every grading the biomes use, vanilla's and the vendor's: midtone saturation ×1.12 and contrast ×1.04 (`config/atmosphere_profile.json`). Operators cannot blend between biomes, so one operator is stamped into all of them. `"auto"` takes the vendor's choice (`hable` for Vanilla Vibrant Visuals), else vanilla's `generic`. |
 | `biomes/*.client_biome.json` (generated) | See §5 |
 
-Lighting and atmospherics are deliberately left on Mojang's per-biome files, which are tuned for
+Lighting and atmospherics are deliberately left to the lowest layer that defines them: the Vanilla Vibrant
+Visuals lighting-only subpack in the Xbox profile, otherwise Mojang's per-biome files. Both are tuned for
 real-world lux values and auto-exposure. Port Marlowe changes color, water and shadows, not exposure.
+
+Soft shadows override the vendor's blocky shadows because realism is the goal. Neither Microsoft nor the
+pack author documents a cost difference; if you test both on the Series X and blocky is faster, delete
+`packs/pm_atmos/shadows/global.json` and the vendor's setting applies.
 
 ---
 
@@ -312,10 +326,20 @@ The chicken controller adds a hen/rooster axis (`v.is_rooster`). The pig keeps v
    `chicken_cold`, `pig_v3`, `sheep`). If a model relies on alpha-cut fur or feather cards, change the entry
    to `entity_alphatest`.
 
-Budget guidance: Bedrock entity geometry is box-based (Blockbench "Bedrock Entity"). Farms put dozens of
-these mobs on screen, and mobile and console clients share the Realm. Keep textures at 128–256 px per
-breed and avoid hundred-cube rigs. Microsoft's texture-budget guidance suggests limiting MERS usage on
-low memory tiers.
+### Xbox Series X budget for animals
+
+Bedrock entity geometry is box-based (Blockbench "Bedrock Entity"), and a farm puts dozens of these mobs on
+screen at once. Mojang publishes no per-entity limit, so `config/build.json` sets Port Marlowe's own:
+
+| Budget | Value | Enforcement |
+|---|---|---|
+| Texture edge per layer | **512 px** (256 px recommended) | `import-texture` downscales to 512 by default; the build warns above it |
+| Cubes per geometry | **160** | Build warning |
+| `poly_mesh` bones | Avoid | Build warning: verify on the console before shipping |
+
+The whole fauna set at 512 px (27 sets × 3 layers) is about 85 MB of texture memory: 7% of the tier-4
+resource-pack budget. Texture memory isn't the constraint on Series X. Per-frame cost of many animated mobs
+is, which is why the cube cap and the rooster gating below exist.
 
 ### Rooster dawn chorus
 
@@ -328,7 +352,10 @@ animation controller (`controller.animation.pm.chicken.rooster`) does the crowin
   (`query.time_of_day` 0.2–0.3, sunrise = 0.25) or **0.0015 by day** (0.3–0.7). Night is 0.
 * `crow` plays `pm.chicken.rooster_crow` through `sound_effects` and tilts the head back over 2.6 s. A
   40-second `rest` follows.
-* `should_update_effects_offscreen` is on, so roosters behind you still crow.
+* `should_update_effects_offscreen` is `v.is_rooster`, so roosters behind you still crow.
+* The controller sits in `animate` as `{"rooster_controller": "v.is_rooster"}`, the same gating pattern vanilla
+  uses for the copper golem's controllers. Hens, chicks and off-screen hens therefore cost nothing, which
+  matters in a large Xbox chicken farm.
 
 Expected rate: about 2–3 crows per rooster over the 2-minute dawn window, about 0.7 per day otherwise. A
 cluster of roosters produces a staggered chorus. Each client rolls independently. That is fine for ambient
@@ -341,28 +368,33 @@ sound, and the rooster's appearance comes from the synced property, so everyone 
 `pmtool build` writes all 89 vanilla client biomes in three merge layers:
 
 1. **Vanilla 1.26.50** components (fog, water surface color, VV lighting and atmospherics, ambient sounds, music)
-2. **Vendor pack** components, if the vendor ships the same biome file. Vanilla RTX, for example,
-   supplies `minecraft_rtx:fog_plains` for RTX volumetrics.
+2. **Vendor pack** components, if the vendor ships the same biome file, including files in its selected
+   subpack. Vanilla Vibrant Visuals, for example, points every biome at its own `vv_redirected:*` lighting,
+   atmosphere and grading.
 3. **Port Marlowe** remaps:
-   * `minecraft:<x>_color_grading` → `pm:vivid_<x>_color_grading`. Only vanilla IDs are remapped; a
-     vendor's own grading is left alone.
+   * every color grading (`minecraft:*` or vendor) → its vivid copy, e.g.
+     `vv_redirected:default_color_grading` → `pm:vivid_vv_redirected_default_color_grading`
    * `minecraft:water_identifier` → the water body chosen by the rules in `config/atmosphere_profile.json`
    * `minecraft:ambient_sounds`: adds `loop`/`addition` beds where recordings exist, and keeps
      vanilla's `underwater_*` and `mood` keys
 
-Result for plains under the hybrid profile (from an actual build):
+Result for plains under the `xbox` profile (from an actual build with the real Vibrant Normals and Vanilla
+Vibrant Visuals packs):
 
 ```json
-"minecraft:fog_appearance": { "fog_identifier": "minecraft_rtx:fog_plains" },
-"minecraft:water_appearance": { "surface_color": "#0096F4" },
-"minecraft:atmosphere_identifier": { "atmosphere_identifier": "minecraft:default_atmospherics" },
-"minecraft:color_grading_identifier": { "color_grading_identifier": "pm:vivid_default_color_grading" },
-"minecraft:lighting_identifier": { "lighting_identifier": "minecraft:default_lighting" },
+"minecraft:fog_appearance": { "fog_identifier": "vv_redirected:fog_plains" },
+"minecraft:water_appearance": { "surface_color": "#44AFF5" },
+"minecraft:atmosphere_identifier": { "atmosphere_identifier": "vv_redirected:default_atmospherics" },
+"minecraft:color_grading_identifier": { "color_grading_identifier": "pm:vivid_vv_redirected_default_color_grading" },
+"minecraft:lighting_identifier": { "lighting_identifier": "vv_redirected:default_lighting" },
 "minecraft:water_identifier": { "water_identifier": "pm:water_default" },
 "minecraft:ambient_sounds": { "underwater_addition": { "asset": "ambient.underwater.additions", "chance": 0.01 },
                               "underwater_loop": "ambient.underwater.loop",
                               "loop": "pm.ambient.grassland.loop" }
 ```
+
+That build generated 13 vivid gradings (one per grading the biomes actually reference) with the `hable`
+operator, because Vanilla Vibrant Visuals' default grading, used by 24 biomes, specifies `hable`.
 
 The build then checks that every referenced identifier (color grading, water, lighting, atmosphere,
 cubemap, fog) is defined somewhere in the stack or the base game.
@@ -481,7 +513,10 @@ that most often break packs on a Realm:
 | Entity textures and geometry exist; animated bones exist; render controller `Texture./Geometry./Material.` keys resolve | Catches invisible mobs and broken animation |
 | Baby size, sheep dye mask, UV aspect | Common realism-pack bugs |
 | Sound files exist; positional sounds are mono; `sounds.json` events resolve | Silent mobs and non-spatial audio |
-| Biome references resolve; one tone-mapping operator across the stack | Broken or flickering biome transitions |
+| Biome references resolve; every referenced grading carries the same tone-mapping operator | Broken or flickering biome transitions |
+| Texture memory per pack and per world against the target memory tier (tier 4 for Series X), with a fits/over line for tiers 1–5 | Microsoft enforces these budgets per platform tier |
+| Fauna textures ≤ 512 px, geometry ≤ 160 cubes, no unchecked `poly_mesh` | Frame-time protection for herds on console |
+| Requested vendor subpacks exist in the vendor manifest | A missing subpack would leave the vendor pack unusable |
 | Incomplete species are skipped, and the vanilla mob stays | The world is shippable at any stage of assembly |
 
 ---
@@ -496,4 +531,12 @@ that most often break packs on a Realm:
   * Pack manifest reference: `creator/Reference/Content/AddonsReference/PackManifest.md`
   * World template folder-name limit: `creator/Documents/CreateAWorldTemplate.md`
   * Getting started with ray tracing: <https://learn.microsoft.com/en-us/minecraft/creator/documents/rtxgettingstarted>
+  * Memory performance tiers per platform: `creator/Documents/BuildingSubpacks.md`
+  * Texture budgets per tier: `creator/Documents/TextureBudgets.md`
+  * Console install route (Realms/Console tab): `creator/Documents/GettingStarted.md`
+  * Content log: `creator/Documents/ContentErrorLog.md`
+  * Offscreen-update fields are Molang: `creator/Reference/Content/VisualReference/actor_resource_definition.v1.10.0.md`
+* Vibrant Visuals supported devices: <https://www.minecraft.net/en-us/vibrant-visuals-update>
+* Player reports on Series X performance: <https://feedback.minecraft.net/hc/en-us/community/posts/36329970264973-Vibrant-visuals-render-distance>,
+  <https://feedback.minecraft.net/hc/en-us/community/posts/35630749086221-Vibrant-visuals-for-everyone?page=18>
 * Vanilla RTX: <https://github.com/Cubeir/Vanilla-RTX>. Vanilla PBR (Vibrant Visuals): <https://github.com/vanilla-rtx/Vanilla-PBR>

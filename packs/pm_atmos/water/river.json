@@ -16,7 +16,7 @@
       "frequency": 1.0,
       "frequency_scaling": 1.2,
       "mix": 0.2,
-      "octaves": 28,
+      "octaves": 16,
       "pull": 0.38,
       "sampleWidth": 0.01,
       "shape": 1.5,

@@ -677,7 +677,8 @@ def strip_rooster(pack: Path) -> None:
     desc.pop("sound_effects", None)
     for key in ("rooster_tick", "rooster_crow", "rooster_rest", "rooster_controller"):
         desc["animations"].pop(key, None)
-    desc["scripts"]["animate"] = [a for a in desc["scripts"]["animate"] if a != "rooster_controller"]
+    desc["scripts"]["animate"] = [a for a in desc["scripts"]["animate"]
+                                  if a != "rooster_controller" and not (isinstance(a, dict) and "rooster_controller" in a)]
     desc["scripts"].pop("should_update_effects_offscreen", None)
     dump_json(ef, doc)
 
@@ -752,9 +753,65 @@ def convert_fauna_to_mer(pack: Path, report: Report) -> None:
     report.info("fauna: texture sets converted to MER (format 1.16.100) for RTX-first Realms")
 
 
-def generate_color_grading(atmos: Path, vanilla_rp: Path, profile: dict) -> dict:
+def vendor_layers(stack: list, cfg: dict) -> list:
+    """Vendor pack folders lowest priority first; a selected subpack overrides its pack's root."""
+    layers = []
+    for key, _, path, subpack in reversed(stack):
+        if key in cfg["vendor_packs"]:
+            layers.append(path)
+            if subpack and (path / "subpacks" / subpack).is_dir():
+                layers.append(path / "subpacks" / subpack)
+    return layers
+
+
+def grading_operator(path: Path) -> str | None:
+    body = load_json(path).get("minecraft:color_grading_settings", {})
+    return (body.get("tone_mapping") or {}).get("operator")
+
+
+def merged_biomes(vanilla_rp: Path, vendors: list) -> list:
+    """Each vanilla client biome with vendor components layered on top: [(filename, doc, format version)]."""
+    merged = []
+    for f in sorted((vanilla_rp / "biomes").glob("*.client_biome.json")):
+        doc = load_json(f)
+        fv = version_tuple(doc["format_version"])
+        comps = doc["minecraft:client_biome"]["components"]
+        for vp in vendors:  # lowest priority first
+            vf = vp / "biomes" / f.name
+            if vf.exists():
+                vdoc = load_json(vf)
+                comps.update(copy.deepcopy(vdoc["minecraft:client_biome"].get("components", {})))
+                fv = max(fv, version_tuple(vdoc.get("format_version", "0")))
+        merged.append((f.name, doc, fv))
+    return merged
+
+
+def generate_color_grading(atmos: Path, vanilla_rp: Path, vendors: list, profile: dict, biomes: list) -> tuple:
+    """Write a vivid copy of every grading the biomes reference. Returns (old id -> new id, operator)."""
     cg = profile["color_grading"]
-    mapping = {}
+    files = {}
+    for root in [vanilla_rp] + vendors:  # lowest priority first, so higher layers win on identical ids
+        for f in sorted((root / "color_grading").glob("*.json")) if (root / "color_grading").is_dir() else []:
+            try:
+                ident = load_json(f)["minecraft:color_grading_settings"]["description"]["identifier"]
+            except (ValueError, KeyError):
+                continue
+            files[ident] = f
+    usage = {}
+    for _, doc, _ in biomes:
+        ident = (doc["minecraft:client_biome"]["components"].get("minecraft:color_grading_identifier") or {}) \
+            .get("color_grading_identifier")
+        if ident in files:
+            usage[ident] = usage.get(ident, 0) + 1
+    operator = cg["tone_mapping_operator"]
+    if operator == "auto":  # the operator most biomes already use; operators cannot blend between biomes
+        votes = {}
+        for ident, count in usage.items():
+            op = grading_operator(files[ident])
+            if op:
+                votes[op] = votes.get(op, 0) + count
+        operator = max(votes, key=votes.get) if votes else "generic"
+    files = {ident: f for ident, f in files.items() if ident in usage}
 
     def scale(section: dict, rules: dict) -> None:
         for field, lo, hi in (("saturation", 0.0, 10.0), ("contrast", 0.0, 4.0)):
@@ -762,37 +819,38 @@ def generate_color_grading(atmos: Path, vanilla_rp: Path, profile: dict) -> dict
             if field in section and isinstance(section[field], list):
                 section[field] = [round(min(hi, max(lo, v * factor)), 4) for v in section[field]]
 
-    for f in sorted((vanilla_rp / "color_grading").glob("*.json")):
+    mapping = {}
+    for old_id, f in sorted(files.items()):
         doc = load_json(f)
         body = doc["minecraft:color_grading_settings"]
-        old_id = body["description"]["identifier"]
-        new_id = cg["identifier_prefix"] + old_id.split(":")[1]
+        new_id = cg["identifier_prefix"] + old_id.replace(":", "_")
         body["description"]["identifier"] = new_id
         grading = body.setdefault("color_grading", {})
         for section in ("midtones", "highlights", "shadows"):
             if section in grading:
                 scale(grading[section], cg.get(section, {}))
-        body["tone_mapping"] = {"operator": cg["tone_mapping_operator"]}
-        dump_json(atmos / "color_grading" / f"pm_vivid_{f.stem}.json", doc)
+        body["tone_mapping"] = {"operator": operator}
+        dump_json(atmos / "color_grading" / f"pm_vivid_{old_id.replace(':', '_')}.json", doc)
         mapping[old_id] = new_id
-    return mapping
+    return mapping, operator
 
 
-def generate_biomes(atmos: Path, vanilla_rp: Path, vendor_packs: list, profile: dict,
-                    cg_map: dict, live_sounds: set) -> int:
+def apply_water_waves(atmos: Path, profile: dict) -> None:
+    """Wave on/off and caustics cannot blend between biomes, so every water body gets the same values."""
+    waves = profile["water"].get("waves", {})
+    for f in sorted((atmos / "water").glob("*.json")):
+        doc = load_json(f)
+        body = doc["minecraft:water_settings"].setdefault("waves", {})
+        body.update(waves)
+        dump_json(f, doc)
+
+
+def generate_biomes(atmos: Path, biomes: list, profile: dict, cg_map: dict, live_sounds: set) -> int:
     """Write complete client biome files: vanilla <- vendor components <- Port Marlowe remaps."""
     count = 0
-    for f in sorted((vanilla_rp / "biomes").glob("*.client_biome.json")):
-        doc = load_json(f)
-        fv = version_tuple(doc["format_version"])
+    for name, doc, fv in biomes:
         comps = doc["minecraft:client_biome"]["components"]
-        for vp in reversed(vendor_packs):  # lowest priority first
-            vf = vp / "biomes" / f.name
-            if vf.exists():
-                vdoc = load_json(vf)
-                comps.update(copy.deepcopy(vdoc["minecraft:client_biome"].get("components", {})))
-                fv = max(fv, version_tuple(vdoc.get("format_version", "0")))
-        biome = f.name.split(".")[0]
+        biome = name.split(".")[0]
         cgc = comps.get("minecraft:color_grading_identifier")
         if cgc and cgc.get("color_grading_identifier") in cg_map:
             cgc["color_grading_identifier"] = cg_map[cgc["color_grading_identifier"]]
@@ -813,7 +871,7 @@ def generate_biomes(atmos: Path, vanilla_rp: Path, vendor_packs: list, profile: 
             if not amb:
                 comps.pop("minecraft:ambient_sounds")
         doc["format_version"] = ".".join(str(x) for x in fv)
-        dump_json(atmos / "biomes" / f.name, doc)
+        dump_json(atmos / "biomes" / name, doc)
         count += 1
     return count
 
@@ -852,17 +910,75 @@ def check_biome_references(atmos: Path, packs: list, vanilla_rp: Path, report: R
         report.error(f"biomes: '{ident}' is referenced by {len(biomes)} biome(s) (e.g. {biomes[0]}) but no pack defines it")
 
 
-def check_tone_mapping(packs: list, report: Report) -> None:
-    ops = {}
-    for p in packs:
-        for f in (p / "color_grading").glob("*.json") if (p / "color_grading").is_dir() else []:
-            body = load_json(f).get("minecraft:color_grading_settings", {})
-            op = (body.get("tone_mapping") or {}).get("operator")
-            if op:
-                ops.setdefault(op, []).append(f"{p.name}/{f.name}")
-    if len(ops) > 1:
-        report.warn(f"color grading uses several tone-mapping operators {sorted(ops)}; operators cannot be "
-                    f"blended between biomes, so expect hard transitions")
+def check_tone_mapping(atmos: Path, prefix: str, report: Report) -> None:
+    """Biomes left on a non-generated grading keep their own operator; flag them."""
+    stray = set()
+    for f in (atmos / "biomes").glob("*.json"):
+        comps = load_json(f)["minecraft:client_biome"]["components"]
+        ident = (comps.get("minecraft:color_grading_identifier") or {}).get("color_grading_identifier")
+        if ident and not ident.startswith(prefix):
+            stray.add(ident)
+    if stray:
+        report.warn(f"biomes still use gradings {sorted(stray)}; if their tone-mapping operator differs, "
+                    f"biome borders will show hard transitions")
+
+
+def image_texels(path: Path) -> int:
+    Image = pil()
+    with Image.open(path) as im:
+        return im.size[0] * im.size[1]
+
+
+def check_texture_budget(stack: list, cfg: dict, report: Report) -> None:
+    """Estimate texture memory (texels x 4 bytes, as Microsoft's MCTools does) against the platform tiers."""
+    plat = cfg["target_platform"]
+    budgets = plat["texture_budget_mb"]
+    target = str(plat["memory_performance_tier"])
+    total = 0.0
+    print("\n[texture budget]  texels x 4 bytes, uncompressed")
+    for _, folder, path, subpack in stack:
+        texels = 0
+        for f in path.rglob("*"):
+            if f.suffix.lower() not in IMAGE_EXTS or f.name == "pack_icon.png":
+                continue
+            rel = f.relative_to(path).parts
+            if rel[0] == "subpacks" and (len(rel) < 2 or rel[1] != subpack):
+                continue  # only the selected subpack is loaded
+            texels += image_texels(f)
+        mb = texels * 4 / 1_000_000
+        total += mb
+        print(f"  {folder:<10} {mb:8.1f} MB")
+        if mb > budgets[target]["resource_pack"]:
+            report.error(f"{folder}: {mb:.0f} MB of textures exceeds the {plat['name']} resource-pack budget "
+                         f"({budgets[target]['resource_pack']} MB, memory tier {target})")
+    print(f"  {'world':<10} {total:8.1f} MB")
+    for tier in sorted(budgets):
+        fits = "fits" if total <= budgets[tier]["world"] else "OVER"
+        mark = "  <- target" if tier == target else ""
+        print(f"    tier {tier} ({plat['tier_platforms'][tier]}): {budgets[tier]['world']} MB world budget, {fits}{mark}")
+    if total > budgets[target]["world"]:
+        report.error(f"world textures ({total:.0f} MB) exceed the {plat['name']} world budget "
+                     f"({budgets[target]['world']} MB)")
+
+
+def check_fauna_budget(pack: Path, cfg: dict, report: Report) -> None:
+    """Port Marlowe heuristics for herds on console; Mojang publishes no per-entity limit."""
+    budget = cfg.get("fauna_budget", {})
+    for gid, g in collect_geometry(pack).items():
+        cubes = sum(len(b.get("cubes") or []) for b in g["bones"])
+        if cubes > budget.get("max_cubes_per_geometry", 10 ** 9):
+            report.warn(f"{gid}: {cubes} cubes; farms render dozens of these at once on {cfg['target_platform']['name']}, "
+                        f"keep under {budget['max_cubes_per_geometry']}")
+        if any("poly_mesh" in b for b in g["bones"]):
+            report.warn(f"{gid}: uses poly_mesh; check it renders correctly on the target console before shipping")
+    tex_root = pack / "textures" / "entity" / "pm"
+    for f in tex_root.rglob("*") if tex_root.is_dir() else []:
+        if f.suffix.lower() in IMAGE_EXTS:
+            Image = pil()
+            with Image.open(f) as im:
+                if max(im.size) > budget.get("max_texture_edge", 10 ** 9):
+                    report.warn(f"{f.relative_to(pack)}: {im.size[0]}x{im.size[1]} exceeds the "
+                                f"{budget['max_texture_edge']} px fauna texture budget")
 
 
 def zip_dir(src: Path, out: Path, arc_prefix: str = "") -> None:
@@ -887,7 +1003,8 @@ def cmd_build(args, cfg) -> int:
     print(f"Building profile '{profile_name}': {profile['description']}")
 
     stack = []  # (key, folder, path, subpack)
-    for key in profile["stack"]:
+    for entry in profile["stack"]:
+        key, _, subpack_override = entry.partition(":")
         if key in cfg["packs"]:
             spec = cfg["packs"][key]
             dest = packs_out / spec["folder"]
@@ -898,13 +1015,17 @@ def cmd_build(args, cfg) -> int:
             src = ROOT / spec["source"]
             if not (src / "manifest.json").exists():
                 report.warn(f"vendor/{key}: not found at {spec['source']} (extract the pack so manifest.json "
-                            f"sits at that folder's root); building without block PBR")
+                            f"sits at that folder's root); building without it")
                 continue
             dest = packs_out / spec["folder"]
             shutil.copytree(src, dest)
-            stack.append((key, spec["folder"], dest, spec.get("subpack")))
+            subpack = subpack_override or spec.get("subpack")
+            declared = [s.get("folder_name") for s in load_json(dest / "manifest.json").get("subpacks", [])]
+            if subpack and subpack not in declared:
+                report.error(f"vendor/{key}: subpack '{subpack}' is not declared in its manifest ({declared})")
+            stack.append((key, spec["folder"], dest, subpack))
         else:
-            report.error(f"profile stack entry '{key}' is not defined in config/build.json")
+            report.error(f"profile stack entry '{entry}' is not defined in config/build.json")
 
     keys = {k: p for k, _, p, _ in stack}
     print("\n[fauna]")
@@ -923,12 +1044,21 @@ def cmd_build(args, cfg) -> int:
     print("\n[atmosphere]")
     if "pm_atmos" in keys:
         atmos = keys["pm_atmos"]
-        cg_map = generate_color_grading(atmos, vanilla_rp, atmos_profile)
-        vendor_paths = [p for k, _, p, _ in stack if k in cfg["vendor_packs"]]
-        n = generate_biomes(atmos, vanilla_rp, vendor_paths, atmos_profile, cg_map, live_sounds)
-        Report.info(f"atmosphere: {len(cg_map)} color grading files and {n} client biome remaps generated")
-        check_biome_references(atmos, [p for _, _, p, _ in stack], vanilla_rp, report)
-    check_tone_mapping([p for _, _, p, _ in stack], report)
+        vendors = vendor_layers(stack, cfg)
+        biomes = merged_biomes(vanilla_rp, vendors)
+        cg_map, operator = generate_color_grading(atmos, vanilla_rp, vendors, atmos_profile, biomes)
+        apply_water_waves(atmos, atmos_profile)
+        n = generate_biomes(atmos, biomes, atmos_profile, cg_map, live_sounds)
+        Report.info(f"atmosphere: {len(cg_map)} vivid color gradings (tone mapping '{operator}') and "
+                    f"{n} client biome remaps generated")
+        check_biome_references(atmos, [p for _, _, p, _ in stack] + vendors, vanilla_rp, report)
+        check_tone_mapping(atmos, atmos_profile["color_grading"]["identifier_prefix"], report)
+    if "pm_fauna" in keys:
+        check_fauna_budget(keys["pm_fauna"], cfg, report)
+    check_texture_budget(stack, cfg, report)
+    if "pm_audio" in keys:
+        audio_mb = sum(f.stat().st_size for f in (keys["pm_audio"] / "sounds").rglob("*") if f.is_file()) / 1048576
+        Report.info(f"audio payload: {audio_mb:.1f} MiB")
 
     print("\n[validate built packs]")
     live_sound_defs = {}
@@ -1300,11 +1430,11 @@ def main(argv=None) -> int:
     s.set_defaults(fn=cmd_validate)
 
     s = sub.add_parser("build", help="assemble, prune, generate biome remaps, validate, zip")
-    s.add_argument("--profile", default="hybrid", choices=sorted(cfg["profiles"]))
+    s.add_argument("--profile", default=cfg["default_profile"], choices=sorted(cfg["profiles"]))
     s.set_defaults(fn=cmd_build)
 
     s = sub.add_parser("package-world", help="inject a built stack into an exported .mcworld")
-    s.add_argument("--profile", default="hybrid", choices=sorted(cfg["profiles"]))
+    s.add_argument("--profile", default=cfg["default_profile"], choices=sorted(cfg["profiles"]))
     s.add_argument("--world", required=True, help="exported .mcworld (or an unzipped world folder)")
     s.add_argument("--out", default="build/PortMarlowe.mcworld")
     s.add_argument("--drop-unknown", action="store_true",
@@ -1328,7 +1458,8 @@ def main(argv=None) -> int:
     s.add_argument("--subsurface-value", type=int, default=0, help="uniform subsurface 0-255 when no map")
     s.add_argument("--normal", help="tangent-space normal map")
     s.add_argument("--flip-normal-green", action="store_true", help="convert between OpenGL/DirectX conventions")
-    s.add_argument("--max-size", type=int, help="downscale so the longest edge is at most this many pixels")
+    s.add_argument("--max-size", type=int, default=cfg.get("fauna_budget", {}).get("max_texture_edge"),
+                   help="downscale so the longest edge is at most this many pixels (default: fauna budget)")
     s.set_defaults(fn=cmd_import_texture)
 
     s = sub.add_parser("convert-labpbr", help="convert a Java LabPBR _s/_n pair to Bedrock MERS/normal")

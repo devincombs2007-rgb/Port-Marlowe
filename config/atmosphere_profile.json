@@ -1,12 +1,13 @@
 {
   "color_grading": {
     "identifier_prefix": "pm:vivid_",
-    "tone_mapping_operator": "generic",
+    "tone_mapping_operator": "auto",
     "midtones": { "saturation_scale": 1.12, "contrast_scale": 1.04 },
     "highlights": { "saturation_scale": 1.06, "contrast_scale": 1.0 },
     "shadows": { "saturation_scale": 1.0, "contrast_scale": 1.0 }
   },
   "water": {
+    "waves": { "enabled": true, "octaves": 16 },
     "default": "pm:water_default",
     "rules": [
       { "biomes": ["warm_ocean", "deep_warm_ocean", "lukewarm_ocean", "deep_lukewarm_ocean"], "water": "pm:water_warm_ocean" },

@@ -51,10 +51,12 @@
             "move": "query.modified_move_speed"
           },
           "look_at_target",
-          "rooster_controller"
+          {
+            "rooster_controller": "v.is_rooster"
+          }
         ],
         "scale": "query.is_baby ? 2.0 : 1.0",
-        "should_update_effects_offscreen": "1.0"
+        "should_update_effects_offscreen": "v.is_rooster"
       },
       "sound_effects": {
         "crow": "pm.chicken.rooster_crow"

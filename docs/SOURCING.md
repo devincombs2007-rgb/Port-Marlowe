@@ -18,19 +18,29 @@ Keep third-party files out of git. `.gitignore` already excludes `vendor/*` and 
 
 ## A. Block PBR: `vendor/<name>/` (manifest.json at that folder's root)
 
+Xbox Series X stack (`xbox` profile, the default):
+
 | Folder | Pack | Status | Capability / version | Licence summary |
 |---|---|---|---|---|
-| `vendor/vanilla_rtx_opus` (hybrid) | **Vanilla RTX Opus** by Cubeir: vanilla-faithful PBR for every block, heightmaps plus hand-made normals | **Verified**: github.com/Cubeir/Vanilla-RTX, v1.26.34, updated 22 Oct 2026 | `raytraced`, `min_engine_version` 1.26.50, UUID `7c87f859-4d79-4d51-8887-bf450b2b2bfa` | Free. Redistribution, including in servers and maps, is allowed with clear credit and a link to or copy of `LICENSE.txt`. Non-commercial; must stay free. **Copy `LICENSE.txt` into the vendor folder.** |
-| `vendor/vanilla_rtx_normals` | Vanilla RTX Normals (16x hand-drawn normals) | **Verified** (same repo) | `raytraced`, UUID `bbe2b225-b45b-41c2-bd3b-465cd83e6071` | Same as above |
-| `vendor/vanilla_vibrant_visuals` (vibrant) | **Vanilla Vibrant Visuals**: VV conversion of Vanilla RTX plus tuned lighting configs | **Verified**: github.com/vanilla-rtx/Vanilla-PBR, updated 15 Oct 2026 | `pbr`, v3.3.0, subpacks `a` (full) and `b` (lighting only) | Cubeir licence (same terms) |
-| `vendor/vibrant_normals` (vibrant_normals) | **Vibrant Normals**: VV conversion of Vanilla RTX Normals | **Verified** (same repo) | `pbr`, v1.0.0 | Cubeir licence |
-| *(optional, replaces the above)* | PrizmaRTX by Al3xis5 | **Listed** on MCPEDL as v1.3.1 (Sept 2025), RTX-only. A user comment reports breakage after 1.21.70. | Unknown | Unknown. Check before use. The same author's newer **Prizma Visuals 2.0** (with Starfish Studios) is listed as a Vibrant Visuals pack. |
+| `vendor/vibrant_normals` | **Vibrant Normals**: Vibrant Visuals conversion of Vanilla RTX Normals, hand-drawn 16x normal maps for every vanilla block (1,111 texture sets) | **Verified**: github.com/vanilla-rtx/Vanilla-PBR, updated 15 Oct 2026 | `pbr`, v1.0.0, UUID `ee5958bc-0f43-4e12-94a9-c948a19d78af` | "Default Vanilla RTX License Applies": free; redistribution in maps, servers and Realms allowed with clear credit and the licence file or a link to it; non-commercial. **Copy `LICENSE.txt` into the vendor folder.** |
+| `vendor/vanilla_vibrant_visuals` | **Vanilla Vibrant Visuals**, used with subpack **`b` "Lighting Only (No Textures)"**: the author's tuned lighting, atmospherics, fog and biome mapping, designed to sit under another texture pack | **Verified** (same repo) | `pbr`, v3.3.0, UUID `a9c70898-4c7a-4dfd-aa57-a8f2f8764c57`, subpacks `a` (full) and `b` (lighting only) | Same licence |
+
+Measured in a real build: the two vendor packs in the `xbox` stack use about 7 MB of the 3 GB tier-4 texture
+budget. The `vibrant` profile (subpack `a`, with textures) uses about 35 MB.
+
+Optional or PC-only:
+
+| Folder | Pack | Status | Capability / version | Licence summary |
+|---|---|---|---|---|
+| `vendor/vanilla_rtx_opus` (`hybrid` profile, PC guests only) | **Vanilla RTX Opus** by Cubeir | **Verified**: github.com/Cubeir/Vanilla-RTX, v1.26.34, updated 22 Oct 2026 | `raytraced`, `min_engine_version` 1.26.50, UUID `7c87f859-4d79-4d51-8887-bf450b2b2bfa` | Same licence. Ray tracing never activates on Xbox; Xbox players would see its RTX-tuned materials through Vibrant Visuals. |
+| *(optional)* | PrizmaRTX by Al3xis5 | **Listed** on MCPEDL as v1.3.1 (Sept 2025), **RTX-only, so useless on Xbox**. A user comment reports breakage after 1.21.70. | Unknown | Unknown. The same author's newer **Prizma Visuals 2.0** (with Starfish Studios) is listed as a Vibrant Visuals pack; check its terms and size before trying it on Xbox. |
 | *(optional)* | Defined PBR | Java Edition LabPBR pack, not a Bedrock pack | n/a | Unknown. `pmtool convert-labpbr` converts its `_s`/`_n` maps to MERS/normal per texture, but a full port also needs a Java→Bedrock filename map. Only do this if the licence allows redistribution. |
 | n/a | "Legendary Bedrock RTX" | **Not found** | n/a | Not recommended |
 
 To swap a vendor pack, add it to `vendor_packs` in `config/build.json`. Use a folder name of 10 characters
-or fewer, then reference it from a profile's `stack`. Do **not** put two block-PBR packs in one stack:
-texture sets do not merge, and only the higher one is used.
+or fewer (an Xbox requirement), then reference it from a profile's `stack`; `key:subpack` selects a
+subpack. Do **not** stack two packs that both ship block textures: texture sets do not merge, and only the
+higher one is used. That is why the Xbox profile takes Vanilla Vibrant Visuals' lighting-only subpack.
 
 Block templates in `templates/blocks/` show the exact texture-set wiring for water, leaves, grass, stone,
 deepslate, ores, glowstone and metal if you author or override block materials yourself.
@@ -61,6 +71,11 @@ Each set is `<slot>` albedo, `<slot>_mers` (RGBA TGA) and `<slot>_normal`.
 | Chicken | `leghorn_hen`, `leghorn_rooster`, `rhode_island_red_hen`, `rhode_island_red_rooster`, `brahma_hen`, `brahma_rooster`, `chick_temperate`, `chick_warm`, `chick_cold` |
 | Pig | `large_white`, `duroc`, `mangalica`, `piglet_temperate`, `piglet_warm`, `piglet_cold`, `saddle` (painted on your pig's UVs) |
 | Sheep | `sheep`, `lamb` (RGBA TGA with the wool dye mask: wool alpha 255, skin alpha 3) |
+
+**Xbox Series X budget.** `import-texture` downscales every layer to **512 px** on the longest edge by
+default (256 px is plenty for a mob seen at farm distance). The build warns above **160 cubes** per model,
+because dozens of animals render at once. All 27 sets at 512 px come to about 85 MB of texture memory, so
+the limit protects frame time rather than memory.
 
 Breeds are display names only. To use different breeds, rename the texture paths in the entity file and
 its texture set in one commit.
@@ -134,7 +149,7 @@ loudness, and writes mono OGG for positional slots. Run `pmtool status` for the 
 2. Extract each vendor `.mcpack` (it is a zip) into `vendor/<name>/` and copy the vendor licence next to its manifest.
 3. Import models, textures and audio; check with `pmtool status`.
 4. Put attribution text in `assets/pm_fauna/CREDITS.txt` and `assets/pm_audio/CREDITS.txt`.
-5. `pmtool build --profile hybrid` must report **0 errors**.
+5. `pmtool build` (the `xbox` profile) must report **0 errors**.
 6. Continue with [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Sources
