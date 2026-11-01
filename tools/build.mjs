@@ -1,0 +1,10 @@
+import { build } from 'esbuild';
+import { readFileSync, writeFileSync, mkdirSync } from 'fs';
+const r = await build({ entryPoints: ['src/main.js'], bundle: true, format: 'iife', write: false, target: 'es2020', minify: false });
+const js = r.outputFiles[0].text.replace(/<\/script/g, '<\\/script');
+const shell = readFileSync('web/shell.html', 'utf8');
+const body = `${shell}\n<script>\n${js}\n</script>\n`;
+mkdirSync('dist', { recursive: true });
+writeFileSync('dist/artifact.html', body);
+writeFileSync('dist/index.html', `<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n</head><body>\n${body}</body></html>\n`);
+console.log('built', (body.length / 1024).toFixed(0), 'KB');

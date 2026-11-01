@@ -1,0 +1,4551 @@
+<title>Port Marlowe</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,500;0,700;1,500&family=Barlow+Semi+Condensed:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: full-bleed simulation canvas; instrument plates float over it (top: voyage clock & time; left: tools; right: telemetry). */
+:root {
+  --ink: #050b12; --plate: rgba(9,17,26,0.86); --line: rgba(201,169,104,0.28);
+  --brass: #c9a968; --brass-hi: #ecd29a; --text: #dfe4e6; --dim: #8b98a1; --red: #d2553f; --amber: #e0a33a; --sea: #2f7fa6;
+  --display: "Bodoni Moda", "Didot", Georgia, serif;
+  --ui: "Barlow Semi Condensed", "Arial Narrow", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { margin: 0; background: var(--ink); color: var(--text); font: 14px/1.35 var(--ui); overflow: hidden; }
+#view { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: crosshair; }
+.plate { position: fixed; background: var(--plate); border: 1px solid var(--line); border-radius: 3px; backdrop-filter: blur(6px); }
+#top { top: calc(10px + env(safe-area-inset-top, 0px)); left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; padding: 8px 14px; }
+.brand { font-family: var(--display); font-size: 21px; letter-spacing: 0.04em; color: var(--brass-hi); white-space: nowrap; }
+.brand small { font: italic 500 13px var(--display); color: var(--dim); margin-left: 8px; letter-spacing: 0; }
+#clock { font: 500 15px var(--mono); color: var(--brass-hi); font-variant-numeric: tabular-nums; }
+#elapsed { font: 12px var(--mono); color: var(--dim); font-variant-numeric: tabular-nums; }
+.grp { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+.lbl { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); margin-right: 4px; }
+button, select { font: 500 13px var(--ui); color: var(--text); background: rgba(255,255,255,0.04); border: 1px solid rgba(201,169,104,0.25); border-radius: 2px; padding: 4px 9px; cursor: pointer; }
+button:hover { border-color: var(--brass); }
+button.on { background: var(--brass); color: #12100b; border-color: var(--brass); }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--brass-hi); outline-offset: 1px; }
+select { background: #0d1822; }
+#tools { left: max(16px, env(safe-area-inset-left, 0px)); top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 6px; padding: 10px 8px; }
+#tools button { width: 92px; text-align: left; }
+#tools .hint { font-size: 11px; color: var(--dim); width: 92px; }
+#panel { right: max(16px, env(safe-area-inset-right, 0px)); top: 92px; width: 268px; padding: 12px 14px; max-height: calc(100% - 200px); overflow-y: auto; }
+#panel h3 { font: 600 11px var(--ui); letter-spacing: 0.14em; text-transform: uppercase; color: var(--brass); margin: 10px 0 6px; }
+#panel h3:first-child { margin-top: 0; }
+.row { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; border-bottom: 1px dotted rgba(255,255,255,0.06); }
+.row span { color: var(--dim); }
+.row b { font: 500 13px var(--mono); font-variant-numeric: tabular-nums; color: var(--text); }
+.meter { height: 5px; background: rgba(255,255,255,0.08); margin: 6px 0 2px; }
+#stressbar { height: 100%; width: 0; background: var(--sea); transition: width .2s; }
+#stressbar.warn { background: var(--amber); } #stressbar.bad { background: var(--red); }
+#comps { display: grid; grid-template-columns: repeat(16, 1fr); gap: 2px; height: 58px; }
+.comp { position: relative; background: rgba(255,255,255,0.05); display: flex; align-items: flex-end; }
+.comp i { display: block; width: 100%; background: linear-gradient(#3b8db5, #1d5675); }
+.comp span { position: absolute; bottom: -15px; left: 0; right: 0; text-align: center; font: 9px var(--mono); color: var(--dim); }
+.compnote { font-size: 11px; color: var(--dim); margin-top: 18px; }
+#inspect { font-size: 12.5px; color: var(--text); min-height: 48px; }
+#bottom { left: 50%; transform: translateX(-50%); bottom: calc(12px + env(safe-area-inset-bottom, 0px)); width: min(720px, calc(100% - 32px)); padding: 8px 14px; }
+#log { list-style: none; margin: 0; padding: 0; font-size: 13px; max-height: 118px; overflow: hidden; }
+#log li { padding: 2px 0; color: var(--text); opacity: 0.92; }
+#log li + li { opacity: 0.6; }
+#log .t { font: 12px var(--mono); color: var(--brass); margin-right: 10px; }
+input[type=range] { width: 100%; accent-color: var(--brass); }
+@media (max-width: 860px) {
+  #panel { top: auto; bottom: 150px; width: calc(100% - 32px); max-height: 30%; }
+  #tools { top: auto; bottom: 150px; transform: none; display: none; }
+  .brand small { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { #stressbar { transition: none; } }
+</style>
+<canvas id="view" aria-label="Ship sinking simulation"></canvas>
+<header id="top" class="plate">
+  <div class="brand">Port Marlowe<small>a sinking sandbox</small></div>
+  <div><div id="clock">14 Apr 1912 · 23:39:40</div><div id="elapsed">T+0h 00m 00s</div></div>
+  <div class="grp"><span class="lbl">Time</span>
+    <button data-speed="0" title="Pause (space)">❚❚</button><button data-speed="1" class="on">1×</button><button data-speed="5">5×</button><button data-speed="20">20×</button><button data-speed="60">60×</button>
+  </div>
+  <div class="grp"><span class="lbl">Wreck</span><button data-years="0.1">1 yr/10 s</button><button data-years="2">2 yr/s</button><button data-years="10">10 yr/s</button></div>
+  <div class="grp"><span class="lbl">View</span><button data-view="cutaway" class="on">Cutaway</button><button data-view="exterior">Hull</button><button data-view="stress">Stress</button><button id="follow">Follow</button></div>
+  <div class="grp"><select id="scenario" aria-label="Scenario"><option value="iceberg">1912 · Iceberg</option><option value="sandbox">Sandbox · intact</option></select><button id="sound" class="on" title="Sound">Sound</button></div>
+</header>
+<nav id="tools" class="plate" aria-label="Tools">
+  <span class="lbl">Tools</span>
+  <button data-tool="grab" class="on">Grab</button>
+  <button data-tool="puncture">Puncture</button>
+  <button data-tool="cut">Cut steel</button>
+  <button data-tool="bomb">Explosive</button>
+  <button data-tool="pan">Pan</button>
+  <button id="doors">WT doors</button>
+  <span class="hint">Wheel to zoom, right-drag to pan, C toggles view.</span>
+</nav>
+<aside id="panel" class="plate">
+  <h3>Hydrostatics</h3>
+  <div id="stats"></div>
+  <div class="meter"><div id="stressbar"></div></div>
+  <h3>Watertight compartments</h3>
+  <div id="comps"></div>
+  <div class="compnote">Bow ← · → stern. Bulkheads C–J stop at E deck: water spills over.</div>
+  <h3>Inspect</h3>
+  <div id="inspect">Hover the ship to inspect a space.</div>
+  <h3>Abyss visibility</h3>
+  <input id="visibility" type="range" min="0" max="1" step="0.05" value="0.55" aria-label="Visibility at depth">
+</aside>
+<footer id="bottom" class="plate"><ul id="log"></ul></footer>
+
+<script>
+(() => {
+  // src/sim/constants.js
+  var G = 9.81;
+  var RHO_SEA = 1025;
+  var RHO_AIR = 1.225;
+  var RHO_STEEL = 7850;
+  var P_ATM = 101325;
+  var SEA_COMPRESSIBILITY = 44e-11;
+  var CELL = 0.5;
+  var CELL2 = CELL * CELL;
+  var STEEL_UTS = 42e7;
+  var STEEL_YIELD = 27e7;
+  function seaDensityAtDepth(depth) {
+    if (depth <= 0) return RHO_SEA;
+    const p = RHO_SEA * G * depth;
+    return RHO_SEA * (1 + SEA_COMPRESSIBILITY * p);
+  }
+  function gaugePressure(depth) {
+    if (depth <= 0) return 0;
+    const rhoMean = 0.5 * (RHO_SEA + seaDensityAtDepth(depth));
+    return rhoMean * G * depth;
+  }
+  function waterTemperature(depth, surfaceTemp = -2) {
+    if (depth <= 0) return surfaceTemp;
+    const thermocline = 2 + (surfaceTemp - 2) * Math.exp(-depth / 120);
+    return thermocline;
+  }
+
+  // src/sim/materials.js
+  var EMPTY = 0;
+  var SOLID = 1;
+  var SPACE = 2;
+  var OPEN = 3;
+  var M = [];
+  var nextId = 0;
+  function def(key, props) {
+    const id = nextId++;
+    const m = Object.assign({
+      id,
+      key,
+      kind: SOLID,
+      t: 0.012,
+      burst: 4e5,
+      strength: false,
+      rustRate: 4e-3,
+      perm: 1,
+      outfit: 0,
+      color: "#555",
+      name: key
+    }, props);
+    M[id] = m;
+    return id;
+  }
+  var MAT = {};
+  MAT.NONE = def("none", { kind: EMPTY, name: "Open sea" });
+  MAT.HULL = def("hull", { t: 0.028, burst: 26e5, strength: true, rustRate: 36e-4, name: "Shell plating", color: "#2b2f33" });
+  MAT.KEEL = def("keel", { t: 0.045, burst: 4e6, strength: true, rustRate: 25e-4, name: "Keel & bottom shell", color: "#23272b" });
+  MAT.DECK = def("deck", { t: 0.016, burst: 55e4, strength: true, rustRate: 55e-4, name: "Steel deck", color: "#5c5f63" });
+  MAT.WDECK = def("wdeck", { t: 0.018, burst: 55e4, strength: true, rustRate: 55e-4, name: "Weather deck (pine planking)", color: "#8a7a5c" });
+  MAT.TANKTOP = def("tanktop", { t: 0.026, burst: 16e5, strength: true, rustRate: 3e-3, name: "Inner bottom (tank top)", color: "#4a4d50" });
+  MAT.BHD = def("bhd", { t: 0.0127, burst: 9e5, strength: false, rustRate: 4e-3, name: "Watertight bulkhead", color: "#6b6f74" });
+  MAT.PART = def("part", { t: 6e-3, burst: 6e4, strength: false, rustRate: 0.012, name: "Light steel/wood partition", color: "#7c7468" });
+  MAT.SUPER = def("super", { t: 95e-4, burst: 18e4, strength: false, rustRate: 8e-3, name: "Superstructure plating", color: "#e8e4da" });
+  MAT.CASING = def("casing", { t: 8e-3, burst: 12e4, strength: false, rustRate: 0.01, name: "Boiler/engine casing", color: "#6d6a66" });
+  MAT.FUNNEL = def("funnel", { t: 8e-3, burst: 1e9, strength: false, rustRate: 0.011, name: "Funnel (free-flooding)", color: "#c48a3a" });
+  MAT.MAST = def("mast", { t: 0.012, burst: 1e9, strength: false, rustRate: 7e-3, name: "Steel mast", color: "#c9a36b" });
+  MAT.RUDDER = def("rudder", { t: 0.05, burst: 1e9, strength: false, rustRate: 15e-4, name: "Rudder (cast steel)", color: "#3a2a22" });
+  MAT.MACHINE = def("machine", { t: 0.05, burst: 1e9, strength: false, rustRate: 12e-4, name: "Machinery", color: "#3d3a37" });
+  MAT.ICE = def("ice", { t: 1, burst: 1e9, strength: false, rustRate: 0, name: "Glacial ice", color: "#d8eef7" });
+  MAT.BOAT = def("boat", { t: 0.02, burst: 1e9, strength: false, rustRate: 0, name: "Lifeboat (yellow pine)", color: "#f2efe6" });
+  MAT.HOLD = def("hold", { kind: SPACE, perm: 0.6, outfit: 60, name: "Cargo hold", color: "#6e5b45" });
+  MAT.BOILER = def("boiler", { kind: SPACE, perm: 0.85, outfit: 0, name: "Boiler room (stokehold)", color: "#4a3b33" });
+  MAT.ENGINE = def("engine", { kind: SPACE, perm: 0.85, outfit: 0, name: "Engine room", color: "#4b4540" });
+  MAT.BUNKER = def("bunker", { kind: SPACE, perm: 0.45, outfit: 0, name: "Coal bunker", color: "#262422" });
+  MAT.CABIN = def("cabin", { kind: SPACE, perm: 0.95, outfit: 55, name: "Cabins", color: "#cdb995" });
+  MAT.PUBLIC = def("public", { kind: SPACE, perm: 0.95, outfit: 45, name: "Public rooms", color: "#d8c49a" });
+  MAT.CREW = def("crew", { kind: SPACE, perm: 0.95, outfit: 50, name: "Crew quarters", color: "#b9a888" });
+  MAT.STAIR = def("stair", { kind: SPACE, perm: 0.98, outfit: 25, name: "Stairway", color: "#c7a26a" });
+  MAT.CORRIDOR = def("corridor", { kind: SPACE, perm: 0.98, outfit: 20, name: "Working passage", color: "#b5aa96" });
+  MAT.TANK = def("tank", { kind: SPACE, perm: 0.98, outfit: 0, name: "Double-bottom tank", color: "#3e4a52" });
+  MAT.STORE = def("store", { kind: SPACE, perm: 0.7, outfit: 120, name: "Stores / mail", color: "#8d7a5e" });
+  MAT.TUNNEL = def("tunnel", { kind: SPACE, perm: 0.9, outfit: 30, name: "Shaft tunnel", color: "#56514a" });
+  MAT.PROMENADE = def("promenade", { kind: SPACE, perm: 0.99, outfit: 10, name: "Promenade", color: "#d9d2bf" });
+  MAT.WHEEL = def("wheel", { kind: SPACE, perm: 0.95, outfit: 40, name: "Bridge & officers", color: "#d4c7a7" });
+  MAT.GALLEY = def("galley", { kind: SPACE, perm: 0.85, outfit: 90, name: "Galley / pantry", color: "#bfae8c" });
+  MAT.CASEIN = def("casein", { kind: SPACE, perm: 0.98, outfit: 5, name: "Boiler casing (uptake)", color: "#3b3632" });
+  MAT.HATCH = def("hatch", { kind: OPEN, burst: 1e9, name: "Cargo hatch" });
+  MAT.STAIRWELL = def("stairwell", { kind: OPEN, burst: 1e9, name: "Stairwell" });
+  MAT.DOOR = def("door", { kind: OPEN, burst: 1e9, name: "Door" });
+  MAT.WTDOOR = def("wtdoor", { kind: OPEN, burst: 12e5, name: "Watertight door" });
+  MAT.SKYLIGHT = def("skylight", { kind: OPEN, burst: 4e4, name: "Glass dome / skylight" });
+  MAT.COVER = def("cover", { kind: OPEN, burst: 25e3, name: "Hatch cover (tarpaulin)" });
+  MAT.GRATING = def("grating", { kind: OPEN, burst: 1e9, name: "Grating / fiddley" });
+  var MATERIALS = M;
+  var matKind = M.map((m) => m.kind);
+  var SIDE = {
+    NONE: 0,
+    PORTHOLE: 1,
+    // 16" sidelight, closed, thick glass
+    WINDOW: 2,
+    // large rectangular window (B/A decks)
+    PROMENADE: 3,
+    // open promenade bay
+    GANGWAY: 4,
+    // shell door, closed
+    BREACH: 5,
+    // damage: a hole in the shell
+    OPENPORT: 6
+    // porthole left open
+  };
+  var SIDE_INFO = [
+    null,
+    { area: 0.13, burst: 35e4, name: "Porthole (closed)" },
+    { area: 1, burst: 6e4, name: "Window" },
+    { area: 1, burst: 0, name: "Open promenade" },
+    { area: 3, burst: 15e4, name: "Gangway door" },
+    { area: 0, burst: 0, name: "Hull breach" },
+    { area: 0.13, burst: 0, name: "Open porthole" }
+  ];
+
+  // src/sim/grid.js
+  var ShipGrid = class {
+    constructor(w, h, originY = 0) {
+      this.w = w;
+      this.h = h;
+      this.n = w * h;
+      this.originY = originY;
+      this.mat = new Uint8Array(this.n);
+      this.kind = new Uint8Array(this.n);
+      this.breadth = new Float32Array(this.n);
+      this.mass = new Float32Array(this.n);
+      this.vdisp = new Float32Array(this.n);
+      this.vcap = new Float32Array(this.n);
+      this.side = new Uint8Array(this.n);
+      this.sideArea = new Float32Array(this.n);
+      this.openW = new Float32Array(this.n);
+      this.gate = new Uint8Array(this.n);
+      this.room = new Int32Array(this.n).fill(-1);
+      this.block = new Int16Array(this.n).fill(-1);
+      this.zone = new Uint8Array(this.n);
+      this.deck = new Uint8Array(this.n);
+      this.rust = new Float32Array(this.n);
+      this.dmg = new Uint8Array(this.n);
+      this.flags = new Uint8Array(this.n);
+      this.seed = new Float32Array(this.n);
+      let s = 1234567;
+      for (let i = 0; i < this.n; i++) {
+        s = s * 16807 % 2147483647;
+        this.seed[i] = s / 2147483647;
+      }
+    }
+    idx(i, j) {
+      return j * this.w + i;
+    }
+    inb(i, j) {
+      return i >= 0 && j >= 0 && i < this.w && j < this.h;
+    }
+    cx(i) {
+      return (i + 0.5) * CELL;
+    }
+    cy(j) {
+      return this.originY + (j + 0.5) * CELL;
+    }
+    col(x) {
+      return Math.floor(x / CELL);
+    }
+    row(y) {
+      return Math.floor((y - this.originY) / CELL);
+    }
+    set(i, j, m) {
+      if (!this.inb(i, j)) return;
+      const k = j * this.w + i;
+      this.mat[k] = m;
+      this.kind[k] = matKind[m];
+    }
+    get(i, j) {
+      return this.inb(i, j) ? this.mat[j * this.w + i] : 0;
+    }
+    kindAt(i, j) {
+      return this.inb(i, j) ? this.kind[j * this.w + i] : EMPTY;
+    }
+    // Is this cell part of the watertight/floodable envelope?
+    isEnvelope(k) {
+      const kd = this.kind[k];
+      if (kd === EMPTY) return false;
+      const m = this.mat[k];
+      return !(m === MAT.FUNNEL || m === MAT.MAST || m === MAT.RUDDER || m === MAT.BOAT || m === MAT.ICE);
+    }
+    // Cells that behave as open water/atmosphere for room connectivity:
+    // outside the ship, or inside free-flooding structure (funnels, masts).
+    isExteriorLike(k) {
+      if (this.kind[k] === EMPTY) return true;
+      const m = this.mat[k];
+      return m === MAT.FUNNEL || m === MAT.MAST || m === MAT.BOAT;
+    }
+  };
+  function assignMassAndVolume(grid, opts) {
+    const { sideShellTop, superSideT = 95e-4, sideT = 0.025, framing = 1.45 } = opts;
+    const { w, h } = grid;
+    for (let j = 0; j < h; j++) {
+      for (let i = 0; i < w; i++) {
+        const k = j * w + i;
+        const kd = grid.kind[k];
+        if (kd === EMPTY) {
+          grid.mass[k] = 0;
+          grid.vdisp[k] = 0;
+          grid.vcap[k] = 0;
+          continue;
+        }
+        const m = grid.mat[k];
+        const mi = MATERIALS[m];
+        const br = grid.breadth[k];
+        const x = grid.cx(i), y = grid.cy(j);
+        let mass = 0;
+        const env = grid.isEnvelope(k);
+        if (env) {
+          const isSuper = (grid.flags[k] & 1) !== 0;
+          const st = isSuper ? superSideT : y <= sideShellTop(x) + 0.01 ? sideT : superSideT;
+          mass += 2 * st * CELL2 * RHO_STEEL * framing;
+        }
+        if (kd === SOLID) {
+          if (m === MAT.FUNNEL || m === MAT.MAST || m === MAT.RUDDER || m === MAT.MACHINE || m === MAT.BOAT || m === MAT.ICE) {
+            mass += grid.mass[k];
+          } else {
+            mass += mi.t * CELL * br * RHO_STEEL * framing;
+          }
+        } else if (kd === SPACE) {
+          mass += mi.outfit * CELL2 * br;
+          mass += grid.mass[k];
+        } else if (kd === OPEN) {
+          mass += 0.25 * MATERIALS[MAT.DECK].t * CELL * br * RHO_STEEL;
+        }
+        grid.mass[k] = mass;
+      }
+    }
+    grid.vcap.fill(0);
+    grid.vdisp.fill(0);
+    for (let k = 0; k < grid.n; k++) {
+      const kd = grid.kind[k];
+      if (kd === EMPTY) continue;
+      const m = grid.mat[k];
+      if (!grid.isEnvelope(k)) {
+        if (m === MAT.BOAT) grid.vdisp[k] = CELL2 * grid.breadth[k] * 0.75;
+        else if (m === MAT.ICE) grid.vdisp[k] = CELL2 * grid.breadth[k];
+        else grid.vdisp[k] = grid.mass[k] / RHO_STEEL;
+        continue;
+      }
+      const full = CELL2 * grid.breadth[k];
+      if (kd === SPACE) {
+        grid.vdisp[k] += full;
+        grid.vcap[k] += full * MATERIALS[m].perm;
+      } else {
+        grid.vdisp[k] += full;
+      }
+    }
+    const nb = [1, -1, w, -w];
+    for (let j = 0; j < h; j++) {
+      for (let i = 0; i < w; i++) {
+        const k = j * w + i;
+        const kd = grid.kind[k];
+        if (kd !== SOLID && kd !== OPEN) continue;
+        if (!grid.isEnvelope(k)) continue;
+        const full = CELL2 * grid.breadth[k];
+        const steel = Math.min(full * 0.9, grid.mass[k] / RHO_STEEL);
+        const voidV = full - steel;
+        let cnt = 0;
+        for (let d = 0; d < 4; d++) {
+          const ii = i + (d === 0 ? 1 : d === 1 ? -1 : 0), jj = j + (d === 2 ? 1 : d === 3 ? -1 : 0);
+          if (!grid.inb(ii, jj)) continue;
+          if (grid.kind[k + nb[d]] === SPACE) cnt++;
+        }
+        if (cnt === 0) continue;
+        grid.vdisp[k] = steel;
+        for (let d = 0; d < 4; d++) {
+          const ii = i + (d === 0 ? 1 : d === 1 ? -1 : 0), jj = j + (d === 2 ? 1 : d === 3 ? -1 : 0);
+          if (!grid.inb(ii, jj)) continue;
+          const kk = k + nb[d];
+          if (grid.kind[kk] !== SPACE) continue;
+          const share = voidV / cnt;
+          grid.vdisp[kk] += share;
+          grid.vcap[kk] += share * MATERIALS[grid.mat[kk]].perm;
+        }
+      }
+    }
+  }
+
+  // src/ship/titanic.js
+  var X0 = 270.5;
+  var LOA = 269.06;
+  var BEAM = 28.19;
+  var HB = BEAM / 2;
+  var DESIGN_DRAUGHT = 10.54;
+  var FT = 0.3048;
+  var DECK_Z = {
+    // midship height above keel, m
+    TANK: 1.6,
+    ORLOP: 6.43,
+    G: 8.87,
+    F: 11.31,
+    E: 13.9,
+    D: 17.1,
+    C: 19.85,
+    B: 22.6,
+    A: 25.35,
+    BOAT: 28.25,
+    HOUSE: 31
+  };
+  var DECK_NAMES = ["DB", "Orlop", "G", "F", "E", "D", "C", "B", "A", "Boat", "House"];
+  var BULKHEADS = [
+    { id: "A", xb: 14, top: "C" },
+    { id: "B", xb: 27.7, top: "D" },
+    { id: "C", xb: 43.3, top: "E" },
+    { id: "D", xb: 58.8, top: "E" },
+    { id: "E", xb: 75.3, top: "E" },
+    { id: "F", xb: 92.7, top: "E" },
+    { id: "G", xb: 110, top: "E" },
+    { id: "H", xb: 127.4, top: "E" },
+    { id: "J", xb: 145.7, top: "E" },
+    { id: "K", xb: 156.7, top: "D" },
+    { id: "L", xb: 177.7, top: "D" },
+    { id: "M", xb: 195.1, top: "D" },
+    { id: "N", xb: 211.5, top: "D" },
+    { id: "O", xb: 228, top: "D" },
+    { id: "P", xb: 246.3, top: "D" }
+  ];
+  var COMPARTMENTS = [
+    "Fore peak",
+    "No. 1 hold",
+    "No. 2 hold",
+    "No. 3 hold",
+    "No. 6 boiler room",
+    "No. 5 boiler room",
+    "No. 4 boiler room",
+    "No. 3 boiler room",
+    "No. 2 boiler room",
+    "No. 1 boiler room",
+    "Reciprocating engines",
+    "Turbine room",
+    "Electric engine room",
+    "No. 4-5 holds",
+    "Shaft tunnel & stores",
+    "After peak"
+  ];
+  var SHORT_COMPARTMENTS = ["FP", "H1", "H2", "H3", "B6", "B5", "B4", "B3", "B2", "B1", "RE", "TR", "EL", "H4", "ST", "AP"];
+  var FUNNELS = [76.2, 111.6, 147, 182.4];
+  var FUNNEL_RAKE = 2 / 12;
+  var FUNNEL_LEN = 24.5 * FT;
+  var FUNNEL_BREADTH = 19 * FT;
+  var FUNNEL_TOP = 175 * FT;
+  var EXPANSION_JOINTS = [96.2, 164.6];
+  var MASTS = [{ xb: 44.6, base: "C", top: 62 }, { xb: 232.8, base: "C", top: 58.5 }];
+  function sheer(xb) {
+    const m = 128;
+    if (xb < m) {
+      const u2 = (m - xb) / m;
+      return 2.35 * u2 * u2;
+    }
+    const u = (xb - m) / (LOA - m);
+    return 1.2 * u * u;
+  }
+  function deckZ(name, xb) {
+    const z0 = DECK_Z[name];
+    const f = Math.min(1, Math.max(0, (z0 - DECK_Z.TANK) / (DECK_Z.C - DECK_Z.TANK)));
+    return z0 + sheer(xb) * (name === "TANK" ? 0.15 : 0.35 + 0.65 * f);
+  }
+  function stemXb(z) {
+    const R = 3.6;
+    const straight = (zz) => 1.55 - zz * 0.052;
+    if (z >= R) return straight(z);
+    return straight(R) + R - Math.sqrt(Math.max(0, R * R - (R - z) * (R - z)));
+  }
+  var POST = 252.6;
+  function sternXb(z) {
+    if (z < 8.2) return POST;
+    const t = Math.min(1, (z - 8.2) / 12.4);
+    return POST + (LOA - 0.15 - POST) * Math.sqrt(1 - (1 - t) * (1 - t));
+  }
+  function hullTop(xb) {
+    if (xb < 39) return deckZ("B", xb);
+    if (xb < 57.6) return deckZ("C", xb);
+    if (xb < 225.6) return deckZ("B", xb);
+    if (xb < 237) return deckZ("C", xb);
+    return deckZ("B", xb);
+  }
+  function smooth(a, b, x) {
+    const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+    return t * t * (3 - 2 * t);
+  }
+  function wlHalf(xb) {
+    if (xb < 1.2) return 0;
+    if (xb < 92) {
+      const u = (xb - 1.2) / 90.8;
+      return HB * Math.pow(1 - Math.pow(1 - u, 1.85), 1.12);
+    }
+    if (xb < 166) return HB;
+    if (xb < 257.5) {
+      const v = (xb - 166) / 91.5;
+      return HB * Math.pow(Math.max(0, 1 - Math.pow(v, 1.55)), 1.05);
+    }
+    return 0;
+  }
+  function counterHalf(xb) {
+    if (xb < 186) return HB;
+    const u = (xb - 186) / (LOA + 0.4 - 186);
+    return HB * Math.sqrt(Math.max(0, 1 - u * u));
+  }
+  function halfBreadth(xb, z) {
+    const T = DESIGN_DRAUGHT;
+    const bw = wlHalf(xb);
+    const k = smooth(0.35, 0.985, bw / HB);
+    let below;
+    const R = 2.3;
+    const zz = Math.min(z, T);
+    const box = zz < R ? bw - R + Math.sqrt(Math.max(0, R * R - (R - zz) * (R - zz))) : bw;
+    const vee = Math.max(0.35, bw * Math.pow(Math.max(0, zz) / T, 0.78));
+    below = Math.max(0.35, k * box + (1 - k) * vee);
+    if (z <= T) return Math.min(below, HB);
+    if (xb < 70) {
+      const flare = 0.3 * Math.pow(1 - xb / 70, 1.3);
+      const atDeck = Math.min(HB, bw + (z - T) * flare + (z - T) * 0.02);
+      return Math.max(0.35, atDeck);
+    }
+    if (xb > 170) {
+      const up = smooth(T - 1, T + 7, z);
+      return Math.max(0.35, Math.min(HB, bw * (1 - up) + counterHalf(xb) * up));
+    }
+    return HB;
+  }
+  function buildTitanic(opts = {}) {
+    const W = Math.ceil(272 / CELL), H = Math.ceil(66 / CELL);
+    const grid = new ShipGrid(W, H, -1);
+    const xbOf = (i) => X0 - grid.cx(i);
+    const zOf = (j) => grid.cy(j);
+    const colOf = (xb) => grid.col(X0 - xb);
+    const rowOf = (z) => grid.row(z);
+    const meta = {
+      name: "RMS Titanic",
+      short: "Titanic",
+      X0,
+      loa: LOA,
+      beam: BEAM,
+      draught: DESIGN_DRAUGHT,
+      compartments: COMPARTMENTS,
+      shortCompartments: SHORT_COMPARTMENTS,
+      bulkheads: BULKHEADS,
+      deckNames: DECK_NAMES,
+      funnels: [],
+      masts: [],
+      portholes: [],
+      lifeboats: [],
+      expansionJoints: EXPANSION_JOINTS.map((xb) => X0 - xb),
+      heavy: []
+    };
+    const inHull = (xb, z) => z >= 0 && z <= hullTop(xb) + 0.26 && xb >= stemXb(z) && xb <= sternXb(z);
+    const houses = [
+      { a: 57.6, b: 225.6, lo: "B", hi: "A", hb: HB, type: MAT.CABIN },
+      // B deck
+      { a: 58.6, b: 216.5, lo: "A", hi: "BOAT", hb: HB - 0.15, type: MAT.PUBLIC },
+      // A deck
+      { a: 59.4, b: 71.8, lo: "BOAT", hi: "HOUSE", hb: 8.6, type: MAT.WHEEL },
+      // officers & bridge
+      { a: 84.2, b: 93, lo: "BOAT", hi: "HOUSE", hb: 6, type: MAT.STAIR },
+      // grand staircase entrance
+      { a: 98, b: 107.6, lo: "BOAT", hi: "HOUSE", hb: 5, type: MAT.PUBLIC },
+      // gymnasium
+      { a: 120.5, b: 140.5, lo: "BOAT", hi: "HOUSE", hb: 6.5, type: MAT.PUBLIC },
+      // lounge roof
+      { a: 151.9, b: 159.2, lo: "BOAT", hi: "HOUSE", hb: 6, type: MAT.STAIR },
+      // aft 1st class entrance
+      { a: 166, b: 178, lo: "BOAT", hi: "HOUSE", hb: 6.5, type: MAT.PUBLIC },
+      // smoke room roof
+      { a: 196, b: 212, lo: "BOAT", hi: "HOUSE", hb: 7, type: MAT.PUBLIC }
+      // 2nd class entrance
+    ];
+    const houseAt = (xb, z) => {
+      for (const hs of houses) {
+        if (xb >= hs.a && xb <= hs.b && z > deckZ(hs.lo, xb) - 0.26 && z <= deckZ(hs.hi, xb) + 0.26) return hs;
+      }
+      return null;
+    };
+    const deckBand = (xb, z) => {
+      const order = ["TANK", "ORLOP", "G", "F", "E", "D", "C", "B", "A", "BOAT", "HOUSE"];
+      let b = 0;
+      for (let d = 0; d < order.length; d++) if (z >= deckZ(order[d], xb) - 0.01) b = d;
+      return b;
+    };
+    const zoneOf = (xb) => {
+      let z = 0;
+      for (const b of BULKHEADS) if (xb > b.xb) z++;
+      return z;
+    };
+    for (let j = 0; j < H; j++) {
+      const z = zOf(j);
+      for (let i = 0; i < W; i++) {
+        const xb = xbOf(i);
+        const k = grid.idx(i, j);
+        if (inHull(xb, z)) {
+          grid.breadth[k] = 2 * halfBreadth(xb, z);
+          grid.set(i, j, spaceType(xb, z));
+          grid.zone[k] = zoneOf(xb);
+          grid.deck[k] = deckBand(xb, z);
+        } else {
+          const hs = houseAt(xb, z);
+          if (hs) {
+            grid.breadth[k] = 2 * Math.min(hs.hb, halfBreadth(xb, Math.min(z, 21)));
+            grid.set(i, j, hs.type === MAT.CABIN ? houseSpace(xb, z, hs) : hs.type);
+            grid.flags[k] |= 1;
+            grid.zone[k] = zoneOf(xb);
+            grid.deck[k] = deckBand(xb, z);
+          }
+        }
+      }
+    }
+    function spaceType(xb, z) {
+      const tank = deckZ("TANK", xb), orlop = deckZ("ORLOP", xb), G2 = deckZ("G", xb), F = deckZ("F", xb);
+      const E = deckZ("E", xb), D = deckZ("D", xb), C = deckZ("C", xb);
+      if (xb < 14) {
+        if (z < G2) return MAT.TANK;
+        if (z < E) return MAT.STORE;
+        return MAT.CREW;
+      }
+      if (z < tank) return MAT.TANK;
+      if (xb < 58.8) {
+        if (z < G2) return MAT.HOLD;
+        if (z < F) return xb < 27.7 ? MAT.STORE : MAT.HOLD;
+        if (z < C) return MAT.CABIN;
+        return MAT.CREW;
+      }
+      if (xb < 156.7) {
+        if (z < F) {
+          for (const b of BULKHEADS) if (b.xb >= 58.8 && b.xb <= 156.7 && Math.abs(xb - b.xb) < 2.6) return MAT.BUNKER;
+          return MAT.BOILER;
+        }
+        if (z < E) return MAT.CORRIDOR;
+        return MAT.CABIN;
+      }
+      if (xb < 195.1) {
+        if (z < E) return MAT.ENGINE;
+        return MAT.CABIN;
+      }
+      if (xb < 211.5) {
+        if (z < F) return MAT.ENGINE;
+        return MAT.CABIN;
+      }
+      if (xb < 246.3) {
+        if (z < orlop) return xb < 228 ? MAT.STORE : MAT.TUNNEL;
+        if (z < F) return MAT.HOLD;
+        return MAT.CABIN;
+      }
+      if (z < G2) return MAT.TANK;
+      if (z < E) return MAT.STORE;
+      return MAT.CABIN;
+    }
+    function houseSpace(xb, z, hs) {
+      if (xb > 160 && xb < 192) return MAT.PUBLIC;
+      if (xb > 82 && xb < 95) return MAT.STAIR;
+      return MAT.CABIN;
+    }
+    const deckLine = (name, a, b, m) => {
+      const i0 = colOf(b), i1 = colOf(a);
+      for (let i = Math.min(i0, i1); i <= Math.max(i0, i1); i++) {
+        const xb = xbOf(i);
+        if (xb < a || xb > b) continue;
+        const j = rowOf(deckZ(name, xb));
+        const k = grid.idx(i, j);
+        if (grid.kind[k] === 0) continue;
+        grid.set(i, j, m);
+        grid.flags[k] |= 8;
+      }
+    };
+    const vLine = (xb, z0, z1, m, onlyEnvelope = true) => {
+      const i = colOf(xb);
+      for (let j = rowOf(z0); j <= rowOf(z1); j++) {
+        const k = grid.idx(i, j);
+        if (onlyEnvelope && grid.kind[k] === 0) continue;
+        grid.set(i, j, m);
+      }
+    };
+    const openDeck = (name, a, b, m, width) => {
+      for (let i = colOf(b); i <= colOf(a); i++) {
+        const xb = xbOf(i);
+        if (xb < a || xb > b) continue;
+        const j = rowOf(deckZ(name, xb));
+        const k = grid.idx(i, j);
+        if (grid.kind[k] !== SOLID) continue;
+        grid.set(i, j, m);
+        grid.openW[k] = width;
+        if (m === MAT.SKYLIGHT || m === MAT.COVER) grid.gate[k] = 1;
+      }
+    };
+    const openWall = (xb, z0, z1, m, width, closed = 0) => {
+      const i = colOf(xb);
+      for (let j = rowOf(z0); j <= rowOf(z1); j++) {
+        const k = grid.idx(i, j);
+        if (grid.kind[k] !== SOLID) continue;
+        grid.set(i, j, m);
+        grid.openW[k] = width;
+        grid.gate[k] = closed;
+      }
+    };
+    deckLine("TANK", 14, 246.3, MAT.TANKTOP);
+    deckLine("ORLOP", 14, 58.8, MAT.DECK);
+    deckLine("ORLOP", 211.5, 252, MAT.DECK);
+    deckLine("G", 0, 58.8, MAT.DECK);
+    deckLine("G", 211.5, 262, MAT.DECK);
+    deckLine("F", 0, 156.7, MAT.DECK);
+    deckLine("F", 195.1, 262, MAT.DECK);
+    deckLine("E", 0, 266, MAT.DECK);
+    deckLine("D", 0, 268, MAT.DECK);
+    deckLine("C", 0, 269, MAT.DECK);
+    deckLine("B", 0, 39, MAT.WDECK);
+    deckLine("B", 57.6, 225.6, MAT.DECK);
+    deckLine("B", 237, 269, MAT.WDECK);
+    deckLine("A", 58.6, 216.5, MAT.DECK);
+    deckLine("BOAT", 58.6, 216.5, MAT.WDECK);
+    for (const b of BULKHEADS) vLine(b.xb, 0.3, deckZ(b.top, b.xb) - 0.01, MAT.BHD);
+    vLine(5.5, 0.3, deckZ("G", 5.5), MAT.BHD);
+    const partitions = [
+      { xb: 39, z0: "C", z1: "B" },
+      { xb: 57.6, z0: "C", z1: "A" },
+      { xb: 225.6, z0: "C", z1: "A" },
+      { xb: 237, z0: "C", z1: "B" }
+    ];
+    for (const xb of [36, 50, 66, 84, 101, 118, 136, 151, 166, 186, 203, 220, 236, 252]) {
+      partitions.push({ xb, z0: "E", z1: "D" });
+      partitions.push({ xb: xb + 3.1, z0: "D", z1: "C" });
+    }
+    for (const xb of [70, 96.2, 120, 150, 164.6, 190, 210]) {
+      partitions.push({ xb, z0: "B", z1: "A" });
+      partitions.push({ xb: xb + 1.5, z0: "A", z1: "BOAT" });
+    }
+    for (const p of partitions) {
+      const z0 = deckZ(p.z0, p.xb), z1 = deckZ(p.z1, p.xb);
+      vLine(p.xb, z0 + 0.25, z1 - 0.25, MAT.PART);
+      openWall(p.xb, z0 + 0.3, z0 + 2.2, MAT.DOOR, 1.4);
+    }
+    for (let f = 0; f < 3; f++) {
+      const xc = FUNNELS[f] + 1, half = 3.2;
+      const zb = deckZ("F", xc);
+      vLine(xc - half, zb + 0.2, deckZ("BOAT", xc) - 0.2, MAT.CASING);
+      vLine(xc + half, zb + 0.2, deckZ("BOAT", xc) - 0.2, MAT.CASING);
+      for (let i = colOf(xc + half) + 1; i < colOf(xc - half); i++) {
+        const xb = xbOf(i);
+        for (let j = rowOf(zb) + 1; j < rowOf(deckZ("BOAT", xb)); j++) {
+          const k = grid.idx(i, j);
+          if (grid.kind[k] !== 0) {
+            grid.set(i, j, MAT.CASEIN);
+            grid.flags[k] |= 0;
+          }
+        }
+      }
+      openDeck("F", xc - half + 0.3, xc + half - 0.3, MAT.GRATING, 4.5);
+      openDeck("BOAT", xc - half + 0.6, xc + half - 0.6, MAT.GRATING, 3);
+    }
+    {
+      const a = 160.5, b = 172.5;
+      vLine(a, deckZ("E", a) + 0.2, deckZ("BOAT", a) - 0.2, MAT.CASING);
+      vLine(b, deckZ("E", b) + 0.2, deckZ("BOAT", b) - 0.2, MAT.CASING);
+      for (let i = colOf(b) + 1; i < colOf(a); i++) {
+        const xb = xbOf(i);
+        for (let j = rowOf(deckZ("E", xb)) + 1; j < rowOf(deckZ("BOAT", xb)); j++) {
+          const k = grid.idx(i, j);
+          if (grid.kind[k] !== 0) grid.set(i, j, MAT.CASEIN);
+        }
+      }
+      openDeck("E", a + 0.4, b - 0.4, MAT.GRATING, 8);
+      openDeck("BOAT", a + 1, b - 1, MAT.SKYLIGHT, 6);
+    }
+    const hatch = (xb, len, decks, w = 5.5) => {
+      for (const d of decks) openDeck(d, xb - len / 2, xb + len / 2, MAT.HATCH, w);
+    };
+    hatch(20.5, 5, ["ORLOP", "G", "F", "E", "D"]);
+    hatch(35, 5, ["ORLOP", "G", "F", "E", "D"]);
+    hatch(50.5, 5, ["ORLOP", "G", "F", "E", "D"]);
+    openDeck("C", 18, 23, MAT.COVER, 5.5);
+    openDeck("C", 48, 53, MAT.COVER, 5.5);
+    hatch(230, 5, ["ORLOP", "G", "F", "E", "D"]);
+    openDeck("C", 227.5, 232.5, MAT.COVER, 5.5);
+    hatch(240, 4, ["ORLOP", "G", "F", "E", "D"]);
+    hatch(218, 4, ["ORLOP", "G", "F", "E"]);
+    const stair = (xb, len, decks, w = 2.5) => {
+      for (const d of decks) openDeck(d, xb - len / 2, xb + len / 2, MAT.STAIRWELL, w);
+    };
+    stair(31.5, 2, ["G", "F", "E", "D", "C"]);
+    stair(10, 1.5, ["G", "F", "E", "D", "C", "B"]);
+    stair(88.6, 6.5, ["E", "D", "C", "B", "A"], 8);
+    openDeck("BOAT", 85.6, 91.6, MAT.SKYLIGHT, 8);
+    stair(154.4, 5, ["C", "B", "A"], 7);
+    openDeck("BOAT", 151.9, 156.9, MAT.SKYLIGHT, 6.5);
+    stair(201.5, 3, ["F", "E", "D", "C", "B", "A"], 4);
+    stair(242, 2, ["G", "F", "E", "D", "C"], 2.5);
+    for (const xb of [64, 70, 81, 87, 98, 104, 115, 121, 133, 140, 150]) {
+      if (xb > 150) continue;
+      openDeck("F", xb - 0.6, xb + 0.6, MAT.GRATING, 1.2);
+    }
+    stair(66, 1.5, ["E", "D", "C"], 2);
+    stair(180, 2, ["D", "C", "B"], 2.5);
+    stair(126.5, 2, ["E", "D", "C", "B"], 2.5);
+    stair(60.4, 1.4, ["C", "B", "A", "BOAT"], 2);
+    const wtd = [];
+    for (const b of BULKHEADS) {
+      if (b.xb < 58.8 || b.xb > 228) continue;
+      const z0 = deckZ("TANK", b.xb) + 0.25;
+      openWall(b.xb, z0, z0 + 1.9, MAT.WTDOOR, 1.1, 1);
+      wtd.push(b.id);
+    }
+    meta.wtDoors = wtd;
+    for (let f = 0; f < 4; f++) {
+      const xbBase = FUNNELS[f];
+      const zBase = deckZ("BOAT", xbBase) + 0.25;
+      const zTop = FUNNEL_TOP + sheer(xbBase) * 0.3;
+      const cells = [];
+      for (let j = rowOf(zBase); j <= rowOf(zTop); j++) {
+        const z = zOf(j);
+        const xc = xbBase + (z - zBase) * FUNNEL_RAKE;
+        for (let i = colOf(xc + FUNNEL_LEN / 2); i <= colOf(xc - FUNNEL_LEN / 2); i++) {
+          const xb = xbOf(i);
+          const u = (xb - xc) / (FUNNEL_LEN / 2);
+          if (Math.abs(u) > 1) continue;
+          const k = grid.idx(i, j);
+          if (grid.kind[k] !== 0) continue;
+          grid.set(i, j, MAT.FUNNEL);
+          grid.breadth[k] = FUNNEL_BREADTH;
+          cells.push(k);
+        }
+      }
+      for (const k of cells) grid.mass[k] = 62e3 / cells.length;
+      meta.funnels.push({ index: f, xBase: X0 - xbBase, yBase: zBase, yTop: zTop, rake: FUNNEL_RAKE, len: FUNNEL_LEN, dummy: f === 3 });
+    }
+    for (const m of MASTS) {
+      const zBase = deckZ(m.base, m.xb) + 0.25;
+      const cells = [];
+      for (let j = rowOf(zBase); j <= rowOf(m.top); j++) {
+        const z = zOf(j);
+        const xc = m.xb + (z - zBase) * (1 / 12);
+        const r = z > m.top - 8 ? 0.28 : 0.48;
+        for (let i = colOf(xc + r); i <= colOf(xc - r); i++) {
+          const k = grid.idx(i, j);
+          if (grid.kind[k] !== 0) continue;
+          grid.set(i, j, MAT.MAST);
+          grid.breadth[k] = 0.9;
+          cells.push(k);
+        }
+      }
+      for (const k of cells) grid.mass[k] = 27e3 / cells.length;
+      meta.masts.push({ xBase: X0 - m.xb, yBase: zBase, yTop: m.top, rake: 1 / 12 });
+    }
+    {
+      const cells = [];
+      for (let j = rowOf(0.35); j <= rowOf(13.5); j++) {
+        const z = zOf(j);
+        for (let i = colOf(259.4); i <= colOf(254.7); i++) {
+          const xb = xbOf(i);
+          const k = grid.idx(i, j);
+          if (grid.kind[k] !== 0) continue;
+          if (z < 1.2 && xb > 258.2) continue;
+          grid.set(i, j, MAT.RUDDER);
+          grid.breadth[k] = 0.9;
+          cells.push(k);
+        }
+      }
+      for (const k of cells) grid.mass[k] = 101e3 / cells.length;
+      for (let i = colOf(254.7); i <= colOf(POST); i++) {
+        for (let j = rowOf(0.1); j <= rowOf(1.1); j++) {
+          const k = grid.idx(i, j);
+          if (grid.kind[k] === 0) {
+            grid.set(i, j, MAT.KEEL);
+            grid.breadth[k] = 1;
+          }
+        }
+      }
+    }
+    const W_ = grid.w;
+    const isOutsideish = (k) => grid.kind[k] === 0 || grid.mat[k] === MAT.FUNNEL || grid.mat[k] === MAT.MAST || grid.mat[k] === MAT.RUDDER;
+    const outline = [];
+    for (let j = 0; j < H; j++) {
+      for (let i = 0; i < W; i++) {
+        const k = j * W_ + i;
+        if (grid.kind[k] === 0 || !grid.isEnvelope(k)) continue;
+        const up = j + 1 < H ? isOutsideish(k + W_) : true;
+        const dn = j > 0 ? isOutsideish(k - W_) : true;
+        const lf = i > 0 ? isOutsideish(k - 1) : true;
+        const rt = i + 1 < W ? isOutsideish(k + 1) : true;
+        if (up || dn || lf || rt) outline.push([k, up, dn, lf, rt]);
+      }
+    }
+    for (const [k, up, dn] of outline) {
+      const i = k % W_, j = k / W_ | 0;
+      const isSuper = (grid.flags[k] & 1) !== 0;
+      if (grid.kind[k] === OPEN) continue;
+      const z = zOf(j);
+      let m;
+      if (dn && z < 1) m = MAT.KEEL;
+      else if (up && !dn) m = isSuper ? grid.mat[k] === MAT.WDECK ? MAT.WDECK : MAT.SUPER : MAT.WDECK;
+      else m = isSuper ? MAT.SUPER : MAT.HULL;
+      if (grid.mat[k] === MAT.WDECK && up) m = MAT.WDECK;
+      grid.set(i, j, m);
+    }
+    openDeck("C", 48, 53, MAT.COVER, 5.5);
+    openDeck("C", 227.5, 232.5, MAT.COVER, 5.5);
+    openDeck("BOAT", 85.6, 91.6, MAT.SKYLIGHT, 8);
+    openDeck("BOAT", 151.9, 156.9, MAT.SKYLIGHT, 6.5);
+    openDeck("BOAT", 161.5, 171.5, MAT.SKYLIGHT, 6);
+    for (let f = 0; f < 3; f++) {
+      const xc = FUNNELS[f] + 1;
+      openDeck("BOAT", xc - 2.6, xc + 2.6, MAT.GRATING, 3);
+    }
+    for (const xb of EXPANSION_JOINTS) {
+      const i = colOf(xb);
+      for (let j = 0; j < H; j++) {
+        const k = grid.idx(i, j);
+        if (zOf(j) > deckZ("B", xb) + 0.3) grid.flags[k] |= 2;
+      }
+    }
+    const sideAt = (xb, z, type) => {
+      const i = colOf(xb), j = rowOf(z);
+      if (!grid.inb(i, j)) return;
+      const k = grid.idx(i, j);
+      if (grid.kind[k] !== SPACE) return;
+      grid.side[k] = type;
+      grid.sideArea[k] = 0;
+      meta.portholes.push({ k, x: X0 - xb, y: z, type });
+    };
+    const rowOfPorts = (deck, a, b, spacing, type, dz = 1.25, skip = null) => {
+      for (let xb = a; xb <= b; xb += spacing) {
+        if (skip && skip(xb)) continue;
+        sideAt(xb, deckZ(deck, xb) + dz, type);
+      }
+    };
+    const nearBhd = (xb) => BULKHEADS.some((b) => Math.abs(b.xb - xb) < 1.2);
+    rowOfPorts("G", 16, 56, 3.1, SIDE.PORTHOLE, 1.15, nearBhd);
+    rowOfPorts("G", 213, 244, 3.1, SIDE.PORTHOLE, 1.15, nearBhd);
+    rowOfPorts("F", 6, 262, 2.6, SIDE.PORTHOLE, 1.2, (xb) => nearBhd(xb) || xb > 156.7 && xb < 195.1);
+    rowOfPorts("E", 4, 264, 2.4, SIDE.PORTHOLE, 1.25, nearBhd);
+    rowOfPorts("D", 3, 266, 2.4, SIDE.PORTHOLE, 1.35, (xb) => xb > 86 && xb < 90.5);
+    rowOfPorts("C", 2, 268, 2.25, SIDE.PORTHOLE, 1.3, (xb) => xb > 39 && xb < 57.6 || xb > 225.6 && xb < 237);
+    rowOfPorts("B", 59, 224, 2, SIDE.WINDOW, 1.3);
+    rowOfPorts("A", 60, 120, 1.9, SIDE.WINDOW, 1.3);
+    rowOfPorts("A", 121, 215, 1.6, SIDE.PROMENADE, 1.4);
+    rowOfPorts("BOAT", 60, 71.5, 1.6, SIDE.WINDOW, 1.4);
+    rowOfPorts("BOAT", 99, 107, 1.4, SIDE.WINDOW, 1.4);
+    rowOfPorts("BOAT", 121, 140, 1.8, SIDE.WINDOW, 1.6);
+    rowOfPorts("BOAT", 166, 178, 1.8, SIDE.WINDOW, 1.6);
+    rowOfPorts("BOAT", 197, 211, 1.6, SIDE.WINDOW, 1.4);
+    sideAt(83.5, deckZ("D", 83.5) + 1.2, SIDE.GANGWAY);
+    sideAt(85.5, deckZ("D", 85.5) + 1.2, SIDE.GANGWAY);
+    sideAt(55.5, deckZ("E", 55.5) + 1.2, SIDE.GANGWAY);
+    sideAt(205, deckZ("E", 205) + 1.2, SIDE.GANGWAY);
+    for (const p of meta.portholes) grid.sideArea[p.k] = p.type === SIDE.PROMENADE ? SIDE_INFO[SIDE.PROMENADE].area : 0;
+    const addMass = (a, b, z0, z1, tonnes, matFilter) => {
+      const cells = [];
+      for (let i = colOf(b); i <= colOf(a); i++) for (let j = rowOf(z0); j <= rowOf(z1); j++) {
+        const k = grid.idx(i, j);
+        if (grid.kind[k] !== SPACE) continue;
+        if (matFilter && grid.mat[k] !== matFilter) continue;
+        cells.push(k);
+      }
+      for (const k of cells) grid.mass[k] += tonnes * 1e3 / cells.length;
+      meta.heavy.push({ x0: X0 - b, x1: X0 - a, y0: z0, y1: z1, tonnes });
+    };
+    const brs = [[58.8, 75.3, 4], [75.3, 92.7, 5], [92.7, 110, 5], [110, 127.4, 5], [127.4, 145.7, 5], [145.7, 156.7, 5]];
+    brs.forEach(([a, b, n], idx) => addMass(a + 2.8, b - 2.8, 1.8, 6.6, n * (idx === 5 ? 92 : 150), MAT.BOILER));
+    addMass(158, 176.5, 1.8, 11, 2 * 1e3 + 300, MAT.ENGINE);
+    addMass(179, 194, 1.8, 8.5, 420 + 300, MAT.ENGINE);
+    addMass(196, 211, 1.8, 6, 450, MAT.ENGINE);
+    addMass(213, 246, 1.8, 5.5, 380, null);
+    addMass(240, 252, 1.8, 6, 130, null);
+    {
+      const cells = [];
+      for (let k = 0; k < grid.n; k++) if (grid.mat[k] === MAT.BUNKER) cells.push(k);
+      for (const k of cells) grid.mass[k] += 38e5 / cells.length;
+    }
+    addMass(14, 58.8, 1.8, 9, 560, MAT.HOLD);
+    addMass(213, 246, 6.5, 11, 300, MAT.HOLD);
+    assignMassAndVolume(grid, { sideShellTop: (x) => hullTop(X0 - x) });
+    const boatXb = [64, 72.5, 79.5, 87.5, 184.5, 192, 199.5, 207];
+    meta.lifeboats = boatXb.map((xb, n) => ({ x: X0 - xb, y: deckZ("BOAT", xb) + 1.6, len: 9.1, h: 1.25, num: [1, 3, 5, 7, 9, 11, 13, 15][n] }));
+    meta.deckZ = (name, x) => deckZ(name, X0 - x);
+    meta.hullTop = (x) => hullTop(X0 - x);
+    meta.halfBreadth = (x, z) => halfBreadth(X0 - x, z);
+    meta.sternX = (z) => X0 - sternXb(z);
+    meta.stemX = (z) => X0 - stemXb(z);
+    meta.houses = houses.map((h) => ({ x0: X0 - h.b, x1: X0 - h.a, lo: h.lo, hi: h.hi, type: h.type }));
+    meta.blockCuts = blockCuts().map((xb) => X0 - xb).sort((a, b) => a - b);
+    meta.designDraught = DESIGN_DRAUGHT;
+    meta.bulkheadX = BULKHEADS.map((b) => ({ id: b.id, x: X0 - b.xb, top: b.top }));
+    return { grid, meta };
+  }
+  function blockCuts() {
+    const cuts = [8, 17, 26, 35, 44, 53, 62, 71, 80, 88.5, 96.2, 104, 112, 120, 128, 136, 144, 151, 158, 164.6, 171, 178.5, 186, 194, 202, 210, 218, 226, 234, 243, 252, 261];
+    return cuts;
+  }
+
+  // src/sim/body.js
+  var nextBodyId = 0;
+  var Body = class {
+    constructor(kind, name) {
+      this.id = nextBodyId++;
+      this.kind = kind;
+      this.name = name;
+      this.cells = null;
+      this.gx = null;
+      this.gy = null;
+      this.ms = 0;
+      this.sx = 0;
+      this.sy = 0;
+      this.sq = 0;
+      this.mw = 0;
+      this.swx = 0;
+      this.swy = 0;
+      this.swq = 0;
+      this.m = 1;
+      this.invM = 1;
+      this.I = 1;
+      this.invI = 1;
+      this.comX = 0;
+      this.comY = 0;
+      this.addedM = 0;
+      this.addedI = 0;
+      this.x = 0;
+      this.y = 0;
+      this.a = 0;
+      this.vx = 0;
+      this.vy = 0;
+      this.w = 0;
+      this.px = 0;
+      this.py = 0;
+      this.pa = 0;
+      this.c = 1;
+      this.s = 0;
+      this.fx = 0;
+      this.fy = 0;
+      this.tq = 0;
+      this.cfx = 0;
+      this.cfy = 0;
+      this.ctq = 0;
+      this.v0x = 0;
+      this.v0y = 0;
+      this.w0 = 0;
+      this.aabb = { x0: 0, y0: 0, x1: 0, y1: 0 };
+      this.wbox = { x0: 0, y0: 0, x1: 0, y1: 0 };
+      this.contacts = null;
+      this.faces = null;
+      this.sdf = null;
+      this.alive = true;
+      this.sleeping = false;
+      this.submergedFrac = 0;
+      this.depth = 0;
+      this.inMud = 0;
+      this.squash = 1;
+      this.maxImpact = 0;
+      this.dispVol = 0;
+      this.piece = -1;
+      this.color = null;
+    }
+    setCells(grid, list) {
+      this.cells = Int32Array.from(list);
+      const n = list.length;
+      this.gx = new Float32Array(n);
+      this.gy = new Float32Array(n);
+      let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+      for (let q = 0; q < n; q++) {
+        const k = list[q];
+        const i = k % grid.w, j = k / grid.w | 0;
+        const x = grid.cx(i), y = grid.cy(j);
+        this.gx[q] = x;
+        this.gy[q] = y;
+        if (x < x0) x0 = x;
+        if (x > x1) x1 = x;
+        if (y < y0) y0 = y;
+        if (y > y1) y1 = y;
+      }
+      this.aabb = { x0: x0 - CELL / 2, y0: y0 - CELL / 2, x1: x1 + CELL / 2, y1: y1 + CELL / 2 };
+      this.recomputeStructMass(grid);
+    }
+    recomputeStructMass(grid) {
+      let ms = 0, sx = 0, sy = 0, sq = 0;
+      const cellI = CELL * CELL / 6;
+      for (let q = 0; q < this.cells.length; q++) {
+        const k = this.cells[q];
+        const m = grid.mass[k];
+        if (m <= 0) continue;
+        const x = this.gx[q], y = this.gy[q];
+        ms += m;
+        sx += m * x;
+        sy += m * y;
+        sq += m * (x * x + y * y + cellI);
+      }
+      this.ms = ms;
+      this.sx = sx;
+      this.sy = sy;
+      this.sq = sq;
+    }
+    // Recompute COM/inertia from structure + water; keep world pose of cells.
+    updateMassProps() {
+      const m = this.ms + this.mw;
+      if (m <= 0) {
+        this.alive = false;
+        return;
+      }
+      const cx = (this.sx + this.swx) / m, cy = (this.sy + this.swy) / m;
+      const I = Math.max(1, this.sq + this.swq - m * (cx * cx + cy * cy));
+      const dx = cx - this.comX, dy = cy - this.comY;
+      if (dx !== 0 || dy !== 0) {
+        const wx = this.c * dx - this.s * dy, wy = this.s * dx + this.c * dy;
+        this.x += wx;
+        this.y += wy;
+        this.px += wx;
+        this.py += wy;
+        this.vx += -this.w * wy;
+        this.vy += this.w * wx;
+        this.comX = cx;
+        this.comY = cy;
+      }
+      this.m = m;
+      this.I = I;
+      this.refreshInverse();
+    }
+    refreshInverse() {
+      const me = this.m + this.addedM, Ie = this.I + this.addedI;
+      this.invM = 1 / me;
+      this.invI = 1 / Ie;
+    }
+    syncTrig() {
+      this.c = Math.cos(this.a);
+      this.s = Math.sin(this.a);
+    }
+    // grid-local -> world
+    wx(gx, gy) {
+      return this.x + this.c * (gx - this.comX) - this.s * (gy - this.comY);
+    }
+    wy(gx, gy) {
+      return this.y + this.s * (gx - this.comX) + this.c * (gy - this.comY);
+    }
+    // world -> grid-local
+    lx(x, y) {
+      const dx = x - this.x, dy = y - this.y;
+      return this.comX + this.c * dx + this.s * dy;
+    }
+    ly(x, y) {
+      const dx = x - this.x, dy = y - this.y;
+      return this.comY - this.s * dx + this.c * dy;
+    }
+    // velocity of a world point attached to the body
+    pvx(wy) {
+      return this.vx - this.w * (wy - this.y);
+    }
+    pvy(wx) {
+      return this.vy + this.w * (wx - this.x);
+    }
+    updateWorldBox() {
+      const b = this.aabb;
+      let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+      const pts = [[b.x0, b.y0], [b.x1, b.y0], [b.x0, b.y1], [b.x1, b.y1]];
+      for (const [gx, gy] of pts) {
+        const X = this.wx(gx, gy), Y = this.wy(gx, gy);
+        if (X < x0) x0 = X;
+        if (X > x1) x1 = X;
+        if (Y < y0) y0 = Y;
+        if (Y > y1) y1 = Y;
+      }
+      this.wbox.x0 = x0;
+      this.wbox.y0 = y0;
+      this.wbox.x1 = x1;
+      this.wbox.y1 = y1;
+    }
+  };
+
+  // src/sim/ship.js
+  var EXT = -1;
+  var Ship = class {
+    constructor(grid, meta) {
+      this.grid = grid;
+      this.meta = meta;
+      this.bodies = [];
+      this.joints = [];
+      this.rooms = [];
+      this.elements = [];
+      this.walls = [];
+      this.topologyDirty = false;
+      this.cellBlock = grid.block;
+      this.brokenBoundary = /* @__PURE__ */ new Set();
+      this.crackedCells = /* @__PURE__ */ new Set();
+      this.version = 0;
+      const n = grid.n;
+      this.cxs = new Float32Array(n);
+      this.cys = new Float32Array(n);
+      for (let k = 0; k < n; k++) {
+        const i = k % grid.w, j = k / grid.w | 0;
+        this.cxs[k] = grid.cx(i);
+        this.cys[k] = grid.cy(j);
+      }
+    }
+    // ---------------------------------------------------------------- blocks
+    buildBlocks() {
+      const g = this.grid, W = g.w, H = g.h;
+      const cuts = this.meta.blockCuts;
+      const hullLists = Array.from({ length: cuts.length + 1 }, () => []);
+      const special = new Uint8Array(g.n);
+      for (let k = 0; k < g.n; k++) {
+        const m = g.mat[k];
+        if (g.kind[k] === EMPTY) continue;
+        if (m === MAT.FUNNEL || m === MAT.MAST || m === MAT.BOAT) {
+          special[k] = 1;
+          continue;
+        }
+        const x = this.cxs[k];
+        let b = 0;
+        while (b < cuts.length && x >= cuts[b]) b++;
+        hullLists[b].push(k);
+      }
+      const bodies = [];
+      hullLists.forEach((list, b) => {
+        if (!list.length) return;
+        const body = new Body("hull", `Hull section ${b + 1}`);
+        body.order = b;
+        body.setCells(g, list);
+        bodies.push(body);
+      });
+      const seen = new Uint8Array(g.n);
+      const comps = [];
+      for (let k = 0; k < g.n; k++) {
+        if (!special[k] || seen[k]) continue;
+        const m = g.mat[k];
+        const stack = [k];
+        seen[k] = 1;
+        const list = [];
+        while (stack.length) {
+          const c = stack.pop();
+          list.push(c);
+          const i = c % W, j = c / W | 0;
+          for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+            const ii = i + di, jj = j + dj;
+            if (ii < 0 || jj < 0 || ii >= W || jj >= H) continue;
+            const kk = jj * W + ii;
+            if (!seen[kk] && special[kk] && g.mat[kk] === m) {
+              seen[kk] = 1;
+              stack.push(kk);
+            }
+          }
+        }
+        comps.push({ m, list });
+      }
+      let fN = 0, mN = 0;
+      comps.sort((a, b) => this.cxs[b.list[0]] - this.cxs[a.list[0]]);
+      for (const c of comps) {
+        const kind = c.m === MAT.FUNNEL ? "funnel" : c.m === MAT.MAST ? "mast" : "boat";
+        const name = kind === "funnel" ? `No. ${++fN} funnel` : kind === "mast" ? mN++ === 0 ? "Foremast" : "Mainmast" : "Lifeboat";
+        const body = new Body(kind, name);
+        body.setCells(g, c.list);
+        bodies.push(body);
+      }
+      for (const b of bodies) for (const k of b.cells) g.block[k] = bodies.indexOf(b);
+      this.bodies = bodies;
+      bodies.forEach((b, i) => {
+        b.index = i;
+      });
+      for (const b of bodies) {
+        b.comX = b.sx / b.ms;
+        b.comY = b.sy / b.ms;
+        b.updateMassProps();
+      }
+      this.buildJoints();
+      for (const b of bodies) this.rebuildBodyGeometry(b);
+    }
+    buildJoints() {
+      const g = this.grid;
+      const hull = this.bodies.filter((b) => b.kind === "hull").sort((a, b) => a.order - b.order);
+      this.joints = [];
+      for (let q = 0; q + 1 < hull.length; q++) {
+        const A = hull[q], B = hull[q + 1];
+        const xCut = this.meta.blockCuts[A.order];
+        const j = {
+          id: this.joints.length,
+          a: A.index,
+          b: B.index,
+          kind: "weld",
+          xCut,
+          state: 0,
+          crack: 0,
+          hinge: 0,
+          lamA: 0,
+          lamP: 0,
+          M: 0,
+          N: 0,
+          V: 0,
+          Mf: 0,
+          Nf: 0,
+          Vf: 0,
+          ratio: 0,
+          ratioF: 0,
+          ductility: 1,
+          history: 0,
+          expansion: this.meta.expansionJoints.some((x) => Math.abs(x - xCut) < 0.6)
+        };
+        this.computeSection(j);
+        j.ax = xCut;
+        j.ay = j.na;
+        this.joints.push(j);
+      }
+      for (const b of this.bodies) {
+        if (b.kind !== "funnel" && b.kind !== "mast") continue;
+        let ymin = 1e9, xAt = 0;
+        for (let q = 0; q < b.cells.length; q++) if (b.gy[q] < ymin) {
+          ymin = b.gy[q];
+          xAt = b.gx[q];
+        }
+        let sx = 0, n = 0;
+        for (let q = 0; q < b.cells.length; q++) if (b.gy[q] < ymin + 0.01) {
+          sx += b.gx[q];
+          n++;
+        }
+        xAt = sx / n;
+        const i = g.col(xAt), jrow = g.row(ymin) - 1;
+        const k = g.idx(i, Math.max(0, jrow));
+        let host = g.block[k];
+        if (host < 0 || this.bodies[host].kind !== "hull") {
+          for (let jj = jrow; jj >= 0; jj--) {
+            const kk = g.idx(i, jj);
+            if (g.block[kk] >= 0 && this.bodies[g.block[kk]].kind === "hull") {
+              host = g.block[kk];
+              break;
+            }
+          }
+        }
+        if (host < 0) continue;
+        const isF = b.kind === "funnel";
+        const j = {
+          id: this.joints.length,
+          a: host,
+          b: b.index,
+          kind: isF ? "funnel" : "mast",
+          state: 0,
+          crack: 0,
+          hinge: 0,
+          lamA: 0,
+          lamP: 0,
+          M: 0,
+          N: 0,
+          V: 0,
+          Mf: 0,
+          Nf: 0,
+          Vf: 0,
+          ratio: 0,
+          ratioF: 0,
+          ductility: 1,
+          history: 0,
+          ax: xAt,
+          ay: ymin - CELL / 2,
+          // funnel held by guy wires + base ring; masts by stays
+          Mcap: isF ? 9e6 : 5e6,
+          Fcap: isF ? 4e6 : 25e5
+        };
+        this.joints.push(j);
+      }
+    }
+    // Hull girder section properties at a weld (A-side column of the cut).
+    computeSection(j) {
+      const g = this.grid;
+      const i = g.col(j.xCut) - 1;
+      const fibers = [];
+      for (let r = 0; r < g.h; r++) {
+        const k = g.idx(i, r);
+        if (g.kind[k] === EMPTY) continue;
+        const m = g.mat[k];
+        const mi = MATERIALS[m];
+        if (!g.isEnvelope(k)) continue;
+        const y = g.cy(r);
+        const isSuper = (g.flags[k] & 1) !== 0;
+        const expansionGap = (g.flags[k] & 2) !== 0 && j.expansion;
+        let area = 0;
+        if (!isSuper) area += 2 * 0.025 * CELL;
+        else if (!expansionGap) area += 2 * 95e-4 * CELL * 0.35;
+        if (g.kind[k] === SOLID && (mi.strength || m === MAT.SUPER) && !expansionGap) {
+          const eff = isSuper ? 0.35 : 1;
+          area += mi.t * g.breadth[k] * eff;
+        } else if (g.flags[k] & 8 && !expansionGap) {
+          const eff = isSuper ? 0.35 : 1;
+          const open = g.kind[k] === OPEN ? g.openW[k] : g.breadth[k] * 0.35;
+          area += MATERIALS[MAT.DECK].t * Math.max(0, g.breadth[k] - open) * eff;
+        }
+        if (area <= 0) continue;
+        const rust = Math.max(g.rust[k], g.rust[k + 1] || 0);
+        area *= Math.max(0.02, 1 - rust);
+        fibers.push({ k, y, area, failed: g.dmg[k] === 1 || g.dmg[k] === 2 });
+      }
+      j.fibers = fibers;
+      this.sectionProps(j);
+      j.scf = j.expansion ? 1.9 : 1.15;
+    }
+    sectionProps(j) {
+      let A = 0, Ay = 0;
+      for (const f of j.fibers) if (!f.failed) {
+        A += f.area;
+        Ay += f.area * f.y;
+      }
+      if (A <= 0) {
+        j.A = 0;
+        j.I = 0;
+        j.na = 0;
+        return;
+      }
+      const na = Ay / A;
+      let I = 0, yTop = -1e9, yBot = 1e9, Zp = 0;
+      for (const f of j.fibers) if (!f.failed) {
+        I += f.area * ((f.y - na) * (f.y - na) + CELL * CELL / 12);
+        if (f.y > yTop) yTop = f.y;
+        if (f.y < yBot) yBot = f.y;
+      }
+      const sorted = j.fibers.filter((f) => !f.failed).sort((a, b) => a.y - b.y);
+      let acc = 0, pna = na;
+      for (const f of sorted) {
+        acc += f.area;
+        if (acc >= A / 2) {
+          pna = f.y;
+          break;
+        }
+      }
+      for (const f of sorted) Zp += f.area * Math.abs(f.y - pna);
+      j.A = A;
+      j.I = Math.max(I, 1e-6);
+      j.na = na;
+      j.yTop = yTop;
+      j.yBot = yBot;
+      j.pna = pna;
+      j.Mp = STEEL_YIELD * Zp;
+      j.Mu = STEEL_UTS * j.I / Math.max(yTop - na, na - yBot, 0.5);
+    }
+    // per-body outline faces (drag), contact samples (seabed), SDF (collisions)
+    rebuildBodyGeometry(b) {
+      const g = this.grid, W = g.w;
+      const faces = [], contacts = [];
+      const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+      const own = b.index;
+      for (let q = 0; q < b.cells.length; q++) {
+        const k = b.cells[q];
+        if (g.kind[k] === EMPTY) continue;
+        const i = k % W, jj = k / W | 0;
+        for (const [di, dj] of dirs) {
+          const ii = i + di, j2 = jj + dj;
+          let outside;
+          if (!g.inb(ii, j2)) outside = true;
+          else {
+            const kk = j2 * W + ii;
+            if (g.kind[kk] === EMPTY) outside = true;
+            else if (g.block[kk] !== own) {
+              const other = this.bodies[g.block[kk]];
+              outside = b.kind !== "hull" || !other || other.kind !== "hull" ? true : this.isBroken(own, g.block[kk]);
+            } else outside = false;
+          }
+          if (!outside) continue;
+          const x = b.gx[q] + di * CELL / 2, y = b.gy[q] + dj * CELL / 2;
+          const area = CELL * Math.max(0.5, g.breadth[k]);
+          faces.push(x, y, di, dj, area);
+          contacts.push(x, y, di, dj, area);
+        }
+      }
+      b.faces = Float32Array.from(faces);
+      b.contacts = Float32Array.from(contacts);
+      let prof = 0;
+      for (let q = 0; q < b.cells.length; q++) if (g.kind[b.cells[q]] !== EMPTY) prof += CELL2;
+      b.profileArea = prof;
+      this.buildSDF(b);
+    }
+    buildSDF(b) {
+      const g = this.grid;
+      const pad = 2;
+      const x0 = b.aabb.x0 - pad * CELL, y0 = b.aabb.y0 - pad * CELL;
+      const w = Math.ceil((b.aabb.x1 - b.aabb.x0) / CELL) + 2 * pad, h = Math.ceil((b.aabb.y1 - b.aabb.y0) / CELL) + 2 * pad;
+      const inside = new Uint8Array(w * h);
+      for (let q = 0; q < b.cells.length; q++) {
+        if (g.kind[b.cells[q]] === EMPTY) continue;
+        const i = Math.floor((b.gx[q] - x0) / CELL), j = Math.floor((b.gy[q] - y0) / CELL);
+        if (i >= 0 && j >= 0 && i < w && j < h) inside[j * w + i] = 1;
+      }
+      const INF = 1e6;
+      const din = new Float32Array(w * h), dout = new Float32Array(w * h);
+      for (let k = 0; k < w * h; k++) {
+        din[k] = inside[k] ? INF : 0;
+        dout[k] = inside[k] ? 0 : INF;
+      }
+      const pass = (d2) => {
+        for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+          const k = j * w + i;
+          let v = d2[k];
+          if (i > 0) v = Math.min(v, d2[k - 1] + 1);
+          if (j > 0) v = Math.min(v, d2[k - w] + 1);
+          if (i > 0 && j > 0) v = Math.min(v, d2[k - w - 1] + 1.414);
+          if (i < w - 1 && j > 0) v = Math.min(v, d2[k - w + 1] + 1.414);
+          d2[k] = v;
+        }
+        for (let j = h - 1; j >= 0; j--) for (let i = w - 1; i >= 0; i--) {
+          const k = j * w + i;
+          let v = d2[k];
+          if (i < w - 1) v = Math.min(v, d2[k + 1] + 1);
+          if (j < h - 1) v = Math.min(v, d2[k + w] + 1);
+          if (i < w - 1 && j < h - 1) v = Math.min(v, d2[k + w + 1] + 1.414);
+          if (i > 0 && j < h - 1) v = Math.min(v, d2[k + w - 1] + 1.414);
+          d2[k] = v;
+        }
+      };
+      pass(din);
+      pass(dout);
+      const d = new Float32Array(w * h);
+      for (let k = 0; k < w * h; k++) d[k] = (inside[k] ? -(din[k] - 0.5) : dout[k] - 0.5) * CELL;
+      b.sdf = { x0, y0, w, h, d };
+    }
+    isBroken(a, b) {
+      if (a === b || a < 0 || b < 0) return false;
+      return this.brokenBoundary.has(a < b ? a + "|" + b : b + "|" + a);
+    }
+    markBroken(a, b) {
+      this.brokenBoundary.add(a < b ? a + "|" + b : b + "|" + a);
+    }
+    // ----------------------------------------------------------------- rooms
+    // Flood-fill SPACE cells into rooms (4-connected, never across a broken
+    // block interface). Water and air are carried over from the previous
+    // segmentation cell by cell.
+    segmentRooms(prev = null) {
+      const g = this.grid, W = g.w, H = g.h, n = g.n;
+      let cellWater = null, cellAir = null;
+      if (prev) {
+        cellWater = new Float32Array(n);
+        cellAir = new Float32Array(n);
+        for (const r of prev.rooms) {
+          if (!r.cells.length) continue;
+          const wf = prev.cellWaterFrac;
+          let airVol = 0;
+          for (const k of r.cells) airVol += g.vcap[k] * (1 - (wf ? wf[k] : 0));
+          for (const k of r.cells) {
+            const f = wf ? wf[k] : 0;
+            const scale = r.water > 0 && wf ? 1 : 0;
+            cellWater[k] = g.vcap[k] * f * scale;
+            cellAir[k] = airVol > 0 ? r.air * (g.vcap[k] * (1 - f)) / airVol : 0;
+          }
+          let sw = 0;
+          for (const k of r.cells) sw += cellWater[k];
+          if (sw > 0) for (const k of r.cells) cellWater[k] *= r.water / sw;
+          else if (r.water > 0) {
+            const per = r.water / r.cells.length;
+            for (const k of r.cells) cellWater[k] = per;
+          }
+        }
+      }
+      g.room.fill(-1);
+      const rooms = [];
+      const stack = new Int32Array(n);
+      for (let start = 0; start < n; start++) {
+        if (g.kind[start] !== SPACE || g.room[start] !== -1) continue;
+        const id = rooms.length;
+        let sp = 0;
+        stack[sp++] = start;
+        g.room[start] = id;
+        const cells = [];
+        while (sp) {
+          const k = stack[--sp];
+          cells.push(k);
+          const i = k % W, j = k / W | 0;
+          const bk = g.block[k];
+          if (i + 1 < W) {
+            const kk = k + 1;
+            if (g.kind[kk] === SPACE && g.room[kk] === -1 && !this.isBroken(bk, g.block[kk])) {
+              g.room[kk] = id;
+              stack[sp++] = kk;
+            }
+          }
+          if (i > 0) {
+            const kk = k - 1;
+            if (g.kind[kk] === SPACE && g.room[kk] === -1 && !this.isBroken(bk, g.block[kk])) {
+              g.room[kk] = id;
+              stack[sp++] = kk;
+            }
+          }
+          if (j + 1 < H) {
+            const kk = k + W;
+            if (g.kind[kk] === SPACE && g.room[kk] === -1 && !this.isBroken(bk, g.block[kk])) {
+              g.room[kk] = id;
+              stack[sp++] = kk;
+            }
+          }
+          if (j > 0) {
+            const kk = k - W;
+            if (g.kind[kk] === SPACE && g.room[kk] === -1 && !this.isBroken(bk, g.block[kk])) {
+              g.room[kk] = id;
+              stack[sp++] = kk;
+            }
+          }
+        }
+        rooms.push(this.makeRoom(id, cells));
+      }
+      for (const r of rooms) {
+        if (prev) {
+          let w = 0, a = 0;
+          for (const k of r.cells) {
+            w += cellWater[k];
+            a += cellAir[k];
+          }
+          r.water = Math.min(w, r.cap * 1.02);
+          r.air = a;
+          r.ang = 0;
+          r.angV = 0;
+          let best = -1, bestN = 0;
+          const cnt = /* @__PURE__ */ new Map();
+          for (const k of r.cells) {
+            const o = prev.cellRoom[k];
+            if (o >= 0) cnt.set(o, (cnt.get(o) || 0) + 1);
+          }
+          for (const [o, c] of cnt) if (c > bestN) {
+            bestN = c;
+            best = o;
+          }
+          if (best >= 0 && prev.rooms[best]) {
+            r.ang = prev.rooms[best].ang;
+            r.angV = prev.rooms[best].angV;
+            r.vented = prev.rooms[best].vented;
+          }
+          if (cnt.size === 0) {
+            r.water = 0;
+            r.air = r.cap;
+          }
+        } else {
+          r.water = r.mat === MAT.TANK ? r.cap * 0.5 : 0;
+          r.air = r.cap - r.water;
+        }
+      }
+      this.rooms = rooms;
+      this.buildElements();
+      this.version++;
+      this.topologyDirty = false;
+    }
+    makeRoom(id, cells) {
+      const g = this.grid;
+      let cap = 0, x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+      const matCount = /* @__PURE__ */ new Map();
+      const zoneCount = /* @__PURE__ */ new Map();
+      const deckCount = /* @__PURE__ */ new Map();
+      for (const k of cells) {
+        cap += g.vcap[k];
+        const x = this.cxs[k], y = this.cys[k];
+        if (x < x0) x0 = x;
+        if (x > x1) x1 = x;
+        if (y < y0) y0 = y;
+        if (y > y1) y1 = y;
+        matCount.set(g.mat[k], (matCount.get(g.mat[k]) || 0) + g.vcap[k]);
+        zoneCount.set(g.zone[k], (zoneCount.get(g.zone[k]) || 0) + 1);
+        deckCount.set(g.deck[k], (deckCount.get(g.deck[k]) || 0) + 1);
+      }
+      const top = (m) => {
+        let b = 0, bv = -1;
+        for (const [k, v] of m) if (v > bv) {
+          bv = v;
+          b = k;
+        }
+        return b;
+      };
+      const mat = top(matCount), zone = top(zoneCount), deck = top(deckCount);
+      const diag = Math.hypot(x1 - x0, y1 - y0) + 2;
+      const nb = Math.ceil(diag / (CELL / 2)) + 8;
+      const meta = this.meta;
+      const deckName = meta.deckNames[deck] || "";
+      const zname = meta.compartments[zone] || "";
+      const label = deck <= 2 && (mat === MAT.BOILER || mat === MAT.ENGINE || mat === MAT.HOLD || mat === MAT.BUNKER) ? zname : `${MATERIALS[mat].name}, ${deckName === "Boat" ? "Boat deck" : deckName === "House" ? "deckhouse" : deckName + " deck"}`;
+      return {
+        id,
+        cells: Int32Array.from(cells),
+        cap,
+        water: 0,
+        air: cap,
+        level: -1e9,
+        levelLocal: 0,
+        pAir: 101325,
+        vented: true,
+        full: false,
+        surfA: 1,
+        mat,
+        zone,
+        deck,
+        label,
+        x0,
+        x1,
+        y0,
+        y1,
+        bins: new Float64Array(nb),
+        smin: 0,
+        ang: 0,
+        angV: 0,
+        inflow: 0,
+        lastLevel: 0,
+        submerged: false,
+        trapped: false,
+        dpOut: 0,
+        lit: true,
+        group: id,
+        sinkTimer: 0
+      };
+    }
+    // Openings between regions (rooms / outside).
+    buildElements() {
+      const g = this.grid, W = g.w, H = g.h;
+      const els = [];
+      const walls = [];
+      const regionOf = (from, kk) => {
+        if (kk < 0) return EXT;
+        if (g.isExteriorLike(kk)) return EXT;
+        if (this.isBroken(g.block[from], g.block[kk])) return EXT;
+        if (g.kind[kk] === SPACE) return g.room[kk];
+        return null;
+      };
+      const nbrs = (k) => {
+        const i = k % W, j = k / W | 0;
+        return [
+          i + 1 < W ? k + 1 : -1,
+          i > 0 ? k - 1 : -1,
+          j + 1 < H ? k + W : -1,
+          j > 0 ? k - W : -1
+        ];
+      };
+      for (let k = 0; k < g.n; k++) {
+        const kd = g.kind[k];
+        if (kd === EMPTY) continue;
+        if (kd === OPEN) {
+          const nb = nbrs(k);
+          const pairs = [[nb[1], nb[0], 0], [nb[3], nb[2], 1]];
+          for (const [p, q, vert] of pairs) {
+            const ra = regionOf(k, p), rb = regionOf(k, q);
+            if (ra === null || rb === null || ra === rb) continue;
+            els.push({ type: "open", k, a: ra, b: rb, ka: p, kb: q, vert, area: CELL * Math.max(0.3, g.openW[k]) });
+          }
+          continue;
+        }
+        if (kd === SPACE) {
+          const r = g.room[k];
+          if (g.side[k]) els.push({ type: "side", k, a: r, b: EXT, ka: k, kb: k, vert: 0, area: 0 });
+          const nb = nbrs(k);
+          for (let d = 0; d < 4; d++) {
+            const kk = nb[d];
+            const rg = regionOf(k, kk);
+            if (rg === EXT) els.push({ type: "face", k, a: r, b: EXT, ka: k, kb: kk, vert: d >= 2 ? 1 : 0, area: CELL * Math.max(0.5, g.breadth[k]) });
+          }
+          continue;
+        }
+        if (kd === SOLID && g.isEnvelope(k)) {
+          const nb = nbrs(k);
+          const ra = regionOf(k, nb[1]), rb = regionOf(k, nb[0]);
+          if (ra !== null && rb !== null && ra !== rb) walls.push({ k, a: ra, b: rb, ka: nb[1], kb: nb[0] });
+          const rc = regionOf(k, nb[3]), rd = regionOf(k, nb[2]);
+          if (rc !== null && rd !== null && rc !== rd) walls.push({ k, a: rc, b: rd, ka: nb[3], kb: nb[2] });
+        }
+      }
+      const pairMap = /* @__PURE__ */ new Map();
+      this.pairs = [];
+      for (const e of els) {
+        e.flow = 0;
+        e.airFlow = 0;
+        e.q = 0;
+        const lo = Math.min(e.a, e.b), hi = Math.max(e.a, e.b);
+        const key = lo * 100003 + hi;
+        let pi = pairMap.get(key);
+        if (pi === void 0) {
+          pi = this.pairs.length;
+          pairMap.set(key, pi);
+          this.pairs.push({ a: e.a, b: e.b, sum: 0, dp: 0, qmax: 0, scale: 1 });
+        }
+        e.pair = pi;
+      }
+      this.elements = els;
+      this.walls = walls;
+      for (const r of this.rooms) r.els = [];
+      els.forEach((e, idx) => {
+        if (e.a >= 0) this.rooms[e.a].els.push(idx);
+        if (e.b >= 0) this.rooms[e.b].els.push(idx);
+      });
+    }
+  };
+
+  // src/sim/environment.js
+  var Environment = class {
+    constructor(opts = {}) {
+      this.seabedDepth = opts.seabedDepth ?? 3800;
+      this.swellAmp = opts.swellAmp ?? 0;
+      this.swellPeriod = opts.swellPeriod ?? 9;
+      this.time = 0;
+      this.flip = null;
+      this.flipBlend = 0.6;
+      this.mudLift = null;
+      this.mudX0 = -4e3;
+      this.mudDx = 1;
+      this.mudN = 0;
+      this.current = opts.current ?? 0.03;
+      this.surfaceTemp = opts.surfaceTemp ?? -2;
+      this.seed = opts.seed ?? 7;
+      this.initMud();
+    }
+    initMud() {
+      this.mudX0 = -6e3;
+      this.mudDx = 1;
+      this.mudN = 12e3;
+      this.mudLift = new Float32Array(this.mudN);
+    }
+    swell(x, t = this.time) {
+      if (this.swellAmp <= 0) return 0;
+      const k = (2 * Math.PI) ** 2 / (9.81 * this.swellPeriod * this.swellPeriod);
+      const w = 2 * Math.PI / this.swellPeriod;
+      return this.swellAmp * (Math.sin(k * x - w * t) + 0.35 * Math.sin(1.7 * k * x - 1.3 * w * t + 1.1));
+    }
+    // free-surface height at x
+    surface(x) {
+      let h = this.swell(x);
+      const f = this.flip;
+      if (f && f.h) {
+        const u = (x - f.x0) / f.dx;
+        if (u > 0 && u < f.n - 1) {
+          const i = u | 0, t = u - i;
+          const v = f.h[i] * (1 - t) + f.h[i + 1] * t;
+          const edge = Math.min(u, f.n - 1 - u) / (f.n * 0.08);
+          const wgt = Math.min(1, edge) * this.flipBlend;
+          h += v * wgt;
+        }
+      }
+      return h;
+    }
+    seabedBase(x) {
+      const d = this.seabedDepth;
+      return -d + 7 * Math.sin(x / 830 + 0.4) + 3.2 * Math.sin(x / 290 + 2.1) + 1.1 * Math.sin(x / 61 + 0.7) + 0.35 * Math.sin(x / 13.7);
+    }
+    seabedY(x) {
+      return this.seabedBase(x);
+    }
+    // surface of the mud as drawn (with berms pushed up by impacts)
+    mudY(x) {
+      let y = this.seabedBase(x);
+      const u = (x - this.mudX0) / this.mudDx;
+      if (u > 0 && u < this.mudN - 1) {
+        const i = u | 0, t = u - i;
+        y += this.mudLift[i] * (1 - t) + this.mudLift[i + 1] * t;
+      }
+      return y;
+    }
+    pushMud(x, amount, radius = 6) {
+      const c = Math.round((x - this.mudX0) / this.mudDx);
+      const r = Math.ceil(radius / this.mudDx);
+      for (let i = -r; i <= r; i++) {
+        const q = c + i;
+        if (q < 0 || q >= this.mudN) continue;
+        const w = Math.exp(-(i * i) / (r * r * 0.4));
+        this.mudLift[q] = Math.min(12, this.mudLift[q] + amount * w);
+      }
+    }
+    seabedNormal(x) {
+      const h = 1;
+      const dy = this.seabedBase(x + h) - this.seabedBase(x - h);
+      const nx = -dy / (2 * h), ny = 1;
+      const l = Math.hypot(nx, ny);
+      return [nx / l, ny / l];
+    }
+  };
+
+  // src/sim/flooding.js
+  var CD = 0.62;
+  var RHO = 1025;
+  var Flooding = class {
+    constructor(ship, env) {
+      this.ship = ship;
+      this.env = env;
+      const n = ship.grid.n;
+      this.cellWaterFrac = new Float32Array(n);
+      this.cellRoom = ship.grid.room;
+      this.wx = new Float32Array(n);
+      this.wy = new Float32Array(n);
+      this.events = [];
+      this.totalInflow = 0;
+      this.totalAirOut = 0;
+      this.bubbleSources = [];
+      this.jets = [];
+      this.burstQueue = [];
+      this.parent = null;
+      this.stats = { floodedTonnes: 0, inflowTps: 0 };
+    }
+    // world positions of all room cells (call after bodies move)
+    updatePositions() {
+      const sh = this.ship, g = sh.grid, bodies = sh.bodies;
+      for (const r of sh.rooms) {
+        for (let q = 0; q < r.cells.length; q++) {
+          const k = r.cells[q];
+          const b = bodies[g.block[k]];
+          const gx = sh.cxs[k], gy = sh.cys[k];
+          this.wx[k] = b.x + b.c * (gx - b.comX) - b.s * (gy - b.comY);
+          this.wy[k] = b.y + b.s * (gx - b.comX) + b.c * (gy - b.comY);
+        }
+      }
+    }
+    cellPos(k) {
+      const sh = this.ship, g = sh.grid;
+      const b = sh.bodies[g.block[k]];
+      const gx = sh.cxs[k], gy = sh.cys[k];
+      return [b.x + b.c * (gx - b.comX) - b.s * (gy - b.comY), b.y + b.s * (gx - b.comX) + b.c * (gy - b.comY)];
+    }
+    // Solve the free-surface level of every room from its water volume.
+    solveLevels(dt) {
+      const sh = this.ship, g = sh.grid;
+      const half = CELL / 2, binW = CELL / 2;
+      for (const r of sh.rooms) {
+        const cells = r.cells;
+        if (!cells.length) continue;
+        const b0 = sh.bodies[g.block[cells[0]]];
+        if (r.refA === void 0) r.refA = b0.a;
+        let dA = b0.a - r.refA;
+        r.refA = b0.a;
+        if (dA > Math.PI) dA -= 2 * Math.PI;
+        if (dA < -Math.PI) dA += 2 * Math.PI;
+        const fill = r.cap > 0 ? r.water / r.cap : 0;
+        if (fill > 1e-3 && fill < 0.995 && dt > 0) {
+          const L = Math.max(2, r.span || 10), d = Math.max(0.2, r.depthW || 1);
+          const w = Math.sqrt(Math.PI * G / L * Math.tanh(Math.PI * d / L));
+          r.ang += dA * 0.6;
+          const ax = b0.axS || 0, ay = b0.ayS || 0;
+          const target2 = Math.max(-0.3, Math.min(0.3, Math.atan2(-ax, G + ay)));
+          const acc2 = -w * w * (r.ang - target2) - 2 * 0.12 * w * r.angV;
+          r.angV += acc2 * dt;
+          r.ang += r.angV * dt;
+          if (r.ang > 0.4) {
+            r.ang = 0.4;
+            r.angV *= -0.3;
+          }
+          if (r.ang < -0.4) {
+            r.ang = -0.4;
+            r.angV *= -0.3;
+          }
+        } else {
+          r.ang *= 0.5;
+          r.angV = 0;
+        }
+        const nx = -Math.sin(r.ang), ny = Math.cos(r.ang);
+        r.nx = nx;
+        r.ny = ny;
+        let smin = 1e18, smax = -1e18, xmin = 1e18, xmax = -1e18;
+        for (let q = 0; q < cells.length; q++) {
+          const k = cells[q];
+          const s = nx * this.wx[k] + ny * this.wy[k];
+          if (s < smin) smin = s;
+          if (s > smax) smax = s;
+          const t = ny * this.wx[k] - nx * this.wy[k];
+          if (t < xmin) xmin = t;
+          if (t > xmax) xmax = t;
+        }
+        r.smin = smin - half;
+        r.smax = smax + half;
+        r.span = xmax - xmin + CELL;
+        const bins = r.bins;
+        const nb = Math.min(bins.length, Math.ceil((r.smax - r.smin) / binW) + 2);
+        for (let q = 0; q < nb; q++) bins[q] = 0;
+        for (let q = 0; q < cells.length; q++) {
+          const k = cells[q];
+          const s = nx * this.wx[k] + ny * this.wy[k] - r.smin;
+          const v = g.vcap[k];
+          const lo = s - half;
+          const b0i = Math.floor(lo / binW);
+          const frac = lo / binW - b0i;
+          if (b0i >= 0 && b0i + 2 < nb) {
+            bins[b0i] += v * 0.5 * (1 - frac);
+            bins[b0i + 1] += v * 0.5;
+            bins[b0i + 2] += v * 0.5 * frac;
+          }
+        }
+        const target = Math.min(r.water, r.cap);
+        let acc = 0, level = r.smin, area = 1;
+        if (target <= 0) {
+          level = r.smin;
+          area = Math.max(0.5, bins[0] / binW);
+        } else {
+          let found = false;
+          for (let q = 0; q < nb; q++) {
+            const bv = bins[q];
+            if (acc + bv >= target && bv > 0) {
+              level = r.smin + (q + (target - acc) / bv) * binW;
+              area = Math.max(0.2, bv / binW);
+              found = true;
+              break;
+            }
+            acc += bv;
+          }
+          if (!found) {
+            level = r.smax;
+            area = 0.2;
+          }
+        }
+        r.full = r.water >= r.cap * 0.998;
+        const Sv = Math.max(0.2, r.cap / 2500);
+        if (r.water > r.cap) level = r.smax + (r.water - r.cap) / Sv;
+        r.level = level;
+        r.surfA = r.full ? Sv : area;
+        r.depthW = Math.max(0, Math.min(level, r.smax) - r.smin);
+      }
+    }
+    // per-cell water fraction & per-body floodwater mass sums
+    distributeWater() {
+      const sh = this.ship, g = sh.grid;
+      for (const b of sh.bodies) {
+        b.mw = 0;
+        b.swx = 0;
+        b.swy = 0;
+        b.swq = 0;
+      }
+      const half = CELL / 2;
+      let total = 0;
+      for (const r of sh.rooms) {
+        const cells = r.cells;
+        const lvl = r.level, nx = r.nx || 0, ny = r.ny || 1;
+        const empty = r.water <= 1e-6;
+        let wsum = 0;
+        for (let q = 0; q < cells.length; q++) {
+          const k = cells[q];
+          let f = 0;
+          if (!empty) {
+            const s = nx * this.wx[k] + ny * this.wy[k];
+            f = (lvl - s) / CELL + 0.5;
+            f = f < 0 ? 0 : f > 1 ? 1 : f;
+          }
+          this.cellWaterFrac[k] = f;
+          if (f > 0) {
+            const m = RHO * g.vcap[k] * f;
+            wsum += m;
+            const b = sh.bodies[g.block[k]];
+            const x = sh.cxs[k], y = sh.cys[k];
+            b.mw += m;
+            b.swx += m * x;
+            b.swy += m * y;
+            b.swq += m * (x * x + y * y);
+          }
+        }
+        total += wsum;
+        r.mass = wsum;
+      }
+      this.stats.floodedTonnes = total / 1e3;
+    }
+    // pressure inside room r at world point (x, y)
+    roomP(r, x, y) {
+      const d = r.level - (r.nx * x + r.ny * y);
+      return r.pAir + (d > 0 ? RHO * G * d : 0);
+    }
+    roomWet(r, x, y) {
+      if (r.water <= 1e-6) return 0;
+      const d = (r.level - (r.nx * x + r.ny * y)) / CELL + 0.5;
+      return d < 0 ? 0 : d > 1 ? 1 : d;
+    }
+    extP(x, y) {
+      const s = this.env.surface(x);
+      return P_ATM + gaugePressure(s - y);
+    }
+    extWet(x, y) {
+      const d = (this.env.surface(x) - y) / CELL + 0.5;
+      return d < 0 ? 0 : d > 1 ? 1 : d;
+    }
+    find(i) {
+      const p = this.parent;
+      while (p[i] !== i) {
+        p[i] = p[p[i]];
+        i = p[i];
+      }
+      return i;
+    }
+    union(a, b) {
+      a = this.find(a);
+      b = this.find(b);
+      if (a !== b) this.parent[a] = b;
+    }
+    // determine vented / trapped air groups and their pressure
+    solveAir() {
+      const sh = this.ship, rooms = sh.rooms, n = rooms.length;
+      const ATM = n;
+      if (!this.parent || this.parent.length !== n + 1) this.parent = new Int32Array(n + 1);
+      for (let i = 0; i <= n; i++) this.parent[i] = i;
+      const g = sh.grid;
+      for (const e of sh.elements) {
+        if (!this.elementOpen(e)) continue;
+        const [x, y] = this.cellPos(e.k);
+        const ra = e.a >= 0 ? rooms[e.a] : null, rb = e.b >= 0 ? rooms[e.b] : null;
+        const wa = ra ? this.roomWet(ra, x, y) : this.extWet(x, y);
+        const wb = rb ? this.roomWet(rb, x, y) : this.extWet(x, y);
+        e.wa = wa;
+        e.wb = wb;
+        e.x = x;
+        e.y = y;
+        if (wa < 0.5 && wb < 0.5) this.union(e.a >= 0 ? e.a : ATM, e.b >= 0 ? e.b : ATM);
+      }
+      const gn = new Float64Array(n + 1), gv = new Float64Array(n + 1);
+      for (let i = 0; i < n; i++) {
+        const r = rooms[i];
+        const vAir = Math.max(r.cap * 1e-4, r.cap - Math.min(r.water, r.cap));
+        r.vAir = vAir;
+        const root = this.find(i);
+        gn[root] += r.air;
+        gv[root] += vAir;
+      }
+      const atmRoot = this.find(ATM);
+      const gcap = new Float64Array(n + 1).fill(-1);
+      for (const e of sh.elements) {
+        if (!this.elementOpen(e) || e.x === void 0) continue;
+        for (let side = 0; side < 2; side++) {
+          const me = side === 0 ? e.a : e.b, other = side === 0 ? e.b : e.a;
+          if (me < 0) continue;
+          const root = this.find(me);
+          if (root === atmRoot) continue;
+          if (other >= 0 && this.find(other) === root) continue;
+          const ro = other >= 0 ? rooms[other] : null;
+          const po = ro ? this.roomP(ro, e.x, e.y) : this.extP(e.x, e.y);
+          const rm = rooms[me];
+          const head = Math.max(0, rm.level - (rm.nx * e.x + rm.ny * e.y));
+          const pc = po - RHO * G * head;
+          if (pc > gcap[root]) gcap[root] = pc;
+        }
+      }
+      for (let i = 0; i < n; i++) {
+        const r = rooms[i];
+        const root = this.find(i);
+        r.group = root;
+        if (root === atmRoot) {
+          r.vented = true;
+          r.trapped = false;
+          r.pAir = P_ATM;
+          r.air = r.vAir;
+        } else {
+          r.vented = false;
+          r.trapped = true;
+          let p = P_ATM * gn[root] / Math.max(1e-6, gv[root]);
+          if (gcap[root] > 0 && p > gcap[root] * 1.02) {
+            p = Math.max(P_ATM * 0.5, gcap[root]);
+          }
+          r.pAir = Math.min(p, 6e7);
+          r.air = p * r.vAir / P_ATM;
+          if (r.full && r.vAir < r.cap * 2e-3) {
+            r.air = 0;
+            r.pAir = Math.max(P_ATM, Math.min(r.pAir, gcap[root] > 0 ? gcap[root] : r.pAir));
+          }
+        }
+      }
+    }
+    elementOpen(e) {
+      const g = this.ship.grid;
+      if (e.type === "open") return g.gate[e.k] === 0 && g.kind[e.k] === OPEN;
+      if (e.type === "side") return g.sideArea[e.k] > 0;
+      return true;
+    }
+    // compliance of a room: dp per m^3 of water added
+    K(r) {
+      if (!r) return 0;
+      let k = RHO * G / Math.max(0.05, r.surfA);
+      if (r.trapped) k += r.pAir / Math.max(0.01, r.vAir);
+      return k;
+    }
+    step(dt) {
+      const sh = this.ship, g = sh.grid, rooms = sh.rooms;
+      this.updatePositions();
+      this.solveLevels(dt);
+      this.solveAir();
+      this.bubbleSources.length = 0;
+      this.jets.length = 0;
+      let inflow = 0, airOut = 0;
+      const dW = new Float64Array(rooms.length);
+      const dA = new Float64Array(rooms.length);
+      const els = sh.elements;
+      for (const r of rooms) r.inflow = 0;
+      for (let idx = 0; idx < els.length; idx++) {
+        const e = els[idx];
+        e.q = 0;
+        e.qa = 0;
+        if (!this.elementOpen(e)) continue;
+        let A = e.area;
+        if (e.type === "side") A = g.sideArea[e.k];
+        if (A <= 0) continue;
+        const x = e.x, y = e.y;
+        const ra = e.a >= 0 ? rooms[e.a] : null, rb = e.b >= 0 ? rooms[e.b] : null;
+        const pa = ra ? this.roomP(ra, x, y) : this.extP(x, y);
+        const pb = rb ? this.roomP(rb, x, y) : this.extP(x, y);
+        const wa = e.wa, wb = e.wb;
+        const dp = pa - pb;
+        const fromA = dp > 0;
+        const ws = fromA ? wa : wb;
+        const wt = fromA ? wb : wa;
+        const adp = Math.abs(dp);
+        let q = 0, qa = 0;
+        if (adp > 0) {
+          const v = Math.sqrt(2 * adp / RHO);
+          q = CD * A * ws * v;
+          if (ws < 1 && wt > 0.05) {
+            const ps = fromA ? ra ? ra.pAir : P_ATM : rb ? rb.pAir : P_ATM;
+            const rhoA = RHO_AIR * ps / P_ATM;
+            qa = CD * A * (1 - ws) * Math.min(60, Math.sqrt(2 * adp / rhoA)) * 0.35;
+          }
+        }
+        if (e.vert) {
+          const upper = rb, lower = ra;
+          const wu = wb, wl = wa;
+          if (wu > 0.5 && wl < 0.5 && lower && !lower.full) {
+            let qx = CD * A * 0.5 * Math.sqrt(G * Math.min(2, Math.sqrt(A))) * (wu - wl);
+            qx = Math.min(qx, 0.25 * lower.vAir / dt / Math.max(1, lower.els.length));
+            if (upper) qx = Math.min(qx, upper.water / dt / Math.max(1, upper.els.length));
+            e.qx = qx;
+          } else e.qx = 0;
+        } else e.qx = 0;
+        e.q = fromA ? q : -q;
+        e.qa = fromA ? qa : -qa;
+      }
+      const pairs = sh.pairs;
+      for (const P of pairs) {
+        P.sum = 0;
+        P.dp = 0;
+        P.qmax = 0;
+      }
+      for (let idx = 0; idx < els.length; idx++) {
+        const e = els[idx];
+        const w = e.q - (e.qx || 0);
+        if (!w) continue;
+        const P = pairs[e.pair];
+        P.sum += w;
+        const aw = Math.abs(w);
+        if (aw > P.qmax) {
+          P.qmax = aw;
+          const ra = e.a >= 0 ? rooms[e.a] : null, rb = e.b >= 0 ? rooms[e.b] : null;
+          const pa = ra ? this.roomP(ra, e.x, e.y) : this.extP(e.x, e.y);
+          const pb = rb ? this.roomP(rb, e.x, e.y) : this.extP(e.x, e.y);
+          P.dp = Math.abs(pa - pb) + (e.qx ? RHO * G * CELL : 0);
+        }
+      }
+      for (const P of pairs) {
+        P.scale = 1;
+        if (!P.sum) continue;
+        const ra = P.a >= 0 ? rooms[P.a] : null, rb = P.b >= 0 ? rooms[P.b] : null;
+        const kk = this.K(ra) + this.K(rb);
+        if (kk > 0) {
+          const vmax = 0.45 * P.dp / kk;
+          const dv = Math.abs(P.sum) * dt;
+          if (dv > vmax) P.scale = vmax / dv;
+        }
+      }
+      const out = new Float64Array(rooms.length);
+      for (const e of els) {
+        const w = (e.q - (e.qx || 0)) * pairs[e.pair].scale;
+        if (w > 0 && e.a >= 0) out[e.a] += w;
+        else if (w < 0 && e.b >= 0) out[e.b] -= w;
+      }
+      const drain = new Float64Array(rooms.length).fill(1);
+      for (let i = 0; i < rooms.length; i++) if (out[i] * dt > rooms[i].water) drain[i] = rooms[i].water / (out[i] * dt + 1e-12);
+      for (let idx = 0; idx < els.length; idx++) {
+        const e = els[idx];
+        if (!e.q && !e.qx && !e.qa) continue;
+        const ra = e.a >= 0 ? rooms[e.a] : null, rb = e.b >= 0 ? rooms[e.b] : null;
+        let wnet = (e.q - (e.qx || 0)) * pairs[e.pair].scale;
+        if (wnet > 0 && ra) wnet *= drain[e.a];
+        else if (wnet < 0 && rb) wnet *= drain[e.b];
+        const qx = Math.max(0, -(wnet - e.q * pairs[e.pair].scale));
+        e.flow = wnet;
+        if (ra) dW[e.a] -= wnet * dt;
+        else inflow += wnet;
+        if (rb) dW[e.b] += wnet * dt;
+        else inflow -= wnet;
+        if (ra && !rb && wnet < 0) ra.inflow += -wnet;
+        if (rb && !ra && wnet > 0) rb.inflow += wnet;
+        const qxs = (e.qx || 0) * pairs[e.pair].scale;
+        if (qxs > 0 && ra) {
+          const nMove = Math.min(ra.air, qxs * dt * ra.pAir / P_ATM);
+          dA[e.a] -= nMove;
+          if (rb) dA[e.b] += nMove;
+          else {
+            airOut += nMove;
+            this.bubbleSources.push(e.x, e.y, nMove);
+          }
+        }
+        if (e.qa) {
+          const src = e.qa > 0 ? ra : rb, dst = e.qa > 0 ? rb : ra;
+          const si = e.qa > 0 ? e.a : e.b, di = e.qa > 0 ? e.b : e.a;
+          if (src) {
+            const pd = dst ? dst.pAir : this.extP(e.x, e.y);
+            const nMin = pd * src.vAir / P_ATM;
+            const nMove = Math.max(0, Math.min(Math.abs(e.qa) * dt * src.pAir / P_ATM, (src.air - nMin) * 0.5));
+            dA[si] -= nMove;
+            if (dst) dA[di] += nMove;
+            else {
+              airOut += nMove;
+              this.bubbleSources.push(e.x, e.y, nMove);
+            }
+          }
+        }
+        if (Math.abs(wnet) > 0.02 && (!ra || !rb)) {
+          const into = !ra ? e.b : e.a;
+          const qIn = !ra ? wnet : -wnet;
+          if (qIn > 0) this.jets.push(e.x, e.y, qIn, e.k, into);
+        }
+      }
+      for (let i = 0; i < rooms.length; i++) {
+        const r = rooms[i];
+        if (!r.trapped || r.mat === MAT.TANK || r.pAir <= P_ATM * 1.01 || r.air <= 0) continue;
+        const leak = r.air * (1 - P_ATM / r.pAir) * Math.min(1, dt / 35);
+        dA[i] -= leak;
+        if (Math.random() < 0.05) this.bubbleSources.push(this.wx[r.cells[r.cells.length - 1]], this.wy[r.cells[r.cells.length - 1]], leak * 10);
+      }
+      for (let i = 0; i < rooms.length; i++) {
+        const r = rooms[i];
+        r.water = Math.max(0, r.water + dW[i]);
+        const maxW = r.cap + 4 * Math.max(0.2, r.cap / 2500) * 4e3;
+        if (r.water > maxW) r.water = maxW;
+        if (r.trapped) r.air = Math.max(0, r.air + dA[i]);
+        r.inflowF = (r.inflowF || 0) * 0.95 + r.inflow * 0.05;
+      }
+      this.totalInflow = inflow;
+      this.totalAirOut = airOut / Math.max(1e-6, dt);
+      this.stats.inflowTps = (this.stats.inflowTps || 0) * 0.97 + inflow * RHO / 1e3 * 0.03;
+      this.checkBursts();
+      this.solveLevels(0);
+      this.distributeWater();
+    }
+    checkBursts() {
+      const sh = this.ship, g = sh.grid, rooms = sh.rooms;
+      for (const e of sh.elements) {
+        if (e.type !== "side") continue;
+        const k = e.k;
+        const st = g.side[k];
+        if (g.sideArea[k] > 0) continue;
+        const info = SIDE_INFO[st];
+        if (!info) continue;
+        const r = rooms[e.a];
+        const [x, y] = this.cellPos(k);
+        const pin = this.roomP(r, x, y), pout = this.extP(x, y);
+        const strength = info.burst * (1 - 0.8 * g.rust[k]);
+        if (Math.abs(pin - pout) > strength) {
+          g.sideArea[k] = info.area;
+          this.events.push({ type: pout > pin ? "implode-glass" : "burst-glass", k, x, y, dp: pout - pin, st, room: r.id });
+        }
+      }
+      for (const e of sh.elements) {
+        if (e.type !== "open") continue;
+        if (g.gate[e.k] === 0) continue;
+        const [x, y] = this.cellPos(e.k);
+        const ra = e.a >= 0 ? rooms[e.a] : null, rb = e.b >= 0 ? rooms[e.b] : null;
+        const pa = ra ? this.roomP(ra, x, y) : this.extP(x, y);
+        const pb = rb ? this.roomP(rb, x, y) : this.extP(x, y);
+        const mi = MATERIALS[g.mat[e.k]];
+        if (Math.abs(pa - pb) > mi.burst * (1 - 0.8 * g.rust[e.k])) {
+          if (this.debug) console.log("GATE", mi.key, ra && [ra.label, ra.level.toFixed(2), ra.pAir.toFixed(0), ra.trapped, ra.water.toFixed(1), ra.cap.toFixed(1), ra.full], rb && [rb.label, rb.level.toFixed(2), rb.pAir.toFixed(0), rb.trapped, rb.water.toFixed(1), rb.cap.toFixed(1), rb.full], "pa", pa.toFixed(0), "pb", pb.toFixed(0), "y", y.toFixed(2));
+          g.gate[e.k] = 0;
+          this.events.push({ type: "burst-open", k: e.k, x, y, dp: pa - pb, mat: g.mat[e.k] });
+        }
+      }
+      let burstCount = 0;
+      const pairHits = /* @__PURE__ */ new Map();
+      for (const w of sh.walls) {
+        const k = w.k;
+        if (g.kind[k] !== SOLID) continue;
+        const ra = w.a >= 0 ? rooms[w.a] : null, rb = w.b >= 0 ? rooms[w.b] : null;
+        if (!ra && !rb) continue;
+        if (ra && !ra.trapped && rb && !rb.trapped && Math.abs(ra.level - rb.level) < 2) continue;
+        const [x, y] = this.cellPos(k);
+        const pa = ra ? this.roomP(ra, x, y) : this.extP(x, y);
+        const pb = rb ? this.roomP(rb, x, y) : this.extP(x, y);
+        const mi = MATERIALS[g.mat[k]];
+        const dp = Math.abs(pa - pb);
+        const cap = mi.burst * Math.max(0.05, 1 - g.rust[k]) * (0.75 + 0.5 * g.seed[k]);
+        if (dp > cap) {
+          const key = w.a + "," + w.b;
+          const hits = pairHits.get(key) || 0;
+          if (hits >= 3) continue;
+          pairHits.set(key, hits + 1);
+          if (this.debug) console.log("BURST", g.mat[k], "a", w.a, ra && [ra.label, ra.level.toFixed(2), ra.pAir.toFixed(0), ra.trapped, ra.water.toFixed(1), ra.cap.toFixed(1)], "b", w.b, rb && [rb.label, rb.level.toFixed(2), rb.pAir.toFixed(0), rb.trapped, rb.water.toFixed(1), rb.cap.toFixed(1)], "pa", pa.toFixed(0), "pb", pb.toFixed(0), "y", y.toFixed(2));
+          this.burstQueue.push({ k, x, y, dp, implode: pa > pb === (w.a === -1) || pb > pa === (w.b === -1), a: w.a, b: w.b });
+          burstCount++;
+          if (burstCount > 24) break;
+        }
+      }
+      for (const r of rooms) {
+        if (!r.trapped || r.cells.length === 0) continue;
+        let best = -1, by = 1e9;
+        for (let q = 0; q < r.cells.length; q += 3) {
+          const k = r.cells[q];
+          if (this.cellWaterFrac[k] > 0.5) continue;
+          const y = this.wy[k];
+          if (y < by) {
+            by = y;
+            best = k;
+          }
+        }
+        if (best < 0) continue;
+        const x = this.wx[best];
+        const pout = this.extP(x, by), pin = r.pAir;
+        r.dpOut = pout - pin;
+        const isSuper = (g.flags[best] & 1) !== 0;
+        const cap = (isSuper ? 22e4 : 14e5) * Math.max(0.05, 1 - g.rust[best]) * (0.8 + 0.4 * g.seed[best]);
+        if (r.dpOut > cap) {
+          if (this.debug) console.log("SHELL", r.label, r.level.toFixed(2), r.pAir.toFixed(0), r.water.toFixed(1), r.cap.toFixed(1), r.full, "pout", pout.toFixed(0), "y", by.toFixed(2), "vAir", r.vAir.toFixed(2), "air", r.air.toFixed(2));
+          g.side[best] = SIDE.BREACH;
+          g.sideArea[best] = Math.min(6, 0.02 * r.cap + 0.5);
+          this.events.push({ type: "implode", k: best, x, y: by, dp: r.dpOut, room: r.id, vol: r.vAir });
+          this.ship.needElements = true;
+        }
+      }
+    }
+  };
+
+  // src/sim/world.js
+  var cross = (ax, ay, bx, by) => ax * by - ay * bx;
+  var World = class {
+    constructor(ship, env, opts = {}) {
+      this.ship = ship;
+      this.env = env;
+      this.bodies = ship.bodies;
+      this.joints = ship.joints;
+      this.flooding = new Flooding(ship, env);
+      this.time = 0;
+      this.substeps = opts.substeps ?? 12;
+      this.events = [];
+      this.drag = null;
+      this.steelTemp = env.surfaceTemp;
+      this.brittle = true;
+      this.stats = { maxRatio: 0, maxRatioJoint: -1, trim: 0, draughtF: 0, draughtA: 0 };
+      this.pendingDestroy = [];
+      this.settleTimer = 0;
+      this.hydroScale = 1;
+      this.corrosionYears = 0;
+      this.collisionsOn = true;
+      this.mudPlume = [];
+      this.impacts = [];
+      this.bodyVolCache();
+    }
+    bodyVolCache() {
+      const g = this.ship.grid;
+      for (const b of this.bodies) {
+        let V = 0, Vx = 0, Vy = 0;
+        for (let q = 0; q < b.cells.length; q++) {
+          const v = g.vdisp[b.cells[q]];
+          V += v;
+          Vx += v * b.gx[q];
+          Vy += v * b.gy[q];
+        }
+        b.V = V;
+        b.Vx = Vx;
+        b.Vy = Vy;
+        b.L = b.aabb.x1 - b.aabb.x0;
+        b.H = b.aabb.y1 - b.aabb.y0;
+      }
+    }
+    // Place the whole intact ship: grid point (gx, gy) -> (ox, oy) + R(theta) (gx, gy)
+    placeShip(ox, oy, theta = 0) {
+      const c = Math.cos(theta), s = Math.sin(theta);
+      for (const b of this.bodies) {
+        b.x = ox + c * b.comX - s * b.comY;
+        b.y = oy + s * b.comX + c * b.comY;
+        b.a = theta;
+        b.syncTrig();
+        b.vx = b.vy = b.w = 0;
+        b.px = b.x;
+        b.py = b.y;
+        b.pa = b.a;
+      }
+      for (const j of this.joints) this.initJointRest(j);
+      this.flooding.updatePositions();
+      this.flooding.solveLevels(0);
+      this.flooding.solveAir();
+      this.flooding.distributeWater();
+      for (const b of this.bodies) b.updateMassProps();
+    }
+    initJointRest(j) {
+      const A = this.bodies[j.a], B = this.bodies[j.b];
+      j.rest = B.a - A.a;
+      j.lamA = 0;
+    }
+    // ------------------------------------------------------------------ step
+    step(dt) {
+      const ship = this.ship;
+      this.time += dt;
+      this.env.time = this.time;
+      if (ship.topologyDirty || this.pendingDestroy.length) this.applyTopology();
+      if (ship.needElements) {
+        ship.buildElements();
+        ship.needElements = false;
+      }
+      const nf = Math.max(1, Math.ceil(dt / 0.08));
+      for (let i = 0; i < nf; i++) this.flooding.step(dt / nf);
+      this.handleFloodEvents();
+      for (const b of this.bodies) if (b.alive) b.updateMassProps();
+      for (const b of this.bodies) {
+        if (!b.alive) continue;
+        b.v0x = b.vx;
+        b.v0y = b.vy;
+        b.w0 = b.w;
+        b.cfx = 0;
+        b.cfy = 0;
+        b.ctq = 0;
+        this.hydro(b, dt);
+        b.refreshInverse();
+      }
+      this.userForce(dt);
+      const n = this.substeps;
+      const h = dt / n;
+      for (let s = 0; s < n; s++) {
+        for (const b of this.bodies) {
+          if (!b.alive) continue;
+          b.px = b.x;
+          b.py = b.y;
+          b.pa = b.a;
+          b.vx += h * b.fx * b.invM;
+          b.vy += h * b.fy * b.invM;
+          b.w += h * b.tq * b.invI;
+          b.x += h * b.vx;
+          b.y += h * b.vy;
+          b.a += h * b.w;
+          b.syncTrig();
+        }
+        for (let it = 0; it < 2; it++) this.solveJoints(h, it);
+        if (this.collisionsOn) this.solveCollisions(h);
+        for (const b of this.bodies) {
+          if (!b.alive) continue;
+          b.vx = (b.x - b.px) / h;
+          b.vy = (b.y - b.py) / h;
+          b.w = (b.a - b.pa) / h;
+        }
+        this.seabed(h);
+      }
+      for (const b of this.bodies) {
+        if (!b.alive) continue;
+        b.syncTrig();
+        b.updateWorldBox();
+        const ax = (b.vx - b.v0x) / dt, ay = (b.vy - b.v0y) / dt;
+        b.axF = (b.axF || 0) * 0.8 + ax * 0.2;
+        b.ayF = (b.ayF || 0) * 0.8 + ay * 0.2;
+        const ks = Math.min(1, dt / 0.6);
+        b.axS = (b.axS || 0) + (ax - (b.axS || 0)) * ks;
+        b.ayS = (b.ayS || 0) + (ay - (b.ayS || 0)) * ks;
+        if (!isFinite(b.x) || !isFinite(b.y) || !isFinite(b.a)) this.rescue(b);
+      }
+      this.analyzeStress(dt);
+      this.updateStats();
+    }
+    rescue(b) {
+      b.x = b.px;
+      b.y = b.py;
+      b.a = b.pa;
+      b.vx = b.vy = b.w = 0;
+      b.syncTrig();
+      if (!isFinite(b.x)) {
+        b.x = 0;
+        b.y = -50;
+        b.a = 0;
+      }
+    }
+    // --------------------------------------------------------------- hydro
+    hydro(b, dt) {
+      const env = this.env, g = this.ship.grid;
+      const m = b.m;
+      let bF = 0, bT = 0;
+      const wb = b.wbox;
+      const sMax = 14 + env.swellAmp * 2, sMin = -14 - env.swellAmp * 2;
+      let Vsub = 0;
+      const depthC = Math.max(0, env.surface(b.x) - b.y);
+      const rho = seaDensityAtDepth(depthC);
+      if (wb.y1 < sMin) {
+        Vsub = b.V;
+        const cxV = b.Vx / Math.max(1e-9, b.V), cyV = b.Vy / Math.max(1e-9, b.V);
+        const X = b.wx(cxV, cyV);
+        bF = rho * G * b.V;
+        bT = (X - b.x) * bF;
+      } else if (wb.y0 < sMax) {
+        const cells = b.cells, gx = b.gx, gy = b.gy;
+        const c = b.c, s = b.s, cx = b.comX, cy = b.comY, bx = b.x, by = b.y;
+        let F = 0, T = 0;
+        let lastX = 1e9, surf = 0;
+        for (let q = 0; q < cells.length; q++) {
+          const v = g.vdisp[cells[q]];
+          if (v <= 0) continue;
+          const dx = gx[q] - cx, dy = gy[q] - cy;
+          const X = bx + c * dx - s * dy, Y = by + s * dx + c * dy;
+          if (Math.abs(X - lastX) > 0.25) {
+            surf = env.surface(X);
+            lastX = X;
+          }
+          let f = (surf - Y) / CELL + 0.5;
+          if (f <= 0) continue;
+          if (f > 1) f = 1;
+          const dF = v * f;
+          F += dF;
+          T += (X - bx) * dF;
+        }
+        Vsub = F;
+        bF = F * rho * G;
+        bT = T * rho * G;
+      }
+      bF *= this.hydroScale;
+      bT *= this.hydroScale;
+      b.Vsub = Vsub;
+      b.submergedFrac = b.V > 0 ? Vsub / b.V : 0;
+      b.depth = depthC;
+      let dx_ = 0, dy_ = 0, dT = 0;
+      const faces = b.faces;
+      let dampK = 0, dampKw = 0;
+      if (faces && faces.length) {
+        const c = b.c, s = b.s, cx = b.comX, cy = b.comY;
+        const cur = env.current;
+        let lastX = 1e9, surf = 0;
+        for (let q = 0; q < faces.length; q += 5) {
+          const dx = faces[q] - cx, dy = faces[q + 1] - cy;
+          const rx = c * dx - s * dy, ry = s * dx + c * dy;
+          const X = b.x + rx, Y = b.y + ry;
+          const nx = c * faces[q + 2] - s * faces[q + 3], ny = s * faces[q + 2] + c * faces[q + 3];
+          const A = faces[q + 4];
+          if (Math.abs(X - lastX) > 0.5) {
+            surf = env.surface(X);
+            lastX = X;
+          }
+          const wet = Y < surf;
+          const rhoF = wet ? rho : RHO_AIR;
+          const vx = b.vx - b.w * ry - (wet ? cur : 0), vy = b.vy + b.w * rx;
+          const vn = vx * nx + vy * ny;
+          let f;
+          if (vn > 0) f = -0.5 * rhoF * 1.05 * A * vn * vn;
+          else f = 0.5 * rhoF * 0.28 * A * vn * vn;
+          const vtx = vx - vn * nx, vty = vy - vn * ny;
+          const vt = Math.hypot(vtx, vty);
+          const ft = -0.5 * rhoF * 4e-3 * A * vt;
+          const Fx = f * nx + ft * vtx, Fy = f * ny + ft * vty;
+          dx_ += Fx;
+          dy_ += Fy;
+          dT += cross(rx, ry, Fx, Fy);
+          const kk = rhoF * 1.05 * A * Math.abs(vn);
+          dampK += kk;
+          dampKw += kk * (rx * rx + ry * ry);
+        }
+      }
+      {
+        const wetArea = 2 * (b.profileArea || 0) * Math.min(1, b.submergedFrac * 1.2);
+        const v = Math.hypot(b.vx, b.vy);
+        const k = 0.5 * rho * 35e-4 * wetArea * v;
+        dx_ -= k * b.vx;
+        dy_ -= k * b.vy;
+        const kw = 0.5 * rho * 35e-4 * wetArea * Math.abs(b.w) * (b.L * b.L) / 8;
+        dT -= kw * b.w;
+        dampK += k;
+        dampKw += kw;
+      }
+      const envelope = b.kind === "hull" || b.kind === "ice" || b.kind === "boat";
+      const Vam = envelope ? Vsub : (b.profileArea || 0) * 3 * b.submergedFrac;
+      b.addedM = 0.45 * rho * Vam;
+      b.addedI = b.addedM * (b.L * b.L + b.H * b.H) / 12 * 0.5;
+      const me = b.m + b.addedM, Ie = b.I + b.addedI;
+      const stab = 1 / (1 + dt * dampK / me);
+      const stabW = 1 / (1 + dt * dampKw / Ie);
+      b.fx = dx_ * stab;
+      b.fy = -m * G + bF + dy_ * stab;
+      b.tq = bT + dT * stabW;
+      b.buoy = bF;
+      b.extFx = b.fx;
+      b.extFy = b.fy;
+      b.extTq = b.tq;
+    }
+    userForce(dt) {
+      const d = this.drag;
+      if (!d) return;
+      const b = this.bodies[d.body];
+      if (!b || !b.alive) {
+        this.drag = null;
+        return;
+      }
+      const X = b.wx(d.gx, d.gy), Y = b.wy(d.gx, d.gy);
+      const me = b.m + b.addedM;
+      const k = me * 0.6 * d.strength, c = me * 1.2 * Math.sqrt(d.strength);
+      const vx = b.pvx(Y), vy = b.pvy(X);
+      const Fx = k * (d.tx - X) - c * vx, Fy = k * (d.ty - Y) - c * vy;
+      b.fx += Fx;
+      b.fy += Fy;
+      b.tq += cross(X - b.x, Y - b.y, Fx, Fy);
+      b.extFx += Fx;
+      b.extFy += Fy;
+      b.extTq += cross(X - b.x, Y - b.y, Fx, Fy);
+    }
+    // -------------------------------------------------------------- joints
+    solveJoints(h, it) {
+      const bodies = this.bodies;
+      const js = this.joints;
+      const order = it % 2 === 0 ? 1 : -1;
+      const N = js.length;
+      for (let q = 0; q < N; q++) {
+        const j = js[order > 0 ? q : N - 1 - q];
+        if (j.state >= 2) continue;
+        const A = bodies[j.a], B = bodies[j.b];
+        if (!A.alive || !B.alive) continue;
+        const rax0 = j.ax - A.comX, ray0 = j.ay - A.comY;
+        const rbx0 = (j.bx ?? j.ax) - B.comX, rby0 = (j.by ?? j.ay) - B.comY;
+        let ca = Math.cos(A.a), sa = Math.sin(A.a), cb = Math.cos(B.a), sb = Math.sin(B.a);
+        const rax = ca * rax0 - sa * ray0, ray = sa * rax0 + ca * ray0;
+        const rbx = cb * rbx0 - sb * rby0, rby = sb * rbx0 + cb * rby0;
+        const dx = B.x + rbx - (A.x + rax), dy = B.y + rby - (A.y + ray);
+        const C = Math.hypot(dx, dy);
+        if (C > 1e-9) {
+          const nx = dx / C, ny = dy / C;
+          const ra = cross(rax, ray, nx, ny), rb = cross(rbx, rby, nx, ny);
+          const w = A.invM + B.invM + A.invI * ra * ra + B.invI * rb * rb;
+          const dl2 = -C / w;
+          const px = dl2 * nx, py = dl2 * ny;
+          A.x -= px * A.invM;
+          A.y -= py * A.invM;
+          A.a -= A.invI * cross(rax, ray, px, py);
+          B.x += px * B.invM;
+          B.y += py * B.invM;
+          B.a += B.invI * cross(rbx, rby, px, py);
+        }
+        let Ca = B.a - A.a - j.rest;
+        const w2 = A.invI + B.invI;
+        let dl = -Ca / w2;
+        if (j.state === 1 || j.kind !== "weld") {
+          const cap = (j.kind === "weld" ? j.Mp : j.Mcap * 1.2) * h * h;
+          const lam0 = j.lamA;
+          let lam = lam0 + dl;
+          if (lam > cap) lam = cap;
+          else if (lam < -cap) lam = -cap;
+          dl = lam - lam0;
+          j.lamA = lam;
+        }
+        A.a -= A.invI * dl;
+        B.a += B.invI * dl;
+      }
+      if (it === 1) for (const j of js) j.lamA = 0;
+    }
+    // ------------------------------------------------------------- seabed
+    seabed(h) {
+      const env = this.env;
+      const top = -env.seabedDepth + 14;
+      for (const b of this.bodies) {
+        if (!b.alive || b.wbox.y0 > top) continue;
+        const cs = b.contacts;
+        if (!cs) continue;
+        const c = b.c, s = b.s;
+        let maxPen = 0;
+        for (let q = 0; q < cs.length; q += 5) {
+          const dx = cs[q] - b.comX, dy = cs[q + 1] - b.comY;
+          const rx = c * dx - s * dy, ry = s * dx + c * dy;
+          const X = b.x + rx, Y = b.y + ry;
+          const ys = env.seabedY(X);
+          if (Y >= ys) continue;
+          const d = ys - Y;
+          if (d > maxPen) maxPen = d;
+          const [nx, ny] = env.seabedNormal(X);
+          const fnx = c * cs[q + 2] - s * cs[q + 3], fny = s * cs[q + 2] + c * cs[q + 3];
+          const bear = Math.max(0.12, -(fnx * nx + fny * ny));
+          const A = cs[q + 4] * bear;
+          let vx = b.vx - b.w * ry, vy = b.vy + b.w * rx;
+          const vn = vx * nx + vy * ny;
+          const q0 = 16e3, q1 = 14e3;
+          const qd = (q0 + q1 * d) * (1 + 0.35 * Math.min(25, Math.abs(vn)));
+          let jn = 0;
+          if (vn < 0) {
+            const rn = cross(rx, ry, nx, ny);
+            const meff = 1 / (b.invM + b.invI * rn * rn);
+            jn = Math.min(-vn * meff, qd * A * h);
+            b.vx += jn * nx * b.invM;
+            b.vy += jn * ny * b.invM;
+            b.w += b.invI * rn * jn;
+            if (-vn > 2 && jn > 0) this.mudPlume.push(X, ys, jn * 1e-6 * -vn);
+          }
+          vx = b.vx - b.w * ry;
+          vy = b.vy + b.w * rx;
+          const tx = -ny, ty = nx;
+          const vt = vx * tx + vy * ty;
+          const rt = cross(rx, ry, tx, ty);
+          const meffT = 1 / (b.invM + b.invI * rt * rt);
+          const lim = 0.45 * jn + 6e3 * cs[q + 4] * h * Math.min(1, d);
+          let jt = -vt * meffT;
+          if (jt > lim) jt = lim;
+          else if (jt < -lim) jt = -lim;
+          b.vx += jt * tx * b.invM;
+          b.vy += jt * ty * b.invM;
+          b.w += b.invI * rt * jt;
+          const Fx = (jn * nx + jt * tx) / h, Fy = (jn * ny + jt * ty) / h;
+          b.cfx += Fx / this.substeps;
+          b.cfy += Fy / this.substeps;
+          b.ctq += cross(rx, ry, Fx, Fy) / this.substeps;
+          if (jn > 0 && -vn > 0.4) env.pushMud(X, Math.min(0.4, -vn * h * 0.4), 5 + Math.random() * 6);
+        }
+        if (maxPen > 0) {
+          b.inMud = maxPen;
+          const vImp = Math.hypot(b.vx, b.vy);
+          if (!b.landed && maxPen > 0.3) {
+            b.landed = true;
+            this.events.push({ type: "seabed", body: b.index, v: Math.hypot(b.v0x, b.v0y), x: b.x, y: b.y });
+          }
+        }
+      }
+    }
+    // ---------------------------------------------------------- collisions
+    // Point samples of one body against the signed distance field of another.
+    solveCollisions(h) {
+      const bodies = this.bodies;
+      const N = bodies.length;
+      for (let i = 0; i < N; i++) {
+        const A = bodies[i];
+        if (!A.alive || !A.sdf) continue;
+        for (let k = i + 1; k < N; k++) {
+          const B = bodies[k];
+          if (!B.alive || !B.sdf) continue;
+          const wa = A.wbox, wb = B.wbox;
+          if (wa.x1 < wb.x0 || wb.x1 < wa.x0 || wa.y1 < wb.y0 || wb.y1 < wa.y0) continue;
+          if (this.jointed(i, k)) continue;
+          this.collidePair(A, B, h);
+          this.collidePair(B, A, h);
+        }
+      }
+    }
+    jointed(i, k) {
+      if (!this._jset || this._jver !== this.ship.version) {
+        this._jset = /* @__PURE__ */ new Set();
+        for (const j of this.joints) if (j.state < 2) {
+          this._jset.add(j.a + "," + j.b);
+          this._jset.add(j.b + "," + j.a);
+        }
+        this._jver = this.ship.version;
+      }
+      if (this._jset.has(i + "," + k)) return true;
+      const A = this.bodies[i], B = this.bodies[k];
+      if (A.piece >= 0 && A.piece === B.piece && (A.kind !== "hull" || B.kind !== "hull")) return true;
+      if (A.piece >= 0 && A.piece === B.piece && Math.abs((A.order ?? -9) - (B.order ?? 9)) <= 1) return true;
+      return false;
+    }
+    collidePair(A, B, h) {
+      const cs = A.contacts;
+      if (!cs) return;
+      const sdf = B.sdf;
+      const ca = A.c, sa = A.s;
+      const step = cs.length > 600 ? 10 : 5;
+      for (let q = 0; q < cs.length; q += step) {
+        const dx = cs[q] - A.comX, dy = cs[q + 1] - A.comY;
+        const rax = ca * dx - sa * dy, ray = sa * dx + ca * dy;
+        const X = A.x + rax, Y = A.y + ray;
+        const lx = B.lx(X, Y), ly = B.ly(X, Y);
+        const u = (lx - sdf.x0) / CELL - 0.5, v = (ly - sdf.y0) / CELL - 0.5;
+        if (u < 0 || v < 0 || u >= sdf.w - 1 || v >= sdf.h - 1) continue;
+        const i0 = u | 0, j0 = v | 0, fu = u - i0, fv = v - j0;
+        const d = sdf.d, w = sdf.w;
+        const d00 = d[j0 * w + i0], d10 = d[j0 * w + i0 + 1], d01 = d[(j0 + 1) * w + i0], d11 = d[(j0 + 1) * w + i0 + 1];
+        const dist = (d00 * (1 - fu) + d10 * fu) * (1 - fv) + (d01 * (1 - fu) + d11 * fu) * fv;
+        if (dist >= 0) continue;
+        let gx = (d10 - d00) * (1 - fv) + (d11 - d01) * fv, gy = (d01 - d00) * (1 - fu) + (d11 - d10) * fu;
+        const gl = Math.hypot(gx, gy);
+        if (gl < 1e-6) continue;
+        gx /= gl;
+        gy /= gl;
+        const nx = B.c * gx - B.s * gy, ny = B.s * gx + B.c * gy;
+        const pen = -dist;
+        const rbx = X - B.x, rby = Y - B.y;
+        const ra = cross(rax, ray, nx, ny), rb = cross(rbx, rby, nx, ny);
+        const wsum = A.invM + B.invM + A.invI * ra * ra + B.invI * rb * rb;
+        const dl = pen / wsum * 0.6;
+        const px = dl * nx, py = dl * ny;
+        A.x += px * A.invM;
+        A.y += py * A.invM;
+        A.a += A.invI * cross(rax, ray, px, py);
+        B.x -= px * B.invM;
+        B.y -= py * B.invM;
+        B.a -= B.invI * cross(rbx, rby, px, py);
+        const vax = A.x - A.px, vay = A.y - A.py;
+        const vbx = B.x - B.px, vby = B.y - B.py;
+        const rvx = vax - vbx, rvy = vay - vby;
+        const tx = -ny, ty = nx;
+        const vt = rvx * tx + rvy * ty;
+        const ft = Math.max(-dl * 0.5, Math.min(dl * 0.5, -vt / wsum));
+        A.x += ft * tx * A.invM;
+        A.y += ft * ty * A.invM;
+        B.x -= ft * tx * B.invM;
+        B.y -= ft * ty * B.invM;
+        const F = dl / (h * h);
+        A.cfx += px / (h * h) / this.substeps;
+        A.cfy += py / (h * h) / this.substeps;
+        B.cfx -= px / (h * h) / this.substeps;
+        B.cfy -= py / (h * h) / this.substeps;
+        const relV = Math.abs((A.vx - B.vx) * nx + (A.vy - B.vy) * ny);
+        if (relV > 1.5 && F > 2e7) this.impacts.push({ a: A.index, b: B.index, x: X, y: Y, v: relV, F });
+      }
+    }
+    // ------------------------------------------------------- stress analysis
+    // Shear force and bending moment at every weld from Newton's law applied to
+    // the sub-tree of blocks on one side (classic longitudinal strength method).
+    analyzeStress(dt) {
+      const bodies = this.bodies, joints = this.joints;
+      const N = bodies.length;
+      const Dx = new Float64Array(N), Dy = new Float64Array(N), Dm = new Float64Array(N);
+      for (const b of bodies) {
+        if (!b.alive) continue;
+        const me = b.m + b.addedM, Ie = b.I + b.addedI;
+        const ax = (b.vx - b.v0x) / dt, ay = (b.vy - b.v0y) / dt, al = (b.w - b.w0) / dt;
+        const Fx = b.extFx + b.cfx, Fy = b.extFy + b.cfy, T = b.extTq + b.ctq;
+        Dx[b.index] = me * ax - Fx;
+        Dy[b.index] = me * ay - Fy;
+        Dm[b.index] = Ie * al - T + cross(b.x, b.y, Dx[b.index], Dy[b.index]);
+      }
+      const adj = Array.from({ length: N }, () => []);
+      for (const j of joints) if (j.state < 2) {
+        adj[j.a].push([j.b, j]);
+        adj[j.b].push([j.a, j]);
+      }
+      const visited = new Int32Array(N).fill(-1);
+      const parentJ = new Array(N).fill(null);
+      const order = [];
+      let piece = 0;
+      for (let r = 0; r < N; r++) {
+        if (visited[r] >= 0 || !bodies[r].alive) continue;
+        const stack = [r];
+        visited[r] = piece;
+        while (stack.length) {
+          const u = stack.pop();
+          order.push(u);
+          bodies[u].piece = piece;
+          for (const [v, j] of adj[u]) if (visited[v] < 0) {
+            visited[v] = piece;
+            parentJ[v] = j;
+            stack.push(v);
+          }
+        }
+        piece++;
+      }
+      this.pieceCount = piece;
+      const SFx = Float64Array.from(Dx), SFy = Float64Array.from(Dy), SM = Float64Array.from(Dm);
+      for (let q = order.length - 1; q >= 0; q--) {
+        const u = order[q];
+        const j = parentJ[u];
+        if (!j) continue;
+        const p = j.a === u ? j.b : j.a;
+        SFx[p] += SFx[u];
+        SFy[p] += SFy[u];
+        SM[p] += SM[u];
+      }
+      let maxR = 0, maxJ = -1;
+      const tau = 0.15;
+      const kf = Math.min(1, dt / tau);
+      for (const j of joints) {
+        if (j.state >= 2) continue;
+        const A = bodies[j.a], B = bodies[j.b];
+        const child = parentJ[j.b] === j ? j.b : parentJ[j.a] === j ? j.a : -1;
+        if (child < 0) continue;
+        const Px = A.wx(j.ax, j.ay), Py = A.wy(j.ax, j.ay);
+        let Fx = SFx[child], Fy = SFy[child];
+        let M2 = SM[child] - cross(Px, Py, Fx, Fy);
+        if (child !== j.b) {
+          Fx = -Fx;
+          Fy = -Fy;
+          M2 = -M2;
+        }
+        const ux = A.c, uy = A.s;
+        const Nt = -(Fx * ux + Fy * uy);
+        const V = -Fx * uy + Fy * ux;
+        j.N = Nt;
+        j.V = V;
+        j.M = M2;
+        j.Nf += (Nt - j.Nf) * kf;
+        j.Vf += (V - j.Vf) * kf;
+        j.Mf += (M2 - j.Mf) * kf;
+        if (j.kind === "weld") this.checkWeld(j, dt);
+        else this.checkAppendage(j, dt);
+        if (j.ratioF > maxR) {
+          maxR = j.ratioF;
+          maxJ = j.id;
+        }
+      }
+      this.stats.maxRatio = maxR;
+      this.stats.maxRatioJoint = maxJ;
+    }
+    fiberStrength(f, j) {
+      const g = this.ship.grid;
+      const rust = g.rust[f.k];
+      const cold = this.brittle && this.env.surfaceTemp < 20 ? 0.86 : 1;
+      return STEEL_UTS * Math.max(0.03, 1 - rust) * cold;
+    }
+    checkWeld(j, dt) {
+      if (j.A <= 0) {
+        this.breakJoint(j, "section consumed");
+        return;
+      }
+      const M2 = j.Mf, N = j.Nf;
+      let worst = 0;
+      const evalFiber = (f) => {
+        const sigma = N / j.A + M2 * (f.y - j.na) / j.I;
+        const topZone = f.y > j.na + 0.5 * (j.yTop - j.na);
+        const scf = topZone ? j.scf : 1.1;
+        const s = sigma * scf;
+        const lim = this.fiberStrength(f, j);
+        const r = s >= 0 ? s / lim : -s / (0.78 * STEEL_YIELD * Math.max(0.03, 1 - this.ship.grid.rust[f.k]));
+        return r;
+      };
+      for (const f of j.fibers) if (!f.failed) {
+        const r = evalFiber(f);
+        if (r > worst) worst = r;
+      }
+      if (j.state === 1) {
+        const A = this.bodies[j.a], B = this.bodies[j.b];
+        let phi = B.a - A.a - j.rest;
+        j.hinge = phi;
+        const failAng = this.brittle ? 0.09 : 0.22;
+        worst = Math.max(worst, Math.abs(phi) / failAng);
+      }
+      j.ratio = worst;
+      j.ratioF = j.ratioF * 0.9 + worst * 0.1;
+      if (worst <= 1) return;
+      let changed = false;
+      for (let pass = 0; pass < 6; pass++) {
+        let failedNow = 0;
+        const stressed = [];
+        for (const f of j.fibers) if (!f.failed) stressed.push([evalFiber(f), f]);
+        stressed.sort((a, b) => b[0] - a[0]);
+        for (const [r, f] of stressed) {
+          if (r <= 1 && !(j.state === 1 && Math.abs(j.hinge) > (this.brittle ? 0.09 : 0.22))) break;
+          f.failed = true;
+          failedNow++;
+          changed = true;
+          if (failedNow >= Math.max(2, Math.ceil(j.fibers.length * (this.brittle ? 0.25 : 0.08)))) break;
+        }
+        if (!failedNow) break;
+        this.ship.sectionProps(j);
+        if (j.A <= 0.04 * (j.A0 || j.A + 1e-9) || j.fibers.every((f) => f.failed)) {
+          this.breakJoint(j, "hull girder failure");
+          return;
+        }
+        if (j.state === 1 && Math.abs(j.hinge) > (this.brittle ? 0.09 : 0.22)) j.hinge *= 0.5;
+      }
+      if (changed) {
+        if (!j.A0) j.A0 = j.fibers.reduce((s, f) => s + f.area, 0);
+        if (j.state === 0) {
+          j.state = 1;
+          this.events.push({ type: "crack", joint: j.id, x: this.bodies[j.a].wx(j.ax, j.ay), y: this.bodies[j.a].wy(j.ax, j.ay) });
+        }
+        const A = this.bodies[j.a], B = this.bodies[j.b];
+        const X = A.wx(j.ax, j.na), Y = A.wy(j.ax, j.na);
+        j.ay = j.na;
+        j.bx = B.lx(X, Y);
+        j.by = B.ly(X, Y);
+        this.markCrackCells(j);
+      }
+    }
+    markCrackCells(j) {
+      const g = this.ship.grid;
+      for (const f of j.fibers) {
+        if (!f.failed) continue;
+        const k = f.k;
+        if (g.dmg[k] === 0) g.dmg[k] = 1;
+        if (g.dmg[k + 1] === 0) g.dmg[k + 1] = 1;
+        for (const kk of [k, k + 1]) {
+          if (g.kind[kk] === SPACE && g.side[kk] !== SIDE.BREACH) {
+            g.side[kk] = SIDE.BREACH;
+            g.sideArea[kk] = 0.6;
+            this.ship.needElements = true;
+          }
+        }
+      }
+      j.crackOpen = true;
+    }
+    checkAppendage(j, dt) {
+      const M2 = Math.abs(j.Mf), F = Math.hypot(j.Nf, j.Vf);
+      const g = this.ship.grid;
+      const B = this.bodies[j.b];
+      let rust = 0;
+      if (B.cells.length) rust = g.rust[B.cells[0]];
+      const capM = j.Mcap * Math.max(0.02, 1 - rust), capF = j.Fcap * Math.max(0.02, 1 - rust);
+      const r = Math.max(M2 / capM, F / capF);
+      j.ratio = r;
+      j.ratioF = j.ratioF * 0.9 + r * 0.1;
+      if (r > 1) this.breakJoint(j, j.kind === "funnel" ? "funnel stays parted" : "mast stays parted");
+    }
+    breakJoint(j, why) {
+      if (j.state >= 2) return;
+      j.state = 2;
+      const A = this.bodies[j.a], B = this.bodies[j.b];
+      const X = A.wx(j.ax, j.ay), Y = A.wy(j.ax, j.ay);
+      this.events.push({ type: "break", joint: j.id, kind: j.kind, why, x: X, y: Y, a: j.a, b: j.b, name: B.name });
+      if (j.kind === "weld") {
+        this.ship.markBroken(j.a, j.b);
+        const g = this.ship.grid;
+        for (const f of j.fibers) {
+          g.dmg[f.k] = 2;
+          if (g.dmg[f.k + 1] !== 2) g.dmg[f.k + 1] = 1;
+        }
+        this.ship.topologyDirty = true;
+        this.ship.rebuildBodyGeometry(A);
+        this.ship.rebuildBodyGeometry(B);
+      }
+      this._jver = -1;
+    }
+    // ------------------------------------------------------------ topology
+    destroyCell(k, why = "damage") {
+      this.pendingDestroy.push(k);
+    }
+    applyTopology() {
+      const ship = this.ship, g = ship.grid;
+      const touched = /* @__PURE__ */ new Set();
+      for (const k of this.pendingDestroy) {
+        if (g.kind[k] === EMPTY) continue;
+        const bi = g.block[k];
+        if (bi >= 0) touched.add(bi);
+        g.mat[k] = MAT.NONE;
+        g.kind[k] = EMPTY;
+        g.dmg[k] = 2;
+        g.side[k] = 0;
+        g.sideArea[k] = 0;
+        g.mass[k] = 0;
+        g.vdisp[k] = 0;
+        g.vcap[k] = 0;
+        ship.destroyedLog = ship.destroyedLog || [];
+        ship.destroyedLog.push(k);
+      }
+      this.pendingDestroy.length = 0;
+      for (const bi of touched) {
+        const b = this.bodies[bi];
+        b.recomputeStructMass(g);
+        ship.rebuildBodyGeometry(b);
+        if (b.ms < 50) b.alive = false;
+      }
+      const prev = { rooms: ship.rooms, cellWaterFrac: this.flooding.cellWaterFrac.slice(), cellRoom: g.room.slice() };
+      ship.segmentRooms(prev);
+      this.bodyVolCache();
+      this.flooding.parent = null;
+      this.flooding.updatePositions();
+      this.flooding.solveLevels(0);
+      this.flooding.distributeWater();
+      for (const b of this.bodies) if (b.alive) b.updateMassProps();
+      this._jver = -1;
+    }
+    // ---------------------------------------------------------- events
+    handleFloodEvents() {
+      const f = this.flooding;
+      if (f.events.length) {
+        for (const e of f.events) this.events.push(e);
+        f.events.length = 0;
+      }
+      if (f.burstQueue.length) {
+        for (const bq of f.burstQueue) {
+          const k = bq.k;
+          const g = this.ship.grid;
+          if (g.kind[k] !== SOLID) continue;
+          const toSea = bq.a === EXT || bq.b === EXT;
+          if (toSea) this.pendingDestroy.push(k);
+          else {
+            g.mat[k] = MAT.CORRIDOR;
+            g.kind[k] = SPACE;
+            g.dmg[k] = 2;
+            this.ship.topologyDirty = true;
+          }
+          this.events.push({ type: bq.implode ? "implode" : "panel", k, x: bq.x, y: bq.y, dp: bq.dp });
+        }
+        f.burstQueue.length = 0;
+      }
+    }
+    updateStats() {
+      const ship = this.ship;
+      const meta = ship.meta;
+      const hull = this.bodies.filter((b) => b.kind === "hull" && b.alive);
+      if (!hull.length) return;
+      const bow = hull.reduce((a, b) => b.order > a.order ? b : a);
+      const stern = hull.reduce((a, b) => b.order < a.order ? b : a);
+      const yBow = bow.wy(meta.stemX(2) - 1, 0.3), yStern = stern.wy(meta.sternX(2) + 2, 0.3);
+      this.stats.draughtF = this.env.surface(bow.wx(meta.stemX(2), 0)) - yBow;
+      this.stats.draughtA = this.env.surface(stern.wx(meta.sternX(2), 0)) - yStern;
+      const mid = hull[Math.floor(hull.length / 2)];
+      this.stats.trim = -mid.a;
+      this.stats.bowAngle = -bow.a;
+      this.stats.sternAngle = -stern.a;
+    }
+  };
+
+  // src/sim/setup.js
+  function calibrate(grid, meta, draught, trimBowDown = 0) {
+    let V = 0, Vx = 0;
+    const yWL = draught;
+    for (let k = 0; k < grid.n; k++) {
+      const v = grid.vdisp[k];
+      if (v <= 0) continue;
+      const i = k % grid.w, j = k / grid.w | 0;
+      const x = grid.cx(i), y = grid.cy(j);
+      const xr = x, yr = y + (x - 135) * Math.tan(trimBowDown);
+      let f = (yWL - yr) / CELL + 0.5;
+      f = f < 0 ? 0 : f > 1 ? 1 : f;
+      V += v * f;
+      Vx += v * f * xr;
+    }
+    const lcb = Vx / V;
+    let tankW = 0, tankWx = 0;
+    for (let k = 0; k < grid.n; k++) if (grid.mat[k] === MAT.TANK) {
+      const m = grid.vcap[k] * 0.5 * RHO_SEA;
+      tankW += m;
+      tankWx += m * grid.cx(k % grid.w);
+    }
+    const target = RHO_SEA * V - tankW;
+    const xs = new Float32Array(grid.n);
+    for (let k = 0; k < grid.n; k++) xs[k] = grid.cx(k % grid.w);
+    const lcgFor = (kk2) => {
+      let M3 = tankW, Mx = tankWx;
+      for (let k = 0; k < grid.n; k++) {
+        const m = grid.mass[k];
+        if (m <= 0) continue;
+        const mm = m * Math.max(0.2, 1 + kk2 * (xs[k] - 135));
+        M3 += mm;
+        Mx += mm * xs[k];
+      }
+      return Mx / M3;
+    };
+    let lo = -6e-3, hi = 6e-3;
+    for (let it = 0; it < 40; it++) {
+      const mid = 0.5 * (lo + hi);
+      if (lcgFor(mid) < lcb) lo = mid;
+      else hi = mid;
+    }
+    const kk = 0.5 * (lo + hi);
+    let M2 = 0;
+    for (let k = 0; k < grid.n; k++) {
+      if (grid.mass[k] <= 0) continue;
+      grid.mass[k] *= Math.max(0.2, 1 + kk * (xs[k] - 135));
+      M2 += grid.mass[k];
+    }
+    const s = target / M2;
+    let steel = 0;
+    for (let k = 0; k < grid.n; k++) grid.mass[k] *= s;
+    return { displacement: (target + tankW) / 1e3, lcb, scale: s, ramp: kk, volume: V };
+  }
+  function createWorld(opts = {}) {
+    const { grid, meta } = buildTitanic(opts);
+    const draught = opts.draught ?? 10.2;
+    const cal = calibrate(grid, meta, draught, opts.trim ?? 6e-4);
+    const ship = new Ship(grid, meta);
+    ship.buildBlocks();
+    ship.segmentRooms();
+    const env = new Environment(opts.env || {});
+    const world2 = new World(ship, env, opts);
+    world2.calibration = cal;
+    world2.placeShip(-135, -draught, 0);
+    return world2;
+  }
+  var ICEBERG_DAMAGE = [
+    // [xb from stem (m), z above keel (m), area m^2, length m]
+    { xb: 9.5, z: 4.6, area: 0.07, len: 4 },
+    // fore peak
+    { xb: 21, z: 4.2, area: 0.17, len: 8 },
+    // No. 1 hold
+    { xb: 35.5, z: 3.7, area: 0.24, len: 10 },
+    // No. 2 hold
+    { xb: 51, z: 3.3, area: 0.22, len: 9 },
+    // No. 3 hold
+    { xb: 66.5, z: 2.6, area: 0.33, len: 11 },
+    // No. 6 boiler room
+    { xb: 76.3, z: 2.4, area: 0.055, len: 1.2 }
+    // No. 5 boiler room (bunker, 2 ft from bhd E)
+  ];
+  function iceDamagePlan(world2) {
+    const g = world2.ship.grid;
+    const out = [];
+    for (const d of ICEBERG_DAMAGE) {
+      const n = Math.max(1, Math.round(d.len / 1.5));
+      for (let q = 0; q < n; q++) {
+        const xb = d.xb - d.len / 2 + (q + 0.5) * d.len / n;
+        const z = d.z + Math.sin(q * 1.7) * 0.45;
+        const i = g.col(X0 - xb), j = g.row(z);
+        let k = g.idx(i, j);
+        for (let r = 0; r < 4 && g.kind[k] !== SPACE; r++) k = g.idx(i, j + r);
+        out.push({ k, area: 2.2 * d.area / n, xb, t: (90 - xb) / 90 });
+      }
+    }
+    return out;
+  }
+  function applyBreach(world2, k, area) {
+    const g = world2.ship.grid;
+    if (g.kind[k] !== SPACE) return false;
+    if (g.side[k] !== SIDE.BREACH) {
+      g.side[k] = SIDE.BREACH;
+      world2.ship.needElements = true;
+    }
+    g.sideArea[k] += area;
+    return true;
+  }
+
+  // src/fluid/ocean.js
+  var Ocean = class {
+    constructor(env, x0 = -700, x1 = 700, dx = 1) {
+      this.env = env;
+      this.x0 = x0;
+      this.dx = dx;
+      this.n = Math.round((x1 - x0) / dx);
+      this.h = new Float32Array(this.n);
+      this.v = new Float32Array(this.n);
+      this.foam = new Float32Array(this.n);
+      this.prevSub = new Float32Array(this.n);
+      this.sub = new Float32Array(this.n);
+      env.flip = { x0, dx, n: this.n, h: this.h };
+      this.splashes = [];
+    }
+    // How much hull volume (per metre of length) sits in each column near the surface.
+    sampleDisplacement(bodies, grid) {
+      const sub = this.sub;
+      sub.fill(0);
+      for (const b of bodies) {
+        if (!b.alive || b.wbox.y0 > 4 || b.wbox.y1 < -14) continue;
+        const cells = b.cells;
+        const step = cells.length > 4e3 ? 3 : 1;
+        for (let q = 0; q < cells.length; q += step) {
+          const v = grid.vdisp[cells[q]];
+          if (v <= 0) continue;
+          const X = b.wx(b.gx[q], b.gy[q]), Y = b.wy(b.gx[q], b.gy[q]);
+          if (Y > 2 || Y < -12) continue;
+          const i = (X - this.x0) / this.dx | 0;
+          if (i < 0 || i >= this.n) continue;
+          const w = Y > 0 ? 0.25 : 1;
+          sub[i] += v * step * w / 28;
+        }
+      }
+    }
+    step(dt, bodies, grid) {
+      const n = this.n, h = this.h, v = this.v;
+      this.sampleDisplacement(bodies, grid);
+      if (!this.primed) {
+        this.prevSub.set(this.sub);
+        this.primed = true;
+        return;
+      }
+      for (let i = 2; i < n - 2; i++) {
+        const d = (this.sub[i] - this.prevSub[i]) / this.dx;
+        if (d !== 0) {
+          const s = Math.max(-0.12, Math.min(0.12, d * 0.06 * dt * 60));
+          h[i - 2] += s * 0.25;
+          h[i + 2] += s * 0.25;
+          h[i - 1] += s * 0.25;
+          h[i + 1] += s * 0.25;
+          if (Math.abs(d) > 0.6) {
+            this.foam[i] = Math.min(1, this.foam[i] + Math.abs(d) * 0.1);
+            if (Math.random() < 0.3) this.splashes.push(this.x0 + i * this.dx, Math.min(3, Math.abs(d)));
+          }
+        }
+        this.prevSub[i] = this.sub[i];
+      }
+      const c = 9, k = c * c / (this.dx * this.dx);
+      const sub = Math.max(1, Math.ceil(dt * c / this.dx * 1.4));
+      const h2 = dt / sub;
+      for (let s = 0; s < sub; s++) {
+        for (let i = 1; i < n - 1; i++) {
+          const blocked = this.sub[i] > 6 ? 0.2 : 1;
+          v[i] += h2 * k * (h[i - 1] + h[i + 1] - 2 * h[i]) * blocked;
+          v[i] *= 1 - 0.35 * h2;
+        }
+        for (let i = 1; i < n - 1; i++) h[i] += h2 * v[i];
+      }
+      const edge = 80;
+      for (let i = 0; i < edge; i++) {
+        const f = 1 - 0.06 * (1 - i / edge);
+        h[i] *= f;
+        v[i] *= f;
+        h[n - 1 - i] *= f;
+        v[n - 1 - i] *= f;
+      }
+      for (let i = 0; i < n; i++) {
+        if (h[i] > 2.5) h[i] = 2.5;
+        if (h[i] < -2.5) h[i] = -2.5;
+        this.foam[i] *= 1 - 0.4 * dt;
+      }
+    }
+  };
+
+  // src/render/particles.js
+  var BUBBLE = 0;
+  var JET = 1;
+  var SPRAY = 2;
+  var SILT = 3;
+  var DEBRIS = 4;
+  var SNOW = 5;
+  var FLAKE = 6;
+  var STEAM = 7;
+  var CAP = 9e3;
+  var Particles = class {
+    constructor() {
+      this.x = new Float32Array(CAP);
+      this.y = new Float32Array(CAP);
+      this.vx = new Float32Array(CAP);
+      this.vy = new Float32Array(CAP);
+      this.r = new Float32Array(CAP);
+      this.life = new Float32Array(CAP);
+      this.t = new Uint8Array(CAP);
+      this.n = 0;
+    }
+    add(type, x, y, vx, vy, r, life) {
+      let i = this.n;
+      if (i >= CAP) {
+        i = Math.random() * CAP | 0;
+      } else this.n++;
+      this.t[i] = type;
+      this.x[i] = x;
+      this.y[i] = y;
+      this.vx[i] = vx;
+      this.vy[i] = vy;
+      this.r[i] = r;
+      this.life[i] = life;
+    }
+    step(dt, env) {
+      let w = 0;
+      for (let i = 0; i < this.n; i++) {
+        const t = this.t[i];
+        let x = this.x[i], y = this.y[i], vx = this.vx[i], vy = this.vy[i], r = this.r[i], life = this.life[i] - dt;
+        const surf = env.surface(x);
+        if (t === BUBBLE) {
+          const vt = Math.min(1.6, 0.25 + r * 2.2);
+          vy += (vt - vy) * Math.min(1, dt * 3);
+          vx *= 1 - dt;
+          vx += (Math.random() - 0.5) * 0.6 * dt;
+          const d0 = Math.max(0, surf - y), d1 = Math.max(0, surf - (y + vy * dt));
+          r *= Math.cbrt((P_ATM + RHO_SEA * G * d0) / (P_ATM + RHO_SEA * G * d1));
+          if (y > surf - 0.2) {
+            life = 0;
+          }
+        } else if (t === JET || t === SPRAY) {
+          vy -= 9.81 * dt;
+          if (t === SPRAY && y < surf && vy < 0) life = 0;
+        } else if (t === SILT) {
+          vx *= 1 - 0.3 * dt;
+          vy *= 1 - 0.5 * dt;
+          vy -= 0.02 * dt;
+          vx += (Math.random() - 0.5) * 0.08;
+          r += dt * 0.25;
+        } else if (t === DEBRIS) {
+          if (y < surf) {
+            vy += (-0.6 - vy) * dt * 0.5;
+            vx *= 1 - 0.4 * dt;
+          } else vy -= 9.81 * dt;
+          if (y < env.seabedY(x)) {
+            y = env.seabedY(x);
+            vx = vy = 0;
+          }
+        } else if (t === SNOW) {
+          vy = -0.05;
+          vx = 0.04 + Math.sin(y * 0.3 + x * 0.1) * 0.03;
+        } else if (t === FLAKE) {
+          vy += (-0.15 - vy) * dt;
+          vx *= 0.98;
+        } else if (t === STEAM) {
+          vy += (3 - vy) * dt * 0.5;
+          vx += (1.5 - vx) * dt * 0.3;
+          r += dt * 1.6;
+        }
+        x += vx * dt;
+        y += vy * dt;
+        if (life > 0) {
+          this.t[w] = t;
+          this.x[w] = x;
+          this.y[w] = y;
+          this.vx[w] = vx;
+          this.vy[w] = vy;
+          this.r[w] = r;
+          this.life[w] = life;
+          w++;
+        }
+      }
+      this.n = w;
+    }
+  };
+
+  // src/render/renderer.js
+  var PX = 4;
+  function hex(c) {
+    const n = parseInt(c.slice(1), 16);
+    return [n >> 16 & 255, n >> 8 & 255, n & 255];
+  }
+  var MAT_RGB = MATERIALS.map((m) => hex(m.color || "#777777"));
+  var Renderer = class {
+    constructor(canvas2, world2, meta) {
+      this.cv = canvas2;
+      this.ctx = canvas2.getContext("2d");
+      this.world = world2;
+      this.meta = meta;
+      this.cam = { x: 0, y: 6, z: 4 };
+      this.mode = "cutaway";
+      this.tex = /* @__PURE__ */ new Map();
+      this.dirty = /* @__PURE__ */ new Set();
+      this.stars = Array.from({ length: 260 }, () => [Math.random(), Math.random() * 0.7, Math.random()]);
+      this.mouse = { x: 0, y: 0, wx: 0, wy: 0 };
+      this.visibility = 0.55;
+      this.night = true;
+      this.shake = 0;
+      this.powered = true;
+      this.mudPattern = null;
+    }
+    resize() {
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      this.dpr = dpr;
+      this.cv.width = Math.floor(this.cv.clientWidth * dpr);
+      this.cv.height = Math.floor(this.cv.clientHeight * dpr);
+    }
+    toWorld(sx, sy) {
+      const W = this.cv.width / this.dpr, H = this.cv.height / this.dpr, c = this.cam;
+      return [(sx - W / 2) / c.z + c.x, -(sy - H / 2) / c.z + c.y];
+    }
+    invalidateAll() {
+      this.tex.clear();
+    }
+    invalidateBody(i) {
+      this.tex.delete(i + ":ext");
+      this.tex.delete(i + ":cut");
+    }
+    // ---------------------------------------------------------- ship texture
+    bodyTexture(b, mode) {
+      const key = b.index + ":" + mode;
+      let t = this.tex.get(key);
+      if (t) return t;
+      const g = this.world.ship.grid;
+      const x0 = b.aabb.x0, y1 = b.aabb.y1;
+      const w = Math.max(1, Math.round((b.aabb.x1 - b.aabb.x0) / CELL)), h = Math.max(1, Math.round((b.aabb.y1 - b.aabb.y0) / CELL));
+      const cv = document.createElement("canvas");
+      cv.width = w * PX;
+      cv.height = h * PX;
+      const ctx = cv.getContext("2d");
+      const img = ctx.createImageData(w * PX, h * PX);
+      const d = img.data;
+      const meta = this.meta;
+      const wl = meta.designDraught;
+      for (let q = 0; q < b.cells.length; q++) {
+        const k = b.cells[q];
+        const kind = g.kind[k];
+        if (kind === EMPTY) continue;
+        const ci = Math.round((b.gx[q] - CELL / 2 - x0) / CELL), cj = Math.round((y1 - b.gy[q] - CELL / 2) / CELL);
+        const m = g.mat[k];
+        let [r, gg, bb] = this.cellColor(k, m, kind, b.gx[q], b.gy[q], mode, wl);
+        const rust = g.rust[k];
+        if (rust > 0.01 && MATERIALS[m].rustRate > 0) {
+          const rr = Math.min(1, rust * 1.6);
+          const tone = 0.6 + 0.4 * g.seed[k];
+          r = r * (1 - rr) + 128 * tone * rr;
+          gg = gg * (1 - rr) + 58 * tone * rr;
+          bb = bb * (1 - rr) + 28 * tone * rr;
+        }
+        for (let py = 0; py < PX; py++) for (let px = 0; px < PX; px++) {
+          const o = ((cj * PX + py) * w * PX + ci * PX + px) * 4;
+          const n = (g.seed[k] * 7919 + px * 13 + py * 31) % 17 / 17 - 0.5;
+          let f = 1 + n * 0.07;
+          if (mode === "ext" && kind !== SPACE && py === 0 && g.kind[k + g.w] === EMPTY) f *= 1.25;
+          d[o] = Math.min(255, r * f);
+          d[o + 1] = Math.min(255, gg * f);
+          d[o + 2] = Math.min(255, bb * f);
+          d[o + 3] = 255;
+        }
+      }
+      ctx.putImageData(img, 0, 0);
+      ctx.save();
+      ctx.scale(PX / CELL, PX / CELL);
+      ctx.translate(-x0, y1);
+      ctx.scale(1, -1);
+      this.decorate(ctx, b, mode, g);
+      ctx.restore();
+      t = { cv, x0, y1 };
+      this.tex.set(key, t);
+      return t;
+    }
+    cellColor(k, m, kind, x, y, mode, wl) {
+      const g = this.world.ship.grid;
+      const isSuper = (g.flags[k] & 1) !== 0;
+      if (mode === "ext") {
+        if (m === MAT.FUNNEL) {
+          const f = this.meta.funnels.find((f2) => Math.abs(f2.xBase - x) < 25);
+          if (f && y > f.yTop - 4.3) return [22, 20, 18];
+          return [196, 138, 58];
+        }
+        if (m === MAT.MAST) return [190, 150, 100];
+        if (m === MAT.RUDDER) return [120, 34, 26];
+        if (m === MAT.BOAT) return [240, 238, 230];
+        if (isSuper) return m === MAT.WDECK ? [196, 172, 128] : [234, 230, 218];
+        if (m === MAT.WDECK) return [178, 150, 104];
+        if (y < wl - 0.6) return [112, 34, 28];
+        if (y < wl + 0.1) return [28, 28, 28];
+        if (y > this.meta.hullTop(x) - 0.9 && y < this.meta.hullTop(x) - 0.55) return [206, 168, 72];
+        return [20, 21, 23];
+      }
+      if (kind === SPACE) {
+        const c = MAT_RGB[m];
+        return [c[0] * 0.72, c[1] * 0.72, c[2] * 0.72];
+      }
+      if (kind === OPEN) return g.gate[k] ? [120, 150, 160] : [70, 64, 58];
+      if (m === MAT.FUNNEL) {
+        const f = this.meta.funnels.find((f2) => Math.abs(f2.xBase - x) < 25);
+        return f && y > f.yTop - 4.3 ? [22, 20, 18] : [196, 138, 58];
+      }
+      if (m === MAT.BHD) return [150, 156, 162];
+      if (m === MAT.HULL || m === MAT.KEEL) return y < wl - 0.6 ? [96, 36, 30] : [34, 36, 40];
+      if (isSuper && m === MAT.SUPER) return [214, 210, 198];
+      return MAT_RGB[m];
+    }
+    decorate(ctx, b, mode, g) {
+      const meta = this.meta;
+      const inB = (x, y) => x >= b.aabb.x0 && x <= b.aabb.x1 && y >= b.aabb.y0 && y <= b.aabb.y1;
+      for (const p of meta.portholes) {
+        if (!inB(p.x, p.y) || g.block[p.k] !== b.index) continue;
+        if (g.kind[p.k] === EMPTY) continue;
+        const broken = g.sideArea[p.k] > 0 && p.type !== SIDE.PROMENADE;
+        ctx.fillStyle = mode === "ext" ? broken ? "#050608" : "#c9c2a0" : "rgba(250,240,200,0.5)";
+        if (p.type === SIDE.WINDOW) ctx.fillRect(p.x - 0.45, p.y - 0.4, 0.9, 0.85);
+        else if (p.type === SIDE.PROMENADE) {
+          if (mode === "ext") {
+            ctx.fillStyle = "#3a3630";
+            ctx.fillRect(p.x - 0.6, p.y - 0.8, 1.2, 1.7);
+          }
+        } else {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 0.22, 0, 7);
+          ctx.fill();
+        }
+      }
+      for (let q = 0; q < b.cells.length; q++) {
+        const k = b.cells[q];
+        if (g.side[k] === SIDE.BREACH) {
+          ctx.fillStyle = "#000";
+          ctx.fillRect(b.gx[q] - 0.3, b.gy[q] - 0.12, 0.6, 0.24);
+        }
+      }
+      if (mode === "ext" && b.kind === "hull") {
+        ctx.strokeStyle = "rgba(255,255,255,0.05)";
+        ctx.lineWidth = 0.05;
+        for (let x = Math.ceil(b.aabb.x0 / 9) * 9; x < b.aabb.x1; x += 9) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0.5);
+          ctx.lineTo(x, meta.hullTop(x));
+          ctx.stroke();
+        }
+        if (b.aabb.x1 > 255 && b.aabb.x0 < 258) {
+          ctx.save();
+          ctx.translate(255.5, meta.hullTop(255) - 2.2);
+          ctx.scale(1, -1);
+          ctx.fillStyle = "#d8c27a";
+          ctx.font = "bold 1.4px Georgia, serif";
+          ctx.fillText("TITANIC", -4, 0);
+          ctx.restore();
+        }
+      }
+      if (mode === "cut") {
+        ctx.save();
+        for (const hv of meta.heavy) {
+          if (hv.x1 < b.aabb.x0 || hv.x0 > b.aabb.x1) continue;
+          ctx.fillStyle = "rgba(30,26,24,0.55)";
+          if (hv.tonnes > 600 && hv.y1 - hv.y0 < 6) {
+            for (let x = hv.x0 + 0.3; x < hv.x1 - 4; x += 6.1) {
+              if (x + 5.8 < b.aabb.x0 || x > b.aabb.x1) continue;
+              ctx.fillStyle = "#2a211c";
+              ctx.beginPath();
+              ctx.roundRect(x, hv.y0, 5.8, 4.8, 1.6);
+              ctx.fill();
+              ctx.fillStyle = "rgba(255,110,30,0.55)";
+              ctx.fillRect(x + 0.6, hv.y0 + 0.5, 0.9, 0.7);
+              ctx.fillRect(x + 4.3, hv.y0 + 0.5, 0.9, 0.7);
+            }
+          } else if (hv.tonnes > 1e3) {
+            ctx.fillStyle = "#26221f";
+            ctx.fillRect(hv.x0 + 1, hv.y0, hv.x1 - hv.x0 - 2, hv.y1 - hv.y0 - 1.5);
+            ctx.fillStyle = "#3d3732";
+            for (let x = hv.x0 + 2; x < hv.x1 - 2; x += 4) ctx.fillRect(x, hv.y1 - 3.5, 2.4, 2.6);
+          }
+        }
+        ctx.restore();
+      }
+    }
+    // ------------------------------------------------------------- frame
+    draw(state2) {
+      const ctx = this.ctx, W = this.cv.width / this.dpr, H = this.cv.height / this.dpr;
+      const world2 = this.world, env = world2.env, cam = this.cam;
+      ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+      const sk = this.shake > 0 ? this.shake : 0;
+      const shx = (Math.random() - 0.5) * sk, shy = (Math.random() - 0.5) * sk;
+      this.shake *= 0.9;
+      const z = cam.z;
+      const sy0 = (y) => H / 2 - (y - cam.y) * z + shy;
+      const sx0 = (x) => W / 2 + (x - cam.x) * z + shx;
+      const [wl, wt] = this.toWorld(0, 0), [wr, wb] = this.toWorld(W, H);
+      const horizon = sy0(0);
+      if (horizon > 0) {
+        const sg = ctx.createLinearGradient(0, 0, 0, Math.max(1, horizon));
+        if (this.night) {
+          sg.addColorStop(0, "#03060d");
+          sg.addColorStop(1, "#0d1626");
+        } else {
+          sg.addColorStop(0, "#5e8fbf");
+          sg.addColorStop(1, "#c9dcea");
+        }
+        ctx.fillStyle = sg;
+        ctx.fillRect(0, 0, W, Math.min(H, horizon));
+        if (this.night) {
+          ctx.fillStyle = "#fff";
+          for (const [sx, syy, b] of this.stars) {
+            const y = syy * horizon;
+            if (y > horizon - 4) continue;
+            ctx.globalAlpha = 0.3 + 0.7 * b * (0.8 + 0.2 * Math.sin(state2.time * 2 + b * 40));
+            ctx.fillRect(sx * W, y, b > 0.9 ? 2 : 1, b > 0.9 ? 2 : 1);
+          }
+          ctx.globalAlpha = 1;
+        }
+      }
+      const top = Math.max(0, horizon);
+      if (top < H) {
+        const g2 = ctx.createLinearGradient(0, top, 0, H);
+        const dTop = Math.max(0, -wt), dBot = Math.max(0, -wb);
+        g2.addColorStop(0, this.waterColor(dTop, 1));
+        g2.addColorStop(1, this.waterColor(dBot, 1));
+        ctx.fillStyle = g2;
+        ctx.fillRect(0, top, W, H - top);
+      }
+      const seaTop = -env.seabedDepth + 30;
+      ctx.save();
+      ctx.setTransform(this.dpr * z, 0, 0, -this.dpr * z, this.dpr * (W / 2 - z * cam.x + shx), this.dpr * (H / 2 + z * cam.y + shy));
+      const mode = this.mode === "exterior" ? "ext" : "cut";
+      for (const b of world2.bodies) {
+        if (!b.alive) continue;
+        const wbx = b.wbox;
+        if (wbx.x1 < wl - 5 || wbx.x0 > wr + 5 || wbx.y1 < wb - 5 || wbx.y0 > wt + 5) continue;
+        const t = this.bodyTexture(b, mode);
+        ctx.save();
+        ctx.transform(b.c, b.s, -b.s, b.c, b.x, b.y);
+        ctx.translate(-b.comX, -b.comY);
+        ctx.save();
+        ctx.translate(t.x0, t.y1);
+        ctx.scale(CELL / PX, -CELL / PX);
+        ctx.imageSmoothingEnabled = z * CELL / PX < 1.5;
+        ctx.drawImage(t.cv, 0, 0);
+        ctx.restore();
+        if (mode === "cut") this.drawWater(ctx, b);
+        if (this.overlay === "stress") this.drawStress(ctx, b);
+        ctx.restore();
+      }
+      this.drawRigging(ctx);
+      this.drawParticles(ctx, state2, mode);
+      ctx.restore();
+      this.drawOcean(ctx, W, H, sx0, sy0, wl, wr, state2);
+      this.drawSeabed(ctx, W, H, sx0, sy0, wl, wr);
+      if (this.night && this.powered) this.drawShipLights(ctx, sx0, sy0, z);
+      this.drawDarkness(ctx, W, H, wt, wb);
+      const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.75);
+      vg.addColorStop(0, "rgba(0,0,0,0)");
+      vg.addColorStop(1, "rgba(0,0,0,0.45)");
+      ctx.fillStyle = vg;
+      ctx.fillRect(0, 0, W, H);
+      if (state2.hover) this.drawHover(ctx, state2.hover, sx0, sy0, z);
+    }
+    waterColor(depth, a) {
+      const k = Math.exp(-depth / 70);
+      const kd = Math.exp(-depth / 260);
+      const r = Math.round(4 + 22 * k), g = Math.round(14 + 70 * k * (this.night ? 0.45 : 1) + 18 * kd), b = Math.round(24 + 90 * k * (this.night ? 0.5 : 1) + 30 * kd);
+      return `rgba(${r},${g},${b},${a})`;
+    }
+    drawWater(ctx, b) {
+      const sh = this.world.ship, g = sh.grid, fl = this.world.flooding;
+      ctx.fillStyle = "rgba(38,104,140,0.78)";
+      ctx.beginPath();
+      let any = false;
+      for (let q = 0; q < b.cells.length; q++) {
+        const k = b.cells[q];
+        if (g.kind[k] !== SPACE) continue;
+        const f = fl.cellWaterFrac[k];
+        if (f < 0.04) continue;
+        any = true;
+        const x = b.gx[q] - CELL / 2, y = b.gy[q] - CELL / 2;
+        ctx.rect(x, y, CELL, CELL * (f > 0.95 ? 1 : f) + 0.01);
+      }
+      if (any) ctx.fill();
+    }
+    drawStress(ctx, b) {
+      for (const j of this.world.joints) {
+        if (j.kind !== "weld" || j.a !== b.index) continue;
+        const r = Math.min(1.2, j.ratioF);
+        ctx.fillStyle = `rgba(${Math.round(255 * Math.min(1, r * 1.4))},${Math.round(255 * Math.max(0, 1 - r))},40,${0.25 + 0.5 * Math.min(1, r)})`;
+        ctx.fillRect(j.ax - 1.2, (j.yBot ?? 0) - 0.5, 2.4, (j.yTop ?? 20) - (j.yBot ?? 0) + 1);
+      }
+    }
+    drawRigging(ctx) {
+      const masts = this.world.bodies.filter((b) => b.kind === "mast" && b.alive);
+      if (masts.length < 2) return;
+      const tops = masts.map((b) => {
+        let best = 0;
+        for (let q = 0; q < b.cells.length; q++) if (b.gy[q] > b.gy[best]) best = q;
+        return [b.wx(b.gx[best], b.gy[best]), b.wy(b.gx[best], b.gy[best])];
+      });
+      const fore = masts.find((m) => m.name === "Foremast"), main = masts.find((m) => m.name === "Mainmast");
+      if (!fore || !main || fore.piece !== main.piece) return;
+      ctx.strokeStyle = "rgba(200,190,170,0.5)";
+      ctx.lineWidth = 0.08;
+      ctx.beginPath();
+      ctx.moveTo(tops[0][0], tops[0][1] - 1);
+      ctx.lineTo(tops[1][0], tops[1][1] - 1);
+      ctx.stroke();
+    }
+    drawParticles(ctx, state2, mode) {
+      const P = state2.particles;
+      for (let i = 0; i < P.n; i++) {
+        const t = P.t[i], x = P.x[i], y = P.y[i], r = P.r[i];
+        if (t === BUBBLE) {
+          ctx.fillStyle = "rgba(190,225,240,0.55)";
+          ctx.beginPath();
+          ctx.arc(x, y, Math.max(0.06, r), 0, 7);
+          ctx.fill();
+        } else if (t === JET) {
+          if (mode !== "cut") continue;
+          ctx.fillStyle = "rgba(140,200,230,0.7)";
+          ctx.fillRect(x - r / 2, y - r / 2, r, r);
+        } else if (t === SPRAY) {
+          ctx.fillStyle = "rgba(230,245,255,0.75)";
+          ctx.fillRect(x - r / 2, y - r / 2, r, r);
+        } else if (t === SILT) {
+          ctx.fillStyle = `rgba(120,108,88,${Math.min(0.22, P.life[i] * 0.02)})`;
+          ctx.beginPath();
+          ctx.arc(x, y, r, 0, 7);
+          ctx.fill();
+        } else if (t === DEBRIS) {
+          ctx.fillStyle = "#5a4634";
+          ctx.fillRect(x - r, y - r * 0.4, r * 2, r * 0.8);
+        } else if (t === SNOW) {
+          ctx.fillStyle = "rgba(220,230,220,0.35)";
+          ctx.fillRect(x, y, 0.12, 0.12);
+        } else if (t === FLAKE) {
+          ctx.fillStyle = "rgba(150,70,30,0.8)";
+          ctx.fillRect(x, y, 0.15, 0.1);
+        } else if (t === STEAM) {
+          ctx.fillStyle = `rgba(230,230,230,${Math.min(0.25, P.life[i] * 0.05)})`;
+          ctx.beginPath();
+          ctx.arc(x, y, r, 0, 7);
+          ctx.fill();
+        }
+      }
+    }
+    drawOcean(ctx, W, H, sx0, sy0, wl, wr, state2) {
+      const env = this.world.env;
+      const step = Math.max(1, 3 / this.cam.z);
+      const yS = sy0(0);
+      if (yS > H + 40) {
+        this.drawDeepTint(ctx, W, H);
+        return;
+      }
+      const pts = [];
+      for (let x = wl - step; x <= wr + step; x += step) pts.push([sx0(x), sy0(env.surface(x))]);
+      const alpha = this.mode === "exterior" ? 0.55 : 0.34;
+      const g = ctx.createLinearGradient(0, yS - 10, 0, Math.min(H, yS + 60 * this.cam.z) + 1);
+      g.addColorStop(0, `rgba(14,48,70,${alpha})`);
+      g.addColorStop(1, `rgba(3,14,24,${Math.min(0.85, alpha + 0.3)})`);
+      ctx.beginPath();
+      ctx.moveTo(pts[0][0], H + 10);
+      for (const p of pts) ctx.lineTo(p[0], p[1]);
+      ctx.lineTo(pts[pts.length - 1][0], H + 10);
+      ctx.closePath();
+      ctx.fillStyle = g;
+      ctx.fill();
+      ctx.beginPath();
+      pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]));
+      ctx.strokeStyle = this.night ? "rgba(150,185,210,0.55)" : "rgba(240,250,255,0.8)";
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+      const oc = state2.ocean;
+      if (oc) {
+        ctx.fillStyle = "rgba(235,245,250,0.6)";
+        for (let i = 0; i < oc.n; i += 2) {
+          const f = oc.foam[i];
+          if (f < 0.05) continue;
+          const x = oc.x0 + i * oc.dx;
+          if (x < wl || x > wr) continue;
+          ctx.globalAlpha = Math.min(0.8, f);
+          ctx.fillRect(sx0(x) - 2, sy0(env.surface(x)) - 1, 4 + f * 6, 2);
+        }
+        ctx.globalAlpha = 1;
+      }
+    }
+    drawDeepTint(ctx, W, H) {
+      ctx.fillStyle = this.mode === "exterior" ? "rgba(2,10,18,0.4)" : "rgba(2,10,18,0.22)";
+      ctx.fillRect(0, 0, W, H);
+    }
+    drawSeabed(ctx, W, H, sx0, sy0, wl, wr) {
+      const env = this.world.env;
+      const yTop = sy0(-env.seabedDepth + 15);
+      if (yTop > H) return;
+      const step = Math.max(0.5, 2 / this.cam.z);
+      ctx.beginPath();
+      ctx.moveTo(-10, H + 10);
+      for (let x = wl - 2; x <= wr + 2; x += step) ctx.lineTo(sx0(x), sy0(env.mudY(x)));
+      ctx.lineTo(W + 10, H + 10);
+      ctx.closePath();
+      const g = ctx.createLinearGradient(0, sy0(-env.seabedDepth + 6), 0, sy0(-env.seabedDepth - 30));
+      g.addColorStop(0, "#6d6555");
+      g.addColorStop(0.15, "#4f483c");
+      g.addColorStop(1, "#1d1a15");
+      ctx.fillStyle = g;
+      ctx.fill();
+      ctx.fillStyle = "rgba(0,0,0,0.15)";
+      for (let x = Math.floor(wl / 3) * 3; x < wr; x += 3) {
+        const h = Math.sin(x * 12.9898) * 43758.5453 % 1;
+        ctx.fillRect(sx0(x), sy0(env.mudY(x)) + 3 + Math.abs(h) * 18 * this.cam.z / 4, Math.max(1, 1.2 * this.cam.z), 1);
+      }
+    }
+    drawShipLights(ctx, sx0, sy0, z) {
+      const g = this.world.ship.grid, fl = this.world.flooding;
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      const rad = Math.max(2, 1.6 * z);
+      for (const p of this.meta.portholes) {
+        const k = p.k;
+        if (g.kind[k] !== SPACE || fl.cellWaterFrac[k] > 0.5) continue;
+        const b = this.world.bodies[g.block[k]];
+        if (!b || !b.alive || !b.lit) continue;
+        const X = b.wx(this.world.ship.cxs[k], this.world.ship.cys[k]), Y = b.wy(this.world.ship.cxs[k], this.world.ship.cys[k]);
+        const x = sx0(X), y = sy0(Y);
+        if (x < -20 || y < -20 || x > this.cv.width || y > this.cv.height) continue;
+        const under = Y < this.world.env.surface(X);
+        ctx.fillStyle = under ? "rgba(90,160,120,0.16)" : "rgba(255,214,140,0.22)";
+        ctx.beginPath();
+        ctx.arc(x, y, rad * (this.flicker || 1), 0, 7);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+    drawDarkness(ctx, W, H, wt, wb) {
+      const dMid = Math.max(0, -this.cam.y);
+      const dark = Math.min(0.97, (1 - Math.exp(-dMid / 180)) * (1 - this.visibility * 0.75) + (this.night ? 0.12 : 0));
+      if (dark < 0.02) return;
+      if (!this.dcv) this.dcv = document.createElement("canvas");
+      const d = this.dcv;
+      if (d.width !== this.cv.width) {
+        d.width = this.cv.width;
+        d.height = this.cv.height;
+      }
+      const c = d.getContext("2d");
+      c.setTransform(1, 0, 0, 1, 0, 0);
+      c.globalCompositeOperation = "source-over";
+      c.clearRect(0, 0, d.width, d.height);
+      const yS = H / 2 + this.cam.y * this.cam.z;
+      const yStart = Math.max(0, Math.min(H, yS));
+      const gr = c.createLinearGradient(0, yStart * this.dpr, 0, d.height);
+      const dTop = Math.max(0, -wt), dBot = Math.max(0, -wb);
+      const f = (dd) => Math.min(0.97, (1 - Math.exp(-dd / 160)) * (1 - this.visibility * 0.7) + (this.night ? 0.1 : 0));
+      gr.addColorStop(0, `rgba(0,3,6,${f(dTop)})`);
+      gr.addColorStop(1, `rgba(0,3,6,${f(dBot)})`);
+      c.fillStyle = gr;
+      c.fillRect(0, yStart * this.dpr, d.width, d.height);
+      c.globalCompositeOperation = "destination-out";
+      const mx = this.mouse.x * this.dpr, my = this.mouse.y * this.dpr;
+      const R = Math.max(W, H) * 0.32 * this.dpr;
+      const lg = c.createRadialGradient(mx, my, 0, mx, my, R);
+      lg.addColorStop(0, "rgba(0,0,0,0.95)");
+      lg.addColorStop(0.55, "rgba(0,0,0,0.5)");
+      lg.addColorStop(1, "rgba(0,0,0,0)");
+      c.fillStyle = lg;
+      c.beginPath();
+      c.arc(mx, my, R, 0, 7);
+      c.fill();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.drawImage(d, 0, 0);
+      ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    }
+    drawHover(ctx, h, sx0, sy0, z) {
+      if (!h.room) return;
+      ctx.strokeStyle = "rgba(232,196,120,0.9)";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(sx0(h.x) - 4, sy0(h.y) - 4, 8, 8);
+    }
+  };
+
+  // src/audio/sound.js
+  var Sound = class {
+    constructor() {
+      this.enabled = true;
+      this.ctx = null;
+    }
+    start() {
+      if (this.ctx || !this.enabled) return;
+      try {
+        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      } catch (e) {
+        return;
+      }
+      const c = this.ctx;
+      this.master = c.createGain();
+      this.master.gain.value = 0.5;
+      this.master.connect(c.destination);
+      this.lp = c.createBiquadFilter();
+      this.lp.type = "lowpass";
+      this.lp.frequency.value = 1800;
+      this.lp.connect(this.master);
+      const noise = c.createBuffer(1, c.sampleRate * 3, c.sampleRate);
+      const d = noise.getChannelData(0);
+      let last = 0;
+      for (let i = 0; i < d.length; i++) {
+        last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02;
+        d[i] = last * 3.5;
+      }
+      this.noise = noise;
+      const loop = (freq, q) => {
+        const s = c.createBufferSource();
+        s.buffer = noise;
+        s.loop = true;
+        const f = c.createBiquadFilter();
+        f.type = "bandpass";
+        f.frequency.value = freq;
+        f.Q.value = q;
+        const g = c.createGain();
+        g.gain.value = 0;
+        s.connect(f);
+        f.connect(g);
+        g.connect(this.lp);
+        s.start();
+        return g;
+      };
+      this.amb = loop(380, 0.6);
+      this.rush = loop(700, 0.9);
+      this.rumble = loop(70, 1.2);
+    }
+    toggle() {
+      this.enabled = !this.enabled;
+      if (this.master) this.master.gain.value = this.enabled ? 0.5 : 0;
+      if (this.enabled) this.start();
+    }
+    update(world2, renderer2, state2) {
+      if (!this.ctx) return;
+      const t = this.ctx.currentTime;
+      const under = renderer2.cam.y < -2;
+      this.lp.frequency.setTargetAtTime(under ? 320 : 2200, t, 0.3);
+      this.amb.gain.setTargetAtTime(under ? 0.15 : 0.35 + 0.1 * Math.sin(t * 0.4), t, 0.5);
+      const inflow = Math.max(0, world2.flooding.stats.inflowTps || 0);
+      this.rush.gain.setTargetAtTime(Math.min(0.6, Math.sqrt(inflow) * 0.06) * (state2.paused ? 0 : 1), t, 0.4);
+      this.rumble.gain.setTargetAtTime(Math.min(0.8, world2.stats.maxRatio * 0.6), t, 0.4);
+      if (!state2.paused && Math.random() < world2.stats.maxRatio * 0.01) this.groan(world2.stats.maxRatio * 0.6);
+    }
+    burst(dur, f0, f1, vol, type = "noise") {
+      if (!this.ctx || !this.enabled) return;
+      const c = this.ctx, t = c.currentTime;
+      const g = c.createGain();
+      g.gain.setValueAtTime(vol, t);
+      g.gain.exponentialRampToValueAtTime(1e-3, t + dur);
+      g.connect(this.lp);
+      if (type === "noise") {
+        const s = c.createBufferSource();
+        s.buffer = this.noise;
+        const f = c.createBiquadFilter();
+        f.type = "lowpass";
+        f.frequency.setValueAtTime(f0, t);
+        f.frequency.exponentialRampToValueAtTime(f1, t + dur);
+        s.connect(f);
+        f.connect(g);
+        s.start(t, Math.random());
+        s.stop(t + dur);
+      } else {
+        const o = c.createOscillator();
+        o.type = type;
+        o.frequency.setValueAtTime(f0, t);
+        o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+        o.connect(g);
+        o.start(t);
+        o.stop(t + dur);
+      }
+    }
+    groan(v) {
+      this.burst(1.6 + Math.random(), 50 + Math.random() * 40, 30 + Math.random() * 20, 0.25 * v, "sawtooth");
+    }
+    crack(v) {
+      this.burst(2.5, 3e3, 60, 0.9 * v);
+      this.burst(3, 90, 25, 0.8 * v, "sine");
+    }
+    boom(v) {
+      this.burst(1.2, 600, 40, 0.8 * v);
+      this.burst(1.5, 70, 20, 0.9 * v, "sine");
+    }
+    glass() {
+      for (let i = 0; i < 4; i++) this.burst(0.15 + Math.random() * 0.2, 6e3, 2e3, 0.12, "noise");
+    }
+    scrape() {
+      this.burst(0.8, 1400, 300, 0.25);
+    }
+  };
+
+  // src/main.js
+  var $ = (id) => document.getElementById(id);
+  var canvas = $("view");
+  var world;
+  var renderer;
+  var ocean;
+  var particles;
+  var sound = new Sound();
+  var state = { time: 0, speed: 1, paused: false, tool: "grab", years: 0, yearRate: 0, scenario: "iceberg", hover: null, log: [], follow: true, startDate: new Date(Date.UTC(1912, 3, 14, 23, 39, 40)) };
+  var iceSchedule = [];
+  var lastFrame = performance.now();
+  var lights = true;
+  var lightsOutAt = -1;
+  function init(scenario) {
+    state.scenario = scenario;
+    world = createWorld({ substeps: 8 });
+    for (let i = 0; i < 240; i++) world.step(1 / 30);
+    world.time = 0;
+    world.events.length = 0;
+    ocean = new Ocean(world.env);
+    particles = new Particles();
+    if (renderer) {
+      renderer.world = world;
+      renderer.meta = world.ship.meta;
+      renderer.invalidateAll();
+    } else renderer = new Renderer(canvas, world, world.ship.meta);
+    renderer.night = scenario !== "sandbox";
+    for (const b of world.bodies) b.lit = true;
+    state.time = 0;
+    state.years = 0;
+    state.yearRate = 0;
+    state.log = [];
+    lights = true;
+    lightsOutAt = -1;
+    iceSchedule = [];
+    if (scenario === "iceberg") {
+      state.startDate = new Date(Date.UTC(1912, 3, 14, 23, 39, 40));
+      iceSchedule = iceDamagePlan(world).map((d) => ({ ...d, at: 2 + d.t * 9 }));
+      log('23:39:40 \u2014 "Iceberg, right ahead!" The berg scrapes the starboard bow.');
+    } else {
+      state.startDate = new Date(Date.UTC(1912, 3, 10, 12, 0, 0));
+      log("Intact ship, calm sea. Use the tools to damage her.");
+    }
+    renderer.cam.x = 0;
+    renderer.cam.y = 8;
+    fitZoom();
+    setSpeed(1);
+  }
+  function fitZoom() {
+    renderer.resize();
+    renderer.cam.z = Math.max(1.5, canvas.clientWidth * 0.82 / 280);
+  }
+  function log(msg) {
+    const d = new Date(state.startDate.getTime() + state.time * 1e3);
+    const stamp = state.years > 0.02 ? `${d.getUTCFullYear()}` : d.toISOString().slice(11, 19);
+    state.log.unshift({ stamp, msg });
+    state.log.length = Math.min(state.log.length, 7);
+    $("log").innerHTML = state.log.map((l) => `<li><span class="t">${l.stamp}</span>${l.msg}</li>`).join("");
+  }
+  var implodeLogT = -99;
+  var glassLogT = -99;
+  function handleEvents() {
+    const ev = world.events;
+    for (const e of ev) {
+      switch (e.type) {
+        case "crack":
+          log("Hull girder cracking \u2014 plating tears at the strength deck.");
+          sound.groan(1);
+          renderer.shake = 4;
+          break;
+        case "break":
+          if (e.kind === "weld") {
+            log(`<b>Hull girder failure.</b> The ship breaks apart (${e.why}).`);
+            sound.crack(1);
+            renderer.shake = 14;
+            for (let i = 0; i < 160; i++) particles.add(DEBRIS, e.x + (Math.random() - 0.5) * 12, e.y + (Math.random() - 0.5) * 18, (Math.random() - 0.5) * 6, Math.random() * 3, 0.2 + Math.random() * 0.6, 400);
+            for (let i = 0; i < 300; i++) particles.add(BUBBLE, e.x + (Math.random() - 0.5) * 14, e.y + (Math.random() - 0.5) * 20, 0, 0, 0.1 + Math.random() * 0.4, 60);
+            lights = false;
+            lightsOutAt = state.time;
+          } else {
+            log(`${e.name} collapses \u2014 ${e.why}.`);
+            sound.crack(0.5);
+            renderer.shake = 5;
+          }
+          renderer.invalidateAll();
+          break;
+        case "implode":
+          if (state.time - implodeLogT > 4) {
+            log(`Implosion at ${Math.round(-e.y)} m depth \u2014 trapped air pocket collapses (\u0394p ${(e.dp / 1e5).toFixed(1)} bar).`);
+            implodeLogT = state.time;
+          }
+          sound.boom(Math.min(1, e.dp / 2e6 + 0.3));
+          renderer.shake = Math.max(renderer.shake, 6);
+          for (let i = 0; i < 40; i++) particles.add(BUBBLE, e.x + (Math.random() - 0.5) * 4, e.y + (Math.random() - 0.5) * 4, (Math.random() - 0.5) * 4, Math.random() * 4, 0.15 + Math.random() * 0.5, 50);
+          renderer.invalidateAll();
+          break;
+        case "implode-glass":
+        case "burst-glass":
+          if (state.time - glassLogT > 20) {
+            log(`Windows give way under ${(Math.abs(e.dp) / 1e5).toFixed(2)} bar.`);
+            glassLogT = state.time;
+          }
+          sound.glass();
+          renderer.invalidateAll();
+          break;
+        case "burst-open":
+          if (e.mat === MAT.WTDOOR) log("A watertight door is forced open by the pressure.");
+          else if (e.mat === MAT.SKYLIGHT) log("The glass dome over the Grand Staircase shatters.");
+          renderer.invalidateAll();
+          break;
+        case "panel":
+          renderer.invalidateAll();
+          sound.groan(0.4);
+          break;
+        case "seabed": {
+          const b = world.bodies[e.body];
+          if (b.kind === "hull" && e.v > 2) {
+            log(`A section strikes the seabed at ${(e.v * 3.6).toFixed(0)} km/h, ploughing into the mud.`);
+            sound.boom(1);
+            renderer.shake = 10;
+          }
+          break;
+        }
+      }
+    }
+    ev.length = 0;
+    const mp = world.mudPlume;
+    for (let i = 0; i < mp.length; i += 3) if (Math.random() < 0.25) particles.add(SILT, mp[i] + (Math.random() - 0.5) * 3, mp[i + 1] + Math.random() * 2, (Math.random() - 0.5) * 2.5, Math.random() * 1.6, 1 + Math.random() * 2, 40 + Math.random() * 60);
+    mp.length = 0;
+    const fl = world.flooding;
+    const bs = fl.bubbleSources;
+    for (let i = 0; i < bs.length; i += 3) {
+      const n = Math.min(6, Math.ceil(bs[i + 2] * 2));
+      for (let q = 0; q < n; q++) if (particles.n < 8e3) particles.add(BUBBLE, bs[i] + (Math.random() - 0.5), bs[i + 1], 0, 0.3, 0.05 + Math.random() * 0.12, 30);
+    }
+    const js = fl.jets;
+    for (let i = 0; i < js.length; i += 5) {
+      if (Math.random() > 0.5) continue;
+      const x = js[i], y = js[i + 1], q = js[i + 2];
+      const v = Math.min(14, 2 + q * 6);
+      particles.add(JET, x, y, (Math.random() - 0.5) * v * 0.6, (Math.random() - 0.3) * v * 0.4, 0.12 + Math.random() * 0.1, 0.6);
+    }
+    for (let i = 0; i < ocean.splashes.length; i += 2) {
+      const x = ocean.splashes[i], s = ocean.splashes[i + 1];
+      for (let q = 0; q < 6; q++) particles.add(SPRAY, x + (Math.random() - 0.5) * 2, world.env.surface(x), (Math.random() - 0.5) * 4, 2 + Math.random() * 4 * s, 0.15 + Math.random() * 0.2, 3);
+    }
+    ocean.splashes.length = 0;
+  }
+  function corrode(years) {
+    const g = world.ship.grid, n = g.n;
+    if (years <= 0) return;
+    let changed = false;
+    for (let k = 0; k < n; k++) {
+      const kd = g.kind[k];
+      if (kd === EMPTY) continue;
+      const m = MATERIALS[g.mat[k]];
+      if (!m.rustRate) continue;
+      const b = world.bodies[g.block[k]];
+      if (!b || b.y > -5) continue;
+      const before = g.rust[k];
+      const r = before + years * m.rustRate * (0.5 + g.seed[k]) * (kd === SPACE ? 0.35 : 1);
+      g.rust[k] = Math.min(1, r);
+      if (r > 0.93 && kd === SOLID && Math.random() < 0.02 * years) {
+        world.destroyCell(k);
+        changed = true;
+        if (Math.random() < 0.3) particles.add(FLAKE, b.wx(world.ship.cxs[k], world.ship.cys[k]), b.wy(world.ship.cxs[k], world.ship.cys[k]), 0, 0, 0.1, 30);
+      }
+    }
+    state.rustAcc = (state.rustAcc || 0) + years;
+    if (state.rustAcc > 1 || changed) {
+      state.rustAcc = 0;
+      for (const j of world.joints) if (j.kind === "weld" && j.state < 2) {
+        const failed = j.fibers.map((f) => f.failed);
+        world.ship.computeSection(j);
+        j.fibers.forEach((f, i) => {
+          if (failed[i]) f.failed = true;
+        });
+        world.ship.sectionProps(j);
+      }
+      renderer.invalidateAll();
+    }
+  }
+  function frame(now) {
+    const dtReal = Math.min(0.05, (now - lastFrame) / 1e3);
+    lastFrame = now;
+    if (!state.paused) {
+      let simDt = dtReal * state.speed;
+      const t0 = performance.now();
+      while (simDt > 1e-6) {
+        const h = Math.min(0.05, simDt);
+        world.step(h);
+        state.time += h;
+        simDt -= h;
+        for (const d of iceSchedule) if (!d.done && state.time >= d.at) {
+          d.done = true;
+          applyBreach(world, d.k, d.area);
+          renderer.invalidateAll();
+          sound.scrape();
+        }
+        handleEvents();
+        if (performance.now() - t0 > 22) break;
+      }
+      ocean.step(dtReal, world.bodies, world.ship.grid);
+      particles.step(dtReal * Math.min(4, state.speed), world.env);
+      if (state.yearRate > 0) {
+        const y = dtReal * state.yearRate;
+        state.years += y;
+        corrode(y);
+      }
+    }
+    if (renderer.cam.y < -60 && particles.n < 7e3) {
+      const [l, t] = renderer.toWorld(0, 0), [r, b] = renderer.toWorld(canvas.clientWidth, canvas.clientHeight);
+      for (let i = 0; i < 3; i++) particles.add(SNOW, l + Math.random() * (r - l), t - Math.random() * (t - b) * 0.2, 0, 0, 0.1, 60);
+    }
+    if (state.scenario === "iceberg" && state.time < 1800 && Math.random() < 0.6) {
+      for (const f of world.bodies.filter((b) => b.kind === "funnel" && b.alive).slice(0, 3)) {
+        const X = f.wx(f.aabb.x1 - 1, f.aabb.y1), Y = f.wy(f.aabb.x1 - 1, f.aabb.y1);
+        if (Y > 5) particles.add(STEAM, X, Y, 0.5, 2, 0.4, 6);
+      }
+    }
+    const elec = world.ship.rooms.filter((r) => r.zone === 12 && r.deck <= 3);
+    const elecFlooded = elec.length && elec.every((r) => r.water > 0.6 * r.cap);
+    if (lights && elecFlooded) {
+      lights = false;
+      lightsOutAt = state.time;
+      log("The dynamos flood. The lights go out.");
+    }
+    renderer.powered = lights;
+    renderer.flicker = lights && world.stats.maxRatio > 0.7 ? 0.6 + Math.random() * 0.4 : 1;
+    if (state.follow) {
+      const tgt = followTarget();
+      if (tgt) {
+        const c = renderer.cam;
+        c.x += (tgt[0] - c.x) * 0.04;
+        c.y += (tgt[1] - c.y) * 0.04;
+      }
+    }
+    sound.update(world, renderer, state);
+    state.particles = particles;
+    state.ocean = ocean;
+    renderer.draw(state);
+    hud();
+    requestAnimationFrame(frame);
+  }
+  function followTarget() {
+    const hull = world.bodies.filter((b) => b.kind === "hull" && b.alive);
+    if (!hull.length) return null;
+    const pieces = /* @__PURE__ */ new Map();
+    for (const b of hull) {
+      const p = pieces.get(b.piece) || { m: 0, x: 0, y: 0 };
+      p.m += b.ms;
+      p.x += b.ms * b.x;
+      p.y += b.ms * b.y;
+      pieces.set(b.piece, p);
+    }
+    let best = null;
+    for (const p of pieces.values()) if (!best || (state.followDeep ? p.y < best.y / best.m * p.m : p.m > best.m)) best = p;
+    let x = best.x / best.m, y = best.y / best.m;
+    if (y > -20) y = Math.max(y, 6);
+    return [x, y];
+  }
+  var hudT = 0;
+  function hud() {
+    if (performance.now() - hudT < 120) return;
+    hudT = performance.now();
+    const d = new Date(state.startDate.getTime() + state.time * 1e3);
+    if (state.years > 0) d.setTime(d.getTime() + state.years * 365.25 * 864e5);
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    $("clock").textContent = `${d.getUTCDate()} ${months[d.getUTCMonth()]} ${d.getUTCFullYear()} \xB7 ${d.toISOString().slice(11, 19)}`;
+    const el = state.time;
+    $("elapsed").textContent = state.years > 0.01 ? `${state.years.toFixed(1)} years on the seabed` : `T+${Math.floor(el / 3600)}h ${String(Math.floor(el / 60) % 60).padStart(2, "0")}m ${String(Math.floor(el) % 60).padStart(2, "0")}s`;
+    const s = world.stats, f = world.flooding.stats;
+    const hull = world.bodies.filter((b) => b.kind === "hull" && b.alive);
+    const deepest = Math.max(...hull.map((b) => -b.y));
+    const pieces = new Set(hull.map((b) => b.piece)).size;
+    const deg = (r) => (r * 180 / Math.PI).toFixed(1) + "\xB0";
+    let mass = 0;
+    for (const b of world.bodies) if (b.alive) mass += b.ms;
+    const reserve = Math.max(0, 1 - (mass + f.floodedTonnes * 1e3) / (hull.reduce((a, b) => a + b.V, 0) * 1025));
+    const rows = [
+      ["Trim (bow down)", deg(s.trim)],
+      ["Draught fwd / aft", `${s.draughtF.toFixed(1)} / ${s.draughtA.toFixed(1)} m`],
+      ["Floodwater", `${Math.round(f.floodedTonnes).toLocaleString()} t`],
+      ["Inflow from sea", `${Math.max(0, Math.round(f.inflowTps * 60)).toLocaleString()} t/min`],
+      ["Reserve buoyancy", `${(reserve * 100).toFixed(0)} %`],
+      ["Hull girder stress", `${Math.round(s.maxRatio * 100)} % of failure`],
+      ["Pieces", `${pieces}`],
+      ["Deepest section", `${Math.max(0, deepest).toFixed(0)} m`],
+      ["Pressure there", `${(1 + gaugePressure(Math.max(0, deepest)) / P_ATM).toFixed(1)} atm`],
+      ["Water temperature", `${waterTemperature(Math.max(0, deepest)).toFixed(1)} \xB0C`]
+    ];
+    $("stats").innerHTML = rows.map(([k, v]) => `<div class="row"><span>${k}</span><b>${v}</b></div>`).join("");
+    $("stressbar").style.width = Math.min(100, s.maxRatio * 100) + "%";
+    $("stressbar").className = s.maxRatio > 0.8 ? "bad" : s.maxRatio > 0.5 ? "warn" : "";
+    const zw = new Array(16).fill(0), zc = new Array(16).fill(0);
+    for (const r of world.ship.rooms) if (r.deck <= 4 && r.mat !== MAT.TANK) {
+      zw[r.zone] += Math.min(r.water, r.cap);
+      zc[r.zone] += r.cap;
+    }
+    $("comps").innerHTML = world.ship.meta.shortCompartments.map((n, i) => {
+      const p = zc[i] ? zw[i] / zc[i] : 0;
+      return `<div class="comp" title="${world.ship.meta.compartments[i]}: ${Math.round(p * 100)}% flooded"><i style="height:${Math.round(p * 100)}%"></i><span>${n}</span></div>`;
+    }).reverse().join("");
+    const h = state.hover;
+    $("inspect").innerHTML = h && h.room ? `<b>${h.room.label}</b><br>${Math.round(100 * Math.min(1, h.room.water / h.room.cap))}% flooded \xB7 ${Math.round(h.room.cap)} m\xB3<br>Air ${h.room.vented ? "vented" : "trapped"} \xB7 ${(h.room.pAir / 1e5).toFixed(2)} bar` : h && h.mat ? `<b>${h.mat}</b>${h.rust > 0.01 ? `<br>Corrosion ${(h.rust * 100).toFixed(0)}%` : ""}` : "Hover the ship to inspect a space.";
+  }
+  function pick(wx, wy) {
+    const g = world.ship.grid;
+    for (const b of world.bodies) {
+      if (!b.alive) continue;
+      const wbx = b.wbox;
+      if (wx < wbx.x0 || wx > wbx.x1 || wy < wbx.y0 || wy > wbx.y1) continue;
+      const lx = b.lx(wx, wy), ly = b.ly(wx, wy);
+      const i = g.col(lx), j = g.row(ly);
+      if (!g.inb(i, j)) continue;
+      const k = g.idx(i, j);
+      if (g.kind[k] === EMPTY || g.block[k] !== b.index) continue;
+      return { b, k, gx: lx, gy: ly };
+    }
+    return null;
+  }
+  var dragging = null;
+  var panning = null;
+  canvas.addEventListener("pointermove", (e) => {
+    const r = canvas.getBoundingClientRect();
+    const sx = e.clientX - r.left, sy = e.clientY - r.top;
+    renderer.mouse.x = sx;
+    renderer.mouse.y = sy;
+    const [wx, wy] = renderer.toWorld(sx, sy);
+    if (panning) {
+      renderer.cam.x = panning.cx - (sx - panning.sx) / renderer.cam.z;
+      renderer.cam.y = panning.cy + (sy - panning.sy) / renderer.cam.z;
+      return;
+    }
+    if (dragging && world.drag) {
+      world.drag.tx = wx;
+      world.drag.ty = wy;
+    }
+    if (dragging && dragging.paint) applyTool(wx, wy, false);
+    const p = pick(wx, wy);
+    const g = world.ship.grid;
+    state.hover = p ? { x: wx, y: wy, room: g.room[p.k] >= 0 ? world.ship.rooms[g.room[p.k]] : null, mat: MATERIALS[g.mat[p.k]].name, rust: g.rust[p.k] } : null;
+  });
+  canvas.addEventListener("pointerdown", (e) => {
+    sound.start();
+    const r = canvas.getBoundingClientRect();
+    const sx = e.clientX - r.left, sy = e.clientY - r.top;
+    const [wx, wy] = renderer.toWorld(sx, sy);
+    canvas.setPointerCapture(e.pointerId);
+    if (e.button === 2 || e.button === 1 || state.tool === "pan") {
+      panning = { sx, sy, cx: renderer.cam.x, cy: renderer.cam.y };
+      state.follow = false;
+      return;
+    }
+    dragging = { paint: state.tool !== "grab" };
+    applyTool(wx, wy, true);
+  });
+  canvas.addEventListener("pointerup", () => {
+    dragging = null;
+    panning = null;
+    world.drag = null;
+  });
+  canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+  canvas.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    const r = canvas.getBoundingClientRect();
+    const sx = e.clientX - r.left, sy = e.clientY - r.top;
+    const [wx, wy] = renderer.toWorld(sx, sy);
+    const c = renderer.cam;
+    c.z = Math.max(0.05, Math.min(80, c.z * Math.exp(-e.deltaY * 15e-4)));
+    const [wx2, wy2] = renderer.toWorld(sx, sy);
+    c.x += wx - wx2;
+    c.y += wy - wy2;
+  }, { passive: false });
+  var lastPaint = 0;
+  function applyTool(wx, wy, first) {
+    const now = performance.now();
+    if (!first && now - lastPaint < 60) return;
+    lastPaint = now;
+    const p = pick(wx, wy);
+    const g = world.ship.grid;
+    if (state.tool === "grab") {
+      if (p && first) world.drag = { body: p.b.index, gx: p.gx, gy: p.gy, tx: wx, ty: wy, strength: 1 };
+      return;
+    }
+    if (!p) return;
+    if (state.tool === "puncture") {
+      let k = p.k;
+      if (g.kind[k] !== SPACE) {
+        for (const d of [g.w, -g.w, 1, -1]) if (g.kind[k + d] === SPACE) {
+          k = k + d;
+          break;
+        }
+      }
+      if (applyBreach(world, k, 0.3)) {
+        renderer.invalidateBody(p.b.index);
+        sound.scrape();
+      }
+    } else if (state.tool === "cut" || state.tool === "bomb") {
+      const R = state.tool === "bomb" ? 4.5 : 1;
+      const i0 = g.col(p.gx), j0 = g.row(p.gy), rr = Math.ceil(R / CELL);
+      for (let dj = -rr; dj <= rr; dj++) for (let di = -rr; di <= rr; di++) {
+        if (di * di + dj * dj > rr * rr) continue;
+        if (!g.inb(i0 + di, j0 + dj)) continue;
+        const k = g.idx(i0 + di, j0 + dj);
+        if (g.kind[k] === EMPTY) continue;
+        if (state.tool === "cut" && g.kind[k] !== SOLID && Math.random() < 0.5) continue;
+        world.destroyCell(k);
+      }
+      if (state.tool === "bomb") {
+        sound.boom(1);
+        renderer.shake = 10;
+        for (let i = 0; i < 80; i++) particles.add(DEBRIS, wx, wy, (Math.random() - 0.5) * 20, Math.random() * 14, 0.2 + Math.random() * 0.5, 300);
+        for (const b of world.bodies) {
+          const dx = b.x - wx, dy = b.y - wy, d2 = dx * dx + dy * dy + 100;
+          b.vx += dx / d2 * 30;
+          b.vy += dy / d2 * 30;
+        }
+      }
+      renderer.invalidateAll();
+    }
+  }
+  function setSpeed(s) {
+    state.speed = s;
+    state.paused = s === 0;
+    state.yearRate = 0;
+    document.querySelectorAll("[data-speed]").forEach((b) => b.classList.toggle("on", Number(b.dataset.speed) === s));
+    document.querySelectorAll("[data-years]").forEach((b) => b.classList.remove("on"));
+  }
+  document.querySelectorAll("[data-speed]").forEach((b) => b.addEventListener("click", () => {
+    sound.start();
+    setSpeed(Number(b.dataset.speed));
+  }));
+  document.querySelectorAll("[data-years]").forEach((b) => b.addEventListener("click", () => {
+    sound.start();
+    setSpeed(1);
+    state.yearRate = Number(b.dataset.years);
+    b.classList.add("on");
+    document.querySelectorAll("[data-speed]").forEach((x) => x.classList.remove("on"));
+    log(`Time-lapse: ${b.textContent} \u2014 corrosion and rusticles work on the wreck.`);
+  }));
+  document.querySelectorAll("[data-tool]").forEach((b) => b.addEventListener("click", () => {
+    state.tool = b.dataset.tool;
+    document.querySelectorAll("[data-tool]").forEach((x) => x.classList.toggle("on", x === b));
+  }));
+  document.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => {
+    const v = b.dataset.view;
+    if (v === "stress") renderer.overlay = renderer.overlay === "stress" ? null : "stress";
+    else {
+      renderer.mode = v;
+      document.querySelectorAll("[data-view]:not([data-view=stress])").forEach((x) => x.classList.toggle("on", x === b));
+    }
+    if (v === "stress") b.classList.toggle("on", renderer.overlay === "stress");
+  }));
+  $("scenario").addEventListener("change", (e) => init(e.target.value));
+  $("follow").addEventListener("click", () => {
+    state.follow = true;
+  });
+  $("visibility").addEventListener("input", (e) => {
+    renderer.visibility = Number(e.target.value);
+  });
+  $("sound").addEventListener("click", () => {
+    sound.toggle();
+    $("sound").classList.toggle("on", sound.enabled);
+  });
+  $("doors").addEventListener("click", () => {
+    const g = world.ship.grid;
+    let open = 0;
+    for (let k = 0; k < g.n; k++) if (g.mat[k] === MAT.WTDOOR) {
+      g.gate[k] = g.gate[k] ? 0 : 1;
+      open += g.gate[k] ? 0 : 1;
+    }
+    log(open ? "Watertight doors opened." : "Watertight doors closed from the bridge.");
+  });
+  window.addEventListener("keydown", (e) => {
+    if (e.key === " ") {
+      e.preventDefault();
+      setSpeed(state.paused ? 1 : 0);
+    }
+    if (e.key === "c") renderer.mode = renderer.mode === "cutaway" ? "exterior" : "cutaway";
+    if (e.key === "f") state.follow = true;
+  });
+  window.addEventListener("resize", () => renderer.resize());
+  init("iceberg");
+  renderer.resize();
+  requestAnimationFrame(frame);
+  window.__pm = { get world() {
+    return world;
+  }, state, get renderer() {
+    return renderer;
+  } };
+})();
+
+</script>

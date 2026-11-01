@@ -1,0 +1,95 @@
+<title>Port Marlowe</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,500;0,700;1,500&family=Barlow+Semi+Condensed:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: full-bleed simulation canvas; instrument plates float over it (top: voyage clock & time; left: tools; right: telemetry). */
+:root {
+  --ink: #050b12; --plate: rgba(9,17,26,0.86); --line: rgba(201,169,104,0.28);
+  --brass: #c9a968; --brass-hi: #ecd29a; --text: #dfe4e6; --dim: #8b98a1; --red: #d2553f; --amber: #e0a33a; --sea: #2f7fa6;
+  --display: "Bodoni Moda", "Didot", Georgia, serif;
+  --ui: "Barlow Semi Condensed", "Arial Narrow", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { margin: 0; background: var(--ink); color: var(--text); font: 14px/1.35 var(--ui); overflow: hidden; }
+#view { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: crosshair; }
+.plate { position: fixed; background: var(--plate); border: 1px solid var(--line); border-radius: 3px; backdrop-filter: blur(6px); }
+#top { top: calc(10px + env(safe-area-inset-top, 0px)); left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; padding: 8px 14px; }
+.brand { font-family: var(--display); font-size: 21px; letter-spacing: 0.04em; color: var(--brass-hi); white-space: nowrap; }
+.brand small { font: italic 500 13px var(--display); color: var(--dim); margin-left: 8px; letter-spacing: 0; }
+#clock { font: 500 15px var(--mono); color: var(--brass-hi); font-variant-numeric: tabular-nums; }
+#elapsed { font: 12px var(--mono); color: var(--dim); font-variant-numeric: tabular-nums; }
+.grp { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+.lbl { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); margin-right: 4px; }
+button, select { font: 500 13px var(--ui); color: var(--text); background: rgba(255,255,255,0.04); border: 1px solid rgba(201,169,104,0.25); border-radius: 2px; padding: 4px 9px; cursor: pointer; }
+button:hover { border-color: var(--brass); }
+button.on { background: var(--brass); color: #12100b; border-color: var(--brass); }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--brass-hi); outline-offset: 1px; }
+select { background: #0d1822; }
+#tools { left: max(16px, env(safe-area-inset-left, 0px)); top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 6px; padding: 10px 8px; }
+#tools button { width: 92px; text-align: left; }
+#tools .hint { font-size: 11px; color: var(--dim); width: 92px; }
+#panel { right: max(16px, env(safe-area-inset-right, 0px)); top: 92px; width: 268px; padding: 12px 14px; max-height: calc(100% - 200px); overflow-y: auto; }
+#panel h3 { font: 600 11px var(--ui); letter-spacing: 0.14em; text-transform: uppercase; color: var(--brass); margin: 10px 0 6px; }
+#panel h3:first-child { margin-top: 0; }
+.row { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; border-bottom: 1px dotted rgba(255,255,255,0.06); }
+.row span { color: var(--dim); }
+.row b { font: 500 13px var(--mono); font-variant-numeric: tabular-nums; color: var(--text); }
+.meter { height: 5px; background: rgba(255,255,255,0.08); margin: 6px 0 2px; }
+#stressbar { height: 100%; width: 0; background: var(--sea); transition: width .2s; }
+#stressbar.warn { background: var(--amber); } #stressbar.bad { background: var(--red); }
+#comps { display: grid; grid-template-columns: repeat(16, 1fr); gap: 2px; height: 58px; }
+.comp { position: relative; background: rgba(255,255,255,0.05); display: flex; align-items: flex-end; }
+.comp i { display: block; width: 100%; background: linear-gradient(#3b8db5, #1d5675); }
+.comp span { position: absolute; bottom: -15px; left: 0; right: 0; text-align: center; font: 9px var(--mono); color: var(--dim); }
+.compnote { font-size: 11px; color: var(--dim); margin-top: 18px; }
+#inspect { font-size: 12.5px; color: var(--text); min-height: 48px; }
+#bottom { left: 50%; transform: translateX(-50%); bottom: calc(12px + env(safe-area-inset-bottom, 0px)); width: min(720px, calc(100% - 32px)); padding: 8px 14px; }
+#log { list-style: none; margin: 0; padding: 0; font-size: 13px; max-height: 118px; overflow: hidden; }
+#log li { padding: 2px 0; color: var(--text); opacity: 0.92; }
+#log li + li { opacity: 0.6; }
+#log .t { font: 12px var(--mono); color: var(--brass); margin-right: 10px; }
+input[type=range] { width: 100%; accent-color: var(--brass); }
+@media (max-width: 860px) {
+  #panel { top: auto; bottom: 150px; width: calc(100% - 32px); max-height: 30%; }
+  #tools { top: auto; bottom: 150px; transform: none; display: none; }
+  .brand small { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { #stressbar { transition: none; } }
+</style>
+<canvas id="view" aria-label="Ship sinking simulation"></canvas>
+<header id="top" class="plate">
+  <div class="brand">Port Marlowe<small>a sinking sandbox</small></div>
+  <div><div id="clock">14 Apr 1912 · 23:39:40</div><div id="elapsed">T+0h 00m 00s</div></div>
+  <div class="grp"><span class="lbl">Time</span>
+    <button data-speed="0" title="Pause (space)">❚❚</button><button data-speed="1" class="on">1×</button><button data-speed="5">5×</button><button data-speed="20">20×</button><button data-speed="60">60×</button>
+  </div>
+  <div class="grp"><span class="lbl">Wreck</span><button data-years="0.1">1 yr/10 s</button><button data-years="2">2 yr/s</button><button data-years="10">10 yr/s</button></div>
+  <div class="grp"><span class="lbl">View</span><button data-view="cutaway" class="on">Cutaway</button><button data-view="exterior">Hull</button><button data-view="stress">Stress</button><button id="follow">Follow</button></div>
+  <div class="grp"><select id="scenario" aria-label="Scenario"><option value="iceberg">1912 · Iceberg</option><option value="sandbox">Sandbox · intact</option></select><button id="sound" class="on" title="Sound">Sound</button></div>
+</header>
+<nav id="tools" class="plate" aria-label="Tools">
+  <span class="lbl">Tools</span>
+  <button data-tool="grab" class="on">Grab</button>
+  <button data-tool="puncture">Puncture</button>
+  <button data-tool="cut">Cut steel</button>
+  <button data-tool="bomb">Explosive</button>
+  <button data-tool="pan">Pan</button>
+  <button id="doors">WT doors</button>
+  <span class="hint">Wheel to zoom, right-drag to pan, C toggles view.</span>
+</nav>
+<aside id="panel" class="plate">
+  <h3>Hydrostatics</h3>
+  <div id="stats"></div>
+  <div class="meter"><div id="stressbar"></div></div>
+  <h3>Watertight compartments</h3>
+  <div id="comps"></div>
+  <div class="compnote">Bow ← · → stern. Bulkheads C–J stop at E deck: water spills over.</div>
+  <h3>Inspect</h3>
+  <div id="inspect">Hover the ship to inspect a space.</div>
+  <h3>Abyss visibility</h3>
+  <input id="visibility" type="range" min="0" max="1" step="0.05" value="0.55" aria-label="Visibility at depth">
+</aside>
+<footer id="bottom" class="plate"><ul id="log"></ul></footer>
