@@ -40,7 +40,11 @@ function init(scenario) {
   renderer.cam.x = 0; renderer.cam.y = 8; fitZoom();
   setSpeed(1);
 }
-function fitZoom() { renderer.resize(); renderer.cam.z = Math.max(1.5, (canvas.clientWidth * 0.82) / 280); }
+function fitZoom() {
+  renderer.resize();
+  const narrow = canvas.clientWidth < 860;
+  renderer.cam.z = Math.max(1.2, (canvas.clientWidth * (narrow ? 0.96 : 0.82)) / 280);
+}
 
 function log(msg) {
   const d = new Date(state.startDate.getTime() + state.time * 1000);
@@ -260,6 +264,12 @@ function pick(wx, wy) {
 }
 let dragging = null, panning = null;
 canvas.addEventListener('pointermove', (e) => {
+  if (touches.has(e.pointerId)) touches.set(e.pointerId, [e.clientX, e.clientY]);
+  if (pinch && touches.size === 2) {
+    const [a, b] = [...touches.values()];
+    renderer.cam.z = Math.max(0.05, Math.min(80, pinch.z * Math.hypot(a[0] - b[0], a[1] - b[1]) / pinch.d));
+    state.follow = false; return;
+  }
   const r = canvas.getBoundingClientRect();
   const sx = e.clientX - r.left, sy = e.clientY - r.top;
   renderer.mouse.x = sx; renderer.mouse.y = sy;
@@ -271,7 +281,14 @@ canvas.addEventListener('pointermove', (e) => {
   const g = world.ship.grid;
   state.hover = p ? { x: wx, y: wy, room: g.room[p.k] >= 0 ? world.ship.rooms[g.room[p.k]] : null, mat: MATERIALS[g.mat[p.k]].name, rust: g.rust[p.k] } : null;
 });
+const touches = new Map(); let pinch = null;
 canvas.addEventListener('pointerdown', (e) => {
+  touches.set(e.pointerId, [e.clientX, e.clientY]);
+  if (touches.size === 2) {
+    const [a, b] = [...touches.values()];
+    pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), z: renderer.cam.z };
+    dragging = null; panning = null; world.drag = null; return;
+  }
   sound.start();
   const r = canvas.getBoundingClientRect();
   const sx = e.clientX - r.left, sy = e.clientY - r.top;
@@ -281,7 +298,8 @@ canvas.addEventListener('pointerdown', (e) => {
   dragging = { paint: state.tool !== 'grab' };
   applyTool(wx, wy, true);
 });
-canvas.addEventListener('pointerup', () => { dragging = null; panning = null; world.drag = null; });
+const up = (e) => { touches.delete(e.pointerId); if (touches.size < 2) pinch = null; dragging = null; panning = null; world.drag = null; };
+canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 canvas.addEventListener('wheel', (e) => {
   e.preventDefault();
@@ -354,7 +372,8 @@ document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click'
   if (v === 'stress') b.classList.toggle('on', renderer.overlay === 'stress');
 }));
 $('scenario').addEventListener('change', (e) => init(e.target.value));
-$('follow').addEventListener('click', () => { state.follow = true; });
+$('follow').addEventListener('click', () => { state.follow = true; fitZoom(); });
+$('infoBtn').addEventListener('click', () => { document.body.classList.toggle('info'); $('infoBtn').classList.toggle('on'); });
 $('visibility').addEventListener('input', (e) => { renderer.visibility = Number(e.target.value); });
 $('sound').addEventListener('click', () => { sound.toggle(); $('sound').classList.toggle('on', sound.enabled); });
 $('doors').addEventListener('click', () => {
@@ -371,5 +390,6 @@ window.addEventListener('resize', () => renderer.resize());
 
 init('iceberg');
 renderer.resize();
+if (matchMedia('(pointer: coarse)').matches) document.querySelector('[data-tool=pan]').click();
 requestAnimationFrame(frame);
 window.__pm = { get world() { return world; }, state, get renderer() { return renderer; } };

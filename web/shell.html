@@ -52,10 +52,25 @@ select { background: #0d1822; }
 #log li + li { opacity: 0.6; }
 #log .t { font: 12px var(--mono); color: var(--brass); margin-right: 10px; }
 input[type=range] { width: 100%; accent-color: var(--brass); }
+#infoBtn { display: none; }
 @media (max-width: 860px) {
-  #panel { top: auto; bottom: 150px; width: calc(100% - 32px); max-height: 30%; }
-  #tools { top: auto; bottom: 150px; transform: none; display: none; }
-  .brand small { display: none; }
+  body { font-size: 13px; }
+  #top { top: calc(6px + env(safe-area-inset-top, 0px)); flex-wrap: wrap; gap: 6px 10px; padding: 6px 10px; scrollbar-width: none; }
+  #top::-webkit-scrollbar { display: none; }
+  #top > * { flex: none; }
+  .brand { font-size: 16px; }
+  .brand small, .lbl { display: none; }
+  #clock { font-size: 12px; } #elapsed { font-size: 10px; }
+  button, select { padding: 5px 8px; font-size: 13px; }
+  #tools { top: auto; transform: none; left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(64px + env(safe-area-inset-bottom, 0px)); flex-direction: row; overflow-x: auto; padding: 6px; }
+  #tools button { width: auto; flex: none; }
+  #tools .hint { display: none; }
+  #infoBtn { display: inline-block; }
+  #panel { display: none; top: auto; bottom: calc(112px + env(safe-area-inset-bottom, 0px)); left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); width: auto; max-height: 42%; }
+  body.info #panel { display: block; }
+  #bottom { width: calc(100% - 32px); bottom: calc(8px + env(safe-area-inset-bottom, 0px)); padding: 6px 10px; }
+  #log { max-height: 40px; font-size: 12px; }
+  #log li + li { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { #stressbar { transition: none; } }
 </style>
@@ -77,6 +92,7 @@ input[type=range] { width: 100%; accent-color: var(--brass); }
   <button data-tool="cut">Cut steel</button>
   <button data-tool="bomb">Explosive</button>
   <button data-tool="pan">Pan</button>
+  <button id="infoBtn">Data</button>
   <button id="doors">WT doors</button>
   <span class="hint">Wheel to zoom, right-drag to pan, C toggles view.</span>
 </nav>

@@ -52,10 +52,25 @@ select { background: #0d1822; }
 #log li + li { opacity: 0.6; }
 #log .t { font: 12px var(--mono); color: var(--brass); margin-right: 10px; }
 input[type=range] { width: 100%; accent-color: var(--brass); }
+#infoBtn { display: none; }
 @media (max-width: 860px) {
-  #panel { top: auto; bottom: 150px; width: calc(100% - 32px); max-height: 30%; }
-  #tools { top: auto; bottom: 150px; transform: none; display: none; }
-  .brand small { display: none; }
+  body { font-size: 13px; }
+  #top { top: calc(6px + env(safe-area-inset-top, 0px)); flex-wrap: wrap; gap: 6px 10px; padding: 6px 10px; scrollbar-width: none; }
+  #top::-webkit-scrollbar { display: none; }
+  #top > * { flex: none; }
+  .brand { font-size: 16px; }
+  .brand small, .lbl { display: none; }
+  #clock { font-size: 12px; } #elapsed { font-size: 10px; }
+  button, select { padding: 5px 8px; font-size: 13px; }
+  #tools { top: auto; transform: none; left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(64px + env(safe-area-inset-bottom, 0px)); flex-direction: row; overflow-x: auto; padding: 6px; }
+  #tools button { width: auto; flex: none; }
+  #tools .hint { display: none; }
+  #infoBtn { display: inline-block; }
+  #panel { display: none; top: auto; bottom: calc(112px + env(safe-area-inset-bottom, 0px)); left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); width: auto; max-height: 42%; }
+  body.info #panel { display: block; }
+  #bottom { width: calc(100% - 32px); bottom: calc(8px + env(safe-area-inset-bottom, 0px)); padding: 6px 10px; }
+  #log { max-height: 40px; font-size: 12px; }
+  #log li + li { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { #stressbar { transition: none; } }
 </style>
@@ -77,6 +92,7 @@ input[type=range] { width: 100%; accent-color: var(--brass); }
   <button data-tool="cut">Cut steel</button>
   <button data-tool="bomb">Explosive</button>
   <button data-tool="pan">Pan</button>
+  <button id="infoBtn">Data</button>
   <button id="doors">WT doors</button>
   <span class="hint">Wheel to zoom, right-drag to pan, C toggles view.</span>
 </nav>
@@ -518,8 +534,8 @@ input[type=range] { width: 100%; accent-color: var(--brass); }
       return Math.max(0.35, atDeck);
     }
     if (xb > 170) {
-      const up = smooth(T - 1, T + 7, z);
-      return Math.max(0.35, Math.min(HB, bw * (1 - up) + counterHalf(xb) * up));
+      const up2 = smooth(T - 1, T + 7, z);
+      return Math.max(0.35, Math.min(HB, bw * (1 - up2) + counterHalf(xb) * up2));
     }
     return HB;
   }
@@ -874,23 +890,23 @@ input[type=range] { width: 100%; accent-color: var(--brass); }
       for (let i = 0; i < W; i++) {
         const k = j * W_ + i;
         if (grid.kind[k] === 0 || !grid.isEnvelope(k)) continue;
-        const up = j + 1 < H ? isOutsideish(k + W_) : true;
+        const up2 = j + 1 < H ? isOutsideish(k + W_) : true;
         const dn = j > 0 ? isOutsideish(k - W_) : true;
         const lf = i > 0 ? isOutsideish(k - 1) : true;
         const rt = i + 1 < W ? isOutsideish(k + 1) : true;
-        if (up || dn || lf || rt) outline.push([k, up, dn, lf, rt]);
+        if (up2 || dn || lf || rt) outline.push([k, up2, dn, lf, rt]);
       }
     }
-    for (const [k, up, dn] of outline) {
+    for (const [k, up2, dn] of outline) {
       const i = k % W_, j = k / W_ | 0;
       const isSuper = (grid.flags[k] & 1) !== 0;
       if (grid.kind[k] === OPEN) continue;
       const z = zOf(j);
       let m;
       if (dn && z < 1) m = MAT.KEEL;
-      else if (up && !dn) m = isSuper ? grid.mat[k] === MAT.WDECK ? MAT.WDECK : MAT.SUPER : MAT.WDECK;
+      else if (up2 && !dn) m = isSuper ? grid.mat[k] === MAT.WDECK ? MAT.WDECK : MAT.SUPER : MAT.WDECK;
       else m = isSuper ? MAT.SUPER : MAT.HULL;
-      if (grid.mat[k] === MAT.WDECK && up) m = MAT.WDECK;
+      if (grid.mat[k] === MAT.WDECK && up2) m = MAT.WDECK;
       grid.set(i, j, m);
     }
     openDeck("C", 48, 53, MAT.COVER, 5.5);
@@ -4105,7 +4121,8 @@ input[type=range] { width: 100%; accent-color: var(--brass); }
   }
   function fitZoom() {
     renderer.resize();
-    renderer.cam.z = Math.max(1.5, canvas.clientWidth * 0.82 / 280);
+    const narrow = canvas.clientWidth < 860;
+    renderer.cam.z = Math.max(1.2, canvas.clientWidth * (narrow ? 0.96 : 0.82) / 280);
   }
   function log(msg) {
     const d = new Date(state.startDate.getTime() + state.time * 1e3);
@@ -4379,6 +4396,13 @@ input[type=range] { width: 100%; accent-color: var(--brass); }
   var dragging = null;
   var panning = null;
   canvas.addEventListener("pointermove", (e) => {
+    if (touches.has(e.pointerId)) touches.set(e.pointerId, [e.clientX, e.clientY]);
+    if (pinch && touches.size === 2) {
+      const [a, b] = [...touches.values()];
+      renderer.cam.z = Math.max(0.05, Math.min(80, pinch.z * Math.hypot(a[0] - b[0], a[1] - b[1]) / pinch.d));
+      state.follow = false;
+      return;
+    }
     const r = canvas.getBoundingClientRect();
     const sx = e.clientX - r.left, sy = e.clientY - r.top;
     renderer.mouse.x = sx;
@@ -4398,7 +4422,18 @@ input[type=range] { width: 100%; accent-color: var(--brass); }
     const g = world.ship.grid;
     state.hover = p ? { x: wx, y: wy, room: g.room[p.k] >= 0 ? world.ship.rooms[g.room[p.k]] : null, mat: MATERIALS[g.mat[p.k]].name, rust: g.rust[p.k] } : null;
   });
+  var touches = /* @__PURE__ */ new Map();
+  var pinch = null;
   canvas.addEventListener("pointerdown", (e) => {
+    touches.set(e.pointerId, [e.clientX, e.clientY]);
+    if (touches.size === 2) {
+      const [a, b] = [...touches.values()];
+      pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), z: renderer.cam.z };
+      dragging = null;
+      panning = null;
+      world.drag = null;
+      return;
+    }
     sound.start();
     const r = canvas.getBoundingClientRect();
     const sx = e.clientX - r.left, sy = e.clientY - r.top;
@@ -4412,11 +4447,15 @@ input[type=range] { width: 100%; accent-color: var(--brass); }
     dragging = { paint: state.tool !== "grab" };
     applyTool(wx, wy, true);
   });
-  canvas.addEventListener("pointerup", () => {
+  var up = (e) => {
+    touches.delete(e.pointerId);
+    if (touches.size < 2) pinch = null;
     dragging = null;
     panning = null;
     world.drag = null;
-  });
+  };
+  canvas.addEventListener("pointerup", up);
+  canvas.addEventListener("pointercancel", up);
   canvas.addEventListener("contextmenu", (e) => e.preventDefault());
   canvas.addEventListener("wheel", (e) => {
     e.preventDefault();
@@ -4512,6 +4551,11 @@ input[type=range] { width: 100%; accent-color: var(--brass); }
   $("scenario").addEventListener("change", (e) => init(e.target.value));
   $("follow").addEventListener("click", () => {
     state.follow = true;
+    fitZoom();
+  });
+  $("infoBtn").addEventListener("click", () => {
+    document.body.classList.toggle("info");
+    $("infoBtn").classList.toggle("on");
   });
   $("visibility").addEventListener("input", (e) => {
     renderer.visibility = Number(e.target.value);
@@ -4540,6 +4584,7 @@ input[type=range] { width: 100%; accent-color: var(--brass); }
   window.addEventListener("resize", () => renderer.resize());
   init("iceberg");
   renderer.resize();
+  if (matchMedia("(pointer: coarse)").matches) document.querySelector("[data-tool=pan]").click();
   requestAnimationFrame(frame);
   window.__pm = { get world() {
     return world;
