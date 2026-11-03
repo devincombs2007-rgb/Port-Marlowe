@@ -218,7 +218,7 @@ document.getElementById('runFR').addEventListener('click', async (e) => {
   const rp = repeatabilityTest();
   rows.push(`<h4>Repeatability</h4><p class="${rp[0] === rp[1] ? 'ok' : 'bad'}">Two identical runs: ${rp[0]} / ${rp[1]}</p>`);
   const cv = convergenceTest();
-  rows.push(`<h4>Timestep convergence (vs 1/960 s, at t = 12 s)</h4><table><tr><th>Step</th><th>Tank level</th><th>Door room</th><th>Boat height</th></tr>${cv.map(r => `<tr><td>1/${Math.round(1 / r.dt)} s</td><td>${(r.errTankLevel * 1000).toFixed(3)} mm</td><td>${(r.errDoorRoom * 1000).toFixed(3)} mm</td><td>${(r.errBoatZ * 1000).toFixed(3)} mm</td></tr>`).join('')}</table>`);
+  rows.push(`<h4>Timestep convergence (max deviation from 1/960 s over 12 s)</h4><table><tr><th>Step</th><th>Tank level</th><th>Door room</th><th>Boat height</th></tr>${cv.map(r => `<tr><td>1/${Math.round(1 / r.dt)} s</td><td>${(r.errTankLevel * 1000).toFixed(3)} mm</td><td>${(r.errDoorRoom * 1000).toFixed(3)} mm</td><td>${(r.errBoatZ * 1000).toFixed(3)} mm</td></tr>`).join('')}</table>`);
   const ex = [...detachmentTest(), ...glassTest(), ...ledgerTest()];
   rows.push(`<h4>Extras</h4><ul class="checks">${ex.map(c => `<li class="${c.pass ? 'ok' : 'bad'}"><span class="mk">${c.pass ? '✓' : '✗'}</span><span class="nm">${c.name}</span><b>${c.value}</b><i>expected ${c.target}${c.note ? ' · ' + c.note : ''}</i></li>`).join('')}</ul>`);
   say(rows.join(''));

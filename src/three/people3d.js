@@ -46,7 +46,9 @@ export class Crowd {
     let xb, deck, z;
     const boats = H.BOATS;
     const b = boats[(r1 * boats.length) | 0];
-    if (r2 < 0.75) { xb = b.xb + (r2 - 0.4) * 20; deck = 'BOAT'; z = (b.side === 's' ? -1 : 1) * (HB - 1.5 - r3 * 4); }
+    // stand inboard of the stowed boats until they are swung out (~00:30)
+    const edge = t < H.T(0, 30) ? HB - 4.8 : HB - 1.6;
+    if (r2 < 0.75) { xb = b.xb + (r2 - 0.4) * 20; deck = 'BOAT'; z = (b.side === 's' ? -1 : 1) * (edge - r3 * 3.2); }
     else if (r2 < 0.87) { xb = 40 + r1 * 15; deck = 'TOP'; z = (r3 - 0.5) * 18; }
     else { xb = 238 + r1 * 26; deck = 'TOP'; z = (r3 - 0.5) * 16; }
     // after the boats are gone the crowd moves aft toward the poop

@@ -97,7 +97,7 @@ export function iceDamagePlan(world) {
       let k = g.idx(i, j);
       // find nearest SPACE cell
       for (let r = 0; r < 4 && g.kind[k] !== SPACE; r++) k = g.idx(i, j + r);
-      out.push({ k, area: 2.2 * d.area / n, xb, t: (90 - xb) / 90 });
+      out.push({ k, area: d.area / n, xb, t: (90 - xb) / 90 });
     }
   }
   return out;

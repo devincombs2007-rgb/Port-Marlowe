@@ -65,6 +65,13 @@ Plus: detachment velocity including deck rotation, glass failure pressure from p
 | 39 | Off-camera activity | All compartments step every frame regardless of camera |
 | 40 | Repeatability & convergence | **Done**; cross-platform limits documented in the validation report |
 
+## Audit (completeness pass)
+
+- 3D model: the superstructure now follows the hull's sheer and narrows where the hull narrows (it previously overhung the hull at both ends). The bow names are set letter by letter on the curved plating. The stern carries the name and port of registry, and the counter's underside is black rather than red. Added the bower anchors, anchor crane, docking bridge, stern light and expansion-joint lines. Captain Smith now stands clear of the wing cab, and passengers stand clear of the stowed boats. Carpathia is a lofted hull to her real 164.9 m × 19.7 m.
+- 3D timeline: a sweep of 285 moments across the whole night finds no invalid geometry, cameras or console errors. Rusticles in the epilogue hang from the wreck as it actually lies.
+- 2D physics sandbox: added linearised wave-radiation damping (previously the hull pitched without settling). A full room's pressure is now solved from the flow balance with a volume correction, so water is conserved to about 1e-10 m³; the earlier solver throttled flow and lost water. Glass burst pressures come from the plate-bending calculation. Non-watertight doors and window leakage were added. The breach area is restored to the inquiry estimate (~1.1 m²).
+- Physics core: air equalisation uses an exponential update, so errors now shrink at every halving of the timestep (checked).
+
 ## Next phases
 
 - **Phase 2 — the ship drives itself.** Move the ~140 Titanic spaces onto the new fluid core: real openings (hatches, stairwells, doors as hinged doors, watertight doors, ventilation trunks, portholes with glass failure). Couple to a heave/pitch/roll ship-motion model using the mass ledger. Replace the scripted trim with the computed one. Validate against the historical anchors (trim at 01:00, forecastle awash ~01:40, ~11–12° at the break, sinking at 02:20) and publish the comparison. Add a 3D cutaway showing water levels and trapped air.

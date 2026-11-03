@@ -148,8 +148,11 @@ export class World {
     } else if (wb.y0 < sMax) {
       const cells = b.cells, gx = b.gx, gy = b.gy;
       const c = b.c, s = b.s, cx = b.comX, cy = b.comY, bx = b.x, by = b.y;
-      let F = 0, T = 0;
+      let F = 0, T = 0, Fd = 0, Td = 0;
       let lastX = 1e9, surf = 0;
+      // linearised wave-radiation damping at the waterplane: a moving hull
+      // radiates waves that carry energy away (zeta ~0.2-0.3 near resonance)
+      const tauRad = 0.8;
       for (let q = 0; q < cells.length; q++) {
         const v = g.vdisp[cells[q]];
         if (v <= 0) continue;
@@ -158,12 +161,18 @@ export class World {
         if (Math.abs(X - lastX) > 0.25) { surf = env.surface(X); lastX = X; }
         let f = (surf - Y) / CELL + 0.5;
         if (f <= 0) continue;
+        if (f < 1) {
+          // waterplane cell: area = v / CELL; vertical velocity of this point
+          const vz = b.vy + b.w * (X - bx);
+          const fd = -rho * G * (v / CELL) * vz * tauRad;
+          Fd += fd; Td += (X - bx) * fd;
+        }
         if (f > 1) f = 1;
         const dF = v * f;
         F += dF; T += (X - bx) * dF;
       }
       Vsub = F;
-      bF = F * rho * G; bT = T * rho * G;
+      bF = F * rho * G + Fd; bT = T * rho * G + Td;
     }
     bF *= this.hydroScale; bT *= this.hydroScale;
     b.Vsub = Vsub;

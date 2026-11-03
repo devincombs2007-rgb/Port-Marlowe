@@ -21,9 +21,9 @@ const rp = repeatabilityTest();
 sections.push(['6b. Repeatability (same machine, same step)', [{ name: 'Two identical runs give bit-identical state', pass: rp[0] === rp[1], value: rp.join(' / '), target: 'equal' }]]);
 const cv = convergenceTest();
 const order = (k) => { const e = cv.map(r => r[k]); const o = []; for (let i = 1; i < e.length; i++) o.push(Math.log2(e[i - 1] / Math.max(1e-15, e[i]))); return o; };
-sections.push(['6c. Timestep convergence (vs 1/960 s reference, t = 12 s)', [
+sections.push(['6c. Timestep convergence (max deviation from a 1/960 s reference over 12 s)', [
   ...cv.map(r => ({ name: `dt = 1/${Math.round(1 / r.dt)} s`, pass: true, value: `tank ${r.errTankLevel.toExponential(1)} m, door-room ${r.errDoorRoom.toExponential(1)} m, boat ${r.errBoatZ.toExponential(1)} m`, target: '' })),
-  { name: 'Errors shrink as the step shrinks', pass: cv[3].errTankLevel < cv[0].errTankLevel && cv[3].errBoatZ < cv[0].errBoatZ, value: `observed order (tank) ${order('errTankLevel').map(x => x.toFixed(2)).join(', ')}`, target: 'decreasing' },
+  { name: 'Errors shrink at every halving of the step', pass: ['errTankLevel', 'errDoorRoom', 'errBoatZ'].every(k => cv.every((r, i) => i === 0 || r[k] < cv[i - 1][k])), value: `observed order: tank ${order('errTankLevel').map(x => x.toFixed(2)).join(', ')}; boat ${order('errBoatZ').map(x => x.toFixed(2)).join(', ')}`, target: 'monotone decrease' },
 ]]);
 sections.push(['Extras: detachment, glass, mass ledger', [...detachmentTest(), ...glassTest(), ...ledgerTest()]]);
 

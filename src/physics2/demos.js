@@ -305,14 +305,21 @@ export function frameRateTest(simTime = 20, dt = 1 / 240) {
   return runs;
 }
 export function convergenceTest(simTime = 12) {
+  // maximum deviation from a fine-step reference over the whole run (sampled
+  // every 0.1 s) - a single instant can mislead for oscillating systems
   const dts = [1 / 60, 1 / 120, 1 / 240, 1 / 480];
-  const ref = (() => { const s = combined(1 / 960); for (let i = 0; i < Math.round(simTime * 960); i++) s.step(1 / 960); return s; })();
   const pick = (s) => [s.T.net.nodes[0].h, s.D.net.nodes[0].h, s.B.b.z, s.B.b.ang];
-  const R = pick(ref);
+  const traj = (dt) => {
+    const s = combined(dt), out = [], per = Math.round(0.1 / dt);
+    for (let i = 1; i <= Math.round(simTime / dt); i++) { s.step(dt); if (i % per === 0) out.push(pick(s)); }
+    return out;
+  };
+  const R = traj(1 / 960);
   return dts.map(dt => {
-    const s = combined(dt); for (let i = 0; i < Math.round(simTime / dt); i++) s.step(dt);
-    const P = pick(s);
-    return { dt, errTankLevel: Math.abs(P[0] - R[0]), errDoorRoom: Math.abs(P[1] - R[1]), errBoatZ: Math.abs(P[2] - R[2]), errBoatAng: Math.abs(P[3] - R[3]) };
+    const P = traj(dt);
+    const m = [0, 0, 0, 0];
+    for (let i = 0; i < Math.min(P.length, R.length); i++) for (let k = 0; k < 4; k++) m[k] = Math.max(m[k], Math.abs(P[i][k] - R[i][k]));
+    return { dt, errTankLevel: m[0], errDoorRoom: m[1], errBoatZ: m[2], errBoatAng: m[3] };
   });
 }
 export function repeatabilityTest(simTime = 10, dt = 1 / 240) {

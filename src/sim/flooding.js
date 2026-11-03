@@ -173,10 +173,15 @@ export class Flooding {
       r.mass = wsum;
     }
     this.stats.floodedTonnes = total / 1000;
+    let vol = 0; for (const r of sh.rooms) vol += r.water;
+    this.stats.waterVolume = vol;
   }
 
   // pressure inside room r at world point (x, y)
   roomP(r, x, y) {
+    // a completely full room has no free surface: its pressure is set by the
+    // network (solved in solveFullRooms) and varies hydrostatically with height
+    if (r.pressed) return r.pTop + RHO * G * (r.smax - (r.nx * x + r.ny * y));
     const d = r.level - (r.nx * x + r.ny * y);
     return r.pAir + (d > 0 ? RHO * G * d : 0);
   }
@@ -267,16 +272,66 @@ export class Flooding {
   elementOpen(e) {
     const g = this.ship.grid;
     if (e.type === 'open') return g.gate[e.k] === 0 && g.kind[e.k] === OPEN;
-    if (e.type === 'side') return g.sideArea[e.k] > 0;
+    if (e.type === 'side') return g.sideArea[e.k] > 0 || !!(SIDE_INFO[g.side[e.k]] && SIDE_INFO[g.side[e.k]].leak);
     return true;
   }
 
   // compliance of a room: dp per m^3 of water added
   K(r) {
-    if (!r) return 0;
+    if (!r || r.pressed) return 0;     // pressure of a full room comes from the network solve
     let k = RHO * G / Math.max(0.05, r.surfA);
     if (r.trapped) k += r.pAir / Math.max(0.01, r.vAir);
     return k;
+  }
+
+  // Full rooms are incompressible nodes: find the pressure at which what
+  // flows in equals what flows out (Gauss-Seidel over rooms, bisection each).
+  solveFullRooms(dt) {
+    const sh = this.ship, rooms = sh.rooms, els = sh.elements, g = sh.grid;
+    const full = [];
+    for (const r of rooms) {
+      r.pressed = r.full && r.vAir <= r.cap * 2e-3 && r.cells.length > 0;
+      if (r.pressed) { if (r.pTop === undefined || !isFinite(r.pTop)) r.pTop = r.pAir; full.push(r); }
+    }
+    if (!full.length) return;
+    const netFlow = (r, pTop) => {
+      const save = r.pTop; r.pTop = pTop;
+      let q = 0;
+      for (const idx of r.els) {
+        const e = els[idx];
+        if (!this.elementOpen(e)) continue;
+        const A = e.type === 'side' ? (g.sideArea[e.k] > 0 ? g.sideArea[e.k] : (SIDE_INFO[g.side[e.k]] ? SIDE_INFO[g.side[e.k]].leak || 0 : 0)) : e.area;
+        if (A <= 0) continue;
+        const mine = e.a === r.id;
+        const other = mine ? e.b : e.a;
+        const ro = other >= 0 ? rooms[other] : null;
+        const pm = this.roomP(r, e.x, e.y);
+        const po = ro ? this.roomP(ro, e.x, e.y) : this.extP(e.x, e.y);
+        const dp = po - pm;                       // > 0: flows into r
+        const wo = mine ? e.wb : e.wa;
+        const up = dp > 0 ? (wo === undefined ? 1 : wo) : 1;
+        q += Math.sign(dp) * CD * A * up * Math.sqrt(2 * Math.abs(dp) / RHO);
+      }
+      r.pTop = save;
+      return q;
+    };
+    for (let sweep = 0; sweep < 14; sweep++) {
+      for (const r of full) {
+        // net inflow wanted: zero, plus a correction that pushes out any
+        // volume above capacity (or draws in a deficit) within ~2 steps
+        const target = dt > 0 ? -(r.water - r.cap) / (2 * dt) : 0;
+        let lo = 0.2 * P_ATM, hi = Math.max(r.pTop, P_ATM) + 4e5;
+        let qlo = netFlow(r, lo) - target, qhi = netFlow(r, hi) - target;
+        let guard = 0;
+        while (qhi > 0 && guard++ < 20) { hi += 1e6; qhi = netFlow(r, hi) - target; }
+        if (qlo < 0) { r.pTop = lo; continue; }
+        for (let it = 0; it < 32; it++) {
+          const mid = 0.5 * (lo + hi), qm = netFlow(r, mid) - target;
+          if (qm > 0) lo = mid; else hi = mid;
+        }
+        r.pTop = 0.5 * (lo + hi);
+      }
+    }
   }
 
   step(dt) {
@@ -284,6 +339,7 @@ export class Flooding {
     this.updatePositions();
     this.solveLevels(dt);
     this.solveAir();
+    this.solveFullRooms(dt);
     this.bubbleSources.length = 0;
     this.jets.length = 0;
     let inflow = 0, airOut = 0;
@@ -297,7 +353,7 @@ export class Flooding {
       e.q = 0; e.qa = 0;
       if (!this.elementOpen(e)) continue;
       let A = e.area;
-      if (e.type === 'side') A = g.sideArea[e.k];
+      if (e.type === 'side') A = g.sideArea[e.k] > 0 ? g.sideArea[e.k] : (SIDE_INFO[g.side[e.k]] ? SIDE_INFO[g.side[e.k]].leak || 0 : 0);
       if (A <= 0) continue;
       const x = e.x, y = e.y;
       const ra = e.a >= 0 ? rooms[e.a] : null, rb = e.b >= 0 ? rooms[e.b] : null;
@@ -359,6 +415,8 @@ export class Flooding {
       P.scale = 1;
       if (!P.sum) continue;
       const ra = P.a >= 0 ? rooms[P.a] : null, rb = P.b >= 0 ? rooms[P.b] : null;
+      // flows through a full (incompressible) room were balanced by the pressure solve
+      if ((ra && ra.pressed) || (rb && rb.pressed)) continue;
       const kk = this.K(ra) + this.K(rb);
       if (kk > 0) {
         const vmax = 0.45 * P.dp / kk;
@@ -423,12 +481,14 @@ export class Flooding {
     for (let i = 0; i < rooms.length; i++) {
       const r = rooms[i];
       r.water = Math.max(0, r.water + dW[i]);
-      const maxW = r.cap + 4 * Math.max(0.2, r.cap / 2500) * 4000; // virtual pressure head
-      if (r.water > maxW) r.water = maxW;
+      const maxW = r.cap * 1.5;   // safety only; the full-room solve keeps excess near zero
+      if (r.water > maxW) { this.lost = (this.lost || 0) + (r.water - maxW); r.water = maxW; }
       if (r.trapped) r.air = Math.max(0, r.air + dA[i]);
       r.inflowF = (r.inflowF || 0) * 0.95 + r.inflow * 0.05;
     }
     this.totalInflow = inflow;
+    this.ledger = this.ledger || { seaIn: 0 };
+    this.ledger.seaIn += inflow * dt;
     this.totalAirOut = airOut / Math.max(1e-6, dt);
     this.stats.inflowTps = (this.stats.inflowTps || 0) * 0.97 + inflow * RHO / 1000 * 0.03;
     // 4. bursts: glass, doors, covers, plating

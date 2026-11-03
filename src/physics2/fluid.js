@@ -187,7 +187,7 @@ export class FluidNet {
       const k = this.dpdV(o.a) + this.dpdV(o.b);
       wmax = Math.max(wmax, Math.sqrt(A / (this.rho * o.L) * k));
     }
-    const n = Math.min(400, Math.max(1, Math.ceil(dt * wmax / 0.5)));
+    const n = Math.min(400, Math.max(1, Math.ceil(dt * wmax / 0.15)));   // accuracy, not just stability
     const h = dt / n;
     for (let s = 0; s < n; s++) { if (s) for (const c of this.nodes) c.update(0); this.substep(h); }
     this.t += dt; this.ledger.steps++;
@@ -249,9 +249,10 @@ export class FluidNet {
           const rhoU = pu / (RAIR * TAIR);
           if (pd / pu < 0.528) mdot = o.Cd * Aair * pu * Math.sqrt(GAMMA / (RAIR * TAIR)) * CHOKE;
           else mdot = o.Cd * Aair * Math.sqrt(2 * rhoU * (pu - pd));
-          // never overshoot equilibrium between the two stores
-          const lim = this.airEqualize(fwd ? o.a : o.b, fwd ? o.b : o.a, dt);
-          mdot = Math.min(mdot, lim);
+          // approach equilibrium exponentially: dm = eq (1 - exp(-mdot dt / eq)).
+          // Consistent as dt -> 0 (dm -> mdot dt) and can never overshoot.
+          const eq = this.airEqualize(fwd ? o.a : o.b, fwd ? o.b : o.a);
+          mdot = eq > 0 ? eq * (1 - Math.exp(-mdot * dt / eq)) / dt : 0;
           if (!fwd) mdot = -mdot;
         }
         // exchange flow in floor openings carries air up
@@ -268,17 +269,17 @@ export class FluidNet {
     }
     for (let k = 0; k < N; k++) this.nodes[k].m = Math.max(0, this.nodes[k].m + dm[k]);
   }
-  // largest air mass flow (kg/s) from store s to store d that cannot overshoot
-  airEqualize(s, d, dt) {
+  // air mass (kg) that would have to move from store s to store d to equalise them
+  airEqualize(s, d) {
     if (s < 0 && d < 0) return 0;
     const RT = RAIR * TAIR;
     if (s >= 0 && d >= 0) {
       const A = this.nodes[s], B = this.nodes[d];
       const pEq = (A.pAir * A.Vair + B.pAir * B.Vair) / (A.Vair + B.Vair);
-      return Math.max(0, (A.pAir - pEq) * A.Vair / RT) * 0.5 / dt;
+      return Math.max(0, (A.pAir - pEq) * A.Vair / RT);
     }
-    if (s >= 0) { const A = this.nodes[s]; return Math.max(0, (A.pAir - PATM) * A.Vair / RT) * 0.5 / dt; }
-    const B = this.nodes[d]; return Math.max(0, (PATM - B.pAir) * B.Vair / RT) * 0.5 / dt;
+    if (s >= 0) { const A = this.nodes[s]; return Math.max(0, (A.pAir - PATM) * A.Vair / RT); }
+    const B = this.nodes[d]; return Math.max(0, (PATM - B.pAir) * B.Vair / RT);
   }
   stateVector() {
     const out = [];

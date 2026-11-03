@@ -489,6 +489,28 @@ export function buildTitanic(opts = {}) {
   openDeck('BOAT', 161.5, 171.5, MAT.SKYLIGHT, 6);
   for (let f = 0; f < 3; f++) { const xc = FUNNELS[f] + 1.0; openDeck('BOAT', xc - 2.6, xc + 2.6, MAT.GRATING, 3.0); }
 
+  // non-watertight doors in the outer walls: third-class entrances from the
+  // well decks, the deckhouse doors on the boat deck. They are open passages
+  // for water once the sea reaches them.
+  const outerDoor = (xb, deck, width = 1.2, height = 2.0) => {
+    const z0 = deckZ(deck, xb) + 0.3;
+    for (let j = rowOf(z0); j <= rowOf(z0 + height - 0.3); j++) {
+      for (let di = -3; di <= 3; di++) {
+        const i = colOf(xb) + di;
+        if (!grid.inb(i, j)) continue;
+        const k = grid.idx(i, j);
+        if (grid.kind[k] !== SOLID || !grid.isEnvelope(k)) continue;
+        const lf = grid.kind[k - 1] === 0, rt = grid.kind[k + 1] === 0;
+        if (!lf && !rt) continue;
+        grid.set(i, j, MAT.DOOR); grid.openW[k] = width; grid.gate[k] = 0;
+        break;
+      }
+    }
+  };
+  outerDoor(39.0, 'C'); outerDoor(57.6, 'C'); outerDoor(225.6, 'C'); outerDoor(237.0, 'C');
+  outerDoor(84.2, 'BOAT'); outerDoor(71.8, 'BOAT'); outerDoor(98.0, 'BOAT'); outerDoor(151.9, 'BOAT'); outerDoor(196.0, 'BOAT');
+  outerDoor(58.6, 'A', 1.6); outerDoor(216.5, 'A', 1.6);
+
   // expansion joint flags (superstructure above B deck has a gap here)
   for (const xb of EXPANSION_JOINTS) {
     const i = colOf(xb);

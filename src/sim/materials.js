@@ -82,12 +82,15 @@ export const SIDE = {
   BREACH: 5,        // damage: a hole in the shell
   OPENPORT: 6,      // porthole left open
 };
+// burst pressures from plate bending of the glass (Roark; see the Physics
+// Lab glass check): 16 in x 1 in sidelight ~515 kPa, 1.0 x 0.9 m x 3/8 in
+// window ~15 kPa. `leak` is the gap round a closed, non-watertight fitting.
 export const SIDE_INFO = [
   null,
-  { area: 0.13, burst: 3.5e5, name: 'Porthole (closed)' },
-  { area: 1.0, burst: 6e4, name: 'Window' },
+  { area: 0.13, burst: 5.1e5, leak: 0.0004, name: 'Porthole (closed)' },
+  { area: 1.0, burst: 1.5e4, leak: 0.004, name: 'Window' },
   { area: 1.0, burst: 0, name: 'Open promenade' },
-  { area: 3.0, burst: 1.5e5, name: 'Gangway door' },
+  { area: 3.0, burst: 1.5e5, leak: 0.02, name: 'Gangway door' },
   { area: 0, burst: 0, name: 'Hull breach' },
   { area: 0.13, burst: 0, name: 'Open porthole' },
 ];

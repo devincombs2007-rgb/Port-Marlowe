@@ -48,7 +48,7 @@ function init(scenario) {
   if (scenario === 'iceberg') {
     state.startDate = new Date(Date.UTC(1912, 3, 14, 23, 39, 40));
     iceSchedule = iceDamagePlan(world).map(d => ({ ...d, at: 2 + d.t * 9 }));
-    log('23:39:40 — "Iceberg, right ahead!" The berg scrapes the starboard bow.');
+    log('23:39:40 — The iceberg scrapes along the starboard bow below the waterline.');
   } else {
     state.startDate = new Date(Date.UTC(1912, 3, 10, 12, 0, 0));
     log('Intact ship, calm sea. Use the tools to damage her.');

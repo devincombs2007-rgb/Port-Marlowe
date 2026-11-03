@@ -10,14 +10,14 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { createWorld } from './sim/setup.js';
 import { Replay } from './replay/replay.js';
 import * as H from './replay/history.js';
-import { buildTitanic3D, makeLifeboat, makeFigure } from './three/titanic3d.js';
+import { buildTitanic3D, makeLifeboat, makeFigure, buildCarpathia } from './three/titanic3d.js';
 import { buildIceberg } from './three/iceberg3d.js';
 import { buildEnvironment, updateEnvironment } from './three/environment3d.js';
 import { Particles } from './three/fx3d.js';
 import { Crowd } from './three/people3d.js';
 import { CHAPTERS, chapterAt } from './three/story.js';
 import { Sound } from './audio/sound.js';
-import { X0, HB, deckZ, LOA, DESIGN_DRAUGHT } from './ship/titanic.js';
+import { X0, HB, deckZ, LOA, DESIGN_DRAUGHT, halfBreadth } from './ship/titanic.js';
 
 const $ = (id) => document.getElementById(id);
 const smooth = (x) => x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x);
@@ -94,7 +94,7 @@ falls.frustumCulled = false; scene.add(falls);
 // people: Captain Smith on the starboard bridge wing, Fleet & Lee in the
 // crow's nest, Murdoch and Lightoller at the boats, the band by the entrance
 const captain = makeFigure({ coat: 0x12162a, cap: 0xf4f4f0, beard: true });
-captain.position.set(X0 - 60.2, boatY(60.2), -12.2); captain.rotation.y = 0; model.bow.add(captain);
+captain.position.set(X0 - 62.4, boatY(62.4), -12.4); captain.rotation.y = 0; model.bow.add(captain);
 const murdoch = makeFigure({ coat: 0x12162a, cap: 0x12162a });
 murdoch.position.set(X0 - 80, boatY(80), -11.8); model.bow.add(murdoch);
 const lightoller = makeFigure({ coat: 0x12162a, cap: 0x12162a });
@@ -109,19 +109,7 @@ const crowd = new Crowd(model.bow, model.stern, scene, replay.xBreak);
 // iceberg, Carpathia
 const berg = buildIceberg();
 scene.add(berg);
-const carpathia = (() => {
-  const g = new THREE.Group();
-  const hull = new THREE.Mesh(new THREE.BoxGeometry(164.6, 11, 19.5), new THREE.MeshStandardMaterial({ color: 0x121315, roughness: 0.7 }));
-  hull.position.y = 2; g.add(hull);
-  for (const s of [-1, 1]) { const bow = new THREE.Mesh(new THREE.ConeGeometry(9.75, 14, 4, 1), hull.material); bow.rotation.z = s * -Math.PI / 2; bow.rotation.x = Math.PI / 4; bow.position.set(s * 89, 2, 0); bow.scale.set(1, 1, 0.8); g.add(bow); }
-  const sup = new THREE.Mesh(new THREE.BoxGeometry(70, 7, 15), new THREE.MeshStandardMaterial({ color: 0xe1ddd2 })); sup.position.y = 11; g.add(sup);
-  const fun = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 2.8, 16, 20), new THREE.MeshStandardMaterial({ color: 0xc0462a })); fun.position.y = 22; g.add(fun);
-  const top = new THREE.Mesh(new THREE.CylinderGeometry(2.62, 2.62, 3.5, 20), new THREE.MeshStandardMaterial({ color: 0x111111 })); top.position.y = 28.5; g.add(top);
-  for (const x of [-65, -38, 38, 65]) { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.4, 32, 8), new THREE.MeshStandardMaterial({ color: 0x6b5a44 })); m.position.set(x, 23, 0); g.add(m); }
-  const lights = new THREE.Mesh(new THREE.BoxGeometry(150, 0.6, 19.7), new THREE.MeshBasicMaterial({ color: 0xffd9a0 })); lights.position.y = 5; g.add(lights);
-  g.userData.lights = lights;
-  scene.add(g); return g;
-})();
+const carpathia = buildCarpathia(); scene.add(carpathia);
 const CARP_Z = 520;
 
 // seabed debris field: coal, fittings, plating, and five boilers from No. 1 boiler room
@@ -374,6 +362,7 @@ const look = new THREE.Vector3();
 function applyCamera(dt) {
   const t = state.t;
   const mode = state.cam;
+  if (mode === 'debug') return;          // camera placed by inspection tooling
   orbit.enabled = mode === 'free';
   if (mode === 'free') {
     // keep orbiting whatever is the focus of the moment
@@ -544,13 +533,16 @@ function setRust(y) {
   rusticles.count = n;
   if (n > 0) {
     const mtx = new THREE.Matrix4(), q = new THREE.Quaternion(), p = new THREE.Vector3(), s = new THREE.Vector3();
+    bowRig.root.updateMatrixWorld(true); sternRig.root.updateMatrixWorld(true);
     for (let i = 0; i < n; i++) {
       const bow = i % 3 !== 0;
-      const pose = bow ? replay.bowPose(H.END) : replay.sternPose(H.END);
+      // hang from the plating of the wreck as it actually lies (incl. the stern's spin and crush)
       const x = bow ? lerp(replay.xBreak, X0 - 3, (i * 0.618) % 1) : lerp(3, replay.xBreak, (i * 0.618) % 1);
-      const y = 8 + ((i * 0.37) % 1) * 14;
-      const w = wp(pose, x, y, (i % 2 ? 1 : -1) * (HB + 0.1));
-      p.copy(w); q.identity(); const len = (0.3 + ((i * 0.7311) % 1) * 2.2) * k; s.set(1, len, 1);
+      const y = 8 + ((i * 0.37) % 1) * 12;
+      const zs = (i % 2 ? 1 : -1) * (halfBreadth(X0 - x, y) + 0.08);
+      p.set(x, y, zs);
+      (bow ? model.bow : model.stern).localToWorld(p);
+      q.identity(); const len = (0.3 + ((i * 0.7311) % 1) * 2.2) * k; s.set(1, len, 1);
       mtx.compose(p, q, s); rusticles.setMatrixAt(i, mtx);
     }
     rusticles.instanceMatrix.needsUpdate = true;
@@ -628,6 +620,7 @@ function frame(now) {
   carpathia.visible = t > H.T(3, 20);
   carpathia.position.set(replay.carpathiaX(t), 0, CARP_Z);
   carpathia.userData.lights.visible = t < H.T(5, 30);
+  carpathia.userData.litMat.emissiveIntensity = t < H.T(5, 30) ? 0.12 : 0;
   debris.visible = t > STERN_IMPACT.t;
   // lights: on until 02:17:30, flickering from 02:15
   const flick = t > H.T(2, 15) && t < H.LIGHTS_OUT ? (Math.random() < 0.15 ? 0.15 : 1) : 1;
@@ -722,4 +715,6 @@ resize();
 poseShip(H.START); placeBoats(H.START); placeIceberg(H.START);
 setCam('cinema');
 requestAnimationFrame(frame);
-window.__t3 = { state, seek, scene, camera, setCam, replay };
+window.__t3 = { state, seek, scene, camera, setCam, replay, model, boats,
+  inspect(on = true) { if (!this._insp) { this._insp = new THREE.HemisphereLight(0xffffff, 0x666666, 2.2); this._sun = new THREE.DirectionalLight(0xffffff, 2); this._sun.position.set(-200, 300, -400); } if (on) { scene.add(this._insp); scene.add(this._sun); } else { scene.remove(this._insp); scene.remove(this._sun); } },
+  look(px, py, pz, tx, ty, tz, fov = 40) { state.cam = 'debug'; camera.position.set(px, py, pz); camera.lookAt(tx, ty, tz); camera.fov = fov; camera.updateProjectionMatrix(); } };
