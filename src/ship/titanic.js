@@ -17,7 +17,7 @@ import { MAT, SIDE, SIDE_INFO, MATERIALS, SOLID, SPACE, OPEN } from '../sim/mate
 import { ShipGrid, assignMassAndVolume } from '../sim/grid.js';
 
 export const X0 = 270.5;                 // grid x of the stem
-const LOA = 269.06, BEAM = 28.19, HB = BEAM / 2;
+export const LOA = 269.06, BEAM = 28.19, HB = BEAM / 2;
 export const DESIGN_DRAUGHT = 10.54;
 
 const FT = 0.3048;
@@ -65,14 +65,14 @@ export function deckZ(name, xb) {
   const f = Math.min(1, Math.max(0, (z0 - DECK_Z.TANK) / (DECK_Z.C - DECK_Z.TANK)));
   return z0 + sheer(xb) * (name === 'TANK' ? 0.15 : 0.35 + 0.65 * f);
 }
-function stemXb(z) {          // xb of the stem at height z
+export function stemXb(z) {          // xb of the stem at height z
   const R = 3.6;
   const straight = (zz) => 1.55 - zz * 0.052;
   if (z >= R) return straight(z);
   return straight(R) + R - Math.sqrt(Math.max(0, R * R - (R - z) * (R - z)));
 }
-const POST = 252.6;          // sternpost
-function sternXb(z) {        // aft-most xb of hull at height z (counter stern)
+export const POST = 252.6;          // sternpost
+export function sternXb(z) {        // aft-most xb of hull at height z (counter stern)
   if (z < 8.2) return POST;
   const t = Math.min(1, (z - 8.2) / 12.4);
   return POST + (LOA - 0.15 - POST) * Math.sqrt(1 - (1 - t) * (1 - t));

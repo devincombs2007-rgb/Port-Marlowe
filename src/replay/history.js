@@ -10,7 +10,7 @@
 
 export const T = (h, m, s = 0) => (h < 12 ? h + 24 : h) * 3600 + m * 60 + s - (23 * 3600 + 40 * 60);
 
-export const START = T(23, 39, 0);
+export const START = T(23, 38, 30);
 export const END = T(8, 30, 0);
 
 // Trim (deg, bow down) and depth of the keel amidships (m, negative = below
@@ -72,9 +72,10 @@ export const STEAM = [T(23, 45), T(0, 35)];      // safety valves lifting: roari
 
 // Narrative events (the replay also logs lifeboats, rockets and impacts).
 export const EVENTS = [
-  [T(23, 39, 0), 'Sunday 14 April 1912, 41°46′N 50°14′W. RMS Titanic steams west at 22½ knots. Moonless, flat calm, air −1 °C, sea −2 °C. 2,208 people aboard.'],
-  [T(23, 39, 30), 'Lookout Frederick Fleet strikes the crow’s-nest bell three times and telephones the bridge: “Iceberg, right ahead!”', 'bell'],
-  [T(23, 39, 33), 'First Officer William Murdoch orders “Hard a-starboard” and rings the engines to stop. The bow begins to swing to port.'],
+  [T(23, 38, 32), 'Sunday 14 April 1912, 41°46′N 50°14′W. RMS Titanic steams west at 22½ knots. Moonless, flat calm, air −1 °C, sea −2 °C. 2,208 people aboard.'],
+  [T(23, 39, 3), 'In the crow\u2019s nest, lookout Frederick Fleet sees a dark mass dead ahead. He strikes the bell three times.', 'bell'],
+  [T(23, 39, 7), 'Fleet telephones the bridge. Sixth Officer Moody answers: \u201cIceberg, right ahead!\u201d'],
+  [T(23, 39, 11), 'First Officer William Murdoch orders \u201cHard a-starboard\u201d and rings the engines to stop. For long seconds the ship barely turns.'],
   [T(23, 39, 40), 'The iceberg strikes the starboard bow. For about 10 seconds it scrapes along 90 m of hull below the waterline, opening seams and popping rivets.', 'scrape'],
   [T(23, 39, 52), 'Ice tumbles onto the forward well deck. Six compartments are open to the sea: the fore peak, holds 1–3, and boiler rooms 6 and 5.'],
   [T(23, 40, 20), 'Murdoch closes the watertight doors from the bridge. Captain Edward Smith arrives: “What have we struck?”'],

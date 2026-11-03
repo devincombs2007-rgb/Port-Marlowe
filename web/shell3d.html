@@ -1,0 +1,95 @@
+<title>Titanic: The Final Hours</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,500;0,700;1,500&family=Barlow+Semi+Condensed:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: full-bleed 3D view; a slim instrument bar on top, cinematic subtitles and a transport bar at the bottom, facts drawer on the right. */
+:root {
+  --ink: #03070c; --plate: rgba(6,12,20,0.78); --line: rgba(201,169,104,0.3);
+  --brass: #c9a968; --brass-hi: #ecd29a; --text: #e2e6e8; --dim: #8e9aa3;
+  --display: "Bodoni Moda", "Didot", Georgia, serif; --ui: "Barlow Semi Condensed", "Arial Narrow", system-ui, sans-serif; --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { margin: 0; background: var(--ink); color: var(--text); font: 14px/1.4 var(--ui); overflow: hidden; }
+#view { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+#fade { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; }
+.plate { position: fixed; background: var(--plate); border: 1px solid var(--line); border-radius: 3px; backdrop-filter: blur(6px); }
+#top { top: calc(10px + env(safe-area-inset-top, 0px)); left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; padding: 8px 14px; }
+.brand { font: 500 20px var(--display); color: var(--brass-hi); letter-spacing: 0.02em; white-space: nowrap; }
+#clock { font: 500 15px var(--mono); color: var(--brass-hi); font-variant-numeric: tabular-nums; }
+#elapsed, #chapter { font: 12px var(--mono); color: var(--dim); }
+.grp { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+.lbl { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); margin-right: 4px; }
+button { font: 500 13px var(--ui); color: var(--text); background: rgba(255,255,255,0.05); border: 1px solid rgba(201,169,104,0.28); border-radius: 2px; padding: 5px 10px; cursor: pointer; }
+button:hover { border-color: var(--brass); }
+button.on { background: var(--brass); color: #12100b; border-color: var(--brass); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--brass-hi); outline-offset: 1px; }
+#bar { bottom: calc(12px + env(safe-area-inset-bottom, 0px)); left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); display: flex; align-items: center; gap: 8px; padding: 8px 12px; }
+#bar input { flex: 1; accent-color: var(--brass); min-width: 0; }
+#sub { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(76px + env(safe-area-inset-bottom, 0px)); width: min(820px, calc(100% - 32px)); text-align: center; font: 500 19px/1.45 var(--display); color: #f4ecd8; text-shadow: 0 2px 12px #000, 0 0 3px #000; pointer-events: none; opacity: 0; }
+#sub .t { display: block; font: 500 12px var(--mono); color: var(--brass); margin-bottom: 4px; }
+#sub.show { animation: sub 11s ease forwards; }
+@keyframes sub { 0% { opacity: 0; } 5% { opacity: 1; } 82% { opacity: 1; } 100% { opacity: 0; } }
+#card { position: fixed; left: 50%; top: 38%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; opacity: 0; width: calc(100% - 32px); }
+#card .num { font: 500 13px var(--mono); color: var(--brass); letter-spacing: 0.2em; text-transform: uppercase; }
+#card .ttl { font: italic 500 clamp(34px, 6vw, 64px)/1.1 var(--display); color: #f6efdc; text-shadow: 0 4px 30px #000; margin: 6px 0; text-wrap: balance; }
+#card .sb { font: 16px var(--ui); color: #cfd6da; letter-spacing: 0.04em; }
+#card.show { animation: card 6s ease forwards; }
+@keyframes card { 0% { opacity: 0; } 12% { opacity: 1; } 70% { opacity: 1; } 100% { opacity: 0; } }
+#side { right: max(16px, env(safe-area-inset-right, 0px)); top: 96px; width: 300px; padding: 12px 14px; max-height: calc(100% - 200px); overflow-y: auto; display: none; }
+body.showfacts #side { display: block; }
+#side h4 { font: 600 11px var(--ui); letter-spacing: 0.14em; text-transform: uppercase; color: var(--brass); margin: 12px 0 6px; }
+#side h4:first-child { margin-top: 0; }
+#side p { font-size: 12px; color: var(--dim); margin: 6px 0; }
+.row { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; border-bottom: 1px dotted rgba(255,255,255,0.07); }
+.row span { color: var(--dim); } .row b { font: 500 12.5px var(--mono); font-variant-numeric: tabular-nums; text-align: right; }
+#log { list-style: none; padding: 0; margin: 0; font-size: 12px; max-height: 220px; overflow: auto; }
+#log li { padding: 3px 0; border-bottom: 1px dotted rgba(255,255,255,0.06); }
+#log .t, #sub .t { font-family: var(--mono); color: var(--brass); margin-right: 8px; }
+#intro { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: radial-gradient(ellipse at 50% 60%, rgba(3,8,14,0.55), rgba(0,0,0,0.92)); padding-inline: max(16px, env(safe-area-inset-left, 0px)) max(16px, env(safe-area-inset-right, 0px)); }
+body.intro #intro { display: flex; }
+body.intro #top, body.intro #bar { display: none; }
+.introbox { max-width: 640px; text-align: center; }
+.introbox .kick { font: 500 12px var(--mono); color: var(--brass); letter-spacing: 0.24em; text-transform: uppercase; }
+.introbox h1 { font: italic 500 clamp(38px, 7vw, 76px)/1.05 var(--display); color: #f6efdc; margin: 10px 0 12px; text-wrap: balance; }
+.introbox p { color: #c6ced3; font-size: 16px; max-width: 58ch; margin: 0 auto 22px; }
+.introbox .go { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.introbox button { font-size: 16px; padding: 10px 18px; }
+.introbox small { display: block; color: var(--dim); margin-top: 18px; font-size: 12px; }
+body.story #log { display: none; }
+@media (max-width: 860px) {
+  #top { gap: 6px 10px; padding: 6px 10px; } .brand { font-size: 16px; } .lbl { display: none; }
+  #side { top: auto; bottom: 70px; left: max(16px, env(safe-area-inset-left, 0px)); width: auto; max-height: 45%; }
+  #sub { font-size: 15px; bottom: calc(70px + env(safe-area-inset-bottom, 0px)); }
+}
+@media (prefers-reduced-motion: reduce) { #sub.show, #card.show { animation-duration: 0.01s; opacity: 1; } }
+</style>
+<canvas id="view" aria-label="3D reconstruction of the sinking of RMS Titanic"></canvas>
+<div id="fade"></div>
+<header id="top" class="plate">
+  <div class="brand">Titanic: The Final Hours</div>
+  <div><div id="clock">Sun 14 Apr 1912 · 23:39:00</div><div id="elapsed"></div></div>
+  <div id="chapter"></div>
+  <div class="grp"><span class="lbl">Camera</span>
+    <button data-cam="cinema" class="on">Cinematic</button><button data-cam="crow">Crow's nest</button><button data-cam="bridge">Bridge</button><button data-cam="boat">Lifeboat</button><button data-cam="free">Free</button>
+  </div>
+  <div class="grp"><button id="storyBtn" class="on">Story mode</button><button id="facts">Facts &amp; log</button><button id="sound" class="on">Sound</button></div>
+</header>
+<aside id="side" class="plate"><div id="factsBody"></div><h4>Ship's status</h4><div id="stats"></div><h4>Log</h4><ul id="log"></ul></aside>
+<div id="card"></div>
+<div id="sub" aria-live="polite"></div>
+<footer id="bar" class="plate">
+  <button id="play">Play</button><button id="prevch" title="Previous chapter">‹</button><button id="nextch" title="Next chapter">›</button>
+  <input id="scrub" type="range" step="1" aria-label="Ship's time">
+</footer>
+<section id="intro">
+  <div class="introbox">
+    <div class="kick">North Atlantic · 14–15 April 1912</div>
+    <h1>Titanic: The Final Hours</h1>
+    <p>A real-time 3D reconstruction, minute by minute, from the lookout's bell at 23:39 to Carpathia's rescue at dawn. Every event runs on the ship's own clock at one second per second: the 2 h 40 min sinking, the 20 lifeboats, the break-up, and the six-minute fall to the seabed 3,800 m down.</p>
+    <div class="go"><button id="beginStory" class="on">Begin the story</button><button id="beginExplore">Explore freely</button></div>
+    <small>Sound on recommended. Chapters let you skip ahead; time itself never speeds up. Deep-sea scenes are lit as if by a survey submersible; in reality it is pitch black below 250 m. <a href="sandbox.html" style="color:var(--brass)">Open the 2D physics sandbox</a></small>
+  </div>
+</section>
+<script>document.body.classList.add('intro');</script>

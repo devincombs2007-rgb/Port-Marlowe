@@ -301,7 +301,7 @@ export class Replay {
 
   // --------------------------------------------------------------- boats
   boatState(bt, t) {
-    const sec = this.sections(Math.min(t, bt.at));
+    const sec = this.sections(Math.min(t, bt.at)).bow;
     const xLocal = this.meta.X0 - bt.xb;
     const deckY = this.meta.deckZ('BOAT', xLocal) + 1.6;
     if (t < bt.at - (bt.float ? 0 : 95)) {

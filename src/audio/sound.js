@@ -17,6 +17,14 @@ export class Sound {
     this.rush = loop(700, 0.9);
     this.rumble = loop(70, 1.2);
   }
+  ambient({ under, steam, paused }) {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    this.lp.frequency.setTargetAtTime(under ? 300 : 2400, t, 0.4);
+    this.amb.gain.setTargetAtTime(paused ? 0 : under ? 0.18 : 0.32, t, 0.6);
+    this.rush.gain.setTargetAtTime(paused ? 0 : steam ? 0.7 : 0, t, 0.8);
+    this.rumble.gain.setTargetAtTime(paused ? 0 : under ? 0.35 : 0.05, t, 0.8);
+  }
   toggle() { this.enabled = !this.enabled; if (this.master) this.master.gain.value = this.enabled ? 0.5 : 0; if (this.enabled) this.start(); }
   update(world, renderer, state) {
     if (!this.ctx) return;
