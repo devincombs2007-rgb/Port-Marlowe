@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Port Marlowe Physics Lab</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,500;1,500&family=Barlow+Semi+Condensed:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a lab notebook of instrument cards, two columns on wide screens, one on phones. */
+:root {
+  --bg: #060b11; --panel: #0c141d; --line: rgba(201,169,104,0.28); --text: #e2e6e8; --dim: #8e9aa3;
+  --accent: #e0b866; --water: rgba(46,120,160,0.85); --water-line: #7fc4e4; --air: rgba(160,180,200,0.08); --sea: rgba(20,60,90,0.55);
+  --steel: #9aa3ab; --door: #b58a5a; --rope: #d8cfb8; --boat: #ece6d6; --people: #3a3330; --warn: #e0a33a; --bad: #e0624f; --ok: #6cc28a;
+  --display: "Bodoni Moda", Georgia, serif; --ui: "Barlow Semi Condensed", "Arial Narrow", system-ui, sans-serif; --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 var(--ui); padding-block: 24px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header { max-width: 1240px; margin: 0 auto 18px; }
+header .kick { font: 500 12px var(--mono); letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); }
+h1 { font: italic 500 clamp(30px, 5vw, 46px)/1.1 var(--display); margin: 6px 0 10px; text-wrap: balance; }
+header p { max-width: 75ch; color: #c6ced3; margin: 0 0 8px; }
+header a { color: var(--accent); }
+main { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 560px), 1fr)); gap: 16px; }
+section { background: var(--panel); border: 1px solid var(--line); border-radius: 3px; padding: 14px; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+section h2 { font: 600 15px var(--ui); letter-spacing: 0.02em; margin: 0; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+section h2 span { font: 500 11px var(--mono); color: var(--accent); letter-spacing: 0.12em; text-transform: uppercase; }
+section .what { color: var(--dim); font-size: 13px; margin: 0; }
+canvas { width: 100%; height: 330px; display: block; background: #04080d; border-radius: 2px; }
+.ctrl { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+button { font: 500 12.5px var(--ui); color: var(--text); background: rgba(255,255,255,0.05); border: 1px solid var(--line); border-radius: 2px; padding: 4px 9px; cursor: pointer; }
+button.on { background: var(--accent); color: #14100a; border-color: var(--accent); }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.readout { font: 12px var(--mono); color: var(--dim); min-height: 18px; overflow-wrap: anywhere; }
+.checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.checks li { display: grid; grid-template-columns: 18px 1fr auto; gap: 2px 8px; font-size: 13px; padding: 4px 0; border-top: 1px dotted rgba(255,255,255,0.07); }
+.checks li b { font: 500 12px var(--mono); text-align: right; font-variant-numeric: tabular-nums; }
+.checks li i { grid-column: 2 / 4; font: normal 11.5px var(--mono); color: var(--dim); }
+.checks .ok .mk { color: var(--ok); } .checks .bad .mk { color: var(--bad); } .checks .wait .mk { color: var(--warn); }
+.checks .run { display: block; color: var(--warn); font-size: 12px; }
+.wide { grid-column: 1 / -1; }
+table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+th, td { text-align: left; padding: 4px 8px; border-bottom: 1px solid rgba(255,255,255,0.07); vertical-align: top; }
+th { color: var(--accent); font-weight: 600; }
+td.ok, p.ok { color: var(--ok); font-family: var(--mono); } td.bad, p.bad { color: var(--bad); font-family: var(--mono); }
+.scroll { overflow-x: auto; max-height: 420px; }
+h4 { font: 600 12px var(--ui); letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin: 12px 0 6px; }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
+</style></head><body>
+<header>
+  <div class="kick">Port Marlowe · Physics Lab</div>
+  <h1>Proving the fundamentals</h1>
+  <p>Before the sinking is driven by the ship's own condition, each physical system is proven on its own. Every scenario runs in fixed 1/240 s steps, so the outcome does not depend on your screen's frame rate, and is checked against textbook results. The same checks run headless with <code>npm run test:physics</code>.</p>
+  <p><a href="index.html">Back to Titanic: The Final Hours</a></p>
+</header>
+<main>
+  <section id="c-tanks" data-speed="1">
+    <h2>Two connected tanks <span>1 · Conservation &amp; momentum</span></h2>
+    <p class="what">Water flows through a 0.3 m² opening driven by the pressure difference, with inertia: it overshoots and oscillates like a U-tube before settling at V/(S₁+S₂).</p>
+    <canvas></canvas><div class="readout"></div>
+    <div class="ctrl"><button data-sp="0">Pause</button><button data-sp="0.25">Slow ¼×</button><button data-sp="1">1×</button><button data-sp="4">4×</button><button data-reset>Restart</button></div>
+    <ul class="checks"></ul>
+  </section>
+  <section id="c-vent" data-speed="16">
+    <h2>Sealed vs vented tank <span>2 · Air pressure</span></h2>
+    <p class="what">Three identical tanks 1–4 m below the surface flood through the same inlet. Trapped air compresses (Boyle's law) and stops the sealed tank; a 1 cm² vent lets the air out slowly.</p>
+    <canvas></canvas><div class="readout"></div>
+    <div class="ctrl"><button data-sp="0">Pause</button><button data-sp="1">1×</button><button data-sp="4">4×</button><button data-sp="16">16×</button><button data-reset>Restart</button></div>
+    <ul class="checks"></ul>
+  </section>
+  <section id="c-tilt" data-speed="1">
+    <h2>Tilting part-filled containers <span>3 · Free surface</span></h2>
+    <p class="what">The same volume of water in a broad shallow pool and a narrow deep tank. As the containers heel, the surface stays level and the water's centre of gravity moves toward the low side, far more in the broad pool. A sudden jolt at 25 s starts sloshing.</p>
+    <canvas></canvas><div class="readout"></div>
+    <div class="ctrl"><button data-sp="0">Pause</button><button data-sp="0.25">Slow ¼×</button><button data-sp="1">1×</button><button data-sp="4">4×</button><button data-reset>Restart</button></div>
+    <ul class="checks"></ul>
+  </section>
+  <section id="c-door" data-speed="4">
+    <h2>Pressure across a hinged door <span>4 · Force, torque, latch</span></h2>
+    <p class="what">A cabin door (0.76 × 1.98 m) between a flooding room and a dry one. The pressure difference is integrated over the leaf; the latch fails when its share of the torque exceeds 2.2 kN, and opening the door lets the rooms equalise. If the door opens into the flooding room, the frame holds it shut.</p>
+    <canvas></canvas><div class="readout"></div>
+    <div class="ctrl"><button data-sp="0">Pause</button><button data-sp="1">1×</button><button data-sp="4">4×</button><button data-sp="16">16×</button><button data-reset>Restart</button><button id="doorDir">Door opens toward the dry room</button></div>
+    <ul class="checks"></ul>
+  </section>
+  <section id="c-boat" data-speed="1">
+    <h2>Lowering a loaded boat unevenly <span>5 · Ropes &amp; pulleys</span></h2>
+    <p class="what">A 30 ft lifeboat with 40 people hangs from two 3-part manila falls. The forward fall is paid out faster, so the boat tilts and the load redistributes; then passengers crowd aft; then she is lowered to the sea, where buoyancy takes the weight and the ropes go slack.</p>
+    <canvas></canvas><div class="readout"></div>
+    <div class="ctrl"><button data-sp="0">Pause</button><button data-sp="0.25">Slow ¼×</button><button data-sp="1">1×</button><button data-sp="4">4×</button><button data-reset>Restart</button></div>
+    <ul class="checks"></ul>
+  </section>
+  <section id="c-fr">
+    <h2>Frame-rate independence <span>6 · Repeatability &amp; convergence</span></h2>
+    <p class="what">A combined scenario (tanks, door and boat) is run at 24, 60 and 144 fps and with a jittery 15–120 fps, all through the same fixed-step clock. The state hashes must match bit for bit. Halving the step must shrink the error.</p>
+    <div class="ctrl"><button id="runFR" class="on">Run the checks</button></div>
+    <div id="frOut"><p class="what">Takes a few seconds.</p></div>
+  </section>
+  <section class="wide">
+    <h2>Parameters <span>Editable · units · provenance</span></h2>
+    <p class="what">Every number comes from <code>src/physics2/data/physics.json</code>; each value is marked as a published source or a stated estimate.</p>
+    <div class="scroll"><table id="params"></table></div>
+  </section>
+</main>

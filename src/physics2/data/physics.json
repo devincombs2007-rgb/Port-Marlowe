@@ -1,0 +1,63 @@
+{
+  "_readme": "Physical parameters used by the physics core. Every entry: value, unit, and either 'source' (published figure) or 'estimate' (reasoned assumption, with the reasoning). Edit freely; the lab and tests read this file.",
+  "constants": {
+    "g": { "value": 9.81, "unit": "m/s^2", "source": "standard gravity (rounded)" },
+    "rho_sea": { "value": 1025, "unit": "kg/m^3", "source": "typical North Atlantic surface seawater" },
+    "rho_fresh": { "value": 1000, "unit": "kg/m^3", "source": "fresh water, 4 C" },
+    "p_atm": { "value": 101325, "unit": "Pa", "source": "standard atmosphere" },
+    "R_air": { "value": 287.05, "unit": "J/(kg K)", "source": "specific gas constant, dry air" },
+    "gamma_air": { "value": 1.4, "unit": "-", "source": "ratio of specific heats, dry air" },
+    "T_air": { "value": 272.15, "unit": "K", "source": "about -1 C, air temperature reported 14 Apr 1912 (British Inquiry)" },
+    "rho_ice": { "value": 917, "unit": "kg/m^3", "source": "glacial ice" }
+  },
+  "openings": {
+    "Cd_sharp_orifice": { "value": 0.61, "unit": "-", "source": "sharp-edged orifice discharge coefficient (standard hydraulics texts)" },
+    "Cd_doorway": { "value": 0.65, "unit": "-", "estimate": "rounded doorway with frame; between sharp orifice (0.61) and short tube (0.8)" },
+    "Leff_factor": { "value": 0.85, "unit": "x sqrt(area)", "estimate": "inertial length of the jet region ~0.85 sqrt(A) per side (orifice added-length approximation)" },
+    "door_leak_fraction": { "value": 0.015, "unit": "of door area", "estimate": "gaps round a closed non-watertight cabin door (~3 mm all round a 0.8 x 2 m door)" }
+  },
+  "doors": {
+    "cabin_door_mass": { "value": 32, "unit": "kg", "estimate": "panelled hardwood door 0.76 x 1.98 x 0.045 m at ~480 kg/m^3 plus fittings" },
+    "cabin_latch_strength": { "value": 2200, "unit": "N", "estimate": "mortice latch bolt and keeper in wood: typical failure 1.5-3 kN" },
+    "cabin_hinge_strength": { "value": 9000, "unit": "N per hinge", "estimate": "brass butt hinge screwed into hardwood frame" },
+    "frame_stop_strength": { "value": 30000, "unit": "N", "estimate": "door stop/rebate bearing the whole leaf when pushed closed" }
+  },
+  "ropes": {
+    "manila_3in_breaking_load": { "value": 39000, "unit": "N", "source": "3-inch circumference manila, ~4 short tons minimum breaking strength (US Navy rope tables)" },
+    "manila_EA": { "value": 450000, "unit": "N", "estimate": "axial stiffness: ~10-12 % elongation at breaking load for new manila" },
+    "manila_damping": { "value": 0.06, "unit": "fraction of critical", "estimate": "natural fibre rope internal damping" },
+    "fall_parts": { "value": 3, "unit": "parts of rope supporting the load", "estimate": "Titanic boat falls rove through double/single blocks; 3 supporting parts assumed" },
+    "sheave_efficiency": { "value": 0.91, "unit": "per sheave", "source": "plain-bearing wooden blocks, 0.88-0.92 typical" }
+  },
+  "lifeboat_30ft": {
+    "length": { "value": 9.14, "unit": "m", "source": "30 ft wooden lifeboats (Harland & Wolff), British Inquiry" },
+    "beam": { "value": 2.77, "unit": "m", "source": "9 ft 1 in" },
+    "depth": { "value": 1.22, "unit": "m", "source": "4 ft" },
+    "capacity_persons": { "value": 65, "unit": "persons", "source": "certified capacity" },
+    "hull_mass": { "value": 1300, "unit": "kg", "estimate": "clinker-built yellow pine boat with gear and air tanks; published figures 1.2-1.5 t" },
+    "block_coefficient": { "value": 0.58, "unit": "-", "estimate": "double-ended pulling boat" },
+    "person_mass": { "value": 72, "unit": "kg", "estimate": "1912 adult average incl. heavy winter clothing" }
+  },
+  "friction": {
+    "leather_on_dry_teak": { "value": 0.5, "unit": "mu", "estimate": "leather sole on oiled teak/pine deck" },
+    "leather_on_wet_teak": { "value": 0.3, "unit": "mu", "estimate": "wet deck roughly halves friction" },
+    "leather_on_carpet": { "value": 0.65, "unit": "mu", "estimate": "" },
+    "leather_on_wet_carpet": { "value": 0.45, "unit": "mu", "estimate": "" },
+    "wood_on_polished_wood": { "value": 0.3, "unit": "mu", "estimate": "furniture legs on polished parquet" },
+    "steel_on_steel": { "value": 0.42, "unit": "mu", "source": "dry mild steel (engineering tables 0.4-0.6 static)" },
+    "steel_on_wet_steel": { "value": 0.25, "unit": "mu", "estimate": "" }
+  },
+  "glass": {
+    "plate_glass_strength": { "value": 4.1e7, "unit": "Pa", "source": "annealed plate glass design flexural strength ~41 MPa (short duration)" },
+    "porthole_glass_thickness": { "value": 0.025, "unit": "m", "estimate": "1 inch sidelight glass" },
+    "porthole_diameter": { "value": 0.406, "unit": "m", "source": "16-inch sidelights on Olympic-class hulls" },
+    "window_glass_thickness": { "value": 0.0095, "unit": "m", "estimate": "3/8 inch plate glass in B-deck windows" },
+    "window_size": { "value": [1.0, 0.9], "unit": "m", "estimate": "B-deck rectangular window" }
+  },
+  "drag": {
+    "Cd_flat_plate_broadside": { "value": 1.17, "unit": "-", "source": "flat plate normal to flow (Hoerner)" },
+    "Cf_plate_edgewise": { "value": 0.004, "unit": "-", "source": "turbulent skin friction, Re ~ 1e6-1e7" },
+    "Ca_hull_heave": { "value": 1.0, "unit": "x displaced mass", "estimate": "flat-bottomed boat heaving at the surface" },
+    "Ca_hull_surge": { "value": 0.05, "unit": "x displaced mass", "estimate": "slender hull, longitudinal" }
+  }
+}

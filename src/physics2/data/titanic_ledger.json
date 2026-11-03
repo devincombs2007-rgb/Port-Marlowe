@@ -1,0 +1,72 @@
+{
+  "_readme": "Mass ledger for RMS Titanic on 14 April 1912. Displacement is a mass (weight of water displaced). Gross register tonnage is a volume measure (1 register ton = 100 cubic feet = 2.83 m^3) and must never be added to masses.",
+  "displacement_load": {
+    "value": 52310,
+    "unit": "long tons (1016 kg)",
+    "source": "Harland & Wolff / British Inquiry: displacement at 34 ft 7 in draught"
+  },
+  "gross_register_tonnage": {
+    "value": 46328,
+    "unit": "register tons (VOLUME, 2.832 m^3 each)",
+    "source": "British Inquiry; NOT a mass"
+  },
+  "net_register_tonnage": {
+    "value": 21831,
+    "unit": "register tons (VOLUME)",
+    "source": "British Inquiry"
+  },
+  "items": [
+    {
+      "name": "Lightship (hull, machinery, outfit)",
+      "value": 38760,
+      "unit": "long tons",
+      "estimate": "commonly quoted lightweight for Olympic-class; varies 38,000-39,000 t"
+    },
+    {
+      "name": "Coal remaining",
+      "value": 3800,
+      "unit": "long tons",
+      "estimate": "5,892 t aboard at Southampton less ~650 t/day steaming, partly offset by Cherbourg/Queenstown use"
+    },
+    {
+      "name": "Cargo",
+      "value": 559,
+      "unit": "long tons",
+      "estimate": "manifest total (approx.)"
+    },
+    {
+      "name": "Fresh water, feed water, boiler water",
+      "value": 3200,
+      "unit": "long tons",
+      "estimate": "boilers alone held ~1,500 t of water"
+    },
+    {
+      "name": "Stores, provisions, baggage",
+      "value": 1100,
+      "unit": "long tons",
+      "estimate": ""
+    },
+    {
+      "name": "People (2,208 x 72 kg)",
+      "value": 156,
+      "unit": "long tons",
+      "estimate": ""
+    },
+    {
+      "name": "Ballast in double bottom",
+      "value": 1290,
+      "unit": "long tons",
+      "estimate": "trimming ballast in the double bottom; balances the ledger to the hull-model displacement at the observed draught"
+    }
+  ],
+  "draught_observed": {
+    "value": 10.2,
+    "unit": "m",
+    "estimate": "slightly less than load draught after coal burned"
+  },
+  "displacement_night": {
+    "value": 48870,
+    "unit": "long tons",
+    "estimate": "hydrostatics of the Port Marlowe hull model at the 10.2 m mean draught of 14 April (49,650 metric t)"
+  }
+}

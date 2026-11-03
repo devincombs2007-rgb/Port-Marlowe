@@ -179,7 +179,7 @@ const timeline = (() => {
   return ev.sort((a, b) => a.t - b.t);
 })();
 
-const state = { t: H.START, prev: H.START, paused: true, story: true, cam: 'cinema', started: false, epiT: 0, epi: false, lastShot: '', fade: 0, yawOff: 0, pitchOff: 0 };
+const state = { t: H.START, prev: H.START, paused: true, story: true, cam: 'cinema', started: false, epiT: 0, epi: false, lastShot: '', fade: 0, yawOff: 0, pitchOff: 0, speed: 1, lens: 0 };
 const sound = new Sound();
 
 // ------------------------------------------------------------ poses
@@ -418,7 +418,7 @@ function applyCamera(dt) {
   if (s.shake) { camera.position.x += Math.sin(t * 1.7) * s.shake; camera.position.y += Math.sin(t * 2.3) * s.shake; }
   camera.lookAt(look);
   // keep the same horizontal framing on portrait screens (phones)
-  let fov = s.fov;
+  let fov = state.lens ? 2 * Math.atan(12 / state.lens) / D2R : s.fov;   // focal length on a 36x24 mm frame
   if (camera.aspect < 16 / 9 && !s.pov) fov = Math.min(105, 2 * Math.atan(Math.tan(s.fov * D2R / 2) * (16 / 9) / camera.aspect * (camera.aspect < 1 ? 0.62 : 1)) / D2R);
   if (Math.abs(camera.fov - fov) > 0.01) { camera.fov = fov; camera.updateProjectionMatrix(); }
 }
@@ -609,7 +609,7 @@ function frame(now) {
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
   if (!state.paused && state.started) {
     if (state.t < H.END) {
-      state.t = Math.min(H.END, state.t + dt);   // 1x real time, always
+      state.t = Math.min(H.END, state.t + dt * state.speed);   // 1x real time by default
       fireEvents(state.prev, state.t);
       state.prev = state.t;
       if (state.t >= H.END && state.story) titleCard(CHAPTERS[CHAPTERS.length - 1]);
@@ -666,6 +666,10 @@ $('nextch').addEventListener('click', () => { const i = chapterAt(state.t); if (
 $('prevch').addEventListener('click', () => { let i = chapterAt(state.t); if (state.t - CHAPTERS[i].t < 5 && i > 0) i--; seek(CHAPTERS[i].t); if (state.story) titleCard(CHAPTERS[i]); });
 $('storyBtn').addEventListener('click', () => { state.story = !state.story; $('storyBtn').classList.toggle('on', state.story); document.body.classList.toggle('story', state.story); if (state.story) setCam('cinema'); });
 $('facts').addEventListener('click', () => document.body.classList.toggle('showfacts'));
+document.querySelectorAll('[data-speed]').forEach(b => b.addEventListener('click', () => { state.speed = Number(b.dataset.speed); document.querySelectorAll('[data-speed]').forEach(x => x.classList.toggle('on', x === b)); }));
+document.querySelectorAll('[data-lens]').forEach(b => b.addEventListener('click', () => { state.lens = Number(b.dataset.lens); document.querySelectorAll('[data-lens]').forEach(x => x.classList.toggle('on', x === b)); }));
+const toggleUI = () => document.body.classList.toggle('clean');
+$('hideui').addEventListener('click', toggleUI);
 $('sound').addEventListener('click', () => { sound.toggle(); $('sound').classList.toggle('on', sound.enabled); });
 function begin(story) {
   state.story = story; state.started = true; state.paused = false;
@@ -687,7 +691,7 @@ canvas.addEventListener('pointermove', (e) => {
   if (state.cam === 'cinema') { setCam('free'); return; }
   state.yawOff = drag.yaw + (e.clientX - drag.x) * 0.004; state.pitchOff = Math.max(-1.2, Math.min(1.2, drag.pitch - (e.clientY - drag.y) * 0.004));
 });
-window.addEventListener('keydown', (e) => { if (e.key === ' ') { e.preventDefault(); $('play').click(); } });
+window.addEventListener('keydown', (e) => { if (e.key === ' ') { e.preventDefault(); $('play').click(); } if (e.key === 'h' || e.key === 'H') toggleUI(); });
 
 // facts (exact figures; the iceberg's are measured from its mesh)
 {

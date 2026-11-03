@@ -12,3 +12,10 @@ async function page(entry, shellFile, outBody, outFull) {
 }
 await page('src/main3d.js', 'web/shell3d.html', 'dist/artifact.html', 'dist/index.html');
 await page('src/main.js', 'web/shell.html', null, 'dist/sandbox.html');
+{
+  const r = await build({ entryPoints: ['src/lab.js'], bundle: true, format: 'iife', write: false, target: 'es2020', minify: true, legalComments: 'none' });
+  const js = r.outputFiles[0].text.replace(/<\/script/g, '<\\/script');
+  const html = readFileSync('web/lab.html', 'utf8').replace('</main>', '</main>\n<script>\n' + js + '\n</script>') + '</body></html>\n';
+  writeFileSync('dist/lab.html', html);
+  console.log('dist/lab.html', (html.length / 1024).toFixed(0), 'KB');
+}

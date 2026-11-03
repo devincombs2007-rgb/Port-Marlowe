@@ -23,6 +23,7 @@ body { margin: 0; background: var(--ink); color: var(--text); font: 14px/1.4 var
 .lbl { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); margin-right: 4px; }
 button { font: 500 13px var(--ui); color: var(--text); background: rgba(255,255,255,0.05); border: 1px solid rgba(201,169,104,0.28); border-radius: 2px; padding: 5px 10px; cursor: pointer; }
 button:hover { border-color: var(--brass); }
+.lnk { font: 500 13px var(--ui); color: var(--brass-hi); padding: 5px 6px; text-decoration: underline; text-underline-offset: 3px; }
 button.on { background: var(--brass); color: #12100b; border-color: var(--brass); }
 button:focus-visible, input:focus-visible { outline: 2px solid var(--brass-hi); outline-offset: 1px; }
 #bar { bottom: calc(12px + env(safe-area-inset-bottom, 0px)); left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); display: flex; align-items: center; gap: 8px; padding: 8px 12px; }
@@ -58,6 +59,9 @@ body.intro #top, body.intro #bar { display: none; }
 .introbox button { font-size: 16px; padding: 10px 18px; }
 .introbox small { display: block; color: var(--dim); margin-top: 18px; font-size: 12px; }
 body.story #log { display: none; }
+#bar { flex-wrap: wrap; }
+body.clean #top, body.clean #bar, body.clean #side { opacity: 0; pointer-events: none; transition: opacity .3s; }
+body.clean #bar:hover, body.clean #top:hover { opacity: 1; pointer-events: auto; }
 @media (max-width: 860px) {
   #top { gap: 6px 10px; padding: 6px 10px; } .brand { font-size: 16px; } .lbl { display: none; }
   #side { top: auto; bottom: 70px; left: max(16px, env(safe-area-inset-left, 0px)); width: auto; max-height: 45%; }
@@ -74,7 +78,7 @@ body.story #log { display: none; }
   <div class="grp"><span class="lbl">Camera</span>
     <button data-cam="cinema" class="on">Cinematic</button><button data-cam="crow">Crow's nest</button><button data-cam="bridge">Bridge</button><button data-cam="boat">Lifeboat</button><button data-cam="free">Free</button>
   </div>
-  <div class="grp"><button id="storyBtn" class="on">Story mode</button><button id="facts">Facts &amp; log</button><button id="sound" class="on">Sound</button></div>
+  <div class="grp"><button id="storyBtn" class="on">Story mode</button><button id="facts">Facts &amp; log</button><button id="sound" class="on">Sound</button><a class="lnk" href="lab.html">Physics lab</a></div>
 </header>
 <aside id="side" class="plate"><div id="factsBody"></div><h4>Ship's status</h4><div id="stats"></div><h4>Log</h4><ul id="log"></ul></aside>
 <div id="card"></div>
@@ -82,14 +86,17 @@ body.story #log { display: none; }
 <footer id="bar" class="plate">
   <button id="play">Play</button><button id="prevch" title="Previous chapter">‹</button><button id="nextch" title="Next chapter">›</button>
   <input id="scrub" type="range" step="1" aria-label="Ship's time">
+  <div class="grp"><span class="lbl">Speed</span><button data-speed="0.25">¼×</button><button data-speed="0.5">½×</button><button data-speed="1" class="on">1×</button><button data-speed="10">10×</button><button data-speed="60">60×</button></div>
+  <div class="grp"><span class="lbl">Lens</span><button data-lens="0" class="on">Auto</button><button data-lens="24">24</button><button data-lens="35">35</button><button data-lens="50">50</button><button data-lens="85">85 mm</button></div>
+  <button id="hideui" title="Hide the interface (H)">Hide UI</button>
 </footer>
 <section id="intro">
   <div class="introbox">
     <div class="kick">North Atlantic · 14–15 April 1912</div>
     <h1>Titanic: The Final Hours</h1>
-    <p>A real-time 3D reconstruction, minute by minute, from the lookout's bell at 23:39 to Carpathia's rescue at dawn. Every event runs on the ship's own clock at one second per second: the 2 h 40 min sinking, the 20 lifeboats, the break-up, and the six-minute fall to the seabed 3,800 m down.</p>
+    <p>A real-time 3D reconstruction, minute by minute, from the lookout's bell at 23:39 to Carpathia's rescue at dawn. Every event runs on the ship's own clock, one second per second unless you change the speed: the 2 h 40 min sinking, the 20 lifeboats, the break-up, and the six-minute fall to the seabed 3,800 m down.</p>
     <div class="go"><button id="beginStory" class="on">Begin the story</button><button id="beginExplore">Explore freely</button></div>
-    <small>Sound on recommended. Chapters let you skip ahead; time itself never speeds up. Deep-sea scenes are lit as if by a survey submersible; in reality it is pitch black below 250 m. <a href="sandbox.html" style="color:var(--brass)">Open the 2D physics sandbox</a></small>
+    <small>Sound on recommended. Time runs at 1× by default; slow motion, fast-forward, lenses and a hidden interface (H) are in the bottom bar. Deep-sea scenes are lit as if by a survey submersible; in reality it is pitch black below 250 m. <a href="sandbox.html" style="color:var(--brass)">2D physics sandbox</a> · <a href="lab.html" style="color:var(--brass)">Physics lab</a></small>
   </div>
 </section>
 <script>document.body.classList.add('intro');</script>
