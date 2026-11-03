@@ -56,6 +56,18 @@ select { background: #0d1822; }
 #log .t { font: 12px var(--mono); color: var(--brass); margin-right: 10px; }
 input[type=range] { width: 100%; accent-color: var(--brass); }
 #infoBtn { display: none; }
+.ronly { display: none !important; }
+body.replay .ronly { display: flex !important; }
+body.replay button.ronly { display: inline-block !important; }
+body.replay .sonly, body.replay #tools { display: none !important; }
+.tl { gap: 8px; align-items: center; margin-bottom: 6px; }
+.tl input { flex: 1; }
+#log li.now { opacity: 1; color: var(--brass-hi); }
+#caption { position: fixed; left: 50%; top: 32%; transform: translateX(-50%); width: min(640px, calc(100% - 32px)); text-align: center; font: italic 500 19px/1.4 var(--display); color: #f2ead6; text-shadow: 0 2px 10px #000, 0 0 2px #000; pointer-events: none; opacity: 0; }
+#caption .t { font: 500 13px var(--mono); font-style: normal; color: var(--brass); display: block; margin-bottom: 4px; }
+#caption.show { animation: cap 9s ease forwards; }
+@keyframes cap { 0% { opacity: 0; } 6% { opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { #caption.show { animation: none; opacity: 1; } }
 @media (max-width: 860px) {
   body { font-size: 13px; }
   #top { top: calc(6px + env(safe-area-inset-top, 0px)); flex-wrap: wrap; gap: 6px 10px; padding: 6px 10px; scrollbar-width: none; }
@@ -73,6 +85,7 @@ input[type=range] { width: 100%; accent-color: var(--brass); }
   body.info #panel { display: block; }
   #bottom { width: calc(100% - 32px); bottom: calc(8px + env(safe-area-inset-bottom, 0px)); padding: 6px 10px; }
   #log { max-height: 40px; font-size: 12px; }
+  #caption { top: 40%; font-size: 15px; }
   #log li + li { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { #stressbar { transition: none; } }
@@ -81,12 +94,15 @@ input[type=range] { width: 100%; accent-color: var(--brass); }
 <header id="top" class="plate">
   <div class="brand">Port Marlowe<small>a sinking sandbox</small></div>
   <div><div id="clock">14 Apr 1912 · 23:39:40</div><div id="elapsed">T+0h 00m 00s</div></div>
-  <div class="grp"><span class="lbl">Time</span>
+  <div class="grp ronly"><span class="lbl">Speed</span>
+    <button data-rspeed="0" title="Pause (space)">❚❚</button><button data-rspeed="1" class="on" title="Real time: one second is one second">1× real</button><button data-rspeed="10">10×</button><button data-rspeed="60">60×</button><button data-rspeed="300">300×</button>
+  </div>
+  <div class="grp sonly"><span class="lbl">Time</span>
     <button data-speed="0" title="Pause (space)">❚❚</button><button data-speed="1" class="on">1×</button><button data-speed="5">5×</button><button data-speed="20">20×</button><button data-speed="60">60×</button>
   </div>
-  <div class="grp"><span class="lbl">Wreck</span><button data-years="0.1">1 yr/10 s</button><button data-years="2">2 yr/s</button><button data-years="10">10 yr/s</button></div>
-  <div class="grp"><span class="lbl">View</span><button data-view="cutaway" class="on">Cutaway</button><button data-view="exterior">Hull</button><button data-view="stress">Stress</button><button id="follow">Follow</button></div>
-  <div class="grp"><select id="scenario" aria-label="Scenario"><option value="iceberg">1912 · Iceberg</option><option value="sandbox">Sandbox · intact</option></select><button id="sound" class="on" title="Sound">Sound</button></div>
+  <div class="grp sonly"><span class="lbl">Wreck</span><button data-years="0.1">1 yr/10 s</button><button data-years="2">2 yr/s</button><button data-years="10">10 yr/s</button></div>
+  <div class="grp"><span class="lbl">View</span><button data-view="cutaway" class="on">Cutaway</button><button data-view="exterior">Hull</button><button data-view="stress">Stress</button><button id="follow" class="sonly">Follow</button><button id="director" class="ronly on" title="Automatic camera">Director</button></div>
+  <div class="grp"><select id="scenario" aria-label="Scenario"><option value="replay">1912 · Historical replay</option><option value="iceberg">1912 · Physics sandbox</option><option value="sandbox">Sandbox · intact</option></select><button id="sound" class="on" title="Sound">Sound</button></div>
 </header>
 <nav id="tools" class="plate" aria-label="Tools">
   <span class="lbl">Tools</span>
@@ -100,7 +116,7 @@ input[type=range] { width: 100%; accent-color: var(--brass); }
   <span class="hint">Wheel to zoom, right-drag to pan, C toggles view.</span>
 </nav>
 <aside id="panel" class="plate">
-  <h3>Hydrostatics</h3>
+  <h3 id="paneltitle">Hydrostatics</h3>
   <div id="stats"></div>
   <div class="meter"><div id="stressbar"></div></div>
   <h3>Watertight compartments</h3>
@@ -111,7 +127,11 @@ input[type=range] { width: 100%; accent-color: var(--brass); }
   <h3>Abyss visibility</h3>
   <input id="visibility" type="range" min="0" max="1" step="0.05" value="0.55" aria-label="Visibility at depth">
 </aside>
-<footer id="bottom" class="plate"><ul id="log"></ul></footer>
+<div id="caption" aria-live="polite"></div>
+<footer id="bottom" class="plate">
+  <div class="tl ronly"><input id="scrub" type="range" min="-60" max="31800" step="1" value="-60" aria-label="Timeline, ship's time"><button id="next">Next ›</button></div>
+  <ul id="log"></ul>
+</footer>
 
 <script>
 (() => {
@@ -521,23 +541,23 @@ input[type=range] { width: 100%; accent-color: var(--brass); }
     return HB * Math.sqrt(Math.max(0, 1 - u * u));
   }
   function halfBreadth(xb, z) {
-    const T = DESIGN_DRAUGHT;
+    const T2 = DESIGN_DRAUGHT;
     const bw = wlHalf(xb);
     const k = smooth(0.35, 0.985, bw / HB);
     let below;
     const R = 2.3;
-    const zz = Math.min(z, T);
+    const zz = Math.min(z, T2);
     const box = zz < R ? bw - R + Math.sqrt(Math.max(0, R * R - (R - zz) * (R - zz))) : bw;
-    const vee = Math.max(0.35, bw * Math.pow(Math.max(0, zz) / T, 0.78));
+    const vee = Math.max(0.35, bw * Math.pow(Math.max(0, zz) / T2, 0.78));
     below = Math.max(0.35, k * box + (1 - k) * vee);
-    if (z <= T) return Math.min(below, HB);
+    if (z <= T2) return Math.min(below, HB);
     if (xb < 70) {
       const flare = 0.3 * Math.pow(1 - xb / 70, 1.3);
-      const atDeck = Math.min(HB, bw + (z - T) * flare + (z - T) * 0.02);
+      const atDeck = Math.min(HB, bw + (z - T2) * flare + (z - T2) * 0.02);
       return Math.max(0.35, atDeck);
     }
     if (xb > 170) {
-      const up2 = smooth(T - 1, T + 7, z);
+      const up2 = smooth(T2 - 1, T2 + 7, z);
       return Math.max(0.35, Math.min(HB, bw * (1 - up2) + counterHalf(xb) * up2));
     }
     return HB;
@@ -2576,7 +2596,7 @@ input[type=range] { width: 100%; accent-color: var(--brass); }
       } else if (wb.y0 < sMax) {
         const cells = b.cells, gx = b.gx, gy = b.gy;
         const c = b.c, s = b.s, cx = b.comX, cy = b.comY, bx = b.x, by = b.y;
-        let F = 0, T = 0;
+        let F = 0, T2 = 0;
         let lastX = 1e9, surf = 0;
         for (let q = 0; q < cells.length; q++) {
           const v = g.vdisp[cells[q]];
@@ -2592,11 +2612,11 @@ input[type=range] { width: 100%; accent-color: var(--brass); }
           if (f > 1) f = 1;
           const dF = v * f;
           F += dF;
-          T += (X - bx) * dF;
+          T2 += (X - bx) * dF;
         }
         Vsub = F;
         bF = F * rho * G;
-        bT = T * rho * G;
+        bT = T2 * rho * G;
       }
       bF *= this.hydroScale;
       bT *= this.hydroScale;
@@ -2898,10 +2918,10 @@ input[type=range] { width: 100%; accent-color: var(--brass); }
         if (!b.alive) continue;
         const me = b.m + b.addedM, Ie = b.I + b.addedI;
         const ax = (b.vx - b.v0x) / dt, ay = (b.vy - b.v0y) / dt, al = (b.w - b.w0) / dt;
-        const Fx = b.extFx + b.cfx, Fy = b.extFy + b.cfy, T = b.extTq + b.ctq;
+        const Fx = b.extFx + b.cfx, Fy = b.extFy + b.cfy, T2 = b.extTq + b.ctq;
         Dx[b.index] = me * ax - Fx;
         Dy[b.index] = me * ay - Fy;
-        Dm[b.index] = Ie * al - T + cross(b.x, b.y, Dx[b.index], Dy[b.index]);
+        Dm[b.index] = Ie * al - T2 + cross(b.x, b.y, Dx[b.index], Dy[b.index]);
       }
       const adj = Array.from({ length: N }, () => []);
       for (const j of joints) if (j.state < 2) {
@@ -3679,7 +3699,11 @@ input[type=range] { width: 100%; accent-color: var(--brass); }
       const horizon = sy0(0);
       if (horizon > 0) {
         const sg = ctx.createLinearGradient(0, 0, 0, Math.max(1, horizon));
-        if (this.night) {
+        if (this.night && this.dawn > 0) {
+          const d = this.dawn;
+          sg.addColorStop(0, `rgb(${3 + 60 * d},${6 + 90 * d},${13 + 140 * d})`);
+          sg.addColorStop(1, `rgb(${13 + 220 * d},${22 + 150 * d},${38 + 110 * d})`);
+        } else if (this.night) {
           sg.addColorStop(0, "#03060d");
           sg.addColorStop(1, "#0d1626");
         } else {
@@ -3690,7 +3714,9 @@ input[type=range] { width: 100%; accent-color: var(--brass); }
         ctx.fillRect(0, 0, W, Math.min(H, horizon));
         if (this.night) {
           ctx.fillStyle = "#fff";
+          if (this.replay) this.drawHorizonLights(ctx, W, horizon);
           for (const [sx, syy, b] of this.stars) {
+            if (this.dawn > 0.6) break;
             const y = syy * horizon;
             if (y > horizon - 4) continue;
             ctx.globalAlpha = 0.3 + 0.7 * b * (0.8 + 0.2 * Math.sin(state2.time * 2 + b * 40));
@@ -3712,6 +3738,7 @@ input[type=range] { width: 100%; accent-color: var(--brass); }
       ctx.save();
       ctx.setTransform(this.dpr * z, 0, 0, -this.dpr * z, this.dpr * (W / 2 - z * cam.x + shx), this.dpr * (H / 2 + z * cam.y + shy));
       const mode = this.mode === "exterior" ? "ext" : "cut";
+      if (this.replay) this.drawReplayBack(ctx, this.replay.t);
       for (const b of world2.bodies) {
         if (!b.alive) continue;
         const wbx = b.wbox;
@@ -3720,6 +3747,11 @@ input[type=range] { width: 100%; accent-color: var(--brass); }
         ctx.save();
         ctx.transform(b.c, b.s, -b.s, b.c, b.x, b.y);
         ctx.translate(-b.comX, -b.comY);
+        if (b.squash && b.squash < 1) {
+          ctx.translate(0, b.aabb.y0);
+          ctx.scale(1, b.squash);
+          ctx.translate(0, -b.aabb.y0);
+        }
         ctx.save();
         ctx.translate(t.x0, t.y1);
         ctx.scale(CELL / PX, -CELL / PX);
@@ -3731,6 +3763,7 @@ input[type=range] { width: 100%; accent-color: var(--brass); }
         ctx.restore();
       }
       this.drawRigging(ctx);
+      if (this.replay) this.drawReplayFront(ctx, this.replay.t);
       this.drawParticles(ctx, state2, mode);
       ctx.restore();
       this.drawOcean(ctx, W, H, sx0, sy0, wl, wr, state2);
@@ -3954,6 +3987,179 @@ input[type=range] { width: 100%; accent-color: var(--brass); }
       ctx.drawImage(d, 0, 0);
       ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     }
+    // ------------------------------------------------------- replay layers
+    drawBoat(ctx, st, side, id) {
+      if (!st || st.mode === "gone") return;
+      ctx.save();
+      ctx.translate(st.x, st.y);
+      ctx.rotate(st.a || 0);
+      const L = id === "A" || id === "B" || id === "C" || id === "D" ? 8.3 : id === "1" || id === "2" ? 7.6 : 9.1;
+      ctx.globalAlpha = side === "p" ? 0.6 : 1;
+      if (st.flip) {
+        ctx.fillStyle = "#e8e2d2";
+        ctx.beginPath();
+        ctx.ellipse(0, 0.2, L / 2, 0.55, 0, 0, Math.PI);
+        ctx.fill();
+      } else {
+        ctx.fillStyle = "#f1ece0";
+        ctx.beginPath();
+        ctx.moveTo(-L / 2, 1.1);
+        ctx.lineTo(L / 2, 1.1);
+        ctx.quadraticCurveTo(L / 2 - 0.4, -0.1, L / 2 - 1.4, -0.25);
+        ctx.lineTo(-L / 2 + 1.4, -0.25);
+        ctx.quadraticCurveTo(-L / 2 + 0.4, -0.1, -L / 2, 1.1);
+        ctx.fill();
+        ctx.fillStyle = "#9b3a2c";
+        ctx.fillRect(-L / 2 + 0.6, 0.85, L - 1.2, 0.18);
+        if (st.mode !== "davit") {
+          ctx.fillStyle = "#2a2622";
+          const n = Math.min(14, Math.max(3, Math.round(L * 1.4)));
+          for (let i = 0; i < n; i++) ctx.fillRect(-L / 2 + 1 + i * (L - 2) / n, 1.1, 0.32, 0.55 + i * 7 % 3 * 0.08);
+          if (this.night && this.dawn < 0.7) {
+            ctx.fillStyle = "rgba(255,214,140,0.95)";
+            ctx.fillRect(L / 2 - 1.2, 1.7, 0.25, 0.3);
+          }
+        }
+        if (st.mode === "lowering" || st.mode === "davit") {
+          ctx.strokeStyle = "rgba(220,210,190,0.7)";
+          ctx.lineWidth = 0.06;
+          ctx.beginPath();
+          ctx.moveTo(-L / 2 + 0.8, 1.1);
+          ctx.lineTo(-L / 2 + 0.8, 1.1 + (st.mode === "davit" ? 1.3 : 30));
+          ctx.moveTo(L / 2 - 0.8, 1.1);
+          ctx.lineTo(L / 2 - 0.8, 1.1 + (st.mode === "davit" ? 1.3 : 30));
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+    }
+    drawIceberg(ctx, t, front) {
+      const rp = this.replay;
+      if (t > -1 + 600 || t < -60) return;
+      const xc = rp.icebergX(t);
+      ctx.save();
+      ctx.translate(xc, 0);
+      if (!front) {
+        ctx.fillStyle = "rgba(120,170,200,0.35)";
+        ctx.beginPath();
+        ctx.moveTo(-70, 0);
+        ctx.lineTo(-90, -40);
+        ctx.lineTo(-40, -95);
+        ctx.lineTo(30, -110);
+        ctx.lineTo(85, -55);
+        ctx.lineTo(70, 0);
+        ctx.fill();
+      } else {
+        const g = ctx.createLinearGradient(0, 22, 0, 0);
+        g.addColorStop(0, "#dfe9ee");
+        g.addColorStop(1, "#8fa9b8");
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.moveTo(-62, 0);
+        ctx.lineTo(-50, 8);
+        ctx.lineTo(-38, 12);
+        ctx.lineTo(-22, 21);
+        ctx.lineTo(-12, 17);
+        ctx.lineTo(4, 23);
+        ctx.lineTo(16, 14);
+        ctx.lineTo(34, 11);
+        ctx.lineTo(50, 6);
+        ctx.lineTo(64, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = "rgba(255,255,255,0.35)";
+        ctx.lineWidth = 0.3;
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+    drawReplayBack(ctx, t) {
+      const rp = this.replay;
+      this.drawIceberg(ctx, t, false);
+      for (const bt of this.boatList) if (bt.side === "p") this.drawBoat(ctx, rp.boatState(bt, t), "p", bt.id);
+      if (t > rp.carpathiaT0) {
+        const x = rp.carpathiaX(t);
+        ctx.save();
+        ctx.translate(x, 0);
+        ctx.globalAlpha = 0.85;
+        ctx.fillStyle = "#16181b";
+        ctx.beginPath();
+        ctx.moveTo(-85, -7);
+        ctx.lineTo(85, -7);
+        ctx.lineTo(88, 9);
+        ctx.lineTo(-87, 9);
+        ctx.fill();
+        ctx.fillStyle = "#d9d4c6";
+        ctx.fillRect(-35, 9, 60, 6);
+        ctx.fillRect(-20, 15, 30, 3);
+        ctx.fillStyle = "#b8452a";
+        ctx.fillRect(-6, 15, 7, 15);
+        ctx.fillStyle = "#111";
+        ctx.fillRect(-6, 26, 7, 4);
+        ctx.strokeStyle = "#3a342c";
+        ctx.lineWidth = 0.6;
+        for (const mx of [-70, -45, 45, 70]) {
+          ctx.beginPath();
+          ctx.moveTo(mx, 9);
+          ctx.lineTo(mx, 38);
+          ctx.stroke();
+        }
+        if (this.dawn < 0.8) {
+          ctx.fillStyle = "rgba(255,220,150,0.9)";
+          for (let i = -80; i < 80; i += 6) ctx.fillRect(i, 3, 0.8, 0.8);
+        }
+        ctx.restore();
+      }
+    }
+    drawReplayFront(ctx, t) {
+      const rp = this.replay;
+      for (const bt of this.boatList) if (bt.side === "s") this.drawBoat(ctx, rp.boatState(bt, t), "s", bt.id);
+      this.drawIceberg(ctx, t, true);
+      const v = rp.shipSpeed(t);
+      if (v > 0.3) {
+        const S = t * v;
+        ctx.fillStyle = `rgba(230,240,245,${Math.min(0.6, v / 12)})`;
+        for (let i = -40; i < 40; i++) {
+          const x = ((i * 23.7 - S) % 900 + 900) % 900 - 450;
+          ctx.fillRect(x, -0.1, 3 + i % 3, 0.25);
+        }
+        const bx = rp.apply(rp.intact(t), rp.meta.X0 - 1, 0)[0];
+        ctx.beginPath();
+        ctx.ellipse(bx, 0.3, 6 * v / 11.6, 1.3 * v / 11.6, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      for (const tr of rp.rockets) {
+        const dt = t - tr;
+        if (dt < 0 || dt > 10) continue;
+        const [bx, by] = rp.apply(rp.intact(tr), rp.meta.X0 - 60, 31);
+        if (dt < 3) {
+          const y = by + 150 * (1 - (1 - dt / 3) ** 2);
+          ctx.strokeStyle = "rgba(255,235,200,0.9)";
+          ctx.lineWidth = 0.5;
+          ctx.beginPath();
+          ctx.moveTo(bx, by + Math.max(0, y - by - 20));
+          ctx.lineTo(bx, y);
+          ctx.stroke();
+        } else {
+          const u = (dt - 3) / 7;
+          ctx.fillStyle = `rgba(255,250,235,${1 - u})`;
+          for (let i = 0; i < 14; i++) {
+            const ang = i / 14 * Math.PI * 2, r = 4 + 22 * u;
+            ctx.beginPath();
+            ctx.arc(bx + Math.cos(ang) * r, by + 150 + Math.sin(ang) * r - 18 * u * u, 1.2 * (1 - u) + 0.3, 0, 7);
+            ctx.fill();
+          }
+        }
+      }
+    }
+    drawHorizonLights(ctx, W, horizon) {
+      const rp = this.replay, t = rp.t;
+      if (t > rp.californianT[0] && t < rp.californianT[1]) {
+        ctx.fillStyle = "rgba(255,240,210,0.85)";
+        ctx.fillRect(W * 0.12, horizon - 3, 2, 2);
+        ctx.fillRect(W * 0.12 + 5, horizon - 2, 1.5, 1.5);
+      }
+    }
     drawHover(ctx, h, sx0, sy0, z) {
       if (!h.room) return;
       ctx.strokeStyle = "rgba(232,196,120,0.9)";
@@ -4069,8 +4275,854 @@ input[type=range] { width: 100%; accent-color: var(--brass); }
     glass() {
       for (let i = 0; i < 4; i++) this.burst(0.15 + Math.random() * 0.2, 6e3, 2e3, 0.12, "noise");
     }
+    bell() {
+      for (let i = 0; i < 3; i++) setTimeout(() => {
+        this.burst(1.6, 1320, 1300, 0.35, "sine");
+        this.burst(1.2, 2650, 2600, 0.1, "sine");
+      }, i * 650);
+    }
+    rocket() {
+      this.burst(2.5, 2500, 400, 0.2);
+      setTimeout(() => this.burst(0.6, 900, 100, 0.5), 3e3);
+    }
     scrape() {
       this.burst(0.8, 1400, 300, 0.25);
+    }
+  };
+
+  // src/replay/history.js
+  var T = (h, m, s = 0) => (h < 12 ? h + 24 : h) * 3600 + m * 60 + s - (23 * 3600 + 40 * 60);
+  var START = T(23, 39, 0);
+  var END = T(8, 30, 0);
+  var TRIM = [
+    [T(23, 39, 0), 0, -10],
+    [T(23, 40, 0), 0, -10],
+    [T(0, 0, 0), 0.9, -10.6],
+    [T(0, 20, 0), 1.9, -11.2],
+    [T(0, 45, 0), 2.9, -11.9],
+    [T(1, 15, 0), 3.9, -12.8],
+    [T(1, 40, 0), 5, -14.2],
+    [T(1, 55, 0), 6, -15.6],
+    [T(2, 5, 0), 7.5, -17.2],
+    [T(2, 10, 0), 8.8, -19],
+    [T(2, 15, 0), 10.5, -21.8],
+    [T(2, 16, 30), 12, -24]
+  ];
+  var BREAK_START = T(2, 16, 30);
+  var BREAK_DONE = T(2, 17, 30);
+  var LIGHTS_OUT = T(2, 17, 30);
+  var STERN_GONE = T(2, 20, 0);
+  var BOW_IMPACT_TARGET = T(2, 23, 20);
+  var STERN_IMPACT_TARGET = T(2, 24, 40);
+  var FUNNEL_FALLS = [T(2, 14, 40), T(2, 17, 0), T(2, 17, 40), null];
+  var BOATS = [
+    { id: "7", side: "s", at: T(0, 40), n: 28, xb: 87.5, by: "First Officer Murdoch", note: "the first boat away" },
+    { id: "5", side: "s", at: T(0, 43), n: 36, xb: 79.5, by: "Third Officer Pitman" },
+    { id: "3", side: "s", at: T(0, 55), n: 32, xb: 72.5, by: "Murdoch" },
+    { id: "8", side: "p", at: T(1, 0), n: 28, xb: 79.5, by: "Captain Smith & Second Officer Lightoller", note: "the Countess of Rothes takes the tiller" },
+    { id: "1", side: "s", at: T(1, 5), n: 12, xb: 64, by: "Murdoch", note: "an emergency cutter with 40 places" },
+    { id: "6", side: "p", at: T(1, 10), n: 24, xb: 72.5, by: "Lightoller", note: "Margaret Brown and Quartermaster Hichens aboard" },
+    { id: "16", side: "p", at: T(1, 20), n: 40, xb: 207, by: "Sixth Officer Moody" },
+    { id: "14", side: "p", at: T(1, 25), n: 45, xb: 199.5, by: "Fifth Officer Lowe", note: "later returns for survivors" },
+    { id: "12", side: "p", at: T(1, 30), n: 30, xb: 192, by: "Lightoller" },
+    { id: "9", side: "s", at: T(1, 30), n: 40, xb: 184.5, by: "Murdoch & Moody" },
+    { id: "11", side: "s", at: T(1, 35), n: 50, xb: 192, by: "Murdoch" },
+    { id: "13", side: "s", at: T(1, 40), n: 55, xb: 199.5, by: "Murdoch" },
+    { id: "C", side: "s", at: T(1, 40), n: 39, xb: 66, by: "Murdoch", note: "J. Bruce Ismay steps in" },
+    { id: "15", side: "s", at: T(1, 41), n: 50, xb: 207, by: "Murdoch" },
+    { id: "2", side: "p", at: T(1, 45), n: 18, xb: 64, by: "Lightoller", note: "Fourth Officer Boxhall in charge" },
+    { id: "10", side: "p", at: T(1, 50), n: 35, xb: 184.5, by: "Murdoch" },
+    { id: "4", side: "p", at: T(1, 50), n: 30, xb: 87.5, by: "Lightoller", note: "Madeleine Astor aboard; John Jacob Astor stays behind" },
+    { id: "D", side: "p", at: T(2, 5), n: 20, xb: 66, by: "Lightoller", note: "the last boat lowered" },
+    { id: "A", side: "s", at: T(2, 15), n: 13, xb: 70, float: true, note: "floats off the officers\u2019 quarters, swamped" },
+    { id: "B", side: "p", at: T(2, 15), n: 30, xb: 70, float: true, flip: true, note: "washes off upside down; men climb onto her hull" }
+  ];
+  var PICKUP_ORDER = ["2", "1", "5", "7", "9", "13", "15", "3", "8", "6", "16", "14", "C", "10", "11", "4", "D", "12"];
+  var ROCKETS = [T(0, 45), T(0, 52), T(0, 59), T(1, 6), T(1, 13), T(1, 20), T(1, 28), T(1, 40)];
+  var STEAM2 = [T(23, 45), T(0, 35)];
+  var EVENTS = [
+    [T(23, 39, 0), "Sunday 14 April 1912, 41\xB046\u2032N 50\xB014\u2032W. RMS Titanic steams west at 22\xBD knots. Moonless, flat calm, air \u22121 \xB0C, sea \u22122 \xB0C. 2,208 people aboard."],
+    [T(23, 39, 30), "Lookout Frederick Fleet strikes the crow\u2019s-nest bell three times and telephones the bridge: \u201CIceberg, right ahead!\u201D", "bell"],
+    [T(23, 39, 33), "First Officer William Murdoch orders \u201CHard a-starboard\u201D and rings the engines to stop. The bow begins to swing to port."],
+    [T(23, 39, 40), "The iceberg strikes the starboard bow. For about 10 seconds it scrapes along 90 m of hull below the waterline, opening seams and popping rivets.", "scrape"],
+    [T(23, 39, 52), "Ice tumbles onto the forward well deck. Six compartments are open to the sea: the fore peak, holds 1\u20133, and boiler rooms 6 and 5."],
+    [T(23, 40, 20), "Murdoch closes the watertight doors from the bridge. Captain Edward Smith arrives: \u201CWhat have we struck?\u201D"],
+    [T(23, 45, 0), "With the engines stopped, the boiler safety valves lift. Steam roars from the funnels, drowning out conversation on deck.", "steam"],
+    [T(23, 50, 0), "Boiler room 6 floods 14 ft deep within ten minutes. Leading stoker Fred Barrett escapes through the closing watertight door."],
+    [T(0, 0, 0), "Shipbuilder Thomas Andrews tells Captain Smith the ship cannot be saved: she has \u201Can hour and a half, possibly two\u201D."],
+    [T(0, 5, 0), "Smith orders the lifeboats uncovered and passengers mustered. There are 20 boats with room for 1,178 people."],
+    [T(0, 15, 0), "Wireless operator Jack Phillips sends the first distress call: \u201CCQD MGY 41.44 N 50.24 W\u201D."],
+    [T(0, 25, 0), "RMS Carpathia, 58 nautical miles away, answers \u201CComing hard\u201D. Captain Rostron turns north at full speed."],
+    [T(0, 45, 0), "The lights of a ship are seen on the horizon, perhaps 10 miles off. She never comes."],
+    [T(1, 15, 0), "Water reaches the name TITANIC on the bow. The list to port grows; passengers are now taking the boats seriously."],
+    [T(1, 40, 0), "The forecastle deck goes awash. The last distress rocket is fired."],
+    [T(2, 5, 0), "Collapsible D, the last boat lowered, pulls away. More than 1,500 people remain aboard."],
+    [T(2, 10, 0), "Captain Smith releases the wireless operators and crew: \u201CIt\u2019s every man for himself.\u201D The band plays on."],
+    [T(2, 15, 0), "The bridge goes under. A wave sweeps aft along the boat deck; collapsibles A and B float off."],
+    [T(2, 15, 10), "The forward funnel\u2019s stays snap and it falls into the sea, crushing swimmers around it.", "crack"],
+    [T(2, 16, 10), "The stern lifts high enough to expose the propellers. Hundreds of people crowd toward the poop deck."],
+    [T(2, 16, 30), "Hull girder failure begins: the strength deck tears open between the third and fourth funnels.", "crack"],
+    [T(2, 17, 30), "The lights flicker red and go out. The keel parts and the bow section breaks free.", "crack"],
+    [T(2, 18, 0), "The bow section dives. The stern settles back almost level, then begins to flood through the open break."],
+    [T(2, 19, 0), "The flooding stern rises until it stands nearly vertical against the stars."],
+    [T(2, 20, 0), "The stern slips beneath the surface. Titanic has sunk, 2 hours 40 minutes after the collision. About 1,500 people are in water at \u22122 \xB0C.", "boom"],
+    [T(2, 20, 40), "At a few hundred metres depth, trapped air in the stern section implodes, tearing open decks and plating.", "boom"],
+    [T(2, 40, 0), "Fifth Officer Lowe gathers boats 10, 12, 4 and D, transfers passengers, and prepares boat 14 to return."],
+    [T(3, 0, 0), "Lowe takes boat 14 back into the wreckage. Of those in the water, he finds only four alive; one later dies."],
+    [T(3, 30, 0), "Carpathia\u2019s rockets are seen from the lifeboats."],
+    [T(4, 10, 0), "Carpathia stops among the ice and picks up boat 2, the first boat recovered."],
+    [T(6, 0, 0), "Lightoller brings boat 12 alongside with 70 aboard, including men from overturned collapsible B."],
+    [T(8, 30, 0), "The last boat is recovered. 712 survived; about 1,500 died. Carpathia sets course for New York."]
+  ];
+  var EPILOGUE = [
+    [1985.67, "Robert Ballard and Jean-Louis Michel find the wreck at 3,784 m. The bow and stern lie about 600 m apart, facing opposite ways."],
+    [1996, "A 15-ton section of the hull, the \u201CBig Piece\u201D, is raised from the debris field."],
+    [2010, "Bacteria later named Halomonas titanicae are identified in the rusticles consuming the hull."],
+    [2019, "Dives find the captain\u2019s quarters and the officers\u2019 deckhouse collapsing."],
+    [2023, "A full photogrammetry scan maps the whole wreck in 3D for the first time."]
+  ];
+
+  // src/replay/replay.js
+  var D2R = Math.PI / 180;
+  var smooth2 = (x) => x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x);
+  var lerp = (a, b, t) => a + (b - a) * t;
+  var clamp = (x, a, b) => x < a ? a : x > b ? b : x;
+  function rot(a, x, y) {
+    const c = Math.cos(a), s = Math.sin(a);
+    return [c * x - s * y, s * x + c * y];
+  }
+  var Replay = class {
+    constructor(world2) {
+      this.world = world2;
+      const ship = world2.ship, meta = ship.meta;
+      this.meta = meta;
+      this.bodies = world2.bodies;
+      this.xBreak = meta.expansionJoints.reduce((a, b) => b < a ? b : a);
+      const hull = this.bodies.filter((b) => b.kind === "hull");
+      this.bow = hull.filter((b) => b.comX > this.xBreak);
+      this.stern = hull.filter((b) => b.comX <= this.xBreak);
+      const funnels = this.bodies.filter((b) => b.kind === "funnel").sort((a, b) => b.comX - a.comX);
+      this.funnels = funnels;
+      const masts = this.bodies.filter((b) => b.kind === "mast");
+      this.foremast = masts.find((m) => m.comX > this.xBreak);
+      this.mainmast = masts.find((m) => m.comX <= this.xBreak);
+      this.bowSet = new Set([...this.bow, this.foremast].filter(Boolean));
+      this.sternSet = new Set([...this.stern, this.mainmast, funnels[3]].filter(Boolean));
+      const com = (list) => {
+        let m = 0, x = 0, y = 0;
+        for (const b of list) {
+          m += b.ms;
+          x += b.ms * b.comX;
+          y += b.ms * b.comY;
+        }
+        return [x / m, y / m];
+      };
+      this.bowC = com(this.bow);
+      this.sternC = com(this.stern);
+      this.extent = (list) => {
+        let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+        for (const b of list) {
+          x0 = Math.min(x0, b.aabb.x0);
+          x1 = Math.max(x1, b.aabb.x1);
+          y0 = Math.min(y0, b.aabb.y0);
+          y1 = Math.max(y1, b.aabb.y1);
+        }
+        return { x0, x1, y0, y1 };
+      };
+      this.bowBox = this.extent(this.bow);
+      this.sternBox = this.extent(this.stern);
+      this.hinge = [this.xBreak, 1];
+      this.tankWater = ship.rooms.map((r) => r.water);
+      this.classifyRooms();
+      this.precompute();
+      this.firedEvents = /* @__PURE__ */ new Set();
+    }
+    // --------------------------------------------------------------- poses
+    intact(t) {
+      const K = TRIM;
+      let i = 0;
+      while (i < K.length - 2 && t > K[i + 1][0]) i++;
+      const [t0, th0, y0] = K[i], [t1, th1, y1] = K[Math.min(i + 1, K.length - 1)];
+      let u = t1 > t0 ? clamp((t - t0) / (t1 - t0), 0, 1) : 1;
+      if (t > K[K.length - 1][0]) {
+        const [ta, tha, ya] = K[K.length - 2];
+        const dt = t - t1, r = (th1 - tha) / (t1 - ta), ry = (y1 - ya) / (t1 - ta);
+        return this.poseFrom(th1 + r * dt, y1 + ry * dt);
+      }
+      return this.poseFrom(lerp(th0, th1, u), lerp(y0, y1, u));
+    }
+    // grid -> world mapping { ox, oy, a } for a trim (deg) and midship keel depth
+    poseFrom(trimDeg, yMid) {
+      const a = -trimDeg * D2R;
+      const [rx, ry] = rot(a, 135, 0);
+      return { ox: -rx, oy: yMid - ry, a };
+    }
+    apply(p, gx, gy) {
+      const [x, y] = rot(p.a, gx, gy);
+      return [p.ox + x, p.oy + y];
+    }
+    rotateAbout(p, hx, hy, d) {
+      const [x, y] = rot(d, p.ox - hx, p.oy - hy);
+      return { ox: hx + x, oy: hy + y, a: p.a + d };
+    }
+    fromCenter(cx, cy, a, C) {
+      const [x, y] = rot(a, C[0], C[1]);
+      return { ox: cx - x, oy: cy - y, a };
+    }
+    // pose of each section at time t
+    sections(t) {
+      if (t <= BREAK_START) {
+        const p = this.intact(t);
+        return { bow: p, stern: p };
+      }
+      const base = this.intact(BREAK_START);
+      const [hx, hy0] = this.apply(base, this.hinge[0], this.hinge[1]);
+      if (t <= BREAK_DONE) {
+        const u = smooth2((t - BREAK_START) / (BREAK_DONE - BREAK_START));
+        const hy = hy0 - 7 * u;
+        const b = this.rotateAbout(base, hx, hy0, -9 * u * D2R);
+        b.oy -= 7 * u;
+        const s = this.rotateAbout(base, hx, hy0, 8 * u * D2R);
+        s.oy -= 7 * u;
+        return { bow: b, stern: s };
+      }
+      return { bow: this.bowPose(t), stern: this.sternPose(t) };
+    }
+    sternPose(t) {
+      const s0 = this.sternStart;
+      if (t <= STERN_GONE) {
+        const k = [[BREAK_DONE, s0.trim], [T(2, 17, 55), 1.5], [T(2, 18, 30), 12], [T(2, 19, 15), 78], [STERN_GONE, 86]];
+        const tail = [[BREAK_DONE, s0.tail], [T(2, 17, 55), 14], [T(2, 18, 30), 24], [T(2, 19, 15), 44], [T(2, 19, 40), 30], [STERN_GONE, -3]];
+        const trim = this.keyed(k, t), top = this.keyed(tail, t);
+        const a = -trim * D2R;
+        const T2 = [this.sternBox.x0 + 2, 23.5], E = [this.xBreak, 4];
+        const [, ty] = rot(a, T2[0], T2[1]);
+        const [ex] = rot(a, E[0], E[1]);
+        return { ox: s0.ex - ex, oy: top - ty, a };
+      }
+      return this.pathPose(this.sternPath, t, this.sternC);
+    }
+    bowPose(t) {
+      return this.pathPose(this.bowPath, t, this.bowC);
+    }
+    keyed(k, t) {
+      if (t <= k[0][0]) return k[0][1];
+      for (let i = 0; i + 1 < k.length; i++) if (t <= k[i + 1][0]) return lerp(k[i][1], k[i + 1][1], smooth2((t - k[i][0]) / (k[i + 1][0] - k[i][0])));
+      return k[k.length - 1][1];
+    }
+    pathPose(P, t, C) {
+      const i = clamp((t - P.t0) / P.dt, 0, P.n - 1.001);
+      const i0 = i | 0, f = i - i0;
+      const x = lerp(P.x[i0], P.x[i0 + 1], f), y = lerp(P.y[i0], P.y[i0 + 1], f), a = lerp(P.a[i0], P.a[i0 + 1], f);
+      const p = this.fromCenter(x, y, a, C);
+      p.squash = lerp(P.sq[i0], P.sq[i0 + 1], f);
+      return p;
+    }
+    // integrate both descents once (deterministic); speeds are chosen so the
+    // impacts land on the historical estimates
+    precompute() {
+      const env = this.world.env;
+      const atDone = this.sections(BREAK_DONE);
+      const [ex, ey] = this.apply(atDone.stern, this.xBreak, 4);
+      const [, tailY] = this.apply(atDone.stern, this.sternBox.x0 + 2, 23.5);
+      this.sternStart = { trim: -atDone.stern.a / D2R, ex, tail: tailY };
+      const lowest = (pose, box) => {
+        let m = 1e9, mx = 0;
+        for (const [gx, gy] of [[box.x0, box.y0], [box.x1, box.y0], [box.x0, box.y1], [box.x1, box.y1]]) {
+          const [x, y] = this.apply(pose, gx, gy);
+          if (y < m) {
+            m = y;
+            mx = x;
+          }
+        }
+        return [m, mx];
+      };
+      const integrate = (t0, pose0, C, box, opts) => {
+        const dt = 0.25;
+        let [x, y] = this.apply(pose0, C[0], C[1]);
+        let a = pose0.a, vx = 0, vy = opts.v0 || -1;
+        const xs = [], ys = [], as = [], sq = [];
+        let t = t0, impact = null, settle = 0, sqz = 1;
+        const a0 = a;
+        for (let k = 0; k < 6e3; k++) {
+          xs.push(x);
+          ys.push(y);
+          as.push(a);
+          sq.push(sqz);
+          const tau = t - t0;
+          if (!impact) {
+            vy += (-opts.V - vy) * dt / 18;
+            vx += (opts.glide * Math.abs(vy) - vx) * dt / 18;
+            a = opts.angle(tau, a0);
+            x += vx * dt;
+            y += vy * dt;
+            const [lo, lx] = lowest({ ...this.fromCenter(x, y, a, C) }, box);
+            if (lo < env.seabedY(lx)) impact = { t, v: Math.hypot(vx, vy), x, y, a };
+          } else {
+            settle += dt;
+            const u = smooth2(settle / opts.settleT);
+            a = lerp(impact.a, opts.finalA, u);
+            y = impact.y - opts.bury * smooth2(settle / 1.6);
+            x = impact.x + vx * 0.6 * smooth2(settle / 2);
+            sqz = lerp(1, opts.squash, smooth2(settle / 2.5));
+            if (settle > 12) {
+              for (let q = 0; q < 4; q++) {
+                xs.push(x);
+                ys.push(y);
+                as.push(a);
+                sq.push(sqz);
+              }
+              break;
+            }
+          }
+          t += dt;
+        }
+        return { t0, dt, n: xs.length, x: xs, y: ys, a: as, sq, impact };
+      };
+      const bowDepth = 3800;
+      const bowOpts = (V2) => ({
+        V: V2,
+        glide: 0.12,
+        settleT: 5,
+        finalA: -4.5 * D2R,
+        bury: 16,
+        squash: 1,
+        angle: (tau, a0) => lerp(a0, -36 * D2R, smooth2(tau / 25)) * (1 - smooth2((tau - 60) / 200)) + -24 * D2R * smooth2((tau - 60) / 200)
+      });
+      let V = bowDepth / (BOW_IMPACT_TARGET - BREAK_DONE - 18);
+      for (let it = 0; it < 4; it++) {
+        this.bowPath = integrate(BREAK_DONE, atDone.bow, this.bowC, this.bowBox, bowOpts(V));
+        const err = this.bowPath.impact.t - BOW_IMPACT_TARGET;
+        V *= 1 + err / (BOW_IMPACT_TARGET - BREAK_DONE);
+      }
+      const sGone = this.sternPose(STERN_GONE);
+      const sternOpts = (V2) => ({
+        V: V2,
+        glide: -0.05,
+        settleT: 4,
+        finalA: 1.5 * D2R,
+        bury: 5,
+        squash: 0.72,
+        v0: -4,
+        angle: (tau, a0) => a0 * Math.exp(-tau / 55) * Math.cos(tau / 30)
+      });
+      V = 3800 / (STERN_IMPACT_TARGET - STERN_GONE - 18);
+      for (let it = 0; it < 4; it++) {
+        this.sternPath = integrate(STERN_GONE, sGone, this.sternC, this.sternBox, sternOpts(V));
+        const err = this.sternPath.impact.t - STERN_IMPACT_TARGET;
+        V *= 1 + err / (STERN_IMPACT_TARGET - STERN_GONE);
+      }
+    }
+    // --------------------------------------------------------------- apply
+    setBody(b, p, extra = 0, pivot = null) {
+      let pose = p;
+      if (extra && pivot) {
+        const [hx, hy] = this.apply(p, pivot[0], pivot[1]);
+        pose = this.rotateAbout(p, hx, hy, extra);
+      }
+      const [x, y] = this.apply(pose, b.comX, b.comY);
+      b.x = x;
+      b.y = y;
+      b.a = pose.a;
+      b.syncTrig();
+      b.squash = pose.squash || 1;
+      b.updateWorldBox();
+    }
+    funnelPose(i, t, sec) {
+      const f = this.funnels[i], tf = FUNNEL_FALLS[i];
+      const base = [this.meta.funnels[i].xBase, this.meta.funnels[i].yBase];
+      if (tf === null || t < tf) return { pose: sec, extra: 0, base };
+      const fallT = 4.5, dir = i === 2 ? 1 : -1;
+      const u = clamp((t - tf) / fallT, 0, 1);
+      if (u < 1) return { pose: sec, extra: dir * 95 * D2R * u * u, base };
+      const secAt = this.sections(tf + fallT)[i < 3 ? "bow" : "stern"];
+      const [hx, hy] = this.apply(secAt, base[0], base[1]);
+      const p = this.rotateAbout(secAt, hx, hy, dir * 95 * D2R);
+      const dt = t - tf - fallT;
+      const env = this.world.env;
+      const sink = Math.min(dt * 2.2 + Math.max(0, dt - 40) * 3, 3780);
+      const q = { ox: p.ox + dt * 0.15 * dir, oy: p.oy - sink, a: p.a + Math.sin(dt / 40) * 0.4 * Math.min(1, dt / 30) };
+      return { pose: q, extra: 0, base, sunk: true };
+    }
+    poseAll(t) {
+      const sec = this.sections(t);
+      for (const b of this.bodies) {
+        if (b.kind === "funnel") {
+          const i = this.funnels.indexOf(b);
+          const owner = i === 3 || t > BREAK_DONE && i === 3 ? sec.stern : sec.bow;
+          const fp = this.funnelPose(i, t, i === 3 ? sec.stern : owner);
+          this.setBody(b, fp.pose, fp.extra, fp.base);
+          continue;
+        }
+        this.setBody(b, this.sternSet.has(b) ? sec.stern : sec.bow);
+      }
+      return sec;
+    }
+    // --------------------------------------------------------------- flooding
+    classifyRooms() {
+      const ship = this.world.ship, meta = this.meta;
+      const eDeckRow = (r) => r.deck <= 4;
+      this.roomInfo = ship.rooms.map((r) => {
+        const tank = r.mat === MAT.TANK;
+        const lower = r.deck <= 3;
+        let kind = "upper";
+        if (tank) kind = "tank";
+        else if (lower && r.zone <= 4) kind = "breached";
+        else if (lower && r.zone === 5) kind = "br5";
+        else if (lower) kind = "spill";
+        const bh = meta.bulkheadX[Math.max(0, r.zone - 1)];
+        const gate = bh ? [bh.x, meta.deckZ("E", bh.x)] : null;
+        return { kind, gate, sec: r.x0 > this.xBreak ? "bow" : "stern" };
+      });
+    }
+    // water volume each room would hold if filled to the sea surface
+    submergedVolumes(t, out, filter) {
+      const ship = this.world.ship, g = ship.grid;
+      this.poseAll(t);
+      const rooms = ship.rooms;
+      for (let i = 0; i < rooms.length; i++) {
+        if (!filter(i)) continue;
+        const r = rooms[i];
+        let v = 0;
+        for (let q = 0; q < r.cells.length; q++) {
+          const k = r.cells[q];
+          const b = this.bodies[g.block[k]];
+          const y = b.y + b.s * (ship.cxs[k] - b.comX) + b.c * (ship.cys[k] - b.comY);
+          if (y < 0) v += g.vcap[k];
+          else if (y < CELL) v += g.vcap[k] * (1 - y / CELL);
+        }
+        out[i] = v;
+      }
+    }
+    flood(t) {
+      const ship = this.world.ship, rooms = ship.rooms, info = this.roomInfo;
+      const n = rooms.length;
+      if (!this.vFast || this.vFast.length !== n) {
+        this.vFast = new Float64Array(n);
+        this.vSlow = new Float64Array(n);
+      }
+      const deep = this.sections(t);
+      const depthOf = (sec) => {
+        const p = deep[sec];
+        return -(p.oy + Math.sin(p.a) * 135);
+      };
+      const fastLag = 75, slowLag = 330;
+      const sinceCollision = t - T(23, 39, 45);
+      this.submergedVolumes(t - fastLag, this.vFast, (i) => info[i].kind !== "tank");
+      this.submergedVolumes(t - slowLag, this.vSlow, (i) => info[i].kind !== "tank");
+      const gateOpen = rooms.map((r, i) => {
+        const gp = info[i].gate;
+        if (!gp) return false;
+        const p = this.sections(t - slowLag)[info[i].sec];
+        return this.apply(p, gp[0], gp[1])[1] < 0;
+      });
+      for (let i = 0; i < n; i++) {
+        const r = rooms[i], inf = info[i];
+        if (inf.kind === "tank") {
+          r.water = this.tankWater[i];
+          continue;
+        }
+        const sunk = t > BREAK_START && depthOf(inf.sec) > 45;
+        if (sinceCollision < 0) {
+          r.water = 0;
+          continue;
+        }
+        let target;
+        if (sunk) target = r.cap;
+        else if (inf.kind === "breached") target = this.vFast[i] * smooth2(sinceCollision / 600);
+        else if (inf.kind === "br5") target = this.vFast[i] * (t < T(1, 20) ? 0.1 : lerp(0.1, 1, smooth2((t - T(1, 20)) / 900)));
+        else if (inf.kind === "spill") target = gateOpen[i] ? this.vSlow[i] : 0;
+        else target = this.vSlow[i];
+        if (t > BREAK_START && !sunk) target = Math.max(target, this.vFast[i]);
+        r.water = Math.min(r.cap, target);
+      }
+      this.poseAll(t);
+      const fl = this.world.flooding;
+      fl.updatePositions();
+      fl.solveLevels(0);
+      fl.distributeWater();
+    }
+    // --------------------------------------------------------------- boats
+    boatState(bt, t) {
+      const sec = this.sections(Math.min(t, bt.at));
+      const xLocal = this.meta.X0 - bt.xb;
+      const deckY = this.meta.deckZ("BOAT", xLocal) + 1.6;
+      if (t < bt.at - (bt.float ? 0 : 95)) {
+        if (bt.float) return null;
+        const [x2, y] = this.apply(this.sections(t).bow, xLocal, deckY);
+        return { x: x2, y, a: this.sections(t).bow.a, mode: "davit" };
+      }
+      if (!bt.float && t < bt.at) {
+        const [x2, y] = this.apply(sec, xLocal, deckY);
+        const u = (t - (bt.at - 95)) / 95;
+        const jerk = Math.sin(u * 40) * 0.15;
+        return { x: x2, y: lerp(y, 0.2, u) + jerk, a: 0, mode: "lowering" };
+      }
+      const [x0] = this.apply(sec, xLocal, deckY);
+      const tau = t - bt.at;
+      const dir = (xLocal > 135 ? 1 : -1) * (bt.side === "p" ? 1.15 : 1);
+      let x = x0 + dir * (bt.float ? 25 * (1 - Math.exp(-tau / 300)) : 380 * (1 - Math.exp(-tau / 900)));
+      const pi = PICKUP_ORDER.indexOf(bt.id);
+      let gone = false;
+      if (pi >= 0) {
+        const tp = lerp(T(4, 10), T(8, 30), pi / (PICKUP_ORDER.length - 1));
+        const appr = smooth2((t - (tp - 1500)) / 1500);
+        x = lerp(x, this.carpathiaX(t) - 60 + pi * 3, appr);
+        if (t > tp) gone = true;
+      }
+      const bob = Math.sin(t * 0.9 + bt.xb) * 0.15;
+      return { x, y: 0.15 + bob, a: Math.sin(t * 0.7 + bt.xb) * 0.03, mode: gone ? "gone" : "afloat", flip: bt.flip, swamped: bt.id === "A" };
+    }
+    carpathiaX(t) {
+      const u = smooth2((t - T(3, 25)) / (T(4, 5) - T(3, 25)));
+      return lerp(5200, 900, u);
+    }
+    // --------------------------------------------------------------- iceberg
+    icebergX(t) {
+      const tau = t - T(23, 39, 40);
+      const v0 = 11.6;
+      const S = tau <= -5 ? v0 * tau : -5 * v0 + v0 * 150 * (1 - Math.exp(-(tau + 5) / 150));
+      const bowX = this.apply(this.intact(t), this.meta.X0 - 22, 0)[0];
+      return bowX + 40 - S;
+    }
+    shipSpeed(t) {
+      const tau = t - T(23, 39, 40);
+      return tau <= -5 ? 11.6 : 11.6 * Math.exp(-(tau + 5) / 150);
+    }
+  };
+
+  // src/replay/player.js
+  var smooth3 = (x) => x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x);
+  var fmtTime = (t) => {
+    const s = Math.floor(t + 23 * 3600 + 40 * 60);
+    const h = Math.floor(s / 3600) % 24, m = Math.floor(s / 60) % 60, ss = s % 60;
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
+  };
+  var Player = class {
+    constructor(ctx) {
+      Object.assign(this, ctx);
+      this.replay = new Replay(this.world);
+      this.t = START;
+      this.prevT = START - 1;
+      this.speed = 1;
+      this.paused = false;
+      this.director = true;
+      this.years = 0;
+      this.epilogue = false;
+      this.renderer.replay = this.replay;
+      this.renderer.boatList = BOATS;
+      Object.assign(this.replay, { rockets: ROCKETS, carpathiaT0: T(3, 25), californianT: [T(0, 45), T(2, 30)], t: START });
+      this.timeline = this.buildTimeline();
+      this.seek(START);
+    }
+    buildTimeline() {
+      const r = this.replay;
+      const ev = EVENTS.map(([t, text, fx]) => ({ t, text, fx }));
+      for (const b of BOATS) {
+        if (b.float) continue;
+        ev.push({ t: b.at, text: `Lifeboat ${b.id} reaches the water from the ${b.side === "s" ? "starboard" : "port"} side with about ${b.n} aboard${b.note ? ` \u2014 ${b.note}` : ""}.`, boat: b.id });
+      }
+      ROCKETS.forEach((t, i) => ev.push({ t, text: i === 0 ? "Fourth Officer Boxhall fires the first white distress rocket from the bridge. Eight will follow at intervals." : `Distress rocket ${i + 1} of 8.`, fx: "rocket", minor: i > 0 }));
+      ev.push({ t: r.bowPath.impact.t, text: `The bow section strikes the seabed at ${(r.bowPath.impact.v * 3.6).toFixed(0)} km/h, 3,800 m down, burying its stem about 18 m in the mud.`, fx: "impact", at: "bow" });
+      ev.push({ t: r.sternPath.impact.t, text: `The stern section lands ${Math.round(Math.abs(r.bowPath.impact.x - r.sternPath.impact.x))} m from the bow at ${(r.sternPath.impact.v * 3.6).toFixed(0)} km/h. Its decks pancake onto one another.`, fx: "impact", at: "stern" });
+      for (let i = 0; i < 4; i++) ev.push({ t: T(2, 20, 25 + i * 9), fx: "implode", silent: i > 0 });
+      ev.sort((a, b) => a.t - b.t);
+      return ev;
+    }
+    seek(t) {
+      this.t = Math.max(START, Math.min(END, t));
+      this.prevT = this.t;
+      this.particles.n = 0;
+      this.logLines = [];
+      const cap = this.$("caption");
+      if (cap) cap.classList.remove("show");
+      for (const e of this.timeline) if (e.t <= this.t && e.text && !e.minor) this.logLines.push(e);
+      this.renderLog();
+      this.years = 0;
+      this.epilogue = false;
+      this.resetRust();
+      this.replay.t = this.t;
+      this.replay.flood(this.t);
+    }
+    renderLog() {
+      const last = this.logLines.slice(-6).reverse();
+      this.$("log").innerHTML = last.map((e, i) => `<li${i === 0 ? ' class="now"' : ""}><span class="t">${fmtTime(e.t)}</span>${e.text}</li>`).join("");
+    }
+    nextEventTime() {
+      for (const e of this.timeline) if (e.t > this.t + 1 && e.text && !e.minor) return e;
+      return null;
+    }
+    update(dtReal) {
+      const r = this.replay, w = this.world;
+      if (this.epilogue) {
+        this.updateEpilogue(dtReal);
+        return;
+      }
+      if (!this.paused) this.t = Math.min(END, this.t + dtReal * this.speed);
+      const t = this.t, t0 = this.prevT;
+      this.replay.t = t;
+      if (t > t0) {
+        for (const e of this.timeline) if (e.t > t0 && e.t <= t) this.fire(e);
+      }
+      this.prevT = t;
+      r.flood(t);
+      this.ambient(dtReal, t);
+      this.renderer.powered = t < LIGHTS_OUT;
+      this.renderer.flicker = t > T(2, 15) && t < LIGHTS_OUT ? 0.55 + Math.random() * 0.45 : 1;
+      this.renderer.dawn = smooth3((t - T(4, 30)) / 4500);
+      if (this.director) {
+        this.direct(t, dtReal);
+        const R = this.renderer;
+        R.mouse.x = R.cv.clientWidth / 2;
+        R.mouse.y = R.cv.clientHeight * 0.45;
+      }
+      if (t >= END && !this.paused && !this.epilogue) this.startEpilogue();
+    }
+    fire(e) {
+      if (e.text && !e.minor) {
+        this.logLines.push(e);
+        this.renderLog();
+        this.caption(e);
+      }
+      const s = this.sound;
+      const fx = e.fx;
+      if (fx === "bell") s.bell();
+      if (fx === "scrape") {
+        s.scrape();
+        setTimeout(() => s.scrape(), 1200);
+        this.iceFall();
+      }
+      if (fx === "crack") {
+        s.crack(0.8);
+        this.renderer.shake = 6;
+      }
+      if (fx === "rocket") s.rocket();
+      if (fx === "boom") {
+        s.boom(0.8);
+        this.renderer.shake = 5;
+      }
+      if (fx === "implode") this.implode(e.silent);
+      if (fx === "impact") this.impact(e.at);
+    }
+    caption(e) {
+      const c = this.$("caption");
+      if (!c) return;
+      c.innerHTML = `<span class="t">${fmtTime(e.t)}</span> ${e.text}`;
+      c.classList.remove("show");
+      void c.offsetWidth;
+      c.classList.add("show");
+    }
+    iceFall() {
+      const bowX = this.replay.apply(this.replay.intact(this.t), this.replay.meta.X0 - 48, 21)[0];
+      for (let i = 0; i < 60; i++) this.particles.add(SPRAY, bowX + (Math.random() - 0.5) * 12, 24 + Math.random() * 10, -2 - Math.random() * 3, Math.random() * 2, 0.3 + Math.random() * 0.5, 2.2);
+    }
+    implode(silent) {
+      const st = this.replay.stern[4] || this.replay.stern[0];
+      for (let i = 0; i < 160; i++) this.particles.add(BUBBLE, st.x + (Math.random() - 0.5) * 40, st.y + (Math.random() - 0.5) * 30, (Math.random() - 0.5) * 6, Math.random() * 6, 0.2 + Math.random() * 0.7, 50);
+      if (!silent) {
+        this.sound.boom(1);
+        this.renderer.shake = 8;
+      } else this.sound.boom(0.5);
+    }
+    impact(which) {
+      const r = this.replay, w = this.world;
+      const p = which === "bow" ? r.bowPath.impact : r.sternPath.impact;
+      const env = w.env;
+      for (let i = 0; i < 700; i++) {
+        const x = p.x + (Math.random() - 0.5) * 160;
+        this.particles.add(SILT, x, env.seabedY(x) + Math.random() * 8, (Math.random() - 0.5) * 9, Math.random() * 4, 2 + Math.random() * 5, 80 + Math.random() * 120);
+      }
+      for (let x = p.x - 90; x < p.x + 90; x += 1) env.pushMud(x, 0.06 * Math.exp(-((x - p.x) ** 2) / 2500), 4);
+      this.sound.boom(1);
+      this.renderer.shake = 10;
+    }
+    ambient(dt, t) {
+      const P = this.particles, r = this.replay;
+      if (t > STEAM2[0] && t < STEAM2[1]) {
+        for (let i = 0; i < 3; i++) {
+          const f = r.funnels[i];
+          const x = f.wx(f.aabb.x1 - 1, f.aabb.y1 - 1), y = f.wy(f.aabb.x1 - 1, f.aabb.y1 - 1);
+          if (Math.random() < 0.8) P.add(STEAM, x + Math.random() * 3, y, 1 + Math.random(), 4 + Math.random() * 3, 0.6, 7);
+        }
+      } else if (t < T(23, 40, 30)) {
+        for (let i = 0; i < 3; i++) {
+          const f = r.funnels[i];
+          if (Math.random() < 0.35) P.add(STEAM, f.wx(f.aabb.x1 - 2, f.aabb.y1), f.wy(f.aabb.x1 - 2, f.aabb.y1), -6, 1.5, 0.8, 5);
+        }
+      }
+      if (t > T(1, 30) && t < T(2, 26)) {
+        const n = t > BREAK_START ? 10 : 2;
+        for (const sec of [r.bow, r.stern]) {
+          for (let i = 0; i < n; i++) {
+            const b = sec[Math.random() * sec.length | 0];
+            if (b.y > 2 || b.y < -900) continue;
+            if (Math.random() < 0.5) P.add(BUBBLE, b.x + (Math.random() - 0.5) * 9, b.wbox.y1 - Math.random() * 6, 0, 0.5, 0.08 + Math.random() * 0.25, 30);
+          }
+        }
+      }
+      if (t > BREAK_DONE && t < T(2, 25)) {
+        const [hx, hy] = r.apply(r.sections(t).bow, r.xBreak, 6);
+        if (hy < 0) for (let i = 0; i < 2; i++) P.add(DEBRIS, hx + (Math.random() - 0.5) * 6, hy + (Math.random() - 0.5) * 10, (Math.random() - 0.5) * 2, -3, 0.15 + Math.random() * 0.5, 600);
+      }
+      if (this.renderer.cam.y < -80 && P.n < 7e3) {
+        const [l, tp] = this.renderer.toWorld(0, 0), [rr, bt] = this.renderer.toWorld(this.renderer.cv.clientWidth, this.renderer.cv.clientHeight);
+        for (let i = 0; i < 4; i++) P.add(SNOW, l + Math.random() * (rr - l), bt + Math.random() * (tp - bt), 0, 0, 0.1, 25);
+      }
+    }
+    // --------------------------------------------------------------- camera
+    shot(t) {
+      const r = this.replay;
+      const bi = r.bowPath.impact.t, si = r.sternPath.impact.t;
+      const sec = r.sections(t);
+      const ctr = (p, C) => r.apply(p, C[0], C[1]);
+      if (t < T(23, 40, 30)) {
+        const [x] = r.apply(sec.bow, 215, 0);
+        return { x: x - 10, y: 14, w: 230 };
+      }
+      if (t < T(23, 42)) return { x: 10, y: 14, w: 320, ease: 0.02 };
+      if (t < BREAK_START - 60) return { x: 0, y: 12, w: 320 };
+      if (t < STERN_GONE + 15) return { x: -20, y: 18, w: 360 };
+      if (t < bi + 25) {
+        const [x, y] = ctr(sec.bow, r.bowC);
+        return { x, y: Math.max(y, -3790), w: 300, deep: true };
+      }
+      if (t < si + 25) {
+        const [x, y] = ctr(sec.stern, r.sternC);
+        return { x, y: Math.max(y, -3790), w: 260, deep: true };
+      }
+      if (t < T(3, 20)) {
+        const bx = r.bowPath.impact.x, sx = r.sternPath.impact.x;
+        return { x: (bx + sx) / 2, y: -3770, w: Math.abs(bx - sx) + 400, deep: true };
+      }
+      {
+        const cx = this.replay.carpathiaX(t);
+        return { x: cx - 140, y: 14, w: 560 };
+      }
+    }
+    direct(t, dt) {
+      const s = this.shot(t), c = this.renderer.cam;
+      const W = this.renderer.cv.clientWidth;
+      const narrow = W < 860;
+      const z = W * (narrow ? 0.98 : 0.86) / s.w;
+      const k = Math.min(1, dt * (s.deep ? 2.5 : 1.4));
+      if (Math.abs(c.y - s.y) > 600 || Math.abs(c.x - s.x) > 1500) {
+        c.x = s.x;
+        c.y = s.y;
+        c.z = z;
+        return;
+      }
+      c.x += (s.x - c.x) * k;
+      c.y += (s.y - c.y) * k;
+      c.z += (z - c.z) * k;
+    }
+    // --------------------------------------------------------------- HUD
+    hud() {
+      const r = this.replay, t = this.t, $2 = this.$;
+      if (this.epilogue) {
+        $2("clock").textContent = `${Math.floor(1912 + this.years)}`;
+        $2("elapsed").textContent = `${Math.floor(this.years)} years on the seabed`;
+      } else {
+        $2("clock").textContent = `${t < 20 * 60 ? "14" : "15"} Apr 1912 \xB7 ${fmtTime(t)}`;
+        const since = t - T(23, 39, 40);
+        $2("elapsed").textContent = since < 0 ? `Collision in ${Math.ceil(-since)} s` : `${Math.floor(since / 3600)}h ${String(Math.floor(since / 60) % 60).padStart(2, "0")}m ${String(Math.floor(since) % 60).padStart(2, "0")}s after the collision`;
+      }
+      const sec = r.sections(t);
+      const trim = -sec.bow.a * 180 / Math.PI;
+      const depth = (list) => Math.max(0, -Math.min(...list.map((b) => b.wbox.y0)));
+      const bowD = depth(r.bow), sternD = depth(r.stern);
+      const speedOf = (P, tt) => {
+        if (tt < P.t0) return 0;
+        const i = Math.min(P.n - 2, Math.floor((tt - P.t0) / P.dt));
+        return Math.hypot(P.x[i + 1] - P.x[i], P.y[i + 1] - P.y[i]) / P.dt;
+      };
+      const boats = BOATS.filter((b) => b.at <= t);
+      const people = boats.reduce((s, b) => s + b.n, 0);
+      const rockets = ROCKETS.filter((x) => x <= t).length;
+      const phase = t < T(23, 39, 40) ? "Under way, 22\xBD knots" : t < T(0, 5) ? "Damage assessment" : t < T(2, 5) ? "Lowering the boats" : t < BREAK_START ? "Final plunge begins" : t < STERN_GONE ? "Breaking apart" : t < r.sternPath.impact.t ? "Falling to the seabed" : t < T(4, 10) ? "Survivors adrift" : "Rescue by Carpathia";
+      const deep = Math.max(bowD, sternD);
+      const rows = [
+        ["Phase", phase],
+        ["Speed", t < T(23, 44) ? `${(r.shipSpeed(t) / 0.5144).toFixed(1)} kn` : t > BREAK_DONE ? `bow ${(speedOf(r.bowPath, t) * 3.6).toFixed(0)} \xB7 stern ${(t > STERN_GONE ? speedOf(r.sternPath, t) * 3.6 : 0).toFixed(0)} km/h` : "stopped"],
+        ["Trim, bow down", t < BREAK_DONE ? `${trim.toFixed(1)}\xB0` : "broken in two"],
+        ["Bow depth", `${bowD.toFixed(0)} m`],
+        ["Stern depth", `${sternD.toFixed(0)} m`],
+        ["Pressure", `${(1 + gaugePressure(deep) / P_ATM).toFixed(1)} atm`],
+        ["Lifeboats away", `${boats.length} / 20`],
+        ["In the boats", `\u2248 ${people}`],
+        ["Distress rockets", `${rockets} / 8`],
+        ["Water temp.", `${waterTemperature(deep).toFixed(1)} \xB0C`]
+      ];
+      const zw = new Array(16).fill(0), zc = new Array(16).fill(0);
+      for (const rm of this.world.ship.rooms) if (rm.deck <= 4 && rm.mat !== 0 && rm.label.indexOf("Double-bottom") < 0) {
+        zw[rm.zone] += Math.min(rm.water, rm.cap);
+        zc[rm.zone] += rm.cap;
+      }
+      const meta = this.world.ship.meta;
+      $2("comps").innerHTML = meta.shortCompartments.map((n, i) => {
+        const p = zc[i] ? zw[i] / zc[i] : 0;
+        return `<div class="comp" title="${meta.compartments[i]}: ${Math.round(p * 100)}% flooded"><i style="height:${Math.round(p * 100)}%"></i><span>${n}</span></div>`;
+      }).reverse().join("");
+      $2("stats").innerHTML = rows.map(([k, v]) => `<div class="row"><span>${k}</span><b>${v}</b></div>`).join("");
+      const scrub = $2("scrub");
+      if (scrub && document.activeElement !== scrub) scrub.value = String(Math.round(t));
+      const nx = this.nextEventTime();
+      $2("next").textContent = nx ? `Next ${fmtTime(nx.t)} \u203A` : "Wreck today \u203A";
+    }
+    // --------------------------------------------------------------- epilogue
+    resetRust() {
+      const g = this.world.ship.grid;
+      if (this.rustTouched) {
+        g.rust.fill(0);
+        this.renderer.invalidateAll();
+        this.rustTouched = false;
+      }
+    }
+    startEpilogue() {
+      this.epilogue = true;
+      this.years = 0;
+      this.epiIdx = 0;
+      this.director = true;
+      this.logLines.push({ t: this.t, text: "Epilogue: 114 years on the seabed. Rusticles, iron-eating bacteria and wood-boring molluscs go to work." });
+      this.renderLog();
+      const r = this.replay;
+      this.replay.flood(T(3, 0));
+      this.t = END;
+    }
+    updateEpilogue(dt) {
+      const r = this.replay, g = this.world.ship.grid;
+      if (!this.paused) this.years = Math.min(114.6, this.years + dt * 3.5);
+      while (this.epiIdx < EPILOGUE.length && 1912.3 + this.years >= EPILOGUE[this.epiIdx][0]) {
+        const [y, text] = EPILOGUE[this.epiIdx++];
+        const e = { t: END, text: `<b>${Math.floor(y)}</b> \u2014 ${text}` };
+        this.logLines.push(e);
+        this.renderLog();
+        this.caption({ t: END, text: e.text });
+      }
+      if (!this._rt || performance.now() - this._rt > 500) {
+        this._rt = performance.now();
+        for (let k = 0; k < g.n; k++) {
+          if (g.kind[k] === EMPTY) continue;
+          const m = MATERIALS[g.mat[k]];
+          if (!m.rustRate) continue;
+          g.rust[k] = Math.min(0.97, this.years * m.rustRate * (0.45 + 1.1 * g.seed[k]) * 1.4);
+        }
+        this.rustTouched = true;
+        this.renderer.invalidateAll();
+      }
+      r.poseAll(T(3, 0));
+      const fl = this.world.flooding;
+      fl.updatePositions();
+      fl.solveLevels(0);
+      fl.distributeWater();
+      if (this.director) {
+        const bx = r.bowPath.impact.x, sx = r.sternPath.impact.x, c = this.renderer.cam;
+        const W = this.renderer.cv.clientWidth;
+        c.x = bx - 20;
+        c.y = -3768;
+        c.z += (W * 0.92 / 300 - c.z) * Math.min(1, dt);
+      }
+      this.renderer.powered = false;
+      this.renderer.dawn = 0;
     }
   };
 
@@ -4087,6 +5139,7 @@ input[type=range] { width: 100%; accent-color: var(--brass); }
   var lastFrame = performance.now();
   var lights = true;
   var lightsOutAt = -1;
+  var player = null;
   function init(scenario) {
     state.scenario = scenario;
     world = createWorld({ substeps: 8 });
@@ -4101,6 +5154,23 @@ input[type=range] { width: 100%; accent-color: var(--brass); }
       renderer.invalidateAll();
     } else renderer = new Renderer(canvas, world, world.ship.meta);
     renderer.night = scenario !== "sandbox";
+    $("paneltitle").textContent = "Hydrostatics";
+    renderer.replay = null;
+    renderer.dawn = 0;
+    player = null;
+    document.body.classList.toggle("replay", scenario === "replay");
+    if (scenario === "replay") {
+      world.collisionsOn = false;
+      player = new Player({ world, renderer, particles, sound, $ });
+      renderer.mode = "cutaway";
+      $("scrub").min = String(START);
+      $("scrub").max = String(END);
+      setReplaySpeed(1);
+      renderer.visibility = 0.8;
+      $("visibility").value = "0.8";
+      $("paneltitle").textContent = "Ship\u2019s status";
+      return;
+    }
     for (const b of world.bodies) b.lit = true;
     state.time = 0;
     state.years = 0;
@@ -4260,6 +5330,21 @@ input[type=range] { width: 100%; accent-color: var(--brass); }
   function frame(now) {
     const dtReal = Math.min(0.05, (now - lastFrame) / 1e3);
     lastFrame = now;
+    if (player) {
+      player.update(dtReal);
+      ocean.step(dtReal, world.bodies, world.ship.grid);
+      particles.step(dtReal * Math.min(4, player.speed), world.env);
+      sound.update(world, renderer, { paused: player.paused });
+      state.particles = particles;
+      state.ocean = ocean;
+      renderer.draw(state);
+      if (performance.now() - hudT > 150) {
+        hudT = performance.now();
+        player.hud();
+      }
+      requestAnimationFrame(frame);
+      return;
+    }
     if (!state.paused) {
       let simDt = dtReal * state.speed;
       const t0 = performance.now();
@@ -4404,6 +5489,10 @@ input[type=range] { width: 100%; accent-color: var(--brass); }
       const [a, b] = [...touches.values()];
       renderer.cam.z = Math.max(0.05, Math.min(80, pinch.z * Math.hypot(a[0] - b[0], a[1] - b[1]) / pinch.d));
       state.follow = false;
+      if (player) {
+        player.director = false;
+        $("director").classList.remove("on");
+      }
       return;
     }
     const r = canvas.getBoundingClientRect();
@@ -4442,9 +5531,13 @@ input[type=range] { width: 100%; accent-color: var(--brass); }
     const sx = e.clientX - r.left, sy = e.clientY - r.top;
     const [wx, wy] = renderer.toWorld(sx, sy);
     canvas.setPointerCapture(e.pointerId);
-    if (e.button === 2 || e.button === 1 || state.tool === "pan") {
+    if (player || e.button === 2 || e.button === 1 || state.tool === "pan") {
       panning = { sx, sy, cx: renderer.cam.x, cy: renderer.cam.y };
       state.follow = false;
+      if (player) {
+        player.director = false;
+        $("director").classList.remove("on");
+      }
       return;
     }
     dragging = { paint: state.tool !== "grab" };
@@ -4467,6 +5560,10 @@ input[type=range] { width: 100%; accent-color: var(--brass); }
     const [wx, wy] = renderer.toWorld(sx, sy);
     const c = renderer.cam;
     c.z = Math.max(0.05, Math.min(80, c.z * Math.exp(-e.deltaY * 15e-4)));
+    if (player) {
+      player.director = false;
+      $("director").classList.remove("on");
+    }
     const [wx2, wy2] = renderer.toWorld(sx, sy);
     c.x += wx - wx2;
     c.y += wy - wy2;
@@ -4552,6 +5649,38 @@ input[type=range] { width: 100%; accent-color: var(--brass); }
     if (v === "stress") b.classList.toggle("on", renderer.overlay === "stress");
   }));
   $("scenario").addEventListener("change", (e) => init(e.target.value));
+  function setReplaySpeed(s) {
+    if (!player) return;
+    player.speed = s || player.speed;
+    player.paused = s === 0;
+    document.querySelectorAll("[data-rspeed]").forEach((b) => b.classList.toggle("on", Number(b.dataset.rspeed) === s));
+  }
+  document.querySelectorAll("[data-rspeed]").forEach((b) => b.addEventListener("click", () => {
+    sound.start();
+    setReplaySpeed(Number(b.dataset.rspeed));
+  }));
+  $("scrub").addEventListener("input", (e) => {
+    if (player) {
+      sound.start();
+      player.seek(Number(e.target.value));
+    }
+  });
+  $("next").addEventListener("click", () => {
+    if (!player) return;
+    sound.start();
+    const nx = player.nextEventTime();
+    if (nx) player.seek(nx.t - 8);
+    else {
+      player.seek(END);
+      player.startEpilogue();
+    }
+  });
+  $("director").addEventListener("click", () => {
+    if (player) {
+      player.director = true;
+      $("director").classList.add("on");
+    }
+  });
   $("follow").addEventListener("click", () => {
     state.follow = true;
     fitZoom();
@@ -4579,13 +5708,14 @@ input[type=range] { width: 100%; accent-color: var(--brass); }
   window.addEventListener("keydown", (e) => {
     if (e.key === " ") {
       e.preventDefault();
-      setSpeed(state.paused ? 1 : 0);
+      if (player) setReplaySpeed(player.paused ? 1 : 0);
+      else setSpeed(state.paused ? 1 : 0);
     }
     if (e.key === "c") renderer.mode = renderer.mode === "cutaway" ? "exterior" : "cutaway";
     if (e.key === "f") state.follow = true;
   });
   window.addEventListener("resize", () => renderer.resize());
-  init("iceberg");
+  init("replay");
   renderer.resize();
   if (matchMedia("(pointer: coarse)").matches) document.querySelector("[data-tool=pan]").click();
   requestAnimationFrame(frame);
@@ -4593,6 +5723,8 @@ input[type=range] { width: 100%; accent-color: var(--brass); }
     return world;
   }, state, get renderer() {
     return renderer;
+  }, get player() {
+    return player;
   } };
 })();
 

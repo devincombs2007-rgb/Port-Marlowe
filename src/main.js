@@ -4,6 +4,8 @@ import { Ocean } from './fluid/ocean.js';
 import { Particles, BUBBLE, JET, SPRAY, SILT, DEBRIS, SNOW, FLAKE, STEAM } from './render/particles.js';
 import { Renderer } from './render/renderer.js';
 import { Sound } from './audio/sound.js';
+import { Player } from './replay/player.js';
+import * as HIST from './replay/history.js';
 import { MATERIALS, MAT, SPACE, SOLID, OPEN, EMPTY, SIDE } from './sim/materials.js';
 import { CELL, P_ATM, gaugePressure, waterTemperature } from './sim/constants.js';
 
@@ -14,6 +16,7 @@ const state = { time: 0, speed: 1, paused: false, tool: 'grab', years: 0, yearRa
 let iceSchedule = [];
 let lastFrame = performance.now();
 let lights = true, lightsOutAt = -1;
+let player = null;
 
 function init(scenario) {
   state.scenario = scenario;
@@ -26,6 +29,19 @@ function init(scenario) {
   if (renderer) { renderer.world = world; renderer.meta = world.ship.meta; renderer.invalidateAll(); }
   else renderer = new Renderer(canvas, world, world.ship.meta);
   renderer.night = scenario !== 'sandbox';
+  $('paneltitle').textContent = 'Hydrostatics';
+  renderer.replay = null; renderer.dawn = 0; player = null;
+  document.body.classList.toggle('replay', scenario === 'replay');
+  if (scenario === 'replay') {
+    world.collisionsOn = false;
+    player = new Player({ world, renderer, particles, sound, $ });
+    renderer.mode = 'cutaway';
+    $('scrub').min = String(HIST.START); $('scrub').max = String(HIST.END);
+    setReplaySpeed(1);
+    renderer.visibility = 0.8; $('visibility').value = '0.8';
+    $('paneltitle').textContent = 'Ship\u2019s status';
+    return;
+  }
   for (const b of world.bodies) b.lit = true;
   state.time = 0; state.years = 0; state.yearRate = 0; state.log = []; lights = true; lightsOutAt = -1;
   iceSchedule = [];
@@ -145,6 +161,17 @@ function corrode(years) {
 function frame(now) {
   const dtReal = Math.min(0.05, (now - lastFrame) / 1000);
   lastFrame = now;
+  if (player) {
+    player.update(dtReal);
+    ocean.step(dtReal, world.bodies, world.ship.grid);
+    particles.step(dtReal * Math.min(4, player.speed), world.env);
+    sound.update(world, renderer, { paused: player.paused });
+    state.particles = particles; state.ocean = ocean;
+    renderer.draw(state);
+    if (performance.now() - hudT > 150) { hudT = performance.now(); player.hud(); }
+    requestAnimationFrame(frame);
+    return;
+  }
   if (!state.paused) {
     let simDt = dtReal * state.speed;
     const t0 = performance.now();
@@ -268,7 +295,7 @@ canvas.addEventListener('pointermove', (e) => {
   if (pinch && touches.size === 2) {
     const [a, b] = [...touches.values()];
     renderer.cam.z = Math.max(0.05, Math.min(80, pinch.z * Math.hypot(a[0] - b[0], a[1] - b[1]) / pinch.d));
-    state.follow = false; return;
+    state.follow = false; if (player) { player.director = false; $('director').classList.remove('on'); } return;
   }
   const r = canvas.getBoundingClientRect();
   const sx = e.clientX - r.left, sy = e.clientY - r.top;
@@ -294,7 +321,7 @@ canvas.addEventListener('pointerdown', (e) => {
   const sx = e.clientX - r.left, sy = e.clientY - r.top;
   const [wx, wy] = renderer.toWorld(sx, sy);
   canvas.setPointerCapture(e.pointerId);
-  if (e.button === 2 || e.button === 1 || state.tool === 'pan') { panning = { sx, sy, cx: renderer.cam.x, cy: renderer.cam.y }; state.follow = false; return; }
+  if (player || e.button === 2 || e.button === 1 || state.tool === 'pan') { panning = { sx, sy, cx: renderer.cam.x, cy: renderer.cam.y }; state.follow = false; if (player) { player.director = false; $('director').classList.remove('on'); } return; }
   dragging = { paint: state.tool !== 'grab' };
   applyTool(wx, wy, true);
 });
@@ -308,6 +335,7 @@ canvas.addEventListener('wheel', (e) => {
   const [wx, wy] = renderer.toWorld(sx, sy);
   const c = renderer.cam;
   c.z = Math.max(0.05, Math.min(80, c.z * Math.exp(-e.deltaY * 0.0015)));
+  if (player) { player.director = false; $('director').classList.remove('on'); }
   const [wx2, wy2] = renderer.toWorld(sx, sy);
   c.x += wx - wx2; c.y += wy - wy2;
 }, { passive: false });
@@ -372,6 +400,19 @@ document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click'
   if (v === 'stress') b.classList.toggle('on', renderer.overlay === 'stress');
 }));
 $('scenario').addEventListener('change', (e) => init(e.target.value));
+function setReplaySpeed(s) {
+  if (!player) return;
+  player.speed = s || player.speed; player.paused = s === 0;
+  document.querySelectorAll('[data-rspeed]').forEach(b => b.classList.toggle('on', Number(b.dataset.rspeed) === s));
+}
+document.querySelectorAll('[data-rspeed]').forEach(b => b.addEventListener('click', () => { sound.start(); setReplaySpeed(Number(b.dataset.rspeed)); }));
+$('scrub').addEventListener('input', (e) => { if (player) { sound.start(); player.seek(Number(e.target.value)); } });
+$('next').addEventListener('click', () => {
+  if (!player) return; sound.start();
+  const nx = player.nextEventTime();
+  if (nx) player.seek(nx.t - 8); else { player.seek(HIST.END); player.startEpilogue(); }
+});
+$('director').addEventListener('click', () => { if (player) { player.director = true; $('director').classList.add('on'); } });
 $('follow').addEventListener('click', () => { state.follow = true; fitZoom(); });
 $('infoBtn').addEventListener('click', () => { document.body.classList.toggle('info'); $('infoBtn').classList.toggle('on'); });
 $('visibility').addEventListener('input', (e) => { renderer.visibility = Number(e.target.value); });
@@ -382,14 +423,14 @@ $('doors').addEventListener('click', () => {
   log(open ? 'Watertight doors opened.' : 'Watertight doors closed from the bridge.');
 });
 window.addEventListener('keydown', (e) => {
-  if (e.key === ' ') { e.preventDefault(); setSpeed(state.paused ? 1 : 0); }
+  if (e.key === ' ') { e.preventDefault(); if (player) setReplaySpeed(player.paused ? 1 : 0); else setSpeed(state.paused ? 1 : 0); }
   if (e.key === 'c') renderer.mode = renderer.mode === 'cutaway' ? 'exterior' : 'cutaway';
   if (e.key === 'f') state.follow = true;
 });
 window.addEventListener('resize', () => renderer.resize());
 
-init('iceberg');
+init('replay');
 renderer.resize();
 if (matchMedia('(pointer: coarse)').matches) document.querySelector('[data-tool=pan]').click();
 requestAnimationFrame(frame);
-window.__pm = { get world() { return world; }, state, get renderer() { return renderer; } };
+window.__pm = { get world() { return world; }, state, get renderer() { return renderer; }, get player() { return player; } };

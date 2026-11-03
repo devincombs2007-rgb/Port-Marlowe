@@ -45,5 +45,7 @@ export class Sound {
   crack(v) { this.burst(2.5, 3000, 60, 0.9 * v); this.burst(3, 90, 25, 0.8 * v, 'sine'); }
   boom(v) { this.burst(1.2, 600, 40, 0.8 * v); this.burst(1.5, 70, 20, 0.9 * v, 'sine'); }
   glass() { for (let i = 0; i < 4; i++) this.burst(0.15 + Math.random() * 0.2, 6000, 2000, 0.12, 'noise'); }
+  bell() { for (let i = 0; i < 3; i++) setTimeout(() => { this.burst(1.6, 1320, 1300, 0.35, 'sine'); this.burst(1.2, 2650, 2600, 0.1, 'sine'); }, i * 650); }
+  rocket() { this.burst(2.5, 2500, 400, 0.2); setTimeout(() => this.burst(0.6, 900, 100, 0.5), 3000); }
   scrape() { this.burst(0.8, 1400, 300, 0.25); }
 }

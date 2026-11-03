@@ -185,12 +185,15 @@ export class Renderer {
     const horizon = sy0(0);
     if (horizon > 0) {
       const sg = ctx.createLinearGradient(0, 0, 0, Math.max(1, horizon));
-      if (this.night) { sg.addColorStop(0, '#03060d'); sg.addColorStop(1, '#0d1626'); }
+      if (this.night && this.dawn > 0) { const d = this.dawn; sg.addColorStop(0, `rgb(${3 + 60 * d},${6 + 90 * d},${13 + 140 * d})`); sg.addColorStop(1, `rgb(${13 + 220 * d},${22 + 150 * d},${38 + 110 * d})`); }
+      else if (this.night) { sg.addColorStop(0, '#03060d'); sg.addColorStop(1, '#0d1626'); }
       else { sg.addColorStop(0, '#5e8fbf'); sg.addColorStop(1, '#c9dcea'); }
       ctx.fillStyle = sg; ctx.fillRect(0, 0, W, Math.min(H, horizon));
       if (this.night) {
         ctx.fillStyle = '#fff';
+        if (this.replay) this.drawHorizonLights(ctx, W, horizon);
         for (const [sx, syy, b] of this.stars) {
+          if (this.dawn > 0.6) break;
           const y = syy * horizon; if (y > horizon - 4) continue;
           ctx.globalAlpha = 0.3 + 0.7 * b * (0.8 + 0.2 * Math.sin(state.time * 2 + b * 40));
           ctx.fillRect(sx * W, y, b > 0.9 ? 2 : 1, b > 0.9 ? 2 : 1);
@@ -214,6 +217,7 @@ export class Renderer {
     ctx.save();
     ctx.setTransform(this.dpr * z, 0, 0, -this.dpr * z, this.dpr * (W / 2 - z * cam.x + shx), this.dpr * (H / 2 + z * cam.y + shy));
     const mode = this.mode === 'exterior' ? 'ext' : 'cut';
+    if (this.replay) this.drawReplayBack(ctx, this.replay.t);
     for (const b of world.bodies) {
       if (!b.alive) continue;
       const wbx = b.wbox;
@@ -222,6 +226,7 @@ export class Renderer {
       ctx.save();
       ctx.transform(b.c, b.s, -b.s, b.c, b.x, b.y);
       ctx.translate(-b.comX, -b.comY);
+      if (b.squash && b.squash < 1) { ctx.translate(0, b.aabb.y0); ctx.scale(1, b.squash); ctx.translate(0, -b.aabb.y0); }
       ctx.save();
       ctx.translate(t.x0, t.y1); ctx.scale(CELL / PX, -CELL / PX);
       ctx.imageSmoothingEnabled = z * CELL / PX < 1.5;
@@ -233,6 +238,7 @@ export class Renderer {
     }
     // rigging (antenna between mastheads)
     this.drawRigging(ctx);
+    if (this.replay) this.drawReplayFront(ctx, this.replay.t);
     // particles
     this.drawParticles(ctx, state, mode);
     ctx.restore();
@@ -414,6 +420,103 @@ export class Renderer {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.drawImage(d, 0, 0);
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+  }
+
+  // ------------------------------------------------------- replay layers
+  drawBoat(ctx, st, side, id) {
+    if (!st || st.mode === 'gone') return;
+    ctx.save();
+    ctx.translate(st.x, st.y); ctx.rotate(st.a || 0);
+    const L = id === 'A' || id === 'B' || id === 'C' || id === 'D' ? 8.3 : id === '1' || id === '2' ? 7.6 : 9.1;
+    ctx.globalAlpha = side === 'p' ? 0.6 : 1;
+    if (st.flip) {
+      ctx.fillStyle = '#e8e2d2'; ctx.beginPath(); ctx.ellipse(0, 0.2, L / 2, 0.55, 0, 0, Math.PI); ctx.fill();
+    } else {
+      ctx.fillStyle = '#f1ece0';
+      ctx.beginPath(); ctx.moveTo(-L / 2, 1.1); ctx.lineTo(L / 2, 1.1); ctx.quadraticCurveTo(L / 2 - 0.4, -0.1, L / 2 - 1.4, -0.25); ctx.lineTo(-L / 2 + 1.4, -0.25); ctx.quadraticCurveTo(-L / 2 + 0.4, -0.1, -L / 2, 1.1); ctx.fill();
+      ctx.fillStyle = '#9b3a2c'; ctx.fillRect(-L / 2 + 0.6, 0.85, L - 1.2, 0.18);
+      if (st.mode !== 'davit') {
+        // people (dark figures) and a lantern
+        ctx.fillStyle = '#2a2622';
+        const n = Math.min(14, Math.max(3, Math.round(L * 1.4)));
+        for (let i = 0; i < n; i++) ctx.fillRect(-L / 2 + 1 + i * (L - 2) / n, 1.1, 0.32, 0.55 + ((i * 7) % 3) * 0.08);
+        if (this.night && this.dawn < 0.7) { ctx.fillStyle = 'rgba(255,214,140,0.95)'; ctx.fillRect(L / 2 - 1.2, 1.7, 0.25, 0.3); }
+      }
+      if (st.mode === 'lowering' || st.mode === 'davit') { ctx.strokeStyle = 'rgba(220,210,190,0.7)'; ctx.lineWidth = 0.06; ctx.beginPath(); ctx.moveTo(-L / 2 + 0.8, 1.1); ctx.lineTo(-L / 2 + 0.8, 1.1 + (st.mode === 'davit' ? 1.3 : 30)); ctx.moveTo(L / 2 - 0.8, 1.1); ctx.lineTo(L / 2 - 0.8, 1.1 + (st.mode === 'davit' ? 1.3 : 30)); ctx.stroke(); }
+    }
+    ctx.restore();
+  }
+  drawIceberg(ctx, t, front) {
+    const rp = this.replay;
+    if (t > -1 + 600 || t < -60) return;
+    const xc = rp.icebergX(t);
+    ctx.save(); ctx.translate(xc, 0);
+    if (!front) {
+      ctx.fillStyle = 'rgba(120,170,200,0.35)';
+      ctx.beginPath(); ctx.moveTo(-70, 0); ctx.lineTo(-90, -40); ctx.lineTo(-40, -95); ctx.lineTo(30, -110); ctx.lineTo(85, -55); ctx.lineTo(70, 0); ctx.fill();
+    } else {
+      const g = ctx.createLinearGradient(0, 22, 0, 0);
+      g.addColorStop(0, '#dfe9ee'); g.addColorStop(1, '#8fa9b8');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.moveTo(-62, 0); ctx.lineTo(-50, 8); ctx.lineTo(-38, 12); ctx.lineTo(-22, 21); ctx.lineTo(-12, 17); ctx.lineTo(4, 23); ctx.lineTo(16, 14); ctx.lineTo(34, 11); ctx.lineTo(50, 6); ctx.lineTo(64, 0); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 0.3; ctx.stroke();
+    }
+    ctx.restore();
+  }
+  drawReplayBack(ctx, t) {
+    const rp = this.replay;
+    this.drawIceberg(ctx, t, false);
+    for (const bt of this.boatList) if (bt.side === 'p') this.drawBoat(ctx, rp.boatState(bt, t), 'p', bt.id);
+    // Carpathia: one red-and-black funnel, four masts
+    if (t > rp.carpathiaT0) {
+      const x = rp.carpathiaX(t);
+      ctx.save(); ctx.translate(x, 0); ctx.globalAlpha = 0.85;
+      ctx.fillStyle = '#16181b'; ctx.beginPath(); ctx.moveTo(-85, -7); ctx.lineTo(85, -7); ctx.lineTo(88, 9); ctx.lineTo(-87, 9); ctx.fill();
+      ctx.fillStyle = '#d9d4c6'; ctx.fillRect(-35, 9, 60, 6); ctx.fillRect(-20, 15, 30, 3);
+      ctx.fillStyle = '#b8452a'; ctx.fillRect(-6, 15, 7, 15); ctx.fillStyle = '#111'; ctx.fillRect(-6, 26, 7, 4);
+      ctx.strokeStyle = '#3a342c'; ctx.lineWidth = 0.6; for (const mx of [-70, -45, 45, 70]) { ctx.beginPath(); ctx.moveTo(mx, 9); ctx.lineTo(mx, 38); ctx.stroke(); }
+      if (this.dawn < 0.8) { ctx.fillStyle = 'rgba(255,220,150,0.9)'; for (let i = -80; i < 80; i += 6) ctx.fillRect(i, 3, 0.8, 0.8); }
+      ctx.restore();
+    }
+  }
+  drawReplayFront(ctx, t) {
+    const rp = this.replay;
+    for (const bt of this.boatList) if (bt.side === 's') this.drawBoat(ctx, rp.boatState(bt, t), 's', bt.id);
+    this.drawIceberg(ctx, t, true);
+    // ship's way through the water: bow wave & passing foam
+    const v = rp.shipSpeed(t);
+    if (v > 0.3) {
+      const S = t * v;
+      ctx.fillStyle = `rgba(230,240,245,${Math.min(0.6, v / 12)})`;
+      for (let i = -40; i < 40; i++) { const x = ((i * 23.7 - S) % 900 + 900) % 900 - 450; ctx.fillRect(x, -0.1, 3 + (i % 3), 0.25); }
+      const bx = rp.apply(rp.intact(t), rp.meta.X0 - 1, 0)[0];
+      ctx.beginPath(); ctx.ellipse(bx, 0.3, 6 * v / 11.6, 1.3 * v / 11.6, 0, 0, Math.PI * 2); ctx.fill();
+    }
+    // distress rockets: white stars bursting ~150 m above the bridge
+    for (const tr of rp.rockets) {
+      const dt = t - tr;
+      if (dt < 0 || dt > 10) continue;
+      const [bx, by] = rp.apply(rp.intact(tr), rp.meta.X0 - 60, 31);
+      if (dt < 3) {
+        const y = by + 150 * (1 - (1 - dt / 3) ** 2);
+        ctx.strokeStyle = 'rgba(255,235,200,0.9)'; ctx.lineWidth = 0.5;
+        ctx.beginPath(); ctx.moveTo(bx, by + Math.max(0, y - by - 20)); ctx.lineTo(bx, y); ctx.stroke();
+      } else {
+        const u = (dt - 3) / 7;
+        ctx.fillStyle = `rgba(255,250,235,${1 - u})`;
+        for (let i = 0; i < 14; i++) {
+          const ang = i / 14 * Math.PI * 2, r = 4 + 22 * u;
+          ctx.beginPath(); ctx.arc(bx + Math.cos(ang) * r, by + 150 + Math.sin(ang) * r - 18 * u * u, 1.2 * (1 - u) + 0.3, 0, 7); ctx.fill();
+        }
+      }
+    }
+  }
+  drawHorizonLights(ctx, W, horizon) {
+    const rp = this.replay, t = rp.t;
+    // the mystery ship's light (probably SS Californian, ~10 miles off)
+    if (t > rp.californianT[0] && t < rp.californianT[1]) {
+      ctx.fillStyle = 'rgba(255,240,210,0.85)'; ctx.fillRect(W * 0.12, horizon - 3, 2, 2); ctx.fillRect(W * 0.12 + 5, horizon - 2, 1.5, 1.5);
+    }
   }
 
   drawHover(ctx, h, sx0, sy0, z) {
