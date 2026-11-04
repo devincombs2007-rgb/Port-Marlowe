@@ -70,7 +70,24 @@ Plus: detachment velocity including deck rotation, glass failure pressure from p
 - 3D model: the superstructure now follows the hull's sheer and narrows where the hull narrows (it previously overhung the hull at both ends). The bow names are set letter by letter on the curved plating. The stern carries the name and port of registry, and the counter's underside is black rather than red. Added the bower anchors, anchor crane, docking bridge, stern light and expansion-joint lines. Captain Smith now stands clear of the wing cab, and passengers stand clear of the stowed boats. Carpathia is a lofted hull to her real 164.9 m × 19.7 m.
 - 3D timeline: a sweep of 285 moments across the whole night finds no invalid geometry, cameras or console errors. Rusticles in the epilogue hang from the wreck as it actually lies.
 - 2D physics sandbox: added linearised wave-radiation damping (previously the hull pitched without settling). A full room's pressure is now solved from the flow balance with a volume correction, so water is conserved to about 1e-10 m³; the earlier solver throttled flow and lost water. Glass burst pressures come from the plate-bending calculation. Non-watertight doors and window leakage were added. The breach area is restored to the inquiry estimate (~1.1 m²).
+- 2D physics sandbox, why she never sank: the funnel and engine casings were drawn as full-width walls in the 2.5D section, so they cut every deck from F to the boat deck. Water could not run aft along Scotland Road, the ship stalled at 8° with dry spaces below the waterline, and she never sank. The casings are now vertical trunks from the stokeholds to the boat deck, and the decks run continuously past them. Each stokehold's escape trunk now comes out on E deck, and the engine-room skylight bursts at the glass's failure pressure. Hatch covers are boards and tarpaulin rated for green seas, so they now fail at 70 kPa instead of 25 kPa.
+- 2D interface: the ship is framed in the space left between the side panels (the bow used to sit behind the status panel). The opening caption no longer carries over into the other scenarios. Floodwater no longer counts the ballast already in the double-bottom tanks.
 - Physics core: air equalisation uses an exponential update, so errors now shrink at every halving of the timestep (checked).
+
+### Physics sandbox against the record
+
+The "1912 · Physics sandbox" scenario runs on conditions alone: the measured breach, the watertight doors closed, and no script. The "Historical replay" scenario follows the documented timeline instead.
+
+| | Evidence | Physics sandbox |
+|---|---|---|
+| 40 min after impact | about 3.2° by the head with ~15,000 t aboard (Hackett & Bedford, condition A2) | 2.6°, ~11,700 t |
+| 1 h after impact | "more than 3°" | 3.3° |
+| Forward well deck and forecastle awash | about 01:30–01:40 | about 01:30 |
+| About 10° by the head, bridge going under | about 02:15 | about 01:36 |
+| Hull breaks | about 02:17–02:18, at the surface | during the plunge and descent |
+| Founders | 02:20 | about 01:38 |
+
+Up to the moment the forecastle goes under, the sandbox stays within the spread of the published reconstructions. After that it is too fast: it founders about 6 minutes later, where the real ship took about 45. In this model each deck space between partitions is a single well-mixed volume. Water that gets into the forward superstructure therefore spreads through it at once, instead of working slowly through cabin blocks, closed doors and furniture. Modelling that resistance needs the Phase 2 fluid core (inertial openings per slice), which is where the fix belongs. With a slower progression the stern would rise quasi-statically. When the old version stalled at 8°, the hull girder was already at 74 % of its failure load at the aft expansion joint (where the real ship broke), so it would be expected to break at the surface as she did.
 
 ## Next phases
 

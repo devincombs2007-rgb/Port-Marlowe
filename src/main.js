@@ -24,6 +24,9 @@ function init(scenario) {
   // settle quietly
   for (let i = 0; i < 240; i++) world.step(1 / 30);
   world.time = 0; world.events.length = 0;
+  // ballast already in the double-bottom tanks is load, not floodwater
+  world.flooding.ballast0 = world.flooding.stats.floodedTonnes || 0;
+  { const cap = $('caption'); if (cap) { cap.classList.remove('show'); cap.innerHTML = ''; } }
   ocean = new Ocean(world.env);
   particles = new Particles();
   if (renderer) { renderer.world = world; renderer.meta = world.ship.meta; renderer.invalidateAll(); }
@@ -56,10 +59,25 @@ function init(scenario) {
   renderer.cam.x = 0; renderer.cam.y = 8; fitZoom();
   setSpeed(1);
 }
+// screen-space shift (px) that centres the ship in the area left free by the
+// tool and status panels on wide screens
+let viewShift = 0;
 function fitZoom() {
   renderer.resize();
-  const narrow = canvas.clientWidth < 860;
-  renderer.cam.z = Math.max(1.2, (canvas.clientWidth * (narrow ? 0.96 : 0.82)) / 280);
+  const W = canvas.clientWidth;
+  const narrow = W < 860;
+  let left = 0, right = W;
+  if (!narrow) {
+    const t = $('tools'), p = $('panel');
+    const tr = t && t.offsetParent ? t.getBoundingClientRect() : null;
+    const pr = p && p.offsetParent ? p.getBoundingClientRect() : null;
+    if (tr && tr.right < W * 0.3) left = tr.right + 8;
+    if (pr && pr.left > W * 0.6) right = pr.left - 8;
+  }
+  const free = Math.max(W * 0.5, right - left);
+  renderer.cam.z = Math.max(1.2, (free * (narrow ? 0.96 : 0.94)) / 280);
+  viewShift = (left + right) / 2 - W / 2;
+  renderer.cam.x -= viewShift / renderer.cam.z;
 }
 
 function log(msg) {
@@ -208,7 +226,7 @@ function frame(now) {
   // camera follow
   if (state.follow) {
     const tgt = followTarget();
-    if (tgt) { const c = renderer.cam; c.x += (tgt[0] - c.x) * 0.04; c.y += (tgt[1] - c.y) * 0.04; }
+    if (tgt) { const c = renderer.cam; c.x += (tgt[0] - viewShift / c.z - c.x) * 0.04; c.y += (tgt[1] - c.y) * 0.04; }
   }
   sound.update(world, renderer, state);
   state.particles = particles; state.ocean = ocean;
@@ -250,7 +268,7 @@ function hud() {
   const rows = [
     ['Trim (bow down)', deg(s.trim)],
     ['Draught fwd / aft', `${s.draughtF.toFixed(1)} / ${s.draughtA.toFixed(1)} m`],
-    ['Floodwater', `${Math.round(f.floodedTonnes).toLocaleString()} t`],
+    ['Floodwater', `${Math.round(Math.max(0, f.floodedTonnes - (world.flooding.ballast0 || 0))).toLocaleString()} t`],
     ['Inflow from sea', `${Math.max(0, Math.round(f.inflowTps * 60)).toLocaleString()} t/min`],
     ['Reserve buoyancy', `${(reserve * 100).toFixed(0)} %`],
     ['Hull girder stress', `${Math.round(s.maxRatio * 100)} % of failure`],

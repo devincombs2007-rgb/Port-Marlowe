@@ -319,35 +319,40 @@ export function buildTitanic(opts = {}) {
     openWall(p.xb, z0 + 0.3, z0 + 2.2, MAT.DOOR, 1.4);
   }
 
-  // 5. boiler casings and engine casing (vertical shafts toward funnels)
-  for (let f = 0; f < 3; f++) {
-    const xc = FUNNELS[f] + 1.0, half = 3.2;
-    const zb = deckZ('F', xc);
-    vLine(xc - half, zb + 0.2, deckZ('BOAT', xc) - 0.2, MAT.CASING);
-    vLine(xc + half, zb + 0.2, deckZ('BOAT', xc) - 0.2, MAT.CASING);
-    for (let i = colOf(xc + half) + 1; i < colOf(xc - half); i++) {
+  // 5. boiler casings and engine casing. Each casing is a shaft about 8 m wide
+  // on the centreline; the decks carry on past it on both sides (Scotland
+  // Road to port, the working alley and cabins to starboard). A 2.5D section
+  // holds one room per cell, so the casing is drawn as uptake cells inside
+  // each deck space, and its connection from the stokeholds to the boat deck
+  // is a vertical trunk (meta.trunks) that bypasses the decks in between.
+  meta.trunks = [];
+  const casingCells = (a, b, z0Deck) => {
+    for (let i = colOf(b); i <= colOf(a); i++) {
       const xb = xbOf(i);
-      for (let j = rowOf(zb) + 1; j < rowOf(deckZ('BOAT', xb)); j++) {
+      if (xb < a || xb > b) continue;
+      for (let j = rowOf(deckZ(z0Deck, xb)) + 1; j < rowOf(deckZ('BOAT', xb)); j++) {
         const k = grid.idx(i, j);
-        if (grid.kind[k] !== 0) { grid.set(i, j, MAT.CASEIN); grid.flags[k] |= 0; }
+        if (grid.kind[k] === SPACE) grid.set(i, j, MAT.CASEIN);
       }
     }
-    openDeck('F', xc - half + 0.3, xc + half - 0.3, MAT.GRATING, 4.5);
-    openDeck('BOAT', xc - half + 0.6, xc + half - 0.6, MAT.GRATING, 3.0); // into funnel
+  };
+  for (let f = 0; f < 3; f++) {
+    const xc = FUNNELS[f] + 1.0, half = 3.2;
+    casingCells(xc - half, xc + half, 'F');
+    // each funnel takes the uptakes of the two boiler rooms either side of
+    // the bulkhead it straddles; the fiddley gratings round the funnel base
+    // (~10 m^2) stay open to the air
+    const bh = BULKHEADS.find(b => b.xb > xc - half && b.xb < xc + half);
+    for (const xb of [bh.xb - 1.2, bh.xb + 1.2]) {
+      meta.trunks.push({ name: `No. ${f + 1} funnel casing`, xb, zBottom: deckZ('F', xb) - 0.75, zTop: deckZ('BOAT', xc), xTop: xc, area: 5, burstArea: 0, burst: 0 });
+    }
   }
   {
     const a = 160.5, b = 172.5;                        // engine room casing & skylight
-    vLine(a, deckZ('E', a) + 0.2, deckZ('BOAT', a) - 0.2, MAT.CASING);
-    vLine(b, deckZ('E', b) + 0.2, deckZ('BOAT', b) - 0.2, MAT.CASING);
-    for (let i = colOf(b) + 1; i < colOf(a); i++) {
-      const xb = xbOf(i);
-      for (let j = rowOf(deckZ('E', xb)) + 1; j < rowOf(deckZ('BOAT', xb)); j++) {
-        const k = grid.idx(i, j);
-        if (grid.kind[k] !== 0) grid.set(i, j, MAT.CASEIN);
-      }
-    }
-    openDeck('E', a + 0.4, b - 0.4, MAT.GRATING, 8);
-    openDeck('BOAT', a + 1, b - 1, MAT.SKYLIGHT, 6);
+    casingCells(a, b, 'E');
+    // ventilators always open (~4 m^2); the glazed skylight (~20 m^2) opens
+    // when the pressure across it exceeds what the glass can carry
+    meta.trunks.push({ name: 'Engine room casing', xb: 166.5, zBottom: deckZ('E', 166.5) - 0.75, zTop: deckZ('BOAT', 163.5), xTop: 163.5, area: 4, burstArea: 20, burst: MATERIALS[MAT.SKYLIGHT].burst });
   }
 
   // 6. passages through decks: hatches, stairs, grand staircases
@@ -375,6 +380,8 @@ export function buildTitanic(opts = {}) {
     if (xb > 150) continue;
     openDeck('F', xb - 0.6, xb + 0.6, MAT.GRATING, 1.2);
   }
+  // each stokehold's escape trunk comes out on E deck, in the working alleyway
+  for (const xb of [70, 87, 104, 121, 140, 150]) openDeck('E', xb - 0.6, xb + 0.6, MAT.STAIRWELL, 1.2);
   stair(66.0, 1.5, ['E', 'D', 'C'], 2);                // firemen's passage stair (BR6)
   stair(180.0, 2.0, ['D', 'C', 'B'], 2.5);
   stair(126.5, 2.0, ['E', 'D', 'C', 'B'], 2.5);
@@ -486,8 +493,6 @@ export function buildTitanic(opts = {}) {
   openDeck('C', 227.5, 232.5, MAT.COVER, 5.5);
   openDeck('BOAT', 85.6, 91.6, MAT.SKYLIGHT, 8);
   openDeck('BOAT', 151.9, 156.9, MAT.SKYLIGHT, 6.5);
-  openDeck('BOAT', 161.5, 171.5, MAT.SKYLIGHT, 6);
-  for (let f = 0; f < 3; f++) { const xc = FUNNELS[f] + 1.0; openDeck('BOAT', xc - 2.6, xc + 2.6, MAT.GRATING, 3.0); }
 
   // non-watertight doors in the outer walls: third-class entrances from the
   // well decks, the deckhouse doors on the boat deck. They are open passages
@@ -603,6 +608,11 @@ export function buildTitanic(opts = {}) {
   meta.blockCuts = blockCuts().map(xb => X0 - xb).sort((a, b) => a - b);
   meta.designDraught = DESIGN_DRAUGHT;
   meta.bulkheadX = BULKHEADS.map(b => ({ id: b.id, x: X0 - b.xb, top: b.top }));
+  for (const t of meta.trunks) {
+    t.kBottom = grid.idx(colOf(t.xb), rowOf(t.zBottom));
+    t.kTop = grid.idx(colOf(t.xTop), rowOf(t.zTop));
+    t.open = false;
+  }
   return { grid, meta };
 }
 

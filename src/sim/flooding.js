@@ -531,6 +531,16 @@ export class Flooding {
         this.events.push({ type: 'burst-open', k: e.k, x, y, dp: pa - pb, mat: g.mat[e.k] });
       }
     }
+    // glazed tops of casings (engine-room skylight)
+    for (const e of sh.elements) {
+      if (e.type !== 'link' || !e.trunk || e.trunk.open || !(e.trunk.burst > 0)) continue;
+      const [x, y] = this.cellPos(e.k);
+      const dp = Math.abs(this.roomP(rooms[e.a], x, y) - this.extP(x, y));
+      if (dp > e.trunk.burst) {
+        e.trunk.open = true; e.area += e.trunk.burstArea;
+        this.events.push({ type: 'burst-open', k: e.k, x, y, dp, mat: MAT.SKYLIGHT });
+      }
+    }
     // structural panels: walls/decks between regions & side shell of rooms
     let burstCount = 0;
     const pairHits = new Map();

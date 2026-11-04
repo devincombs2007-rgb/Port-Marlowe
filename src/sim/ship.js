@@ -424,6 +424,16 @@ export class Ship {
         if (rc !== null && rd !== null && rc !== rd) walls.push({ k, a: rc, b: rd, ka: nb[3], kb: nb[2] });
       }
     }
+    // vertical trunks (casings) from a space straight up to the open air
+    for (const t of this.meta.trunks || []) {
+      const kb = t.kBottom, kt = t.kTop;
+      if (g.kind[kb] !== SPACE || g.kind[kt] === EMPTY) continue;
+      const a = g.room[kb];
+      if (!(a >= 0)) continue;
+      const area = t.area + (t.open ? t.burstArea : 0);
+      if (area <= 0) continue;
+      els.push({ type: 'link', k: kt, a, b: EXT, ka: kb, kb: kt, vert: 1, area, trunk: t });
+    }
     const pairMap = new Map();
     this.pairs = [];
     for (const e of els) {

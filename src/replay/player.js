@@ -189,11 +189,18 @@ export class Player {
     const s = this.shot(t), c = this.renderer.cam;
     const W = this.renderer.cv.clientWidth;
     const narrow = W < 860;
-    const z = (W * (narrow ? 0.98 : 0.86)) / s.w;
+    // frame the shot in the part of the screen the status panel leaves free
+    let left = 0, right = W;
+    if (!narrow) {
+      const p = this.$('panel'), pr = p && p.offsetParent ? p.getBoundingClientRect() : null;
+      if (pr && pr.left > W * 0.6) right = pr.left - 8;
+    }
+    const z = ((right - left) * (narrow ? 0.98 : 0.94)) / s.w;
+    const tx = s.x - ((left + right) / 2 - W / 2) / z;
     const k = Math.min(1, dt * (s.deep ? 2.5 : 1.4));
     // big jumps (surface <-> seabed) cut instead of panning through 3.8 km
-    if (Math.abs(c.y - s.y) > 600 || Math.abs(c.x - s.x) > 1500) { c.x = s.x; c.y = s.y; c.z = z; return; }
-    c.x += (s.x - c.x) * k; c.y += (s.y - c.y) * k; c.z += (z - c.z) * k;
+    if (Math.abs(c.y - s.y) > 600 || Math.abs(c.x - tx) > 1500) { c.x = tx; c.y = s.y; c.z = z; return; }
+    c.x += (tx - c.x) * k; c.y += (s.y - c.y) * k; c.z += (z - c.z) * k;
   }
 
   // --------------------------------------------------------------- HUD

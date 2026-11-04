@@ -59,14 +59,14 @@ MAT.TUNNEL    = def('tunnel',    { kind: SPACE, perm: 0.90, outfit: 30, name: 'S
 MAT.PROMENADE = def('promenade', { kind: SPACE, perm: 0.99, outfit: 10, name: 'Promenade', color: '#d9d2bf' });
 MAT.WHEEL     = def('wheel',     { kind: SPACE, perm: 0.95, outfit: 40, name: 'Bridge & officers', color: '#d4c7a7' });
 MAT.GALLEY    = def('galley',    { kind: SPACE, perm: 0.85, outfit: 90, name: 'Galley / pantry', color: '#bfae8c' });
-MAT.CASEIN    = def('casein',    { kind: SPACE, perm: 0.98, outfit: 5, name: 'Boiler casing (uptake)', color: '#3b3632' });
+MAT.CASEIN    = def('casein',    { kind: SPACE, perm: 0.98, outfit: 5, name: 'Casing & alleyways', color: '#3b3632' });
 // --- openings (passages within a deck or wall)
 MAT.HATCH     = def('hatch',     { kind: OPEN, burst: 1e9, name: 'Cargo hatch' });
 MAT.STAIRWELL = def('stairwell', { kind: OPEN, burst: 1e9, name: 'Stairwell' });
 MAT.DOOR      = def('door',      { kind: OPEN, burst: 1e9, name: 'Door' });
 MAT.WTDOOR    = def('wtdoor',    { kind: OPEN, burst: 1.2e6, name: 'Watertight door' });
 MAT.SKYLIGHT  = def('skylight',  { kind: OPEN, burst: 4e4, name: 'Glass dome / skylight' });
-MAT.COVER     = def('cover',     { kind: OPEN, burst: 2.5e4, name: 'Hatch cover (tarpaulin)' });
+MAT.COVER     = def('cover',     { kind: OPEN, burst: 7e4, name: 'Hatch cover (boards & tarpaulin)' });
 MAT.GRATING   = def('grating',   { kind: OPEN, burst: 1e9, name: 'Grating / fiddley' });
 
 export const MATERIALS = M;
