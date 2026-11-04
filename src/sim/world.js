@@ -410,7 +410,11 @@ export class World {
       gx /= gl; gy /= gl;
       // normal to world (pointing out of B)
       const nx = B.c * gx - B.s * gy, ny = B.s * gx + B.c * gy;
-      const pen = -dist;
+      // resolve overlap no faster than the pieces approach plus 2 m/s: two
+      // halves of a fresh fracture start out overlapping where the girder was
+      // bent, and pushing that out in one substep would fling them apart
+      const vrel = (A.vx - B.vx) * nx + (A.vy - B.vy) * ny;
+      const pen = Math.min(-dist, (Math.max(0, -vrel) + 2) * h);
       const rbx = X - B.x, rby = Y - B.y;
       const ra = cross(rax, ray, nx, ny), rb = cross(rbx, rby, nx, ny);
       const wsum = A.invM + B.invM + A.invI * ra * ra + B.invI * rb * rb;
@@ -477,7 +481,10 @@ export class World {
       SFx[p] += SFx[u]; SFy[p] += SFy[u]; SM[p] += SM[u];
     }
     let maxR = 0, maxJ = -1;
-    const tau = 0.15;
+    // section loads are filtered over ~1 s, about the period of the hull
+    // girder's lowest vertical bending mode: an impact pulse much shorter
+    // than that (a seabed landing) does not build up full static bending
+    const tau = this.stressTau || 1.0;
     const kf = Math.min(1, dt / tau);
     for (const j of joints) {
       if (j.state >= 2) continue;
@@ -627,7 +634,30 @@ export class World {
       g.mass[k] = 0; g.vdisp[k] = 0; g.vcap[k] = 0;
       ship.destroyedLog = ship.destroyedLog || []; ship.destroyedLog.push(k);
     }
-    this.pendingDestroy.length = 0;
+    // structure cut away weakens the hull girder: the section is checked at
+    // the joints (one per ~8 m block), so a destroyed cell removes its strip
+    // of plating from the nearest joint's section
+    const destroyed = this.pendingDestroy;
+    const welds = this.joints.filter(j => j.kind === 'weld' && j.state < 2 && j.fibers);
+    const weakened = new Set();
+    // one cut counts against one section: prefer the joint nearest the
+    // centre of this batch of damage when it is close enough
+    let cx = 0; for (const k of destroyed) cx += g.cx(k % g.w); cx /= Math.max(1, destroyed.length);
+    let pref = null, pd = 1e9;
+    for (const j of welds) { const d = Math.abs(j.xCut - cx); if (d < pd) { pd = d; pref = j; } }
+    for (const k of destroyed) {
+      const x = g.cx(k % g.w), row = (k / g.w) | 0;
+      let best = null, bd = 5;
+      if (pref && Math.abs(pref.xCut - x) < 5) best = pref;
+      else for (const j of welds) { const d = Math.abs(j.xCut - x); if (d < bd) { bd = d; best = j; } }
+      if (!best) continue;
+      for (const f of best.fibers) if (!f.failed && ((f.k / g.w) | 0) === row) { f.failed = true; weakened.add(best); }
+    }
+    for (const j of weakened) {
+      if (!j.A0) j.A0 = j.fibers.reduce((a, f) => a + f.area, 0);
+      ship.sectionProps(j);
+    }
+    this.pendingDestroy = [];
     for (const bi of touched) {
       const b = this.bodies[bi];
       b.recomputeStructMass(g);
