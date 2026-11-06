@@ -1,0 +1,1636 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Everything We Know About GTA 6</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="A fan-made field guide to Grand Theft Auto VI: every trailer examined, every character, every region of Leonida, confirmed gameplay, radio stations, editions, easter eggs, a full timeline and a glossary. Each fact is tagged by where it comes from.">
+<meta name="theme-color" content="#0c0919">
+<meta property="og:title" content="Everything We Know About GTA 6">
+<meta property="og:description" content="Trailers examined, characters, Leonida, gameplay, radio, editions and a glossary, with every fact tagged by source.">
+<meta property="og:type" content="article">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230c0919'/%3E%3Ccircle cx='16' cy='19' r='9' fill='%23ff8a5c'/%3E%3Crect x='3' y='19' width='26' height='10' fill='%230c0919'/%3E%3Crect x='9' y='21.5' width='14' height='1.8' rx='.9' fill='%23ff8a5c'/%3E%3Crect x='12' y='25' width='8' height='1.8' rx='.9' fill='%23ff5fa8'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow:ital,wght@0,400;0,500;0,600;1,400&family=Barlow+Condensed:wght@500;600;700&family=Mr+Dafoe&display=swap">
+<style>
+/* Layout: a dusk-band cover with die-cut stickers, a sticky chapter rail, then long-form chapters; each chapter mixes reference grids with examination lists, and every fact carries a source tag. */
+:root {
+  color-scheme: dark;
+  --night: #0c0919;
+  --panel: #151029;
+  --panel-2: #1d1636;
+  --sand: #f7ead9;
+  --haze: #b9a7c8;
+  --dim: #8f84a6;
+  --flamingo: #ff5fa8;
+  --mango: #ffb454;
+  --surf: #46e1d0;
+  --lilac: #c4b0f5;
+  --ember: #ff6b5e;
+  --sea: #5aa9ff;
+  --gold: #f5c542;
+  --paper: #fff8ef;
+  --ink: #1b1430;
+  --line: rgba(247, 234, 217, 0.13);
+  --line-strong: rgba(247, 234, 217, 0.3);
+  --veil: rgba(12, 9, 25, 0.86);
+  --glow: rgba(255, 95, 168, 0.55);
+  --font-display: "Anton", Impact, "Haettenschweiler", "Arial Narrow Bold", sans-serif;
+  --font-body: "Barlow", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-label: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", system-ui, sans-serif;
+  --font-sign: "Mr Dafoe", "Brush Script MT", "Segoe Script", cursive;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { background: var(--night); scroll-padding-top: 64px; }
+body {
+  margin: 0;
+  background: var(--night);
+  color: var(--sand);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+body::before {
+  content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px);
+  z-index: 30; background: var(--veil);
+}
+a { color: var(--sand); text-underline-offset: 3px; text-decoration-color: var(--line-strong); }
+a:hover { text-decoration-color: var(--flamingo); }
+:focus-visible { outline: 2px solid var(--surf); outline-offset: 3px; }
+h1, h2, h3, h4 { text-wrap: balance; }
+p { margin: 0; }
+.i { width: 1em; height: 1em; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vertical-align: -0.125em; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.gutter {
+  max-width: 1212px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+/* ---------- Source tags ---------- */
+.st {
+  display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+  font: 700 11px/1 var(--font-label); text-transform: uppercase; letter-spacing: 0.1em;
+  padding: 4px 7px 3px; border-radius: 3px; border: 1px solid currentColor;
+  vertical-align: middle;
+}
+.st .i { width: 12px; height: 12px; stroke-width: 2.4; }
+.st.off { color: var(--surf); }
+.st.seen { color: var(--mango); }
+.st.rep { color: var(--lilac); }
+.st.rum { color: var(--flamingo); }
+.st.open { color: var(--dim); }
+
+/* ---------- Stickers ---------- */
+.sticker {
+  position: absolute; display: block; pointer-events: none;
+  filter: drop-shadow(3px 0 0 var(--paper)) drop-shadow(-3px 0 0 var(--paper)) drop-shadow(0 3px 0 var(--paper)) drop-shadow(0 -3px 0 var(--paper)) drop-shadow(0 10px 12px rgba(0, 0, 0, 0.5));
+  transform: rotate(var(--r, -8deg));
+}
+.sticker text { font-family: var(--font-display); }
+.anim-bob { animation: bob 3.2s ease-in-out infinite; transform-origin: 50% 90%; transform-box: fill-box; }
+.anim-chomp { animation: chomp 2.4s ease-in-out infinite; transform-origin: 2px 90%; transform-box: fill-box; }
+.anim-spin { animation: spin 6s linear infinite; transform-origin: 50% 50%; transform-box: fill-box; }
+.anim-sway { animation: sway 4s ease-in-out infinite; transform-origin: 50% 100%; transform-box: fill-box; }
+.anim-blink { animation: blink 1.2s steps(1, end) infinite; }
+.anim-blink.b2 { animation-delay: 0.2s; } .anim-blink.b3 { animation-delay: 0.4s; }
+.anim-blink.b4 { animation-delay: 0.6s; } .anim-blink.b5 { animation-delay: 0.8s; } .anim-blink.b6 { animation-delay: 1s; }
+.anim-red { animation: lamp 0.9s steps(1, end) infinite; }
+.anim-blue { animation: lamp 0.9s steps(1, end) infinite 0.45s; }
+@keyframes bob { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(5deg) translateY(-2px); } }
+@keyframes chomp { 0%, 55%, 100% { transform: rotate(0); } 70% { transform: rotate(-16deg); } 82% { transform: rotate(0); } 90% { transform: rotate(-10deg); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes sway { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(4deg); } }
+@keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.25; } }
+@keyframes lamp { 0% { opacity: 1; } 50% { opacity: 0.2; } }
+
+/* ---------- Cover ---------- */
+.cover {
+  position: relative; overflow: hidden; isolation: isolate;
+  background:
+    radial-gradient(60% 90% at 72% 100%, rgba(255, 165, 102, 0.55), rgba(255, 90, 130, 0.18) 45%, transparent 70%),
+    linear-gradient(180deg, #0c0919 0%, #1c1037 38%, #451755 66%, #9c2a6c 88%, #e8586f 100%);
+}
+.cover::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 64px; z-index: -1;
+  background: repeating-linear-gradient(180deg, rgba(12, 9, 25, 0.0) 0 6px, rgba(12, 9, 25, 0.55) 6px 9px), linear-gradient(180deg, #5a1d55, #0c0919);
+}
+.cover-inner { position: relative; padding-block: 22px 104px; display: grid; gap: 22px; }
+.crumbs { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; font: 600 13px/1.2 var(--font-label); text-transform: uppercase; letter-spacing: 0.14em; color: var(--haze); }
+.crumbs a { color: var(--sand); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+.crumbs a:hover { color: var(--mango); }
+.cover-sign { margin: clamp(20px, 5vw, 56px) 0 -6px; font-family: var(--font-sign); font-size: clamp(30px, 4.4vw, 46px); line-height: 1.1; color: var(--flamingo); text-shadow: 0 0 6px var(--glow), 0 0 22px var(--glow); transform: rotate(-3deg); transform-origin: left bottom; }
+.cover h1 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: clamp(50px, 10.5vw, 132px); line-height: 0.92; letter-spacing: 0.005em; max-width: 11ch; text-shadow: 0 4px 30px rgba(12, 9, 25, 0.45); }
+.cover h1 em { font-style: normal; color: var(--mango); }
+.cover-lede { max-width: 60ch; font-size: clamp(17px, 1.7vw, 20px); color: var(--sand); text-shadow: 0 1px 12px rgba(12, 9, 25, 0.5); }
+.cover-row { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; }
+.chip {
+  display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 999px;
+  font: 700 13px/1 var(--font-label); text-transform: uppercase; letter-spacing: 0.1em;
+  background: var(--veil); border: 1px solid var(--line-strong); color: var(--sand); text-decoration: none;
+}
+.chip.hot { background: var(--flamingo); border-color: var(--flamingo); color: var(--night); }
+a.chip:hover { border-color: var(--mango); color: var(--mango); }
+a.chip.hot:hover { color: var(--night); background: var(--mango); border-color: var(--mango); }
+.legend { margin-top: 6px; display: grid; gap: 10px; padding: 16px; border-radius: 6px; background: var(--veil); border: 1px solid var(--line); max-width: 760px; }
+.legend h2 { margin: 0; font: 700 13px/1.2 var(--font-label); text-transform: uppercase; letter-spacing: 0.14em; color: var(--haze); }
+.legend ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px 18px; }
+.legend li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start; font-size: 14px; color: var(--haze); }
+
+/* ---------- Chapter rail ---------- */
+.rail {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
+  background: var(--veil); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.rail-scroll { overflow-x: auto; scrollbar-width: none; }
+.rail-scroll::-webkit-scrollbar { display: none; }
+.rail ol { list-style: none; margin: 0; padding-block: 10px; display: flex; gap: 4px; width: max-content; }
+.rail a {
+  display: inline-flex; align-items: center; gap: 6px; padding: 7px 11px; border-radius: 999px;
+  font: 600 13px/1 var(--font-label); text-transform: uppercase; letter-spacing: 0.1em; color: var(--haze); text-decoration: none; white-space: nowrap;
+}
+.rail a:hover { color: var(--sand); background: var(--panel-2); }
+.rail a.is-active { color: var(--night); background: var(--sand); }
+
+/* ---------- Chapters ---------- */
+main { display: block; }
+.sec { padding-block: clamp(56px, 8vw, 104px) 0; }
+.sec:last-of-type { padding-bottom: clamp(56px, 8vw, 96px); }
+.sec-head { position: relative; display: grid; gap: 10px; margin-bottom: clamp(26px, 4vw, 40px); padding-right: 150px; }
+.eyebrow { display: inline-flex; align-items: center; gap: 8px; font: 700 13px/1 var(--font-label); text-transform: uppercase; letter-spacing: 0.16em; color: var(--mango); }
+.sec-head h2 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: clamp(36px, 5.4vw, 64px); line-height: 1; letter-spacing: 0.005em; }
+.sec-lede { max-width: 64ch; color: var(--haze); font-size: 17px; }
+.sec-head .sticker { right: 0; top: -6px; }
+h3 { margin: 0; font-size: 20px; font-weight: 600; line-height: 1.3; }
+h4 { margin: 0; font-size: 17px; font-weight: 600; line-height: 1.35; }
+.sub-h { margin: clamp(36px, 5vw, 52px) 0 18px; font: 700 14px/1.2 var(--font-label); text-transform: uppercase; letter-spacing: 0.16em; color: var(--haze); display: flex; align-items: center; gap: 8px; }
+
+/* Fact sheet */
+.facts { margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0 28px; }
+.fact { border-top: 1px solid var(--line); padding-block: 16px 20px; display: grid; gap: 6px; align-content: start; min-width: 0; }
+.fact dt { display: flex; align-items: center; gap: 8px; font: 700 13px/1.2 var(--font-label); text-transform: uppercase; letter-spacing: 0.12em; color: var(--haze); }
+.fact dt .i { color: var(--mango); width: 15px; height: 15px; }
+.fact dd { margin: 0; display: grid; gap: 6px; justify-items: start; }
+.fact strong { font-size: 19px; font-weight: 600; line-height: 1.3; }
+.fact span:not(.st) { font-size: 14px; color: var(--haze); }
+
+/* Trailers */
+.videos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(20px, 3vw, 36px); }
+.video { display: grid; grid-template-rows: auto 1fr; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; min-width: 0; }
+.player { position: relative; aspect-ratio: 16 / 9; max-width: 100%; background: var(--ink); }
+.player iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.facade { position: absolute; inset: 0; display: block; color: var(--sand); text-decoration: none; overflow: hidden; }
+.facade img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.4s; }
+.player.has-thumb .facade img { opacity: 1; }
+.poster { position: absolute; inset: 0; display: grid; align-content: end; padding: 18px; gap: 2px; }
+.poster::before { content: ""; position: absolute; inset: 0; background: var(--pbg); }
+.poster::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 38%; background: repeating-linear-gradient(180deg, transparent 0 5px, rgba(12, 9, 25, 0.5) 5px 8px); }
+.poster > * { position: relative; z-index: 1; }
+.poster-t { font-family: var(--font-display); font-size: clamp(34px, 4.6vw, 56px); line-height: 0.95; }
+.poster-s { font: 700 13px/1.2 var(--font-label); text-transform: uppercase; letter-spacing: 0.14em; color: var(--sand); opacity: 0.85; }
+.player.has-thumb .poster { opacity: 0; }
+.p1 { --pbg: radial-gradient(70% 80% at 70% 100%, #ffb070, #ff5f7a 40%, transparent 72%), linear-gradient(160deg, #1c1037, #6b1d63); }
+.p2 { --pbg: radial-gradient(70% 80% at 30% 100%, #ffd27a, #ff8a5c 38%, transparent 72%), linear-gradient(200deg, #0f2e4a, #451755); }
+.p3 { --pbg: radial-gradient(60% 70% at 50% 110%, #46e1d0, #2a6c8a 40%, transparent 75%), linear-gradient(180deg, #0c0919, #1d1636); }
+.p4 { --pbg: radial-gradient(70% 80% at 60% 100%, #ff5fa8, #9c2a6c 45%, transparent 75%), linear-gradient(170deg, #0c0919, #2b1240); }
+.play {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 2;
+  display: inline-flex; align-items: center; gap: 8px; padding: 12px 18px; border-radius: 999px;
+  font: 700 14px/1 var(--font-label); text-transform: uppercase; letter-spacing: 0.12em;
+  background: var(--sand); color: var(--night); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  transition: transform 0.2s, background-color 0.2s;
+}
+.play .i { fill: currentColor; stroke: none; }
+.facade:hover .play, .facade:focus-visible .play { background: var(--mango); transform: translate(-50%, -50%) scale(1.05); }
+.video-body { padding: 20px clamp(16px, 2.4vw, 24px) 24px; display: grid; gap: 12px; align-content: start; min-width: 0; }
+.video-title { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.meta { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; font: 600 14px/1.4 var(--font-label); letter-spacing: 0.04em; color: var(--mango); }
+.meta li { display: inline-flex; align-items: center; gap: 6px; }
+.video-body > p { color: var(--haze); }
+.exam { border-top: 1px solid var(--line); padding-top: 12px; }
+.exam summary {
+  cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px;
+  font: 700 14px/1.2 var(--font-label); text-transform: uppercase; letter-spacing: 0.12em; color: var(--sand);
+}
+.exam summary::-webkit-details-marker { display: none; }
+.exam summary .chev { margin-left: auto; transition: transform 0.2s; color: var(--haze); }
+.exam[open] summary .chev { transform: rotate(180deg); }
+.moments { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 14px; }
+.moments li { display: grid; gap: 4px; padding-left: 14px; border-left: 2px solid var(--line-strong); }
+.moments .row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.moments p { font-size: 15px; color: var(--haze); }
+.moments b { color: var(--sand); font-weight: 600; }
+.kind { font: 700 11px/1 var(--font-label); text-transform: uppercase; letter-spacing: 0.12em; color: var(--dim); }
+
+/* Story */
+.story { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: clamp(28px, 5vw, 64px); align-items: start; }
+.quote { margin: 0; padding: clamp(20px, 3vw, 32px); border-radius: 8px; background: linear-gradient(160deg, var(--panel-2), var(--panel)); border: 1px solid var(--line); display: grid; gap: 14px; }
+.quote p { font-size: clamp(20px, 2.2vw, 25px); line-height: 1.45; font-style: italic; }
+.quote footer { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 14px; color: var(--haze); }
+.decode { list-style: none; margin: 0; padding: 0; display: grid; gap: 18px; }
+.decode li { display: grid; gap: 4px; }
+.decode q { font-family: var(--font-label); font-weight: 700; font-size: 17px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--mango); quotes: "\201C" "\201D"; }
+.decode p { color: var(--haze); }
+
+/* Characters */
+.cast { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(16px, 2.4vw, 28px); }
+.person { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 22px 20px 20px; display: grid; gap: 12px; align-content: start; min-width: 0; }
+.person-top { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 16px; align-items: center; }
+.ava {
+  position: relative; width: 74px; height: 74px; border-radius: 50%; display: grid; place-items: center;
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--c) 70%, #fff 30%), var(--c) 60%, color-mix(in srgb, var(--c) 70%, #000 30%));
+  color: var(--ink); font-family: var(--font-display); font-size: 28px; letter-spacing: 0.02em;
+  filter: drop-shadow(2px 0 0 var(--paper)) drop-shadow(-2px 0 0 var(--paper)) drop-shadow(0 2px 0 var(--paper)) drop-shadow(0 -2px 0 var(--paper)) drop-shadow(0 6px 8px rgba(0, 0, 0, 0.45));
+  transform: rotate(var(--r, -5deg));
+}
+.ava .i { position: absolute; right: -4px; bottom: -2px; width: 26px; height: 26px; padding: 5px; border-radius: 50%; background: var(--ink); color: var(--c); stroke-width: 2.4; }
+.person h3 { font-size: 21px; }
+.role { font: 600 14px/1.3 var(--font-label); text-transform: uppercase; letter-spacing: 0.08em; color: var(--haze); margin-top: 2px; }
+.person > p { color: var(--haze); font-size: 15px; }
+.person ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.person li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: start; font-size: 15px; }
+.seen-in { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding-top: 4px; border-top: 1px solid var(--line); }
+.seen-in span { font: 700 11px/1 var(--font-label); text-transform: uppercase; letter-spacing: 0.1em; color: var(--dim); }
+.seen-in b { font: 700 11px/1 var(--font-label); letter-spacing: 0.08em; padding: 4px 6px 3px; border-radius: 3px; background: var(--panel-2); color: var(--sand); }
+
+/* Leonida */
+.leonida { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: clamp(24px, 4vw, 56px); align-items: start; }
+.map-wrap { position: sticky; top: 76px; display: grid; gap: 12px; }
+.map { width: 100%; max-width: 100%; height: auto; display: block; border-radius: 8px; background: radial-gradient(120% 90% at 80% 20%, #17304a, #101d33 55%, #0c1424); border: 1px solid var(--line); }
+.map .land { fill: #2a1e3e; stroke: #6b5a8c; stroke-width: 1.5; stroke-linejoin: round; }
+.map .lake { fill: #17304a; stroke: #6b5a8c; stroke-width: 1; }
+.map .keys { fill: none; stroke: #6b5a8c; stroke-width: 6; stroke-linecap: round; stroke-dasharray: 1 9; }
+.map .sea-label { fill: #5d7ea3; font: italic 500 13px var(--font-body); letter-spacing: 0.2em; text-transform: uppercase; }
+.map .pin { cursor: pointer; }
+.map .pin circle.dot { fill: var(--mango); stroke: var(--ink); stroke-width: 2; transition: r 0.2s; }
+.map .pin circle.halo { fill: var(--mango); opacity: 0.25; }
+.map .pin text { fill: var(--sand); font: 700 12.5px var(--font-label); letter-spacing: 0.08em; text-transform: uppercase; paint-order: stroke; stroke: #101d33; stroke-width: 4px; stroke-linejoin: round; }
+.map .pin.is-active circle.dot, .map .pin:hover circle.dot, .map .pin:focus-visible circle.dot { fill: var(--flamingo); r: 8; }
+.map .pin.is-active circle.halo { fill: var(--flamingo); opacity: 0.35; }
+.map .pin:focus { outline: none; }
+.map .pin:focus-visible text { fill: var(--surf); }
+.map-note { font-size: 13px; color: var(--dim); }
+.regions { display: grid; gap: 14px; }
+.region { border: 1px solid var(--line); border-radius: 8px; padding: 18px 18px 16px; background: var(--panel); display: grid; gap: 10px; transition: border-color 0.2s, background-color 0.2s; scroll-margin-top: 80px; }
+.region.is-active { border-color: var(--flamingo); background: var(--panel-2); }
+.region-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.region-head h3 { display: inline-flex; align-items: center; gap: 8px; }
+.region-head h3 .i { color: var(--mango); }
+.region dl { margin: 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 14px; font-size: 15px; }
+.region dt { font: 700 12px/1.6 var(--font-label); text-transform: uppercase; letter-spacing: 0.1em; color: var(--dim); }
+.region dd { margin: 0; color: var(--haze); display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; }
+.region > p { color: var(--sand); }
+
+/* Gameplay */
+.systems { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(16px, 2.4vw, 28px); }
+.system { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 20px; display: grid; gap: 12px; align-content: start; min-width: 0; }
+.system h3 { display: flex; align-items: center; gap: 10px; }
+.system h3 .i { color: var(--surf); width: 22px; height: 22px; }
+.system ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.system li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: start; color: var(--haze); font-size: 15px; }
+.system li b { color: var(--sand); font-weight: 600; }
+.acts { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+.acts li { display: grid; justify-items: center; text-align: center; gap: 8px; padding: 16px 10px 14px; border-radius: 8px; background: var(--panel); border: 1px solid var(--line); font: 600 14px/1.2 var(--font-label); text-transform: uppercase; letter-spacing: 0.08em; }
+.acts .i { width: 30px; height: 30px; color: var(--mango); stroke-width: 1.8; }
+.acts small { font: 500 12px/1.3 var(--font-body); text-transform: none; letter-spacing: 0; color: var(--dim); }
+
+/* Music */
+.songs { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.songs li { display: grid; grid-template-columns: 9.5rem minmax(0, 1fr) auto; gap: 6px 18px; align-items: baseline; padding-block: 12px; border-top: 1px solid var(--line); }
+.songs .where { font: 700 13px/1.4 var(--font-label); text-transform: uppercase; letter-spacing: 0.1em; color: var(--mango); }
+.songs b { font-weight: 600; }
+.songs span.by { color: var(--haze); }
+.stations { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(14px, 2vw, 22px); }
+.station { position: relative; border-radius: 10px; padding: 18px 18px 16px; background: var(--panel); border: 1px solid var(--line); display: grid; gap: 8px; align-content: start; overflow: hidden; min-width: 0; }
+.station::before { content: ""; position: absolute; left: 0; top: 0; right: 0; height: 5px; background: var(--c); }
+.station h3 { font-family: var(--font-display); font-weight: 400; font-size: 26px; line-height: 1.05; letter-spacing: 0.01em; }
+.genre { font: 700 12px/1.2 var(--font-label); text-transform: uppercase; letter-spacing: 0.12em; color: var(--c); }
+.station p { font-size: 15px; color: var(--haze); }
+.reels { display: flex; gap: 10px; align-items: center; }
+.reel { width: 22px; height: 22px; border-radius: 50%; border: 3px dotted var(--c); animation: spin 3s linear infinite; }
+
+/* Editions */
+.editions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(16px, 2.4vw, 28px); }
+.edition { border-radius: 8px; padding: 24px 22px 22px; background: var(--panel); border: 1px solid var(--line); display: grid; gap: 12px; align-content: start; }
+.edition.ult { background: linear-gradient(160deg, #2b1240, var(--panel) 60%); border-color: rgba(255, 95, 168, 0.45); }
+.edition h3 { font-family: var(--font-display); font-weight: 400; font-size: 30px; }
+.price { font-family: var(--font-display); font-size: 48px; line-height: 1; color: var(--mango); font-variant-numeric: tabular-nums; }
+.price small { font: 600 14px var(--font-label); letter-spacing: 0.1em; text-transform: uppercase; color: var(--haze); margin-left: 6px; }
+.edition ul, .launch-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px; }
+.edition li, .launch-list li { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 10px; color: var(--haze); font-size: 15px; }
+.edition li .i, .launch-list li .i { color: var(--surf); margin-top: 4px; }
+.bonus { margin-top: clamp(16px, 2.4vw, 28px); border-radius: 8px; padding: 22px; border: 1px dashed var(--mango); display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 18px; align-items: start; }
+.bonus-badge { width: 74px; height: 74px; border-radius: 12px; display: grid; place-items: center; background: var(--mango); color: var(--ink); transform: rotate(-6deg); filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.45)); }
+.bonus-badge .i { width: 40px; height: 40px; }
+.bonus div { display: grid; gap: 8px; }
+.bonus p { color: var(--haze); }
+.launch-list { margin-top: 4px; }
+.launch-list li b { color: var(--sand); font-weight: 600; }
+
+/* Easter eggs */
+.eggs { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: clamp(14px, 2vw, 22px); }
+.egg { border-radius: 8px; padding: 18px; background: var(--panel); border: 1px solid var(--line); display: grid; gap: 8px; align-content: start; }
+.egg-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.egg-top .i { width: 22px; height: 22px; color: var(--gold); }
+.egg dl { margin: 0; display: grid; gap: 4px; font-size: 15px; }
+.egg dt { font: 700 12px/1.4 var(--font-label); text-transform: uppercase; letter-spacing: 0.1em; color: var(--dim); }
+.egg dd { margin: 0 0 6px; color: var(--haze); }
+.note { margin-top: 18px; padding: 14px 16px; border-left: 3px solid var(--lilac); background: var(--panel); border-radius: 0 6px 6px 0; color: var(--haze); max-width: 80ch; }
+.note b { color: var(--sand); }
+
+/* Backstage */
+.backstage { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 clamp(28px, 4vw, 56px); }
+.story-item { border-top: 1px solid var(--line); padding-block: 20px 24px; display: grid; gap: 8px; align-content: start; }
+.story-item h3 { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.story-item p { color: var(--haze); }
+
+/* Timeline */
+.timeline { list-style: none; margin: 0; padding: 0; display: grid; gap: 20px; position: relative; max-width: 940px; }
+.timeline::before { content: ""; position: absolute; left: 6px; top: 10px; bottom: 10px; width: 2px; background: var(--line); }
+.timeline li { position: relative; display: grid; grid-template-columns: 8.4rem minmax(0, 1fr); gap: 2px 22px; padding-left: 34px; }
+.timeline li::before { content: ""; position: absolute; left: 0; top: 6px; width: 14px; height: 14px; border-radius: 50%; background: var(--haze); border: 2px solid var(--haze); }
+.timeline li.future::before { background: var(--night); border-color: var(--line-strong); }
+.timeline li.launch::before { background: var(--flamingo); border-color: var(--flamingo); box-shadow: 0 0 0 5px rgba(255, 95, 168, 0.18), 0 0 18px var(--glow); }
+.timeline time { font: 700 15px/1.4 var(--font-label); letter-spacing: 0.06em; color: var(--mango); font-variant-numeric: tabular-nums; padding-top: 1px; }
+.timeline li.launch time { color: var(--flamingo); }
+.timeline .t-body { display: grid; gap: 3px; }
+.timeline .t-body p { color: var(--haze); font-size: 15px; }
+.timeline h3 { font-size: 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+
+/* Glossary */
+.gloss-tools { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: center; margin-bottom: 18px; }
+.search { position: relative; flex: 1 1 280px; max-width: 420px; }
+.search .i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--haze); }
+.search input {
+  width: 100%; padding: 11px 12px 11px 38px; border-radius: 6px; border: 1px solid var(--line-strong);
+  background: var(--panel); color: var(--sand); font: 500 16px var(--font-body);
+}
+.search input::placeholder { color: var(--dim); }
+.search input:focus-visible { outline: 2px solid var(--surf); outline-offset: 1px; }
+.gloss-count { font: 600 14px var(--font-label); letter-spacing: 0.08em; text-transform: uppercase; color: var(--dim); }
+.glossary { margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 0 32px; }
+.term { border-top: 1px solid var(--line); padding-block: 14px 16px; display: grid; gap: 4px; align-content: start; }
+.term dt { font-weight: 600; font-size: 17px; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.term dd { margin: 0; color: var(--haze); font-size: 15px; }
+.gloss-empty { color: var(--haze); padding: 18px 0; }
+
+/* Unknowns */
+.unknowns { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 clamp(28px, 4vw, 56px); }
+.unknowns li { border-top: 1px solid var(--line); padding-block: 16px 18px; display: grid; gap: 6px; }
+.unknowns h3 { font-size: 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.unknowns p { color: var(--haze); font-size: 15px; }
+
+/* Sources */
+.sources { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px 32px; }
+.sources h3 { font: 700 13px/1.2 var(--font-label); text-transform: uppercase; letter-spacing: 0.14em; color: var(--haze); margin-bottom: 10px; }
+.sources ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
+.sources a { font-size: 14px; color: var(--sand); overflow-wrap: anywhere; }
+
+.foot { border-top: 1px solid var(--line); margin-top: clamp(40px, 6vw, 72px); }
+.foot .gutter { padding-block: 28px 40px; display: grid; gap: 8px; font-size: 13px; color: var(--haze); }
+.foot p { max-width: 90ch; }
+
+@media (max-width: 1000px) {
+  .stk-stars { display: none; }
+  .cast { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stations { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 860px) {
+  .videos, .story, .leonida, .systems, .editions, .backstage, .unknowns { grid-template-columns: minmax(0, 1fr); }
+  .map-wrap { position: static; }
+  .sec-head { padding-right: 96px; }
+}
+@media (max-width: 560px) {
+  .cast, .stations { grid-template-columns: minmax(0, 1fr); }
+  .sec-head { padding-right: 70px; }
+  .sec-head .sticker { transform: rotate(var(--r, -8deg)) scale(0.66); transform-origin: top right; }
+  .songs li { grid-template-columns: minmax(0, 1fr) auto; }
+  .songs .where { grid-column: 1 / -1; }
+  .timeline li { grid-template-columns: minmax(0, 1fr); }
+  .bonus { grid-template-columns: minmax(0, 1fr); }
+  .cover-stickers .sticker { transform: rotate(var(--r, -8deg)) scale(0.7); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .anim-bob, .anim-chomp, .anim-spin, .anim-sway, .anim-blink, .anim-red, .anim-blue, .reel { animation: none !important; }
+  .facade img, .play, .region, .exam summary .chev { transition: none; }
+  html { scroll-behavior: auto; }
+}
+</style>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true"><!-- Icons: Lucide (ISC License, lucide.dev) -->
+<symbol id="i-badge-check" viewBox="0 0 24 24"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" /><path d="m9 12 2 2 4-4" /></symbol>
+<symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></symbol>
+<symbol id="i-newspaper" viewBox="0 0 24 24"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2" /><path d="M18 14h-8" /><path d="M15 18h-5" /><path d="M10 6h8v4h-8V6Z" /></symbol>
+<symbol id="i-circle-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><path d="M12 17h.01" /></symbol>
+<symbol id="i-hourglass" viewBox="0 0 24 24"><path d="M5 22h14" /><path d="M5 2h14" /><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22" /><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2" /></symbol>
+<symbol id="i-calendar" viewBox="0 0 24 24"><path d="M8 2v4" /><path d="M16 2v4" /><rect width="18" height="18" x="3" y="4" rx="2" /><path d="M3 10h18" /></symbol>
+<symbol id="i-gamepad-2" viewBox="0 0 24 24"><line x1="6" x2="10" y1="11" y2="11" /><line x1="8" x2="8" y1="9" y2="13" /><line x1="15" x2="15.01" y1="12" y2="12" /><line x1="18" x2="18.01" y1="10" y2="10" /><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z" /></symbol>
+<symbol id="i-monitor" viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="3" rx="2" /><line x1="8" x2="16" y1="21" y2="21" /><line x1="12" x2="12" y1="17" y2="21" /></symbol>
+<symbol id="i-dollar-sign" viewBox="0 0 24 24"><line x1="12" x2="12" y1="2" y2="22" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></symbol>
+<symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></symbol>
+<symbol id="i-hard-drive" viewBox="0 0 24 24"><line x1="22" x2="2" y1="12" y2="12" /><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" /><line x1="6" x2="6.01" y1="16" y2="16" /><line x1="10" x2="10.01" y1="16" y2="16" /></symbol>
+<symbol id="i-building-2" viewBox="0 0 24 24"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" /><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" /><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2" /><path d="M10 6h4" /><path d="M10 10h4" /><path d="M10 14h4" /><path d="M10 18h4" /></symbol>
+<symbol id="i-map-pin" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></symbol>
+<symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></symbol>
+<symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" /><path d="M2 12h20" /></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></symbol>
+<symbol id="i-gauge" viewBox="0 0 24 24"><path d="m12 14 4-4" /><path d="M3.34 19a10 10 0 1 1 17.32 0" /></symbol>
+<symbol id="i-map" viewBox="0 0 24 24"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z" /><path d="M15 5.764v15" /><path d="M9 3.236v15" /></symbol>
+<symbol id="i-play" viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21 6 3" /></symbol>
+<symbol id="i-film" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" /><path d="M7 3v18" /><path d="M3 7.5h4" /><path d="M3 12h18" /><path d="M3 16.5h4" /><path d="M17 3v18" /><path d="M17 7.5h4" /><path d="M17 16.5h4" /></symbol>
+<symbol id="i-clapperboard" viewBox="0 0 24 24"><path d="M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1.1-.3 2.2.3 2.5 1.3Z" /><path d="m6.2 5.3 3.1 3.9" /><path d="m12.4 3.4 3.1 4" /><path d="M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" /></symbol>
+<symbol id="i-music" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></symbol>
+<symbol id="i-radio" viewBox="0 0 24 24"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9" /><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5" /><circle cx="12" cy="12" r="2" /><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5" /><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19" /></symbol>
+<symbol id="i-cassette-tape" viewBox="0 0 24 24"><rect width="20" height="16" x="2" y="4" rx="2" /><circle cx="8" cy="10" r="2" /><path d="M8 12h8" /><circle cx="16" cy="10" r="2" /><path d="m6 20 .7-2.9A1.4 1.4 0 0 1 8.1 16h7.8a1.4 1.4 0 0 1 1.4 1l.7 3" /></symbol>
+<symbol id="i-mic" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" x2="12" y1="19" y2="22" /></symbol>
+<symbol id="i-disc-3" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path d="M6 12c0-1.7.7-3.2 1.8-4.2" /><circle cx="12" cy="12" r="2" /><path d="M18 12c0 1.7-.7 3.2-1.8 4.2" /></symbol>
+<symbol id="i-tv" viewBox="0 0 24 24"><rect width="20" height="15" x="2" y="7" rx="2" ry="2" /><polyline points="17 2 12 7 7 2" /></symbol>
+<symbol id="i-smartphone" viewBox="0 0 24 24"><rect width="14" height="20" x="5" y="2" rx="2" ry="2" /><path d="M12 18h.01" /></symbol>
+<symbol id="i-monitor-play" viewBox="0 0 24 24"><path d="M10 7.75a.75.75 0 0 1 1.142-.638l3.664 2.249a.75.75 0 0 1 0 1.278l-3.664 2.25a.75.75 0 0 1-1.142-.64z" /><path d="M12 17v4" /><path d="M8 21h8" /><rect x="2" y="3" width="20" height="14" rx="2" /></symbol>
+<symbol id="i-external-link" viewBox="0 0 24 24"><path d="M15 3h6v6" /><path d="M10 14 21 3" /><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /></symbol>
+<symbol id="i-image" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /></symbol>
+<symbol id="i-video" viewBox="0 0 24 24"><path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5" /><rect x="2" y="6" width="14" height="12" rx="2" /></symbol>
+<symbol id="i-camera" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" /><circle cx="12" cy="13" r="3" /></symbol>
+<symbol id="i-dribbble" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path d="M19.13 5.09C15.22 9.14 10 10.44 2.25 10.94" /><path d="M21.75 12.84c-6.62-1.41-12.14 1-16.38 6.32" /><path d="M8.56 2.75c4.37 6 6 9.42 8 17.72" /></symbol>
+<symbol id="i-circle-dot" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="1" /></symbol>
+<symbol id="i-waves" viewBox="0 0 24 24"><path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" /><path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" /><path d="M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" /></symbol>
+<symbol id="i-sailboat" viewBox="0 0 24 24"><path d="M22 18H2a4 4 0 0 0 4 4h12a4 4 0 0 0 4-4Z" /><path d="M21 14 10 2 3 14h18Z" /><path d="M10 2v16" /></symbol>
+<symbol id="i-dumbbell" viewBox="0 0 24 24"><path d="M14.4 14.4 9.6 9.6" /><path d="M18.657 21.485a2 2 0 1 1-2.829-2.828l-1.767 1.768a2 2 0 1 1-2.829-2.829l6.364-6.364a2 2 0 1 1 2.829 2.829l-1.768 1.767a2 2 0 1 1 2.828 2.829z" /><path d="m21.5 21.5-1.4-1.4" /><path d="M3.9 3.9 2.5 2.5" /><path d="M6.404 12.768a2 2 0 1 1-2.829-2.829l1.768-1.767a2 2 0 1 1-2.828-2.829l2.828-2.828a2 2 0 1 1 2.829 2.828l1.767-1.768a2 2 0 1 1 2.829 2.829z" /></symbol>
+<symbol id="i-swords" viewBox="0 0 24 24"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5" /><line x1="13" x2="19" y1="19" y2="13" /><line x1="16" x2="20" y1="16" y2="20" /><line x1="19" x2="21" y1="21" y2="19" /><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5" /><line x1="5" x2="9" y1="14" y2="18" /><line x1="7" x2="4" y1="17" y2="20" /><line x1="3" x2="5" y1="19" y2="21" /></symbol>
+<symbol id="i-car" viewBox="0 0 24 24"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2" /><circle cx="7" cy="17" r="2" /><path d="M9 17h6" /><circle cx="17" cy="17" r="2" /></symbol>
+<symbol id="i-flag" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" /><line x1="4" x2="4" y1="22" y2="15" /></symbol>
+<symbol id="i-bike" viewBox="0 0 24 24"><circle cx="18.5" cy="17.5" r="3.5" /><circle cx="5.5" cy="17.5" r="3.5" /><circle cx="15" cy="5" r="1" /><path d="M12 17.5V14l-3-3 4-3 2 3h2" /></symbol>
+<symbol id="i-wind" viewBox="0 0 24 24"><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2" /><path d="M9.6 4.6A2 2 0 1 1 11 8H2" /><path d="M12.6 19.4A2 2 0 1 0 14 16H2" /></symbol>
+<symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></symbol>
+<symbol id="i-crosshair" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><line x1="22" x2="18" y1="12" y2="12" /><line x1="6" x2="2" y1="12" y2="12" /><line x1="12" x2="12" y1="6" y2="2" /><line x1="12" x2="12" y1="22" y2="18" /></symbol>
+<symbol id="i-fish" viewBox="0 0 24 24"><path d="M6.5 12c.94-3.46 4.94-6 8.5-6 3.56 0 6.06 2.54 7 6-.94 3.47-3.44 6-7 6s-7.56-2.53-8.5-6Z" /><path d="M18 12v.5" /><path d="M16 17.93a9.77 9.77 0 0 1 0-11.86" /><path d="M7 10.67C7 8 5.58 5.97 2.73 5.5c-1 1.5-1 5 .23 6.5-1.24 1.5-1.24 5-.23 6.5C5.58 18.03 7 16 7 13.33" /><path d="M10.46 7.26C10.2 5.88 9.17 4.24 8 3h5.8a2 2 0 0 1 1.98 1.67l.23 1.4" /><path d="m16.01 17.93-.23 1.4A2 2 0 0 1 13.8 21H9.5a5.96 5.96 0 0 0 1.49-3.98" /></symbol>
+<symbol id="i-utensils" viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" /><path d="M7 2v20" /><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" /></symbol>
+<symbol id="i-shirt" viewBox="0 0 24 24"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z" /></symbol>
+<symbol id="i-siren" viewBox="0 0 24 24"><path d="M7 18v-6a5 5 0 1 1 10 0v6" /><path d="M5 21a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-1a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2z" /><path d="M21 12h1" /><path d="M18.5 4.5 18 5" /><path d="M2 12h1" /><path d="M12 2v1" /><path d="m4.929 4.929.707.707" /><path d="M12 12v6" /></symbol>
+<symbol id="i-cctv" viewBox="0 0 24 24"><path d="M16.75 12h3.632a1 1 0 0 1 .894 1.447l-2.034 4.069a1 1 0 0 1-1.708.134l-2.124-2.97" /><path d="M17.106 9.053a1 1 0 0 1 .447 1.341l-3.106 6.211a1 1 0 0 1-1.342.447L3.61 12.3a2.92 2.92 0 0 1-1.3-3.91L3.69 5.6a2.92 2.92 0 0 1 3.92-1.3z" /><path d="M2 19h3.76a2 2 0 0 0 1.8-1.1L9 15" /><path d="M2 21v-4" /><path d="M7 9h.01" /></symbol>
+<symbol id="i-scan-face" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2" /><path d="M17 3h2a2 2 0 0 1 2 2v2" /><path d="M21 17v2a2 2 0 0 1-2 2h-2" /><path d="M7 21H5a2 2 0 0 1-2-2v-2" /><path d="M8 14s1.5 2 4 2 4-2 4-2" /><path d="M9 9h.01" /><path d="M15 9h.01" /></symbol>
+<symbol id="i-star" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></symbol>
+<symbol id="i-key" viewBox="0 0 24 24"><path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4" /><path d="m21 2-9.6 9.6" /><circle cx="7.5" cy="15.5" r="5.5" /></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /></symbol>
+<symbol id="i-zap" viewBox="0 0 24 24"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z" /></symbol>
+<symbol id="i-heart" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" /></symbol>
+<symbol id="i-phone" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></symbol>
+<symbol id="i-message-circle" viewBox="0 0 24 24"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" /></symbol>
+<symbol id="i-tree-palm" viewBox="0 0 24 24"><path d="M13 8c0-2.76-2.46-5-5.5-5S2 5.24 2 8h2l1-1 1 1h4" /><path d="M13 7.14A5.82 5.82 0 0 1 16.5 6c3.04 0 5.5 2.24 5.5 5h-3l-1-1-1 1h-3" /><path d="M5.89 9.71c-2.15 2.15-2.3 5.47-.35 7.43l4.24-4.25.7-.7.71-.71 2.12-2.12c-1.95-1.96-5.27-1.8-7.42.35" /><path d="M11 15.5c.5 2.5-.17 4.5-1 6.5h4c2-5.5-.5-12-1-14" /></symbol>
+<symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" /><path d="M12 2v2" /><path d="M12 20v2" /><path d="m4.93 4.93 1.41 1.41" /><path d="m17.66 17.66 1.41 1.41" /><path d="M2 12h2" /><path d="M20 12h2" /><path d="m6.34 17.66-1.41 1.41" /><path d="m19.07 4.93-1.41 1.41" /></symbol>
+<symbol id="i-sunset" viewBox="0 0 24 24"><path d="M12 10V2" /><path d="m4.93 10.93 1.41 1.41" /><path d="M2 18h2" /><path d="M20 18h2" /><path d="m19.07 10.93-1.41 1.41" /><path d="M22 22H2" /><path d="m16 6-4 4-4-4" /><path d="M16 18a4 4 0 0 0-8 0" /></symbol>
+<symbol id="i-mountain" viewBox="0 0 24 24"><path d="m8 3 4 8 5-5 5 15H2L8 3z" /></symbol>
+<symbol id="i-trees" viewBox="0 0 24 24"><path d="M10 10v.2A3 3 0 0 1 8.9 16H5a3 3 0 0 1-1-5.8V10a3 3 0 0 1 6 0Z" /><path d="M7 16v6" /><path d="M13 19v3" /><path d="M12 19h8.3a1 1 0 0 0 .7-1.7L18 14h.3a1 1 0 0 0 .7-1.7L16 9h.2a1 1 0 0 0 .8-1.7L13 3l-1.4 1.5" /></symbol>
+<symbol id="i-anchor" viewBox="0 0 24 24"><path d="M12 22V8" /><path d="M5 12H2a10 10 0 0 0 20 0h-3" /><circle cx="12" cy="5" r="3" /></symbol>
+<symbol id="i-ship" viewBox="0 0 24 24"><path d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1 .6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" /><path d="M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.9.94 5.34 2.81 7.76" /><path d="M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6" /><path d="M12 10v4" /><path d="M12 2v3" /></symbol>
+<symbol id="i-factory" viewBox="0 0 24 24"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" /><path d="M17 18h1" /><path d="M12 18h1" /><path d="M7 18h1" /></symbol>
+<symbol id="i-landmark" viewBox="0 0 24 24"><line x1="3" x2="21" y1="22" y2="22" /><line x1="6" x2="6" y1="18" y2="11" /><line x1="10" x2="10" y1="18" y2="11" /><line x1="14" x2="14" y1="18" y2="11" /><line x1="18" x2="18" y1="18" y2="11" /><polygon points="12 2 20 7 4 7" /></symbol>
+<symbol id="i-tent" viewBox="0 0 24 24"><path d="M3.5 21 14 3" /><path d="M20.5 21 10 3" /><path d="M15.5 21 12 15l-3.5 6" /><path d="M2 21h20" /></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></symbol>
+<symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7" /><path d="M19 12H5" /></symbol>
+<symbol id="i-arrow-up-right" viewBox="0 0 24 24"><path d="M7 7h10v10" /><path d="M7 17 17 7" /></symbol>
+<symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" /></symbol>
+<symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" /><path d="M20 3v4" /><path d="M22 5h-4" /><path d="M4 17v2" /><path d="M5 18H3" /></symbol>
+<symbol id="i-gem" viewBox="0 0 24 24"><path d="M6 3h12l4 6-10 13L2 9Z" /><path d="M11 3 8 9l4 13 4-13-3-6" /><path d="M2 9h20" /></symbol>
+<symbol id="i-crown" viewBox="0 0 24 24"><path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z" /><path d="M5 21h14" /></symbol>
+<symbol id="i-egg" viewBox="0 0 24 24"><path d="M12 22c6.23-.05 7.87-5.57 7.5-10-.36-4.34-3.95-9.96-7.5-10-3.55.04-7.14 5.66-7.5 10-.37 4.43 1.27 9.95 7.5 10z" /></symbol>
+<symbol id="i-scroll-text" viewBox="0 0 24 24"><path d="M15 12h-5" /><path d="M15 8h-5" /><path d="M19 17V5a2 2 0 0 0-2-2H4" /><path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3" /></symbol>
+<symbol id="i-scale" viewBox="0 0 24 24"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z" /><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z" /><path d="M7 21h10" /><path d="M12 3v18" /><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2" /></symbol>
+<symbol id="i-gavel" viewBox="0 0 24 24"><path d="m14.5 12.5-8 8a2.119 2.119 0 1 1-3-3l8-8" /><path d="m16 16 6-6" /><path d="m8 8 6-6" /><path d="m9 7 8 8" /><path d="m21 11-8-8" /></symbol>
+<symbol id="i-briefcase" viewBox="0 0 24 24"><path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /><rect width="20" height="14" x="2" y="6" rx="2" /></symbol>
+<symbol id="i-trophy" viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" /><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" /><path d="M4 22h16" /><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" /><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" /><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" /></symbol>
+<symbol id="i-ticket" viewBox="0 0 24 24"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" /><path d="M13 5v2" /><path d="M13 17v2" /><path d="M13 11v2" /></symbol>
+<symbol id="i-package" viewBox="0 0 24 24"><path d="m7.5 4.27 9 5.15" /><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" /><path d="m3.3 7 8.7 5 8.7-5" /><path d="M12 22V12" /></symbol>
+<symbol id="i-plane" viewBox="0 0 24 24"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z" /></symbol>
+<symbol id="i-tornado" viewBox="0 0 24 24"><path d="M21 4H3" /><path d="M18 8H6" /><path d="M19 12H9" /><path d="M16 16h-6" /><path d="M11 20H9" /></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></symbol>
+<symbol id="i-list-checks" viewBox="0 0 24 24"><path d="m3 17 2 2 4-4" /><path d="m3 7 2 2 4-4" /><path d="M13 6h8" /><path d="M13 12h8" /><path d="M13 18h8" /></symbol>
+<symbol id="i-book-open" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></symbol>
+<symbol id="i-route" viewBox="0 0 24 24"><circle cx="6" cy="19" r="3" /><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15" /><circle cx="18" cy="5" r="3" /></symbol>
+<symbol id="i-flame" viewBox="0 0 24 24"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" /></symbol>
+<symbol id="i-banknote" viewBox="0 0 24 24"><rect width="20" height="12" x="2" y="6" rx="2" /><circle cx="12" cy="12" r="2" /><path d="M6 12h.01M18 12h.01" /></symbol>
+<symbol id="i-vault" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" /><circle cx="7.5" cy="7.5" r=".5" fill="currentColor" /><path d="m7.9 7.9 2.7 2.7" /><circle cx="16.5" cy="7.5" r=".5" fill="currentColor" /><path d="m13.4 10.6 2.7-2.7" /><circle cx="7.5" cy="16.5" r=".5" fill="currentColor" /><path d="m7.9 16.1 2.7-2.7" /><circle cx="16.5" cy="16.5" r=".5" fill="currentColor" /><path d="m13.4 13.4 2.7 2.7" /><circle cx="12" cy="12" r="2" /></symbol>
+<symbol id="i-hand-coins" viewBox="0 0 24 24"><path d="M11 15h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 17" /><path d="m7 21 1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.75-2.91l-4.2 3.9" /><path d="m2 16 6 6" /><circle cx="16" cy="9" r="2.9" /><circle cx="6" cy="5" r="3" /></symbol>
+<symbol id="i-podcast" viewBox="0 0 24 24"><path d="M16.85 18.58a9 9 0 1 0-9.7 0" /><path d="M8 14a5 5 0 1 1 8 0" /><circle cx="12" cy="11" r="1" /><path d="M13 17a1 1 0 1 0-2 0l.5 4.5a.5.5 0 1 0 1 0Z" /></symbol>
+<symbol id="i-radio-tower" viewBox="0 0 24 24"><path d="M4.9 16.1C1 12.2 1 5.8 4.9 1.9" /><path d="M7.8 4.7a6.14 6.14 0 0 0-.8 7.5" /><circle cx="12" cy="9" r="2" /><path d="M16.2 4.8c2 2 2.26 5.11.8 7.47" /><path d="M19.1 1.9a9.96 9.96 0 0 1 0 14.1" /><path d="M9.5 18h5" /><path d="m8 22 4-11 4 11" /></symbol>
+<symbol id="i-popcorn" viewBox="0 0 24 24"><path d="M18 8a2 2 0 0 0 0-4 2 2 0 0 0-4 0 2 2 0 0 0-4 0 2 2 0 0 0-4 0 2 2 0 0 0 0 4" /><path d="M10 22 9 8" /><path d="m14 22 1-14" /><path d="M20 8c.5 0 .9.4.8 1l-2.6 12c-.1.5-.7 1-1.2 1H7c-.6 0-1.1-.4-1.2-1L3.2 9c-.1-.6.3-1 .8-1Z" /></symbol>
+<symbol id="i-house" viewBox="0 0 24 24"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" /><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></symbol>
+<symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /><path d="M12 7v5l4 2" /></symbol>
+</svg>
+
+<header class="cover">
+  <div class="cover-stickers" aria-hidden="true">
+    <!-- Flamingo -->
+    <svg class="sticker" style="--r: 9deg; right: max(16px, 4vw); top: 74px;" width="112" height="112" viewBox="0 0 100 100">
+      <g class="anim-bob">
+        <path d="M46 73v21M46 84l9-5" fill="none" stroke="#e0478f" stroke-width="3.2" stroke-linecap="round"/>
+        <path d="M50 25C38 30 35 41 46 47c8 4 4 12-4 12" fill="none" stroke="#ff7fb6" stroke-width="7" stroke-linecap="round"/>
+        <ellipse cx="44" cy="63" rx="21" ry="12.5" fill="#ff5fa8"/>
+        <path d="M27 60c-7 4-9 11-4 15 9-2 15-7 19-13z" fill="#ff8cc0"/>
+        <circle cx="52" cy="20" r="8.5" fill="#ff7fb6"/>
+        <path d="M59 17l13 4-11 6z" fill="#2a1630"/>
+        <circle cx="53" cy="18" r="1.7" fill="#2a1630"/>
+      </g>
+    </svg>
+    <!-- Six-star wanted level -->
+    <svg class="sticker stk-stars" style="--r: -6deg; right: max(150px, 16vw); top: 196px;" width="168" height="40" viewBox="0 0 140 34">
+      <defs><polygon id="star5" points="0,-9 2.23,-3.07 8.56,-2.78 3.61,1.17 5.29,7.28 0,3.8 -5.29,7.28 -3.61,1.17 -8.56,-2.78 -2.23,-3.07"/></defs>
+      <rect x="0" y="0" width="140" height="34" rx="9" fill="#1b1430"/>
+      <g fill="#ffb454">
+        <use href="#star5" class="anim-blink" transform="translate(15 17)"/>
+        <use href="#star5" class="anim-blink b2" transform="translate(37 17)"/>
+        <use href="#star5" class="anim-blink b3" transform="translate(59 17)"/>
+        <use href="#star5" class="anim-blink b4" transform="translate(81 17)"/>
+        <use href="#star5" class="anim-blink b5" transform="translate(103 17)"/>
+        <use href="#star5" class="anim-blink b6" transform="translate(125 17)"/>
+      </g>
+    </svg>
+    <!-- Palm -->
+    <svg class="sticker" style="--r: -4deg; right: max(28px, 9vw); bottom: 28px;" width="96" height="106" viewBox="0 0 100 110">
+      <path d="M52 106c-2-24 2-48 10-66" fill="none" stroke="#8a5a3c" stroke-width="8" stroke-linecap="round"/>
+      <path d="M48 98h10M49 86h10M51 74h9M53 62h9M56 50h8" stroke="#6e4630" stroke-width="2"/>
+      <g class="anim-sway" fill="#3fbf7f">
+        <path d="M62 40C48 28 30 28 14 38c16-2 30 0 48 2z"/>
+        <path d="M62 40C56 22 42 12 26 10c12 8 24 18 36 30z"/>
+        <path d="M62 40C66 22 78 12 92 12c-10 8-20 18-30 28z"/>
+        <path d="M62 40c14-8 28-6 36 4-12-2-24-2-36-4z"/>
+        <path d="M62 40c-4 12-14 22-26 28 10-10 18-20 26-28z"/>
+        <circle cx="60" cy="44" r="4.5" fill="#7a4a2c"/><circle cx="67" cy="45" r="4.5" fill="#7a4a2c"/>
+      </g>
+    </svg>
+  </div>
+
+  <div class="gutter cover-inner">
+    <div class="crumbs">
+      <a href="index.html"><svg class="i" aria-hidden="true"><use href="#i-arrow-left"/></svg>GTA VI Countdown</a>
+      <span>Fan-made &middot; Unofficial &middot; Updated Nov 6, 2026</span>
+    </div>
+    <p class="cover-sign" aria-hidden="true">The Leonida field guide</p>
+    <h1>Everything we know about <em>GTA&nbsp;6</em></h1>
+    <p class="cover-lede">Four official videos, eight named characters, six regions, six radio stations and two delays. This page breaks down every trailer, explains what each detail means and tags every fact with where it comes from.</p>
+    <div class="cover-row">
+      <a class="chip hot" href="index.html" id="launch-chip"><svg class="i" aria-hidden="true"><use href="#i-clock"/></svg><span id="launch-chip-text">Launches Thursday, Nov 19, 2026</span></a>
+      <span class="chip"><svg class="i" aria-hidden="true"><use href="#i-gamepad-2"/></svg>PS5 &middot; Xbox Series X|S</span>
+      <span class="chip"><svg class="i" aria-hidden="true"><use href="#i-map-pin"/></svg>Leonida &middot; Vice City</span>
+    </div>
+    <section class="legend" aria-labelledby="legend-h">
+      <h2 id="legend-h">How to read the tags</h2>
+      <ul>
+        <li><span class="st off">Official</span><span>Rockstar, Take-Two or a store listing said it.</span></li>
+        <li><span class="st seen">Seen</span><span>Visible in official trailers or footage. What it means is fan reading.</span></li>
+        <li><span class="st rep">Reported</span><span>From previews, interviews or press reports, not a Rockstar statement.</span></li>
+        <li><span class="st rum">Rumor</span><span>Leaks and guesswork. Unverified.</span></li>
+        <li><span class="st open">Unanswered</span><span>Nobody official has said yet.</span></li>
+      </ul>
+    </section>
+  </div>
+</header>
+
+<nav class="rail" aria-label="Chapters">
+  <div class="gutter rail-scroll">
+    <ol>
+      <li><a href="#basics">Basics</a></li>
+      <li><a href="#trailers">Trailers</a></li>
+      <li><a href="#story">Story</a></li>
+      <li><a href="#characters">Characters</a></li>
+      <li><a href="#leonida">Leonida</a></li>
+      <li><a href="#gameplay">Gameplay</a></li>
+      <li><a href="#music">Radio</a></li>
+      <li><a href="#editions">Editions</a></li>
+      <li><a href="#eggs">Easter eggs</a></li>
+      <li><a href="#backstage">Backstage</a></li>
+      <li><a href="#timeline">Timeline</a></li>
+      <li><a href="#glossary">Glossary</a></li>
+      <li><a href="#unknowns">Unknowns</a></li>
+      <li><a href="#sources">Sources</a></li>
+    </ol>
+  </div>
+</nav>
+
+<main>
+
+<!-- ===================== BASICS ===================== -->
+<section class="sec gutter" id="basics" aria-labelledby="basics-h">
+  <header class="sec-head">
+    <p class="eyebrow"><svg class="i" aria-hidden="true"><use href="#i-info"/></svg>The basics</p>
+    <h2 id="basics-h">The fact sheet</h2>
+    <p class="sec-lede">The essentials, each with a tag showing how solid it is.</p>
+    <!-- License plate sticker -->
+    <svg class="sticker" style="--r: 7deg;" width="132" height="72" viewBox="0 0 120 64" aria-hidden="true">
+      <rect x="1" y="1" width="118" height="62" rx="8" fill="#fff8ef" stroke="#1b1430" stroke-width="2"/>
+      <circle cx="10" cy="10" r="2.2" fill="#1b1430"/><circle cx="110" cy="10" r="2.2" fill="#1b1430"/>
+      <text x="60" y="15" text-anchor="middle" font-size="10" fill="#ff7a2e" letter-spacing="2">LEONIDA</text>
+      <text x="60" y="44" text-anchor="middle" font-size="27" fill="#1b1430" letter-spacing="1">VI&#183;2026</text>
+      <text x="60" y="57" text-anchor="middle" font-size="6.5" fill="#ff5fa8" letter-spacing="1.2">SUNNIEST PLACE IN AMERICA</text>
+    </svg>
+  </header>
+
+  <dl class="facts">
+    <div class="fact"><dt><svg class="i" aria-hidden="true"><use href="#i-calendar"/></svg>Release date</dt><dd><strong>Thursday, November 19, 2026</strong><span>After two delays: first fall 2025, then May 26, 2026.</span><span class="st off">Official</span></dd></div>
+    <div class="fact"><dt><svg class="i" aria-hidden="true"><use href="#i-gamepad-2"/></svg>Platforms</dt><dd><strong>PlayStation 5 and Xbox Series X|S</strong><span>The launch trailer opens with a "plays best on PS5" card.</span><span class="st off">Official</span></dd></div>
+    <div class="fact"><dt><svg class="i" aria-hidden="true"><use href="#i-monitor"/></svg>PC</dt><dd><strong>Not announced</strong><span>A GamesBeat report on Oct 13, 2026 says early 2027. Rockstar hasn't confirmed it.</span><span class="st rep">Reported</span></dd></div>
+    <div class="fact"><dt><svg class="i" aria-hidden="true"><use href="#i-dollar-sign"/></svg>Price (US)</dt><dd><strong>$79.99 Standard &middot; $99.99 Ultimate</strong><span>US store prices since pre-orders opened in June 2026. One outlet listed $69.99 for Standard, so check your store.</span><span class="st rep">Reported</span></dd></div>
+    <div class="fact"><dt><svg class="i" aria-hidden="true"><use href="#i-clock"/></svg>Unlock time</dt><dd><strong>Likely midnight local, Nov 19</strong><span>Rockstar hasn't named an hour. Store listings point to midnight local time, and some US listings use midnight Eastern.</span><span class="st rep">Reported</span></dd></div>
+    <div class="fact"><dt><svg class="i" aria-hidden="true"><use href="#i-download"/></svg>Pre-load</dt><dd><strong>Digital from Nov 10 &middot; boxed codes from Nov 12</strong><span>Rockstar moved the digital pre-load up from Nov 12. Boxed copies hold a code that works once retailers have stock.</span><span class="st off">Official</span></dd></div>
+    <div class="fact"><dt><svg class="i" aria-hidden="true"><use href="#i-hard-drive"/></svg>Download size</dt><dd><strong>Up to 212 GB</strong><span>Rockstar's wording: "up to 212 GB depending on your device."</span><span class="st off">Official</span></dd></div>
+    <div class="fact"><dt><svg class="i" aria-hidden="true"><use href="#i-map-pin"/></svg>Setting</dt><dd><strong>The state of Leonida</strong><span>Rockstar's version of Florida, home to Vice City, the Keys, the Grassrivers and more.</span><span class="st off">Official</span></dd></div>
+    <div class="fact"><dt><svg class="i" aria-hidden="true"><use href="#i-users"/></svg>Playable leads</dt><dd><strong>Jason Duval and Lucia Caminos</strong><span>Two protagonists, and you can switch between them at any time.</span><span class="st off">Official</span></dd></div>
+    <div class="fact"><dt><svg class="i" aria-hidden="true"><use href="#i-building-2"/></svg>Made by</dt><dd><strong>Rockstar Games, led by Rockstar North</strong><span>Published by Rockstar under Take-Two Interactive.</span><span class="st off">Official</span></dd></div>
+    <div class="fact"><dt><svg class="i" aria-hidden="true"><use href="#i-gauge"/></svg>Frame rate</dt><dd><strong>30 fps on consoles</strong><span>Rockstar North's Rob Nelson says a 60 fps mode isn't decided. The PlayStation Store tags the game "PS5 Pro Enhanced."</span><span class="st rep">Reported</span></dd></div>
+    <div class="fact"><dt><svg class="i" aria-hidden="true"><use href="#i-map"/></svg>Map size</dt><dd><strong>Vice City about 2&times; Los Santos</strong><span>Rob Nelson's remark, relayed secondhand: the areas outside the city are about 11 times larger than GTA V's. There's no official square-mile figure.</span><span class="st rep">Reported</span></dd></div>
+    <div class="fact"><dt><svg class="i" aria-hidden="true"><use href="#i-globe"/></svg>Online mode</dt><dd><strong>Nothing announced</strong><span>Launch coverage describes the story game only. GTA Online plans for VI are unknown.</span><span class="st open">Unanswered</span></dd></div>
+    <div class="fact"><dt><svg class="i" aria-hidden="true"><use href="#i-package"/></svg>Boxed copies</dt><dd><strong>Code in a box, no disc</strong><span>Physical editions contain a download code.</span><span class="st rep">Reported</span></dd></div>
+  </dl>
+</section>
+
+<!-- ===================== TRAILERS ===================== -->
+<section class="sec gutter" id="trailers" aria-labelledby="trailers-h">
+  <header class="sec-head">
+    <p class="eyebrow"><svg class="i" aria-hidden="true"><use href="#i-clapperboard"/></svg>Trailers and videos</p>
+    <h2 id="trailers-h">Every official video, examined</h2>
+    <p class="sec-lede">Rockstar has released four official videos. Each one below has the facts plus a list of what to look for and what it means. Trailers 1 and 2 play from YouTube. The newer two open on Rockstar's site.</p>
+    <!-- Siren sticker -->
+    <svg class="sticker" style="--r: -8deg;" width="104" height="92" viewBox="0 0 100 90" aria-hidden="true">
+      <rect x="18" y="62" width="64" height="18" rx="4" fill="#1b1430"/>
+      <path d="M26 62a24 24 0 0 1 24-24v24z" fill="#ff3b4e" class="anim-red"/>
+      <path d="M50 38a24 24 0 0 1 24 24H50z" fill="#3b7bff" class="anim-blue"/>
+      <path d="M26 62a24 24 0 0 1 48 0" fill="none" stroke="#fff8ef" stroke-width="2.5" opacity=".6"/>
+      <g stroke-width="4" stroke-linecap="round">
+        <path d="M16 36l-8-6M14 50H4" stroke="#ff3b4e" class="anim-red"/>
+        <path d="M84 36l8-6M86 50h10" stroke="#3b7bff" class="anim-blue"/>
+        <path d="M50 24V12" stroke="#fff8ef"/>
+      </g>
+    </svg>
+  </header>
+
+  <div class="videos">
+    <!-- Trailer 1 -->
+    <article class="video" aria-labelledby="t1-h">
+      <div class="player" data-yt="QdBZY2fkU-0" data-title="Grand Theft Auto VI Trailer 1">
+        <a class="facade" href="https://www.youtube.com/watch?v=QdBZY2fkU-0" target="_blank" rel="noopener">
+          <span class="poster p1"><span class="poster-t">Trailer 1</span><span class="poster-s">Lucia &middot; Vice City &middot; 2025</span></span>
+          <img src="https://i.ytimg.com/vi/QdBZY2fkU-0/hqdefault.jpg" alt="Thumbnail of Grand Theft Auto VI Trailer 1" loading="lazy" referrerpolicy="no-referrer">
+          <span class="play"><svg class="i" aria-hidden="true"><use href="#i-play"/></svg>Play trailer 1</span>
+        </a>
+      </div>
+      <div class="video-body">
+        <div class="video-title"><h3 id="t1-h">Trailer 1</h3><span class="st off">Official</span></div>
+        <ul class="meta">
+          <li><svg class="i" aria-hidden="true"><use href="#i-calendar"/></svg>Dec 4, 2023</li>
+          <li><svg class="i" aria-hidden="true"><use href="#i-clock"/></svg>1:31</li>
+          <li><svg class="i" aria-hidden="true"><use href="#i-music"/></svg>"Love Is a Long Road", Tom Petty</li>
+        </ul>
+        <p>Planned for December 5, then posted the evening before after it leaked. It drew 90,421,491 YouTube views in 24 hours, a Guinness World Record for a game reveal. It also set records for the most-liked game trailer in 24 hours (8.9 million) and the most-viewed non-music video in 24 hours, beating MrBeast's 59.4 million.</p>
+        <details class="exam" open>
+          <summary><svg class="i" aria-hidden="true"><use href="#i-search"/></svg>Video examination &middot; 10 things to look for<svg class="i chev" aria-hidden="true"><use href="#i-chevron-down"/></svg></summary>
+          <ul class="moments">
+            <li><div class="row"><span class="kind">Character</span><b>Lucia in an orange jumpsuit</b><span class="st seen">Seen</span></div><p>The trailer opens with Lucia talking to an officer at the Leonida Department of Corrections. <b>Meaning:</b> her story starts behind bars. Rockstar later confirmed she was in Leonida Penitentiary.</p></li>
+            <li><div class="row"><span class="kind">World</span><b>Vertical "Leonida Man" phone clips</b><span class="st seen">Seen</span></div><p>Much of the trailer is shot like social-media videos of locals doing wild things. <b>Meaning:</b> a parody of the Florida Man meme, and a first hint that social media is part of the game. Later previews confirmed browsable social feeds.</p></li>
+            <li><div class="row"><span class="kind">World</span><b>A man with an alligator in a convenience store</b><span class="st seen">Seen</span></div><p>One of the most-shared shots. <b>Meaning:</b> wildlife is everywhere in Leonida, and so is chaos you can film.</p></li>
+            <li><div class="row"><span class="kind">Real life</span><b>Lookalikes of viral Floridians</b><span class="st rep">Reported</span></div><p>Fans matched several clips to real viral moments, including a face-tattooed man that a Florida personality known as the "Florida Joker" said was based on him. <b>Meaning:</b> Rockstar is satirising real internet culture, as it has before.</p></li>
+            <li><div class="row"><span class="kind">Easter egg</span><b>The Ocean View Hotel</b><span class="st seen">Seen</span></div><p>A brief shot of a hotel sign. <b>Meaning:</b> it was Tommy Vercetti's first base in 2002's GTA Vice City.</p></li>
+            <li><div class="row"><span class="kind">Place</span><b>Neon beachfront and high-rises</b><span class="st seen">Seen</span></div><p>Art-deco strips, packed beaches, clubs and the skyline. <b>Meaning:</b> Vice City is back, rebuilt in modern detail.</p></li>
+            <li><div class="row"><span class="kind">Place</span><b>Airboats, swamps and long bridges</b><span class="st seen">Seen</span></div><p>Wetlands and an island chain linked by highways. <b>Meaning:</b> the Grassrivers and the Leonida Keys, the game's Everglades and Florida Keys.</p></li>
+            <li><div class="row"><span class="kind">World</span><b>Mud trucks, boat parties and club nights</b><span class="st seen">Seen</span></div><p>Rural meet-ups, packed party boats and cash in the air at a club. <b>Meaning:</b> a big, crowded world with lots of distinct crowds.</p></li>
+            <li><div class="row"><span class="kind">Story</span><b>A masked convenience-store robbery</b><span class="st seen">Seen</span></div><p>Lucia and her partner, who was unnamed until Trailer 2, hold up a store together. <b>Meaning:</b> a Bonnie-and-Clyde couple at the heart of the story.</p></li>
+            <li><div class="row"><span class="kind">Story</span><b>"One shot", and trust</b><span class="st seen">Seen</span></div><p>In the closing car scene they agree they get one shot and have to trust each other. <b>Meaning:</b> trust is the theme, echoed later in Rockstar's official synopsis. The end card read "2025."</p></li>
+          </ul>
+        </details>
+      </div>
+    </article>
+
+    <!-- Trailer 2 -->
+    <article class="video" aria-labelledby="t2-h">
+      <div class="player" data-yt="VQRLujxTm3c" data-title="Grand Theft Auto VI Trailer 2">
+        <a class="facade" href="https://www.youtube.com/watch?v=VQRLujxTm3c" target="_blank" rel="noopener">
+          <span class="poster p2"><span class="poster-t">Trailer 2</span><span class="poster-s">Jason &amp; Lucia &middot; the cast</span></span>
+          <img src="https://i.ytimg.com/vi/VQRLujxTm3c/hqdefault.jpg" alt="Thumbnail of Grand Theft Auto VI Trailer 2" loading="lazy" referrerpolicy="no-referrer">
+          <span class="play"><svg class="i" aria-hidden="true"><use href="#i-play"/></svg>Play trailer 2</span>
+        </a>
+      </div>
+      <div class="video-body">
+        <div class="video-title"><h3 id="t2-h">Trailer 2</h3><span class="st off">Official</span></div>
+        <ul class="meta">
+          <li><svg class="i" aria-hidden="true"><use href="#i-calendar"/></svg>May 6, 2025</li>
+          <li><svg class="i" aria-hidden="true"><use href="#i-clock"/></svg>2:47</li>
+          <li><svg class="i" aria-hidden="true"><use href="#i-music"/></svg>"Shakedown Cruise", Jay Ferguson &middot; "Hot Together", The Pointer Sisters</li>
+        </ul>
+        <p>Released four days after the first delay. Rockstar said it was captured entirely on PS5, with equal parts gameplay and cutscenes, and claimed 475 million views across platforms in 24 hours. The official site launched character and location pages and a large batch of screenshots the same day.</p>
+        <details class="exam" open>
+          <summary><svg class="i" aria-hidden="true"><use href="#i-search"/></svg>Video examination &middot; 8 things to look for<svg class="i chev" aria-hidden="true"><use href="#i-chevron-down"/></svg></summary>
+          <ul class="moments">
+            <li><div class="row"><span class="kind">Character</span><b>Name cards for the whole cast</b><span class="st off">Official</span></div><p>Jason Duval, Lucia Caminos, Cal Hampton, Boobie Ike, Dre'Quan Priest, Real Dimez, Raul Bautista and Brian Heder each get a title card. <b>Meaning:</b> this is the core cast. See the characters chapter.</p></li>
+            <li><div class="row"><span class="kind">Character</span><b>Jason gets a name and a life</b><span class="st seen">Seen</span></div><p>Lucia's partner from Trailer 1 is Jason, shown at home in the Keys doing jobs for the people around him. <b>Meaning:</b> Jason's story starts in the Keys, Lucia's in prison.</p></li>
+            <li><div class="row"><span class="kind">Tech</span><b>"Captured entirely on PS5"</b><span class="st off">Official</span></div><p>Rockstar's on-screen note. <b>Meaning:</b> the visuals are meant to be what you'll actually see on a base console, not pre-rendered.</p></li>
+            <li><div class="row"><span class="kind">Easter egg</span><b>Phil Cassidy in a TV ad</b><span class="st rep">Reported</span></div><p>Fans spotted a one-armed gun-store owner in a TV commercial. <b>Meaning:</b> a nod to Phil Cassidy, the arms dealer from GTA Vice City.</p></li>
+            <li><div class="row"><span class="kind">World</span><b>Wildlife and the wilderness</b><span class="st seen">Seen</span></div><p>Animals, forests and the rugged north appear. <b>Meaning:</b> fans predicted hunting and fishing, and the Extended Look later confirmed both.</p></li>
+            <li><div class="row"><span class="kind">Music</span><b>Two eras of soundtrack</b><span class="st off">Official</span></div><p>It opens on Jay Ferguson's "Shakedown Cruise" and switches to The Pointer Sisters' "Hot Together." <b>Meaning:</b> classic licensed music stays central to the series.</p></li>
+            <li><div class="row"><span class="kind">World</span><b>Billboards, ads and brands</b><span class="st seen">Seen</span></div><p>Parody storefronts, signs and products are everywhere. <b>Meaning:</b> the series' usual satire of American consumer culture, brought to Florida.</p></li>
+            <li><div class="row"><span class="kind">Date</span><b>"Coming May 26 2026"</b><span class="st off">Official</span></div><p>The end card's date. <b>Meaning:</b> it was moved again six months later, to November 19, 2026.</p></li>
+          </ul>
+        </details>
+      </div>
+    </article>
+
+    <!-- Extended Look -->
+    <article class="video" aria-labelledby="t3-h">
+      <div class="player">
+        <a class="facade" href="https://www.rockstargames.com/VI" target="_blank" rel="noopener">
+          <span class="poster p3"><span class="poster-t">An Extended Look</span><span class="poster-s">26 minutes &middot; gameplay</span></span>
+          <span class="play"><svg class="i" aria-hidden="true"><use href="#i-external-link"/></svg>Watch on rockstargames.com</span>
+        </a>
+      </div>
+      <div class="video-body">
+        <div class="video-title"><h3 id="t3-h">Grand Theft Auto VI: An Extended Look</h3><span class="st off">Official</span></div>
+        <ul class="meta">
+          <li><svg class="i" aria-hidden="true"><use href="#i-calendar"/></svg>Aug 27, 2026</li>
+          <li><svg class="i" aria-hidden="true"><use href="#i-clock"/></svg>About 26&ndash;27 min</li>
+          <li><svg class="i" aria-hidden="true"><use href="#i-tv"/></svg>Netflix first, then YouTube</li>
+        </ul>
+        <p>Announced August 6. It premiered on Netflix at 3 p.m. ET and went up on YouTube and Rockstar's site at 9 p.m. ET. It's mostly gameplay captured in-game on PS5: missions, side activities and parody ads, ending on sweeping shots of Leonida.</p>
+        <details class="exam" open>
+          <summary><svg class="i" aria-hidden="true"><use href="#i-search"/></svg>Video examination &middot; 8 things to look for<svg class="i chev" aria-hidden="true"><use href="#i-chevron-down"/></svg></summary>
+          <ul class="moments">
+            <li><div class="row"><span class="kind">Mission</span><b>A drug pickup for Boobie Ike</b><span class="st seen">Seen</span></div><p>Jason and Lucia collect for Boobie, and a police task force raids the building. <b>Meaning:</b> missions can move from conversation straight into third-person shootouts.</p></li>
+            <li><div class="row"><span class="kind">Mission</span><b>Visiting Brian Heder and Lori</b><span class="st rep">Reported</span></div><p>Brian sets up work and warns Jason with a story about a childhood friend. <b>Meaning:</b> Brian is Jason's patron, and the warning foreshadows where things go.</p></li>
+            <li><div class="row"><span class="kind">Mission</span><b>A getaway for Raul Bautista</b><span class="st seen">Seen</span></div><p>A chase through Vice City with a six-star wanted meter in the corner. <b>Meaning:</b> six stars are back. GTA V stopped at five.</p></li>
+            <li><div class="row"><span class="kind">Mission</span><b>A security job in a skyscraper goes wrong</b><span class="st rep">Reported</span></div><p>Coverage describes a hostage situation across about 26 floors, with the two leads split up for the first time. Accounts of how it ends differ. <b>Meaning:</b> missions can run both characters in parallel.</p></li>
+            <li><div class="row"><span class="kind">Gameplay</span><b>A purple slow-motion meter</b><span class="st seen">Seen</span></div><p>Both leads can slow time while aiming, and weak spots highlight. <b>Meaning:</b> a Dead Eye-style ability like Red Dead Redemption 2's, now in GTA.</p></li>
+            <li><div class="row"><span class="kind">Gameplay</span><b>Lucia at the gun range and the gym</b><span class="st seen">Seen</span></div><p>Timed target shooting and workouts. <b>Meaning:</b> side activities and body changes, both confirmed in previews.</p></li>
+            <li><div class="row"><span class="kind">World</span><b>Home, shops, nightlife and the airport</b><span class="st seen">Seen</span></div><p>Quieter stops between missions. <b>Meaning:</b> everyday life gets the same attention as the crime.</p></li>
+            <li><div class="row"><span class="kind">World</span><b>Parody ads</b><span class="st seen">Seen</span></div><p>Fake commercials for fake brands, a series tradition. <b>Meaning:</b> TV and ads are part of the world's texture again.</p></li>
+          </ul>
+        </details>
+      </div>
+    </article>
+
+    <!-- Launch Trailer -->
+    <article class="video" aria-labelledby="t4-h">
+      <div class="player">
+        <a class="facade" href="https://www.rockstargames.com/VI/launch-trailer" target="_blank" rel="noopener">
+          <span class="poster p4"><span class="poster-t">Launch Trailer</span><span class="poster-s">Flower in a Hurricane</span></span>
+          <span class="play"><svg class="i" aria-hidden="true"><use href="#i-external-link"/></svg>Watch on rockstargames.com</span>
+        </a>
+      </div>
+      <div class="video-body">
+        <div class="video-title"><h3 id="t4-h">Launch Trailer</h3><span class="st off">Official</span></div>
+        <ul class="meta">
+          <li><svg class="i" aria-hidden="true"><use href="#i-calendar"/></svg>Oct 15, 2026</li>
+          <li><svg class="i" aria-hidden="true"><use href="#i-music"/></svg>"Flower in a Hurricane", Justice feat. Tame Impala, SZA, King Gizzard &amp; The Lizard Wizard</li>
+        </ul>
+        <p>The final trailer before launch, built around a new song from Justice, who also wrote the game's original score. Like the others, it was captured in-game on PS5. Rockstar's post on X passed about 63 million views.</p>
+        <details class="exam" open>
+          <summary><svg class="i" aria-hidden="true"><use href="#i-search"/></svg>Video examination &middot; 4 things to look for<svg class="i chev" aria-hidden="true"><use href="#i-chevron-down"/></svg></summary>
+          <ul class="moments">
+            <li><div class="row"><span class="kind">Business</span><b>"Plays best on PS5" opener</b><span class="st rep">Reported</span></div><p>It opens with a PlayStation card, and Xbox isn't shown. <b>Meaning:</b> a Sony marketing deal. Xbox still gets the game on the same day.</p></li>
+            <li><div class="row"><span class="kind">Music</span><b>An original song</b><span class="st off">Official</span></div><p>Justice team up with Tame Impala, SZA and King Gizzard &amp; The Lizard Wizard. <b>Meaning:</b> a first for the series. Earlier trailers used licensed oldies.</p></li>
+            <li><div class="row"><span class="kind">Place</span><b>More of Vice City than ever</b><span class="st seen">Seen</span></div><p>Its people, places and street crime. <b>Meaning:</b> Rockstar's final pitch is the city itself.</p></li>
+            <li><div class="row"><span class="kind">Story</span><b>A steamy Jason and Lucia scene</b><span class="st seen">Seen</span></div><p>GameSpot highlighted it. <b>Meaning:</b> the romance is front and centre, not a subplot.</p></li>
+          </ul>
+        </details>
+      </div>
+    </article>
+  </div>
+</section>
+
+<!-- ===================== STORY ===================== -->
+<section class="sec gutter" id="story" aria-labelledby="story-h">
+  <header class="sec-head">
+    <p class="eyebrow"><svg class="i" aria-hidden="true"><use href="#i-book-open"/></svg>The story</p>
+    <h2 id="story-h">What the game is about</h2>
+    <p class="sec-lede">Rockstar's official synopsis, then what each line tells us.</p>
+    <!-- Money bag sticker -->
+    <svg class="sticker" style="--r: 8deg;" width="92" height="96" viewBox="0 0 100 104" aria-hidden="true">
+      <path d="M34 26c4-10 28-10 32 0l-6 9c18 10 26 28 24 44-2 18-18 23-34 23S18 97 16 79c-2-16 6-34 24-44z" fill="#d6b06a"/>
+      <path d="M38 35h24" stroke="#8a6a34" stroke-width="5" stroke-linecap="round"/>
+      <text x="50" y="86" text-anchor="middle" font-size="42" fill="#1b1430">$</text>
+      <path d="M42 22l-6-12M58 22l6-12M50 21V8" stroke="#8a6a34" stroke-width="4" stroke-linecap="round"/>
+    </svg>
+  </header>
+  <div class="story">
+    <blockquote class="quote">
+      <p>"Jason and Lucia have always known the deck is stacked against them. But when an easy score goes wrong, they find themselves on the darkest side of the sunniest place in America, in the middle of a criminal conspiracy stretching across the state of Leonida &mdash; forced to rely on each other more than ever if they want to make it out alive."</p>
+      <footer>Rockstar Games, official description on its site and store pages <span class="st off">Official</span></footer>
+    </blockquote>
+    <ul class="decode">
+      <li><q>The deck is stacked against them</q><p>Both leads start from the bottom. Jason grew up around grifters and drifted from the Army into drug-running work in the Keys. Lucia fought for her family and ended up in prison. <span class="st off">Official</span></p></li>
+      <li><q>An easy score goes wrong</q><p>A botched job sets everything off. Fans often guess it's a bank job, but Rockstar hasn't said what the score is. <span class="st rum">Rumor</span></p></li>
+      <li><q>The darkest side of the sunniest place</q><p>Leonida is Florida, and the story lives in its underbelly: smuggling, clubs, crooked money and the police. <span class="st off">Official</span></p></li>
+      <li><q>A conspiracy stretching across the state</q><p>The plot moves beyond Vice City into the other regions. The Extended Look already moves between the Keys, the city and the skyline. <span class="st seen">Seen</span></p></li>
+      <li><q>Rely on each other</q><p>Trust is the theme, from Trailer 1's last line to the switching system. Previews say relationships shape the story, though they don't give gameplay bonuses. <span class="st rep">Reported</span></p></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ===================== CHARACTERS ===================== -->
+<section class="sec gutter" id="characters" aria-labelledby="characters-h">
+  <header class="sec-head">
+    <p class="eyebrow"><svg class="i" aria-hidden="true"><use href="#i-users"/></svg>Characters</p>
+    <h2 id="characters-h">Who's who in Leonida</h2>
+    <p class="sec-lede">The eight names from Rockstar's character pages, plus one face from the Extended Look. The badges show which videos each one appears in: T1, T2, EL (Extended Look) and LT (Launch Trailer).</p>
+    <!-- Gator sticker -->
+    <svg class="sticker" style="--r: -7deg;" width="138" height="80" viewBox="0 0 120 70" aria-hidden="true">
+      <path d="M18 44Q9 46 3 53q13-2 21-5z" fill="#3f8f4a"/>
+      <rect x="16" y="34" width="62" height="20" rx="10" fill="#4caf5a"/>
+      <g fill="#3f8f4a"><circle cx="30" cy="34" r="3.2"/><circle cx="42" cy="33" r="3.2"/><circle cx="54" cy="33" r="3.2"/><circle cx="66" cy="34" r="3.2"/></g>
+      <rect x="26" y="51" width="8" height="10" rx="3" fill="#3f8f4a"/><rect x="58" y="51" width="8" height="10" rx="3" fill="#3f8f4a"/>
+      <path d="M74 46l38 2q3 4-4 6H74z" fill="#4caf5a"/>
+      <g class="anim-chomp">
+        <path d="M72 36q20-3 40 6 2 4-4 4H74z" fill="#5cc26a"/>
+        <path d="M84 46l3 4 3-4zM94 46l3 4 3-4zM103 46l3 3 2-3z" fill="#fff8ef"/>
+        <circle cx="81" cy="35" r="4.2" fill="#ffe27a"/><circle cx="82" cy="35" r="1.9" fill="#1b1222"/>
+      </g>
+    </svg>
+  </header>
+
+  <div class="cast">
+    <article class="person">
+      <div class="person-top"><div class="ava" style="--c: var(--mango); --r: -6deg;" aria-hidden="true">JD<svg class="i"><use href="#i-anchor"/></svg></div><div><h3>Jason Duval</h3><p class="role">Playable lead</p></div></div>
+      <p>Grew up around grifters and crooks, did a stint in the Army, and ended up in the Leonida Keys working for local drug runners. He lives on Brian Heder's property in exchange for helping with shakedowns. All he wants is an easy life.</p>
+      <ul>
+        <li><span>Background and setup from Rockstar's site</span><span class="st off">Official</span></li>
+        <li><span>Voice: often linked to Dylan Rourke</span><span class="st rum">Rumor</span></li>
+      </ul>
+      <div class="seen-in"><span>Seen in</span><b>T1</b><b>T2</b><b>EL</b><b>LT</b></div>
+    </article>
+
+    <article class="person">
+      <div class="person-top"><div class="ava" style="--c: var(--flamingo); --r: 5deg;" aria-hidden="true">LC<svg class="i"><use href="#i-swords"/></svg></div><div><h3>Lucia Caminos</h3><p class="role">Playable lead</p></div></div>
+      <p>Her father taught her to fight as soon as she could walk. Fighting for her family landed her in Leonida Penitentiary, and luck got her out. Now she's determined to make only smart moves. She's the series' first female lead of its 3D and HD eras.</p>
+      <ul>
+        <li><span>Prison past and fighter background</span><span class="st off">Official</span></li>
+        <li><span>Voice: often linked to Manni L. Perez</span><span class="st rum">Rumor</span></li>
+      </ul>
+      <div class="seen-in"><span>Seen in</span><b>T1</b><b>T2</b><b>EL</b><b>LT</b></div>
+    </article>
+
+    <article class="person">
+      <div class="person-top"><div class="ava" style="--c: var(--surf); --r: -4deg;" aria-hidden="true">CH<svg class="i"><use href="#i-radio"/></svg></div><div><h3>Cal Hampton</h3><p class="role">Jason's friend</p></div></div>
+      <p>Jason's buddy and a fellow member of Brian's crew. He's happiest at home with a few beers, listening in on Coast Guard radio, and he believes a lot of what he reads online.</p>
+      <ul><li><span>Conspiracy-minded homebody</span><span class="st off">Official</span></li></ul>
+      <div class="seen-in"><span>Seen in</span><b>T2</b></div>
+    </article>
+
+    <article class="person">
+      <div class="person-top"><div class="ava" style="--c: var(--gold); --r: 6deg;" aria-hidden="true">BI<svg class="i"><use href="#i-crown"/></svg></div><div><h3>Boobie Ike</h3><p class="role">Vice City legend</p></div></div>
+      <p>A Vice City local legend who turned street success into a business empire spanning real estate, a strip club and a recording studio. In the Extended Look, Jason and Lucia do a drug pickup for him that turns into a police raid.</p>
+      <ul>
+        <li><span>Businessman and local icon</span><span class="st off">Official</span></li>
+        <li><span>The pickup mission</span><span class="st seen">Seen</span></li>
+      </ul>
+      <div class="seen-in"><span>Seen in</span><b>T2</b><b>EL</b></div>
+    </article>
+
+    <article class="person">
+      <div class="person-top"><div class="ava" style="--c: var(--lilac); --r: -5deg;" aria-hidden="true">DP<svg class="i"><use href="#i-disc-3"/></svg></div><div><h3>Dre'Quan Priest</h3><p class="role">Music manager</p></div></div>
+      <p>A hustler who wants to be a music mogul. He runs the label Only Raw Records and has signed the rap duo Real Dimez.</p>
+      <ul><li><span>Only Raw Records</span><span class="st off">Official</span></li></ul>
+      <div class="seen-in"><span>Seen in</span><b>T2</b></div>
+    </article>
+
+    <article class="person">
+      <div class="person-top"><div class="ava" style="--c: #ff8fc8; --r: 4deg;" aria-hidden="true">RD<svg class="i"><use href="#i-mic"/></svg></div><div><h3>Real Dimez</h3><p class="role">Rap duo: Bae-Luxe &amp; Roxy</p></div></div>
+      <p>Two friends whose music blew up on social media. They're signed to Dre'Quan's label and trying to take over the Vice City scene.</p>
+      <ul><li><span>Viral rap duo on Only Raw</span><span class="st off">Official</span></li></ul>
+      <div class="seen-in"><span>Seen in</span><b>T2</b></div>
+    </article>
+
+    <article class="person">
+      <div class="person-top"><div class="ava" style="--c: var(--ember); --r: -6deg;" aria-hidden="true">RB<svg class="i"><use href="#i-vault"/></svg></div><div><h3>Raul Bautista</h3><p class="role">Bank robber</p></div></div>
+      <p>A seasoned, confident bank robber who's always looking for talent to take on bigger scores. In the Extended Look, the leads drive a getaway for him under a six-star wanted level.</p>
+      <ul>
+        <li><span>Veteran heist man</span><span class="st off">Official</span></li>
+        <li><span>The getaway mission</span><span class="st seen">Seen</span></li>
+      </ul>
+      <div class="seen-in"><span>Seen in</span><b>T2</b><b>EL</b></div>
+    </article>
+
+    <article class="person">
+      <div class="person-top"><div class="ava" style="--c: var(--sea); --r: 5deg;" aria-hidden="true">BH<svg class="i"><use href="#i-ship"/></svg></div><div><h3>Brian Heder</h3><p class="role">Old-school smuggler</p></div></div>
+      <p>A veteran drug runner in the Keys who now lets younger people do the heavy lifting. He's Jason's landlord and boss. In the Extended Look he arranges work for the pair and tells Jason a warning story.</p>
+      <ul>
+        <li><span>Jason's landlord and patron</span><span class="st off">Official</span></li>
+        <li><span>The warning story</span><span class="st seen">Seen</span></li>
+      </ul>
+      <div class="seen-in"><span>Seen in</span><b>T2</b><b>EL</b></div>
+    </article>
+
+    <article class="person">
+      <div class="person-top"><div class="ava" style="--c: #ffc9a6; --r: -4deg;" aria-hidden="true">LH<svg class="i"><use href="#i-heart"/></svg></div><div><h3>Lori Heder</h3><p class="role">Brian's wife</p></div></div>
+      <p>Seen with Brian when Jason and Lucia visit in the Extended Look. She isn't on Rockstar's character pages, so how big her role is remains unclear.</p>
+      <ul><li><span>Appears in the Brian visit</span><span class="st rep">Reported</span></li></ul>
+      <div class="seen-in"><span>Seen in</span><b>EL</b></div>
+    </article>
+  </div>
+</section>
+
+<!-- ===================== LEONIDA ===================== -->
+<section class="sec gutter" id="leonida" aria-labelledby="leonida-h">
+  <header class="sec-head">
+    <p class="eyebrow"><svg class="i" aria-hidden="true"><use href="#i-map"/></svg>Leonida</p>
+    <h2 id="leonida-h">The map, region by region</h2>
+    <p class="sec-lede">Rockstar has named six regions. Tap a pin to see what's there and the real place it's based on.</p>
+    <!-- Hurricane sticker -->
+    <svg class="sticker" style="--r: 0deg;" width="92" height="92" viewBox="0 0 100 100" aria-hidden="true">
+      <circle cx="50" cy="50" r="46" fill="#1b1430"/>
+      <g class="anim-spin" fill="#46e1d0">
+        <path d="M58 40c4-16-8-28-28-26 14 6 18 14 14 26z"/>
+        <path d="M42 60c-4 16 8 28 28 26-14-6-18-14-14-26z"/>
+        <circle cx="50" cy="50" r="13"/>
+      </g>
+      <circle cx="50" cy="50" r="5.5" fill="#1b1430"/>
+    </svg>
+  </header>
+
+  <div class="leonida">
+    <div class="map-wrap">
+      <svg class="map" viewBox="0 0 410 400" role="group" aria-label="Schematic map of Leonida with six region pins">
+        <text class="sea-label" x="120" y="230">Gulf</text>
+        <polygon class="land" points="10,50.6 10,10 142.6,10 147.7,27.4 295.6,33.2 323.7,26.2 326.2,50.6 331.3,73.8 346.6,114.4 367,157.9 377.2,207.2 395,259.4 392.5,294.2 390,314.5 382.3,334.8 374.6,346.4 341.5,351 326.2,308.7 305.8,291.3 290.5,273.9 280.3,247.8 265,221.7 257.4,198.5 252.3,184 259.9,131.8 242,117.3 214,79.6 183.4,65.1 142.6,88.3 122.2,86.6 106.9,59.3 66.1,46 30.4,48.9"/>
+        <ellipse class="lake" cx="354" cy="245" rx="13" ry="15"/>
+        <polyline class="keys" points="377,351 364.5,361 341.5,371.2 326.2,374.1 305.8,381.1"/>
+        <text class="sea-label" transform="translate(396 96) rotate(90)">Atlantic</text>
+
+        <g class="pin" data-region="vice" tabindex="0" role="button" aria-label="Vice City">
+          <circle class="halo" cx="388" cy="312" r="14"/><circle class="dot" cx="388" cy="312" r="6"/>
+          <text x="400" y="294" text-anchor="end">Vice City</text>
+        </g>
+        <g class="pin" data-region="grassrivers" tabindex="0" role="button" aria-label="Grassrivers">
+          <circle class="halo" cx="340" cy="318" r="14"/><circle class="dot" cx="340" cy="318" r="6"/>
+          <text x="326" y="322" text-anchor="end">Grassrivers</text>
+        </g>
+        <g class="pin" data-region="keys" tabindex="0" role="button" aria-label="Leonida Keys">
+          <circle class="halo" cx="341" cy="371" r="14"/><circle class="dot" cx="341" cy="371" r="6"/>
+          <text x="300" y="396" text-anchor="middle">Leonida Keys</text>
+        </g>
+        <g class="pin" data-region="ambrosia" tabindex="0" role="button" aria-label="Ambrosia">
+          <circle class="halo" cx="348" cy="263" r="14"/><circle class="dot" cx="348" cy="263" r="6"/>
+          <text x="334" y="267" text-anchor="end">Ambrosia</text>
+        </g>
+        <g class="pin" data-region="gellhorn" tabindex="0" role="button" aria-label="Port Gellhorn">
+          <circle class="halo" cx="102" cy="57" r="14"/><circle class="dot" cx="102" cy="57" r="6"/>
+          <text x="102" y="82" text-anchor="middle">Port Gellhorn</text>
+        </g>
+        <g class="pin" data-region="kalaga" tabindex="0" role="button" aria-label="Mount Kalaga National Park">
+          <circle class="halo" cx="246" cy="44" r="14"/><circle class="dot" cx="246" cy="44" r="6"/>
+          <text x="246" y="68" text-anchor="middle">Mount Kalaga</text>
+        </g>
+      </svg>
+      <p class="map-note">This is a schematic drawn for this page from each region's real-world counterpart. It isn't Rockstar's map and it isn't to scale.</p>
+    </div>
+
+    <div class="regions">
+      <article class="region is-active" id="region-vice">
+        <div class="region-head"><h3><svg class="i" aria-hidden="true"><use href="#i-building-2"/></svg>Vice City</h3><span class="st off">Official</span></div>
+        <p>The neon heart of the game. Beaches, art-deco strips, high-rises, clubs and money, all back for the first time since 2006's Vice City Stories and rebuilt for the modern series.</p>
+        <dl>
+          <dt>Real-world</dt><dd>Miami and Miami Beach</dd>
+          <dt>Size</dt><dd>About twice GTA V's Los Santos <span class="st rep">Reported</span></dd>
+          <dt>Seen in</dt><dd>Every video</dd>
+        </dl>
+      </article>
+      <article class="region" id="region-keys">
+        <div class="region-head"><h3><svg class="i" aria-hidden="true"><use href="#i-sailboat"/></svg>Leonida Keys</h3><span class="st off">Official</span></div>
+        <p>An island chain joined by long bridges, full of boats, bars and smugglers. It's where Jason lives on Brian Heder's property.</p>
+        <dl>
+          <dt>Real-world</dt><dd>The Florida Keys</dd>
+          <dt>Seen in</dt><dd>T1, T2, EL</dd>
+        </dl>
+      </article>
+      <article class="region" id="region-grassrivers">
+        <div class="region-head"><h3><svg class="i" aria-hidden="true"><use href="#i-waves"/></svg>Grassrivers</h3><span class="st off">Official</span></div>
+        <p>Sawgrass wetlands with alligators and airboats. It's a place for hunting, exploring by water and moving things that shouldn't be moved.</p>
+        <dl>
+          <dt>Real-world</dt><dd>The Everglades</dd>
+          <dt>Seen in</dt><dd>T1, T2</dd>
+        </dl>
+      </article>
+      <article class="region" id="region-ambrosia">
+        <div class="region-head"><h3><svg class="i" aria-hidden="true"><use href="#i-factory"/></svg>Ambrosia</h3><span class="st off">Official</span></div>
+        <p>A working town built around the Allied Crystal sugar refinery, which supplies most of the local jobs.</p>
+        <dl>
+          <dt>Real-world</dt><dd>Sugar towns south of Lake Okeechobee, such as Clewiston <span class="st rep">Reported</span></dd>
+          <dt>Seen in</dt><dd>T2</dd>
+        </dl>
+      </article>
+      <article class="region" id="region-gellhorn">
+        <div class="region-head"><h3><svg class="i" aria-hidden="true"><use href="#i-sunset"/></svg>Port Gellhorn</h3><span class="st off">Official</span></div>
+        <p>A coastal town that has seen better days, a world away from Vice City's glamour.</p>
+        <dl>
+          <dt>Real-world</dt><dd>The Florida Panhandle, often matched to Panama City Beach <span class="st rep">Reported</span></dd>
+          <dt>Name</dt><dd>Possibly a nod to war correspondent Martha Gellhorn <span class="st rum">Rumor</span></dd>
+          <dt>Seen in</dt><dd>T2</dd>
+        </dl>
+      </article>
+      <article class="region" id="region-kalaga">
+        <div class="region-head"><h3><svg class="i" aria-hidden="true"><use href="#i-mountain"/></svg>Mount Kalaga National Park</h3><span class="st off">Official</span></div>
+        <p>Leonida's northern wilderness of forests and canyons, made for hunting, fishing and off-roading.</p>
+        <dl>
+          <dt>Real-world</dt><dd>North Florida forests, with canyons like Georgia's Providence Canyon <span class="st rep">Reported</span></dd>
+          <dt>Seen in</dt><dd>T2</dd>
+        </dl>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== GAMEPLAY ===================== -->
+<section class="sec gutter" id="gameplay" aria-labelledby="gameplay-h">
+  <header class="sec-head">
+    <p class="eyebrow"><svg class="i" aria-hidden="true"><use href="#i-gamepad-2"/></svg>Gameplay</p>
+    <h2 id="gameplay-h">How it plays</h2>
+    <p class="sec-lede">From the Extended Look and the hands-off previews and interviews around it. Systems can still change before launch.</p>
+    <!-- Target sticker -->
+    <svg class="sticker" style="--r: -10deg;" width="88" height="88" viewBox="0 0 100 100" aria-hidden="true">
+      <circle cx="50" cy="50" r="46" fill="#fff8ef"/>
+      <circle cx="50" cy="50" r="36" fill="#ff5fa8"/><circle cx="50" cy="50" r="26" fill="#fff8ef"/>
+      <circle cx="50" cy="50" r="16" fill="#ff5fa8"/><circle cx="50" cy="50" r="6" fill="#1b1430"/>
+      <g class="anim-blink"><path d="M50 4v18M50 78v18M4 50h18M78 50h18" stroke="#1b1430" stroke-width="4" stroke-linecap="round"/></g>
+    </svg>
+  </header>
+
+  <div class="systems">
+    <article class="system">
+      <h3><svg class="i" aria-hidden="true"><use href="#i-users"/></svg>Two leads</h3>
+      <ul>
+        <li><span><b>Switch any time.</b> Swap between Jason and Lucia almost instantly.</span><span class="st rep">Reported</span></li>
+        <li><span><b>Stay in touch.</b> Call or text the other lead while playing as one.</span><span class="st rep">Reported</span></li>
+        <li><span><b>Relationships matter to the story,</b> but don't give stat bonuses.</span><span class="st rep">Reported</span></li>
+        <li><span><b>Split missions.</b> The skyscraper job runs both leads in parallel.</span><span class="st seen">Seen</span></li>
+      </ul>
+    </article>
+    <article class="system">
+      <h3><svg class="i" aria-hidden="true"><use href="#i-crosshair"/></svg>Combat</h3>
+      <ul>
+        <li><span><b>Slow-motion aiming</b> on a purple meter, with weak spots highlighted.</span><span class="st seen">Seen</span></li>
+        <li><span><b>One-handed reloads</b> while carrying loot bags.</span><span class="st rep">Reported</span></li>
+        <li><span><b>Smarter enemies</b> that use cover, plus destructible surroundings.</span><span class="st rep">Reported</span></li>
+      </ul>
+    </article>
+    <article class="system">
+      <h3><svg class="i" aria-hidden="true"><use href="#i-siren"/></svg>Police and heat</h3>
+      <ul>
+        <li><span><b>Six-star wanted level</b> is back. GTA V capped it at five.</span><span class="st seen">Seen</span></li>
+        <li><span><b>A criminal profile.</b> Police build a description from CCTV, witnesses, your face, your outfit and your weapons.</span><span class="st rep">Reported</span></li>
+        <li><span><b>Heat indicators</b> show what the police know about you.</span><span class="st rep">Reported</span></li>
+      </ul>
+    </article>
+    <article class="system">
+      <h3><svg class="i" aria-hidden="true"><use href="#i-car"/></svg>Cars and theft</h3>
+      <ul>
+        <li><span><b>Tougher car security.</b> Some cars carry trackers.</span><span class="st rep">Reported</span></li>
+        <li><span><b>Tools for the job.</b> Some cars need special tools to get into.</span><span class="st rep">Reported</span></li>
+      </ul>
+    </article>
+    <article class="system">
+      <h3><svg class="i" aria-hidden="true"><use href="#i-dumbbell"/></svg>Body and daily life</h3>
+      <ul>
+        <li><span><b>Eat and exercise.</b> The leads' bodies change with what they do.</span><span class="st rep">Reported</span></li>
+        <li><span><b>Homes, shops and nightlife</b> between missions.</span><span class="st seen">Seen</span></li>
+        <li><span><b>Mature content.</b> Previews confirmed nudity in some everyday scenes, such as showering.</span><span class="st rep">Reported</span></li>
+      </ul>
+    </article>
+    <article class="system">
+      <h3><svg class="i" aria-hidden="true"><use href="#i-smartphone"/></svg>Phone, social and TV</h3>
+      <ul>
+        <li><span><b>A physical phone</b> in the character's hand, with a reworked interface.</span><span class="st rep">Reported</span></li>
+        <li><span><b>Browsable social media</b> is part of play.</span><span class="st rep">Reported</span></li>
+        <li><span><b>In-game TV and parody ads.</b></span><span class="st seen">Seen</span></li>
+      </ul>
+    </article>
+  </div>
+
+  <h3 class="sub-h"><svg class="i" aria-hidden="true"><use href="#i-trophy"/></svg>Confirmed activities</h3>
+  <ul class="acts">
+    <li><svg class="i" aria-hidden="true"><use href="#i-dribbble"/></svg>Basketball</li>
+    <li><svg class="i" aria-hidden="true"><use href="#i-circle-dot"/></svg>Pool</li>
+    <li><svg class="i" aria-hidden="true"><use href="#i-flag"/></svg>Mini golf</li>
+    <li><svg class="i" aria-hidden="true"><use href="#i-waves"/></svg>Scuba diving</li>
+    <li><svg class="i" aria-hidden="true"><use href="#i-sailboat"/></svg>Kayaking</li>
+    <li><svg class="i" aria-hidden="true"><use href="#i-dumbbell"/></svg>Gym</li>
+    <li><svg class="i" aria-hidden="true"><use href="#i-zap"/></svg>Boxing</li>
+    <li><svg class="i" aria-hidden="true"><use href="#i-swords"/></svg>Wrestling</li>
+    <li><svg class="i" aria-hidden="true"><use href="#i-car"/></svg>Street racing<small>Day and night</small></li>
+    <li><svg class="i" aria-hidden="true"><use href="#i-gauge"/></svg>Drag racing</li>
+    <li><svg class="i" aria-hidden="true"><use href="#i-bike"/></svg>Dirt-bike racing</li>
+    <li><svg class="i" aria-hidden="true"><use href="#i-wind"/></svg>Base jumping</li>
+    <li><svg class="i" aria-hidden="true"><use href="#i-target"/></svg>Shooting range<small>Timed challenges</small></li>
+    <li><svg class="i" aria-hidden="true"><use href="#i-crosshair"/></svg>Hunting<small>From Red Dead 2</small></li>
+    <li><svg class="i" aria-hidden="true"><use href="#i-fish"/></svg>Fishing<small>From Red Dead 2</small></li>
+  </ul>
+  <p class="note">All activities above are <span class="st rep">Reported</span> from the Extended Look and the previews around it.</p>
+</section>
+
+<!-- ===================== MUSIC ===================== -->
+<section class="sec gutter" id="music" aria-labelledby="music-h">
+  <header class="sec-head">
+    <p class="eyebrow"><svg class="i" aria-hidden="true"><use href="#i-radio"/></svg>Radio and music</p>
+    <h2 id="music-h">What's on the dial</h2>
+    <p class="sec-lede">The trailer songs, and the first six stations Rockstar revealed on October 8, 2026. The full station list and tracklist aren't out yet.</p>
+    <!-- Cassette sticker -->
+    <svg class="sticker" style="--r: 6deg;" width="128" height="84" viewBox="0 0 120 78" aria-hidden="true">
+      <rect x="2" y="2" width="116" height="74" rx="8" fill="#ffb454"/>
+      <rect x="12" y="10" width="96" height="40" rx="4" fill="#fff8ef"/>
+      <text x="60" y="27" text-anchor="middle" font-size="13" fill="#ff5fa8" letter-spacing="1.5">FLASH FM</text>
+      <rect x="30" y="32" width="60" height="14" rx="7" fill="#1b1430"/>
+      <g class="anim-spin"><circle cx="40" cy="39" r="5" fill="#fff8ef"/><path d="M40 35v8M36 39h8" stroke="#1b1430" stroke-width="1.6"/></g>
+      <g class="anim-spin"><circle cx="80" cy="39" r="5" fill="#fff8ef"/><path d="M80 35v8M76 39h8" stroke="#1b1430" stroke-width="1.6"/></g>
+      <path d="M24 76l8-16h56l8 16" fill="#e89a3a"/>
+    </svg>
+  </header>
+
+  <h3 class="sub-h"><svg class="i" aria-hidden="true"><use href="#i-music"/></svg>Trailer songs</h3>
+  <ul class="songs">
+    <li><span class="where">Trailer 1</span><span><b>"Love Is a Long Road"</b> <span class="by">&middot; Tom Petty</span></span><span class="st off">Official</span></li>
+    <li><span class="where">Trailer 2</span><span><b>"Shakedown Cruise"</b> <span class="by">&middot; Jay Ferguson</span></span><span class="st off">Official</span></li>
+    <li><span class="where">Trailer 2</span><span><b>"Hot Together"</b> <span class="by">&middot; The Pointer Sisters</span></span><span class="st off">Official</span></li>
+    <li><span class="where">Launch Trailer</span><span><b>"Flower in a Hurricane"</b> <span class="by">&middot; Justice feat. Tame Impala, SZA, King Gizzard &amp; The Lizard Wizard</span></span><span class="st off">Official</span></li>
+  </ul>
+  <p class="note">Justice wrote the game's <b>original score</b>. Whether the trailer songs also play on in-game radio hasn't been confirmed. <span class="st open">Unanswered</span></p>
+
+  <h3 class="sub-h"><svg class="i" aria-hidden="true"><use href="#i-radio-tower"/></svg>The first six stations</h3>
+  <div class="stations">
+    <article class="station" style="--c: var(--flamingo);">
+      <div class="reels" aria-hidden="true"><span class="reel"></span><span class="reel"></span></div>
+      <p class="genre">Modern Latin</p><h3>Cocoteo FM</h3>
+      <p>Hosted by Bad Bunny as "El Martillo," alongside RaiNao as "La Gata."</p>
+      <span class="st off">Official</span>
+    </article>
+    <article class="station" style="--c: var(--mango);">
+      <div class="reels" aria-hidden="true"><span class="reel"></span><span class="reel"></span></div>
+      <p class="genre">Country</p><h3>Back Country Radio</h3>
+      <p>Morgan Wallen as "MW" and Lana Del Rey as "Delta Dawne," with Jeremy Dufrene as reporter "Mud Dog Mike."</p>
+      <span class="st off">Official</span>
+    </article>
+    <article class="station" style="--c: var(--gold);">
+      <div class="reels" aria-hidden="true"><span class="reel"></span><span class="reel"></span></div>
+      <p class="genre">African music</p><h3>AfroBank FM</h3>
+      <p>African classics, amapiano, 3-step and more.</p>
+      <span class="st off">Official</span>
+    </article>
+    <article class="station" style="--c: var(--ember);">
+      <div class="reels" aria-hidden="true"><span class="reel"></span><span class="reel"></span></div>
+      <p class="genre">Metal</p><h3>The Chamber 106.6</h3>
+      <p>Coverage links Slayer's Kerry King and Tom Araya to the metal side.</p>
+      <span class="st off">Official</span>
+    </article>
+    <article class="station" style="--c: var(--surf);">
+      <div class="reels" aria-hidden="true"><span class="reel"></span><span class="reel"></span></div>
+      <p class="genre">Pop and dance</p><h3>Flash FM</h3>
+      <p>The name returns from 2002's GTA Vice City, where Flash FM was the pop station.</p>
+      <span class="st off">Official</span>
+    </article>
+    <article class="station" style="--c: var(--lilac);">
+      <div class="reels" aria-hidden="true"><span class="reel"></span><span class="reel"></span></div>
+      <p class="genre">Southern rap</p><h3>Dirty South Classics</h3>
+      <p>Miami rap icons Trick Daddy and Trina are linked to the lineup.</p>
+      <span class="st off">Official</span>
+    </article>
+  </div>
+  <p class="note">The same announcement confirmed <b>classic rock and talk radio</b> and the series' <b>first in-game podcasts</b>. Which artist hosts which station is confirmed only for Cocoteo FM and Back Country Radio. The other hosts above are <span class="st rep">Reported</span>.</p>
+</section>
+
+<!-- ===================== EDITIONS ===================== -->
+<section class="sec gutter" id="editions" aria-labelledby="editions-h">
+  <header class="sec-head">
+    <p class="eyebrow"><svg class="i" aria-hidden="true"><use href="#i-ticket"/></svg>Editions and launch</p>
+    <h2 id="editions-h">Buying it and getting in</h2>
+    <p class="sec-lede">Two editions, a pre-order bonus and the launch-week schedule. US prices are shown; check your own store.</p>
+    <!-- Newspaper sticker -->
+    <svg class="sticker" style="--r: 5deg;" width="132" height="98" viewBox="0 0 120 90" aria-hidden="true">
+      <rect x="2" y="2" width="116" height="86" rx="3" fill="#fff8ef"/>
+      <text x="60" y="15" text-anchor="middle" font-size="9" fill="#1b1430" letter-spacing="1.4">THE LEONIDA HERALD</text>
+      <path d="M8 19h104" stroke="#1b1430" stroke-width="1.5"/>
+      <text x="60" y="36" text-anchor="middle" font-size="15" fill="#1b1430">LEONIDA MAN</text>
+      <text x="60" y="52" text-anchor="middle" font-size="15" fill="#ff5fa8">STRIKES AGAIN</text>
+      <rect x="8" y="58" width="40" height="24" fill="#4caf5a"/>
+      <path d="M54 62h58M54 68h58M54 74h58M54 80h40" stroke="#b9a7c8" stroke-width="2.5"/>
+    </svg>
+  </header>
+
+  <div class="editions">
+    <article class="edition">
+      <h3>Standard Edition</h3>
+      <p class="price">$79.99<small>US</small></p>
+      <ul>
+        <li><svg class="i" aria-hidden="true"><use href="#i-badge-check"/></svg><span>The full game: story, world and every activity.</span></li>
+        <li><svg class="i" aria-hidden="true"><use href="#i-badge-check"/></svg><span>Includes the Vintage Vice City Pack if you pre-order.</span></li>
+      </ul>
+      <span class="st rep">Reported</span>
+    </article>
+    <article class="edition ult">
+      <h3>Ultimate Edition</h3>
+      <p class="price">$99.99<small>US</small></p>
+      <ul>
+        <li><svg class="i" aria-hidden="true"><use href="#i-badge-check"/></svg><span>Everything in Standard.</span></li>
+        <li><svg class="i" aria-hidden="true"><use href="#i-badge-check"/></svg><span>Exclusive vehicles, garages, weapons, apparel, tattoos, in-game stores and activities.</span></li>
+        <li><svg class="i" aria-hidden="true"><use href="#i-badge-check"/></svg><span>The upgrade is reportedly sold on its own after launch, for about $20.</span></li>
+      </ul>
+      <span class="st rep">Reported</span>
+    </article>
+  </div>
+
+  <div class="bonus">
+    <div class="bonus-badge" aria-hidden="true"><svg class="i"><use href="#i-sparkles"/></svg></div>
+    <div>
+      <h3>Pre-order bonus: Vintage Vice City Pack</h3>
+      <p>Included with every pre-order made before November 20; boxed copies get it while stocks last. Reported contents: a '55 Vapid Stanier, a garage, Vice City-style outfits and hairstyles for Jason and Lucia, and a tropical weapon pattern that's reportedly inspired by Tommy Vercetti. Digital pre-orders also get <b>one month of GTA+</b>. There's no collector's edition. <span class="st rep">Reported</span></p>
+    </div>
+  </div>
+
+  <h3 class="sub-h"><svg class="i" aria-hidden="true"><use href="#i-download"/></svg>Launch week</h3>
+  <ul class="launch-list">
+    <li><svg class="i" aria-hidden="true"><use href="#i-calendar"/></svg><span><b>Nov 10.</b> Digital pre-load opens on PS5 and Xbox. <span class="st off">Official</span></span></li>
+    <li><svg class="i" aria-hidden="true"><use href="#i-package"/></svg><span><b>Nov 12.</b> Code-in-a-box copies can start downloading once retailers have stock. <span class="st rep">Reported</span></span></li>
+    <li><svg class="i" aria-hidden="true"><use href="#i-hard-drive"/></svg><span><b>Clear space.</b> Up to 212 GB depending on your console. <span class="st off">Official</span></span></li>
+    <li><svg class="i" aria-hidden="true"><use href="#i-clock"/></svg><span><b>Nov 19.</b> Store listings point to midnight local time, starting in New Zealand. Some US listings use midnight Eastern for all of North America. <span class="st rep">Reported</span></span></li>
+  </ul>
+</section>
+
+<!-- ===================== EASTER EGGS ===================== -->
+<section class="sec gutter" id="eggs" aria-labelledby="eggs-h">
+  <header class="sec-head">
+    <p class="eyebrow"><svg class="i" aria-hidden="true"><use href="#i-egg"/></svg>Easter eggs</p>
+    <h2 id="eggs-h">Callbacks and hidden nods</h2>
+    <p class="sec-lede">What fans have spotted, where it appears and what it refers to.</p>
+  </header>
+  <div class="eggs">
+    <article class="egg">
+      <div class="egg-top"><h3>Ocean View Hotel</h3><svg class="i" aria-hidden="true"><use href="#i-egg"/></svg></div>
+      <dl><dt>Where</dt><dd>Trailer 1, as a hotel sign</dd><dt>Refers to</dt><dd>Tommy Vercetti's first hideout in GTA Vice City (2002)</dd></dl>
+      <span class="st seen">Seen</span>
+    </article>
+    <article class="egg">
+      <div class="egg-top"><h3>Phil Cassidy</h3><svg class="i" aria-hidden="true"><use href="#i-egg"/></svg></div>
+      <dl><dt>Where</dt><dd>Trailer 2, in a gun-store TV ad</dd><dt>Refers to</dt><dd>Vice City's one-armed arms dealer. It could be the same man or a tribute.</dd></dl>
+      <span class="st rep">Reported</span>
+    </article>
+    <article class="egg">
+      <div class="egg-top"><h3>Flash FM</h3><svg class="i" aria-hidden="true"><use href="#i-egg"/></svg></div>
+      <dl><dt>Where</dt><dd>The October 2026 radio reveal</dd><dt>Refers to</dt><dd>GTA Vice City's pop station, back by name</dd></dl>
+      <span class="st off">Official</span>
+    </article>
+    <article class="egg">
+      <div class="egg-top"><h3>V-Rock shirt</h3><svg class="i" aria-hidden="true"><use href="#i-egg"/></svg></div>
+      <dl><dt>Where</dt><dd>Jason in promotional art</dd><dt>Refers to</dt><dd>V-Rock, Vice City's rock station</dd></dl>
+      <span class="st rep">Reported</span>
+    </article>
+    <article class="egg">
+      <div class="egg-top"><h3>Leonida Man</h3><svg class="i" aria-hidden="true"><use href="#i-egg"/></svg></div>
+      <dl><dt>Where</dt><dd>Trailer 1's social-media clips</dd><dt>Refers to</dt><dd>The "Florida Man" news meme</dd></dl>
+      <span class="st seen">Seen</span>
+    </article>
+    <article class="egg">
+      <div class="egg-top"><h3>Vintage Vice City Pack</h3><svg class="i" aria-hidden="true"><use href="#i-egg"/></svg></div>
+      <dl><dt>Where</dt><dd>The pre-order bonus</dd><dt>Refers to</dt><dd>Retro outfits and a weapon pattern reportedly inspired by Tommy Vercetti</dd></dl>
+      <span class="st rep">Reported</span>
+    </article>
+    <article class="egg">
+      <div class="egg-top"><h3>"Poach"</h3><svg class="i" aria-hidden="true"><use href="#i-egg"/></svg></div>
+      <dl><dt>Where</dt><dd>Spotted by fans in trailer footage</dd><dt>Refers to</dt><dd>A parody brand tied to hunting, in the series' tradition of joke companies</dd></dl>
+      <span class="st rep">Reported</span>
+    </article>
+    <article class="egg">
+      <div class="egg-top"><h3>'55 Vapid Stanier</h3><svg class="i" aria-hidden="true"><use href="#i-egg"/></svg></div>
+      <dl><dt>Where</dt><dd>The pre-order car</dd><dt>Refers to</dt><dd>Vapid is the series' Ford parody, and the Stanier name goes back many games</dd></dl>
+      <span class="st rep">Reported</span>
+    </article>
+  </div>
+  <p class="note"><b>Why callbacks aren't continuity:</b> Rockstar splits the series into universes. GTA III, Vice City and San Andreas make up the "3D universe." GTA IV, V and VI belong to the "HD universe." Tommy Vercetti's Vice City and Jason and Lucia's Vice City are separate places, so these are nods, not sequels.</p>
+</section>
+
+<!-- ===================== BACKSTAGE ===================== -->
+<section class="sec gutter" id="backstage" aria-labelledby="backstage-h">
+  <header class="sec-head">
+    <p class="eyebrow"><svg class="i" aria-hidden="true"><use href="#i-briefcase"/></svg>Behind the scenes</p>
+    <h2 id="backstage-h">Making the biggest game around</h2>
+    <p class="sec-lede">The studio, the money, the leaks and the disputes.</p>
+  </header>
+  <div class="backstage">
+    <div class="story-item"><h3>Who's making it <span class="st off">Official</span></h3><p>Rockstar Games, with Edinburgh's Rockstar North leading and Rockstar's other studios contributing. Rockstar North co-studio head Rob Nelson was the face of the 2026 previews. The publisher is Take-Two Interactive, led by CEO Strauss Zelnick.</p></div>
+    <div class="story-item"><h3>The 2022 leak <span class="st rep">Reported</span></h3><p>On September 18, 2022, more than 90 clips of early test footage leaked online. Rockstar confirmed they were real and said development would continue. The hacker behind it, a teenager linked to the Lapsus$ group, was later given an indefinite hospital order by a UK court.</p></div>
+    <div class="story-item"><h3>Record breaker <span class="st off">Official</span></h3><p>Trailer 1 holds three Guinness World Records from its first day, including the most-viewed game reveal on YouTube in 24 hours, with 90.4 million views. Rockstar says Trailer 2 reached 475 million views across platforms in 24 hours.</p></div>
+    <div class="story-item"><h3>Two delays <span class="st off">Official</span></h3><p>On May 2, 2025, Rockstar moved the game from fall 2025 to May 26, 2026. On November 6, 2025, it moved again to November 19, 2026, saying it needed more time to polish. Take-Two has repeated the date in every earnings report since.</p></div>
+    <div class="story-item"><h3>The firings dispute <span class="st rep">Reported</span></h3><p>At the end of October 2025, Rockstar fired about 30 to 40 staff in the UK and Canada for "gross misconduct," saying they had shared confidential information in a public forum. The IWGB union calls it union-busting over a private union Discord. Legal claims followed, and an early UK ruling in January 2026 found the union hadn't yet proven its case. The dispute continues.</p></div>
+    <div class="story-item"><h3>A Netflix premiere <span class="st off">Official</span></h3><p>The Extended Look debuted on Netflix six hours before it reached YouTube. It was an unusual way to reveal a game.</p></div>
+    <div class="story-item"><h3>The money on the line <span class="st rep">Reported</span></h3><p>Analysts note that Take-Two's forecast, reportedly around $8 billion in bookings, is built around the November date. That's one reason another delay is unlikely.</p></div>
+    <div class="story-item"><h3>Thirteen years between games <span class="st off">Official</span></h3><p>GTA V launched on September 17, 2013. GTA VI arrives more than 13 years later, the longest gap between numbered entries in the series.</p></div>
+  </div>
+</section>
+
+<!-- ===================== TIMELINE ===================== -->
+<section class="sec gutter" id="timeline" aria-labelledby="timeline-h">
+  <header class="sec-head">
+    <p class="eyebrow"><svg class="i" aria-hidden="true"><use href="#i-history"/></svg>Timeline</p>
+    <h2 id="timeline-h">Every date that matters</h2>
+    <p class="sec-lede">From GTA V to launch day, in order.</p>
+  </header>
+  <ol class="timeline" id="timeline-list">
+    <li data-date="2013-09-17"><time datetime="2013-09-17">Sep 17, 2013</time><div class="t-body"><h3>GTA V launches</h3><p>The last numbered entry, and the starting point of the long wait.</p></div></li>
+    <li data-date="2022-02-04"><time datetime="2022-02-04">Feb 4, 2022</time><div class="t-body"><h3>Development confirmed <span class="st off">Official</span></h3><p>A Rockstar Newswire post says active development on the next Grand Theft Auto is well underway.</p></div></li>
+    <li data-date="2022-09-18"><time datetime="2022-09-18">Sep 18, 2022</time><div class="t-body"><h3>The big leak <span class="st rep">Reported</span></h3><p>More than 90 clips of early footage spread online. Rockstar confirms they're real.</p></div></li>
+    <li data-date="2023-12-04"><time datetime="2023-12-04">Dec 4, 2023</time><div class="t-body"><h3>Trailer 1 <span class="st off">Official</span></h3><p>Posted a day early after leaking. It introduces Lucia, Leonida and a 2025 target.</p></div></li>
+    <li data-date="2025-05-02"><time datetime="2025-05-02">May 2, 2025</time><div class="t-body"><h3>First delay <span class="st off">Official</span></h3><p>Fall 2025 becomes May 26, 2026.</p></div></li>
+    <li data-date="2025-05-06"><time datetime="2025-05-06">May 6, 2025</time><div class="t-body"><h3>Trailer 2 <span class="st off">Official</span></h3><p>Jason gets a name, the cast is revealed, and the official site fills with characters, places and screenshots.</p></div></li>
+    <li data-date="2025-10-31"><time datetime="2025-10-31">Late Oct 2025</time><div class="t-body"><h3>Staff firings <span class="st rep">Reported</span></h3><p>Rockstar fires about 30 to 40 employees, and the IWGB union alleges union-busting.</p></div></li>
+    <li data-date="2025-11-06"><time datetime="2025-11-06">Nov 6, 2025</time><div class="t-body"><h3>Second delay <span class="st off">Official</span></h3><p>The date moves to Thursday, November 19, 2026.</p></div></li>
+    <li data-date="2026-06-24"><time datetime="2026-06">Late Jun 2026</time><div class="t-body"><h3>Pre-orders open <span class="st rep">Reported</span></h3><p>Standard and Ultimate editions go up for pre-order, with the Vintage Vice City Pack as a bonus.</p></div></li>
+    <li data-date="2026-08-06"><time datetime="2026-08-06">Aug 6, 2026</time><div class="t-body"><h3>Extended Look announced <span class="st off">Official</span></h3><p>A 26-minute gameplay special, premiering on Netflix.</p></div></li>
+    <li data-date="2026-08-27"><time datetime="2026-08-27">Aug 27, 2026</time><div class="t-body"><h3>An Extended Look <span class="st off">Official</span></h3><p>Shown on Netflix at 3 p.m. ET, then on YouTube at 9 p.m. ET.</p></div></li>
+    <li data-date="2026-10-08"><time datetime="2026-10-08">Oct 8, 2026</time><div class="t-body"><h3>Radio stations revealed <span class="st off">Official</span></h3><p>The first six stations and their hosts, plus podcasts.</p></div></li>
+    <li data-date="2026-10-13"><time datetime="2026-10-13">Oct 13, 2026</time><div class="t-body"><h3>PC report <span class="st rep">Reported</span></h3><p>GamesBeat reports a PC version planned for early 2027.</p></div></li>
+    <li data-date="2026-10-15"><time datetime="2026-10-15">Oct 15, 2026</time><div class="t-body"><h3>Launch Trailer <span class="st off">Official</span></h3><p>It debuts "Flower in a Hurricane" by Justice and friends.</p></div></li>
+    <li data-date="2026-11-10"><time datetime="2026-11-10">Nov 10, 2026</time><div class="t-body"><h3>Digital pre-load <span class="st off">Official</span></h3><p>Up to 212 GB, nine days before launch.</p></div></li>
+    <li data-date="2026-11-12"><time datetime="2026-11-12">Nov 12, 2026</time><div class="t-body"><h3>Boxed-code pre-load <span class="st rep">Reported</span></h3><p>Code-in-a-box copies can start downloading.</p></div></li>
+    <li data-date="2026-11-19" class="launch"><time datetime="2026-11-19">Nov 19, 2026</time><div class="t-body"><h3>Launch day <span class="st off">Official</span></h3><p>Grand Theft Auto VI arrives on PlayStation 5 and Xbox Series X|S.</p></div></li>
+  </ol>
+</section>
+
+<!-- ===================== GLOSSARY ===================== -->
+<section class="sec gutter" id="glossary" aria-labelledby="glossary-h">
+  <header class="sec-head">
+    <p class="eyebrow"><svg class="i" aria-hidden="true"><use href="#i-scroll-text"/></svg>Glossary</p>
+    <h2 id="glossary-h">What's what</h2>
+    <p class="sec-lede">Every name and term on this page, explained in one or two lines.</p>
+  </header>
+  <div class="gloss-tools">
+    <label class="search" for="gloss-filter">
+      <span class="sr-only">Filter the glossary</span>
+      <svg class="i" aria-hidden="true"><use href="#i-search"/></svg>
+      <input id="gloss-filter" type="search" placeholder="Filter terms, e.g. Vice City" autocomplete="off">
+    </label>
+    <span class="gloss-count" id="gloss-count" aria-live="polite">40 terms</span>
+  </div>
+  <dl class="glossary" id="glossary-list">
+    <div class="term"><dt>3D universe</dt><dd>Rockstar's name for the continuity of GTA III, Vice City and San Andreas. It's separate from GTA VI's world.</dd></div>
+    <div class="term"><dt>AfroBank FM</dt><dd>A radio station playing African classics, amapiano and 3-step.</dd></div>
+    <div class="term"><dt>Allied Crystal</dt><dd>The sugar refinery that keeps the town of Ambrosia running.</dd></div>
+    <div class="term"><dt>Ambrosia</dt><dd>An inland refinery town, likely based on Florida's sugar towns near Lake Okeechobee.</dd></div>
+    <div class="term"><dt>Back Country Radio</dt><dd>The country station, with Morgan Wallen and Lana Del Rey as hosts.</dd></div>
+    <div class="term"><dt>Bonnie and Clyde</dt><dd>The 1930s outlaw couple that Jason and Lucia are constantly compared to.</dd></div>
+    <div class="term"><dt>Character switching</dt><dd>Swapping control between Jason and Lucia, almost instantly and at any time.</dd></div>
+    <div class="term"><dt>Cocoteo FM</dt><dd>The modern Latin station, hosted by Bad Bunny ("El Martillo") and RaiNao ("La Gata").</dd></div>
+    <div class="term"><dt>Code in a box</dt><dd>A boxed copy that holds a download code instead of a disc.</dd></div>
+    <div class="term"><dt>Criminal profile</dt><dd>The police's picture of you, built from CCTV, witnesses, your outfit and your weapons.</dd></div>
+    <div class="term"><dt>Dead Eye</dt><dd>Red Dead Redemption 2's slow-motion aiming. GTA VI's purple-meter ability works in a similar way.</dd></div>
+    <div class="term"><dt>Dirty South Classics</dt><dd>The Southern rap station.</dd></div>
+    <div class="term"><dt>Extended Look</dt><dd>Rockstar's 26-minute gameplay special from August 27, 2026, which premiered on Netflix.</dd></div>
+    <div class="term"><dt>Flash FM</dt><dd>The pop and dance station, back by name from 2002's GTA Vice City.</dd></div>
+    <div class="term"><dt>Florida Man</dt><dd>A meme built on bizarre Florida news headlines. Leonida Man is the game's version.</dd></div>
+    <div class="term"><dt>Grassrivers</dt><dd>Leonida's version of the Everglades: wetlands, gators and airboats.</dd></div>
+    <div class="term"><dt>GTA+</dt><dd>Rockstar's paid membership. Digital pre-orders reportedly get one month free.</dd></div>
+    <div class="term"><dt>HD universe</dt><dd>The continuity shared by GTA IV, V and VI.</dd></div>
+    <div class="term"><dt>Heat</dt><dd>How much the police know and how hard they're looking for you.</dd></div>
+    <div class="term"><dt>IWGB</dt><dd>The UK union representing the Rockstar staff fired in 2025.</dd></div>
+    <div class="term"><dt>Launch Trailer</dt><dd>The final pre-release trailer, from October 15, 2026.</dd></div>
+    <div class="term"><dt>Leonida</dt><dd>The game's fictional state, based on Florida.</dd></div>
+    <div class="term"><dt>Leonida Keys</dt><dd>The island chain where Jason lives, based on the Florida Keys.</dd></div>
+    <div class="term"><dt>Leonida Man</dt><dd>The game's parody of Florida Man, seen in Trailer 1's phone clips.</dd></div>
+    <div class="term"><dt>Leonida Penitentiary</dt><dd>The prison Lucia was released from.</dd></div>
+    <div class="term"><dt>Mount Kalaga National Park</dt><dd>The northern wilderness, for hunting, fishing and off-roading.</dd></div>
+    <div class="term"><dt>Newswire</dt><dd>Rockstar's official news blog, where most announcements appear first.</dd></div>
+    <div class="term"><dt>Only Raw Records</dt><dd>Dre'Quan Priest's label, home of Real Dimez.</dd></div>
+    <div class="term"><dt>Port Gellhorn</dt><dd>A faded coastal town, likely based on the Florida Panhandle.</dd></div>
+    <div class="term"><dt>Pre-load</dt><dd>Downloading the game before launch so it's ready to play at unlock.</dd></div>
+    <div class="term"><dt>PS5 Pro Enhanced</dt><dd>Sony's label for games that use the PS5 Pro's extra power. What GTA VI does with it isn't detailed.</dd></div>
+    <div class="term"><dt>Real Dimez</dt><dd>The rap duo of Bae-Luxe and Roxy, who went viral on social media.</dd></div>
+    <div class="term"><dt>Rockstar North</dt><dd>The Edinburgh studio leading development.</dd></div>
+    <div class="term"><dt>Six-star wanted level</dt><dd>The highest police response. It's back after GTA V capped out at five.</dd></div>
+    <div class="term"><dt>Take-Two Interactive</dt><dd>Rockstar's parent company and the game's publisher.</dd></div>
+    <div class="term"><dt>The Chamber 106.6</dt><dd>The metal station.</dd></div>
+    <div class="term"><dt>Ultimate Edition</dt><dd>The $99.99 edition, with extra vehicles, garages, weapons and activities.</dd></div>
+    <div class="term"><dt>Vapid</dt><dd>The series' in-universe Ford parody, maker of the Stanier.</dd></div>
+    <div class="term"><dt>Vice City</dt><dd>Rockstar's Miami, the biggest city in Leonida.</dd></div>
+    <div class="term"><dt>Vintage Vice City Pack</dt><dd>The pre-order bonus of retro cars, outfits and a weapon pattern.</dd></div>
+  </dl>
+  <p class="gloss-empty" id="gloss-empty" hidden>No terms match that filter. Try a shorter word.</p>
+</section>
+
+<!-- ===================== UNKNOWNS ===================== -->
+<section class="sec gutter" id="unknowns" aria-labelledby="unknowns-h">
+  <header class="sec-head">
+    <p class="eyebrow"><svg class="i" aria-hidden="true"><use href="#i-circle-help"/></svg>Still unknown</p>
+    <h2 id="unknowns-h">What nobody has answered</h2>
+    <p class="sec-lede">The open questions, and the best information so far.</p>
+  </header>
+  <ul class="unknowns">
+    <li><h3>The exact unlock hour <span class="st open">Unanswered</span></h3><p>Store data points to midnight local time on November 19, but Rockstar hasn't stated an hour.</p></li>
+    <li><h3>A PC release date <span class="st open">Unanswered</span></h3><p>Only a GamesBeat report pointing to early 2027. Take-Two says its games eventually reach all platforms.</p></li>
+    <li><h3>GTA Online for VI <span class="st open">Unanswered</span></h3><p>No plans or date have been announced.</p></li>
+    <li><h3>A 60 fps mode <span class="st open">Unanswered</span></h3><p>Consoles run at 30 fps. Rob Nelson says 60 fps isn't decided, and what "PS5 Pro Enhanced" adds isn't detailed.</p></li>
+    <li><h3>The full radio lineup <span class="st open">Unanswered</span></h3><p>Six stations are named. Classic rock, talk and podcasts are confirmed but not named, and there's no full tracklist.</p></li>
+    <li><h3>The voice cast <span class="st open">Unanswered</span></h3><p>Rockstar hasn't credited anyone. The names circulating for Jason and Lucia come from fan voice-matching.</p></li>
+    <li><h3>An official map size <span class="st open">Unanswered</span></h3><p>Only Rob Nelson's relayed comparison to Los Santos. There's no area figure.</p></li>
+    <li><h3>What the "easy score" is <span class="st open">Unanswered</span></h3><p>The job that kicks off the story hasn't been shown.</p></li>
+  </ul>
+</section>
+
+<!-- ===================== SOURCES ===================== -->
+<section class="sec gutter" id="sources" aria-labelledby="sources-h">
+  <header class="sec-head">
+    <p class="eyebrow"><svg class="i" aria-hidden="true"><use href="#i-newspaper"/></svg>Sources</p>
+    <h2 id="sources-h">Where this comes from</h2>
+    <p class="sec-lede">Rockstar's own pages first, then the reporting each section draws on. Details reported by a single outlet are tagged Reported or Rumor above.</p>
+  </header>
+  <div class="sources">
+    <div><h3>Rockstar and stores</h3><ul>
+      <li><a href="https://www.rockstargames.com/VI" target="_blank" rel="noopener">rockstargames.com/VI</a></li>
+      <li><a href="https://www.rockstargames.com/VI/launch-trailer" target="_blank" rel="noopener">Launch Trailer page</a></li>
+      <li><a href="https://x.com/RockstarGames/status/2110717537964953810" target="_blank" rel="noopener">Rockstar on X: Launch Trailer post</a></li>
+      <li><a href="https://www.xbox.com/en-GB/games/store/grand-theft-auto-vi/9NL3WWNZLZZN/0010" target="_blank" rel="noopener">Xbox Store listing</a></li>
+    </ul></div>
+    <div><h3>Release date and launch</h3><ul>
+      <li><a href="https://insider-gaming.com/gta-6-release-date-earnings-call/" target="_blank" rel="noopener">Insider Gaming: date reaffirmed</a></li>
+      <li><a href="https://www.shacknews.com/article/149250/gta-6-release-date-confirmed" target="_blank" rel="noopener">Shacknews: not delayed in Q4 earnings</a></li>
+      <li><a href="https://www.techradar.com/gaming/gta-6-digital-pre-loads-for-ps5-and-xbox-will-begin-9-days-early-and-require-a-whopping-212gb-of-free-space" target="_blank" rel="noopener">TechRadar: pre-load and 212 GB</a></li>
+      <li><a href="https://www.gamespot.com/articles/unofficial-gta-6-worldwide-release-times-revealed-and-the-us-gets-it-almost-last/" target="_blank" rel="noopener">GameSpot: worldwide release times</a></li>
+    </ul></div>
+    <div><h3>Trailers</h3><ul>
+      <li><a href="https://www.pushsquare.com/news/2023/12/gta-6-trailer-pulls-90-million-views-in-24-hours-sets-new-world-records" target="_blank" rel="noopener">Push Square: Trailer 1 records</a></li>
+      <li><a href="https://techcrunch.com/2023/12/05/grand-theft-auto-vi-trailer-breaks-mrbeasts-record-for-most-youtube-views-in-24-hours/" target="_blank" rel="noopener">TechCrunch: MrBeast record broken</a></li>
+      <li><a href="https://gamesradar.com/gta-6-trailer-1-breakdown-things-you-missed" target="_blank" rel="noopener">GamesRadar: Trailer 1 breakdown</a></li>
+      <li><a href="https://www.pcgamer.com/games/grand-theft-auto/all-the-takeaways-and-little-details-from-grand-theft-auto-6s-new-trailer" target="_blank" rel="noopener">PC Gamer: Trailer 2 details</a></li>
+      <li><a href="https://www.videogamer.com/news/gta-6-trailer-2-breakdown-every-detail-exposed" target="_blank" rel="noopener">VideoGamer: Trailer 2 breakdown</a></li>
+      <li><a href="https://gameinformer.com/2026/08/06/grand-theft-auto-vi-is-getting-an-extended-look-on-netflix-august-27" target="_blank" rel="noopener">Game Informer: Extended Look announced</a></li>
+      <li><a href="https://www.dexerto.com/gta/everything-revealed-in-gta-6-netflix-extended-look-3403132/" target="_blank" rel="noopener">Dexerto: Extended Look revealed</a></li>
+      <li><a href="https://gizmodo.com/heres-what-happens-in-netflixs-grand-theft-auto-vi-extended-look-2000804113" target="_blank" rel="noopener">Gizmodo: what happens in the Extended Look</a></li>
+      <li><a href="https://www.gamespot.com/articles/gta-6-launch-trailer-is-here/" target="_blank" rel="noopener">GameSpot: Launch Trailer</a></li>
+      <li><a href="https://www.purexbox.com/news/2026/10/gta-6-looks-great-in-official-rockstar-launch-trailer-but-xbox-is-nowhere-to-be-seen" target="_blank" rel="noopener">Pure Xbox: Launch Trailer and PS5 card</a></li>
+    </ul></div>
+    <div><h3>Gameplay and tech</h3><ul>
+      <li><a href="https://www.vice.com/en/article/gta-6-new-gameplay-features-details-revealed/" target="_blank" rel="noopener">VICE: new gameplay details</a></li>
+      <li><a href="https://www.notebookcheck.net/GTA-6-extended-gameplay-reveal-shows-off-new-combat-carjacking-gyms-and-much-more.1381015.0.html" target="_blank" rel="noopener">Notebookcheck: combat, carjacking, gyms</a></li>
+      <li><a href="https://rockstarintel.com/new-gta-6-details-reveal-more-gameplay-systems-naked-showers-confirmed/" target="_blank" rel="noopener">RockstarINTEL: more systems</a></li>
+      <li><a href="https://insider-gaming.com/gta-6-60-fps-graphics-settings/" target="_blank" rel="noopener">Insider Gaming: 60 fps status</a></li>
+      <li><a href="https://www.destructoid.com/vice-city-in-gta-6-is-reportedly-twice-the-size-of-los-santos-with-over-ten-times-the-populated-area/" target="_blank" rel="noopener">Destructoid: map size remarks</a></li>
+    </ul></div>
+    <div><h3>Characters and places</h3><ul>
+      <li><a href="https://pcgamer.com/games/action/grand-theft-auto/gta6-characters" target="_blank" rel="noopener">PC Gamer: GTA 6 characters</a></li>
+      <li><a href="https://www.pcgamesn.com/grand-theft-auto-6/characters" target="_blank" rel="noopener">PCGamesN: confirmed characters</a></li>
+      <li><a href="https://www.gtabase.com/gta-6/map-locations/" target="_blank" rel="noopener">GTABase: map locations</a></li>
+      <li><a href="https://www.dexerto.com/wikis/gta-6/locations/ambrosia/" target="_blank" rel="noopener">Dexerto: Ambrosia</a></li>
+      <li><a href="https://beebom.com/gta-6-voice-actors-cast/" target="_blank" rel="noopener">Beebom: voice cast speculation</a></li>
+    </ul></div>
+    <div><h3>Radio, editions, extras</h3><ul>
+      <li><a href="https://www.ghacks.net/2026/10/09/rockstar-reveals-six-gta-6-radio-stations-and-the-series-first-in-game-podcasts/" target="_blank" rel="noopener">gHacks: six stations and podcasts</a></li>
+      <li><a href="https://www.pcguide.com/news/rockstar-reveals-six-gta-6-radio-stations-and-confirmed-songs-so-far-with-a-stacked-lineup-of-real-world-hosts/" target="_blank" rel="noopener">PC Guide: station hosts</a></li>
+      <li><a href="https://www.thesixthaxis.com/2026/06/24/gta-6-ultimate-edition-pre-order-bonus-and-vintage-vice-city-pack-revealed/" target="_blank" rel="noopener">TheSixthAxis: Ultimate and pre-order bonus</a></li>
+      <li><a href="https://mp1st.com/news/gta-6-pre-load-pre-order-bonuses-new-screenshots-revealed-standard-edition-costs-80" target="_blank" rel="noopener">MP1st: Standard costs $80</a></li>
+      <li><a href="https://pcgamer.com/games/grand-theft-auto/gta-6-pre-order-editions-standard-ultimate/" target="_blank" rel="noopener">PC Gamer: editions explained</a></li>
+      <li><a href="https://opencritic.com/news/33468/gta-6-trailer-has-a-tommy-vercetti-easter-egg" target="_blank" rel="noopener">OpenCritic: Tommy Vercetti easter egg</a></li>
+      <li><a href="https://beebom.com/gta-6-easter-eggs/" target="_blank" rel="noopener">Beebom: easter eggs so far</a></li>
+    </ul></div>
+    <div><h3>Business and backstage</h3><ul>
+      <li><a href="https://www.gamesradar.com/games/grand-theft-auto/union-leader-says-fired-gta-6-devs-werent-leaking-rockstar-secrets-they-were-talking-about-working-conditions-on-a-private-discord-they-should-be-legally-protected-to-do-that" target="_blank" rel="noopener">GamesRadar: union's position</a></li>
+      <li><a href="https://www.techradar.com/gaming/rockstar-games-says-recent-firings-were-due-to-former-employees-distributing-and-discussing-confidential-information-in-a-public-forum-but-its-unclear-if-those-leaks-had-anything-to-do-with-grand-theft-auto-6" target="_blank" rel="noopener">TechRadar: Rockstar's position</a></li>
+      <li><a href="https://www.notebookcheck.net/Fired-Rockstar-Games-employees-case-hits-snag-as-journalist-may-have-seen-GTA-6-leaks-in-Discord.1202821.0.html" target="_blank" rel="noopener">Notebookcheck: January 2026 ruling</a></li>
+      <li><a href="https://www.forbes.com/sites/brianmazique/2026/10/21/gta-6-hits-consoles-first---should-you-buy-now-or-wait-for-pc/" target="_blank" rel="noopener">Forbes: consoles first, PC later</a></li>
+    </ul></div>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="gutter">
+    <p>Fan-made guide. Not affiliated with or endorsed by Rockstar Games or Take-Two Interactive. Grand Theft Auto and related names are trademarks of Take-Two Interactive. Trailers are embedded from Rockstar's official YouTube channel. Stickers and the map are original artwork made for this page.</p>
+    <p>Information as of November 6, 2026. Things can change before launch, so check <a href="https://www.rockstargames.com/VI" target="_blank" rel="noopener">rockstargames.com/VI</a> for the latest. Icons by <a href="https://lucide.dev" target="_blank" rel="noopener">Lucide</a> (ISC license). <a href="index.html">Back to the countdown</a>.</p>
+  </div>
+</footer>
+
+<script>
+(() => {
+  'use strict';
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+  /* Source-tag icons */
+  const tagIcon = { off: 'badge-check', seen: 'eye', rep: 'newspaper', rum: 'circle-help', open: 'hourglass' };
+  $$('.st').forEach((el) => {
+    const kind = Object.keys(tagIcon).find((k) => el.classList.contains(k));
+    if (!kind || el.querySelector('svg')) return;
+    el.insertAdjacentHTML('afterbegin', `<svg class="i" aria-hidden="true"><use href="#i-${tagIcon[kind]}"/></svg>`);
+  });
+
+  /* Launch chip */
+  const LAUNCH = new Date(2026, 10, 19, 0, 0, 0);
+  const chip = $('#launch-chip-text');
+  function updateChip() {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const days = Math.round((LAUNCH - today) / 86400000);
+    if (now >= LAUNCH) chip.textContent = 'Out now';
+    else if (days <= 0) chip.textContent = 'Launch day';
+    else if (days === 1) chip.textContent = 'Launches tomorrow';
+    else chip.textContent = `${days} days to launch · Nov 19, 2026`;
+  }
+  updateChip();
+  setInterval(updateChip, 60000);
+
+  /* Timeline state */
+  const todayStart = (() => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); })();
+  $$('#timeline-list li[data-date]').forEach((li) => {
+    const [y, m, d] = li.dataset.date.split('-').map(Number);
+    if (new Date(y, m - 1, d) > todayStart) li.classList.add('future');
+  });
+
+  /* Video facades: embed when YouTube is reachable, otherwise the link opens YouTube */
+  $$('.player[data-yt]').forEach((player) => {
+    const img = $('img', player);
+    const link = $('.facade', player);
+    let thumbOk = false;
+    const check = () => { thumbOk = img.naturalWidth > 200; player.classList.toggle('has-thumb', thumbOk); };
+    if (img) {
+      if (img.complete) check();
+      img.addEventListener('load', check);
+      img.addEventListener('error', () => { thumbOk = false; img.remove(); });
+    }
+    link.addEventListener('click', (e) => {
+      if (!thumbOk) return;
+      e.preventDefault();
+      const frame = document.createElement('iframe');
+      frame.src = `https://www.youtube-nocookie.com/embed/${player.dataset.yt}?autoplay=1&rel=0`;
+      frame.title = player.dataset.title || 'Video';
+      frame.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+      frame.allowFullscreen = true;
+      frame.referrerPolicy = 'strict-origin-when-cross-origin';
+      player.replaceChildren(frame);
+      frame.focus();
+    });
+  });
+
+  /* Map pins and region cards */
+  const pins = $$('.map .pin');
+  const regions = $$('.region');
+  function activate(key, scroll) {
+    pins.forEach((p) => p.classList.toggle('is-active', p.dataset.region === key));
+    regions.forEach((r) => r.classList.toggle('is-active', r.id === `region-${key}`));
+    const card = $(`#region-${key}`);
+    if (scroll && card) {
+      const rect = card.getBoundingClientRect();
+      if (rect.top < 70 || rect.bottom > window.innerHeight) {
+        card.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'nearest' });
+      }
+    }
+  }
+  pins.forEach((p) => {
+    p.addEventListener('click', () => activate(p.dataset.region, true));
+    p.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate(p.dataset.region, true); }
+    });
+  });
+  regions.forEach((r) => {
+    const key = r.id.replace('region-', '');
+    r.addEventListener('mouseenter', () => activate(key, false));
+    r.addEventListener('focusin', () => activate(key, false));
+  });
+
+  /* Glossary filter */
+  const input = $('#gloss-filter');
+  const terms = $$('#glossary-list .term');
+  const count = $('#gloss-count');
+  const empty = $('#gloss-empty');
+  function filter() {
+    const q = input.value.trim().toLowerCase();
+    let shown = 0;
+    terms.forEach((t) => {
+      const hit = !q || t.textContent.toLowerCase().includes(q);
+      t.hidden = !hit;
+      if (hit) shown++;
+    });
+    count.textContent = q ? `${shown} of ${terms.length} terms` : `${terms.length} terms`;
+    empty.hidden = shown !== 0;
+  }
+  input.addEventListener('input', filter);
+  filter();
+
+  /* Chapter rail highlight */
+  const links = $$('.rail a');
+  const byId = new Map(links.map((a) => [a.getAttribute('href').slice(1), a]));
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((en) => {
+        if (!en.isIntersecting) return;
+        links.forEach((a) => a.classList.remove('is-active'));
+        const a = byId.get(en.target.id);
+        if (a) {
+          a.classList.add('is-active');
+          const rail = a.closest('.rail-scroll');
+          const left = a.offsetLeft - rail.clientWidth / 2 + a.offsetWidth / 2;
+          rail.scrollTo({ left: Math.max(0, left), behavior: 'auto' });
+        }
+      });
+    }, { rootMargin: '-45% 0px -50% 0px' });
+    $$('main .sec').forEach((s) => io.observe(s));
+  }
+})();
+</script>
+</body>
+</html>

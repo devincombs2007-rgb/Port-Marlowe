@@ -75,6 +75,8 @@ a:hover { text-decoration-color: var(--flamingo); }
 }
 .brand { font-weight: 700; color: var(--sand); }
 .tag { color: var(--haze); font-weight: 500; }
+.guide-link { color: var(--mango); font-weight: 700; text-decoration: none; margin-right: auto; }
+.guide-link:hover { color: var(--sand); }
 
 .lede { margin-top: clamp(28px, 6vw, 80px); display: grid; gap: 2px; }
 .sign {
@@ -292,6 +294,7 @@ h2 { margin: 0; text-wrap: balance; }
   <div class="hero-inner">
     <div class="topbar">
       <span class="brand">GTA VI Countdown</span>
+      <a class="guide-link" href="everything.html">Everything we know &rarr;</a>
       <span class="tag">Fan-made &middot; Unofficial</span>
     </div>
 
@@ -317,7 +320,7 @@ h2 { margin: 0; text-wrap: balance; }
         <button type="button" id="mode-et" aria-pressed="false">Midnight ET</button>
       </div>
     </div>
-    <p class="note" id="note">Counting to 12:00 AM on Thursday, November 19 in your time zone. Store unlock times can vary by platform and region.</p>
+    <p class="note" id="note">Counting to 12:00 AM on Thursday, November 19 in your time zone. Rockstar hasn't confirmed an unlock hour. Store listings point to midnight local time.</p>
   </div>
 </header>
 
@@ -395,6 +398,7 @@ h2 { margin: 0; text-wrap: balance; }
 
 <footer class="foot">
   <div class="foot-inner">
+    <p><a href="everything.html">Read everything we know about GTA 6</a>: trailers examined, characters, the map, gameplay, radio and more.</p>
     <p>Fan-made countdown. Not affiliated with or endorsed by Rockstar Games or Take-Two Interactive. Grand Theft Auto is a trademark of Take-Two Interactive.</p>
     <p>Launch date as announced by Rockstar on November 6, 2025 and reaffirmed by Take-Two through 2026. Official news lives at <a href="https://www.rockstargames.com/VI" target="_blank" rel="noopener">rockstargames.com/VI</a>.</p>
   </div>
@@ -479,7 +483,7 @@ h2 { margin: 0; text-wrap: balance; }
         : 'Counting up from midnight on November 19 in your time zone.';
       return;
     }
-    const tail = ' Store unlock times can vary by platform and region.';
+    const tail = ' Rockstar hasn\'t confirmed an unlock hour. Store listings point to midnight local time.';
     if (mode === 'et') {
       const same = LAUNCH_ET.getTime() === LAUNCH_LOCAL.getTime();
       noteEl.textContent = same

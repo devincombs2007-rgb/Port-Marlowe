@@ -2,7 +2,10 @@
 
 A fan-made countdown site for **Grand Theft Auto VI**, launching Thursday, November 19, 2026 on PlayStation 5 and Xbox Series X|S.
 
-The whole site lives in `index.html`. There's no build step and no dependencies apart from Google Fonts.
+The site is two static pages with no build step and no dependencies apart from Google Fonts:
+
+- `index.html`: the live countdown
+- `everything.html`: **Everything We Know About GTA 6**, a field guide that examines all four official videos and covers the cast, an interactive Leonida map, confirmed gameplay, radio stations, editions, easter eggs, a timeline, a filterable glossary and the open questions. Every fact is tagged Official, Seen, Reported, Rumor or Unanswered, and sources are listed at the bottom. Trailers 1 and 2 embed from Rockstar's YouTube channel. The stickers and map are original artwork, and the icons are from [Lucide](https://lucide.dev) (ISC).
 
 ## What's on the page
 
