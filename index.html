@@ -1,0 +1,963 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GTA VI Countdown</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="A fan-made live countdown to Grand Theft Auto VI, launching Thursday, November 19, 2026 on PlayStation 5 and Xbox Series X|S.">
+<meta name="theme-color" content="#0c0919">
+<meta property="og:title" content="GTA VI Countdown">
+<meta property="og:description" content="Live countdown to Grand Theft Auto VI: Thursday, November 19, 2026.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230c0919'/%3E%3Ccircle cx='16' cy='19' r='9' fill='%23ff8a5c'/%3E%3Crect x='3' y='19' width='26' height='10' fill='%230c0919'/%3E%3Crect x='9' y='21.5' width='14' height='1.8' rx='.9' fill='%23ff8a5c'/%3E%3Crect x='12' y='25' width='8' height='1.8' rx='.9' fill='%23ff5fa8'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&family=Mr+Dafoe&display=swap">
+<style>
+/* Layout: a full-bleed dusk scene over the bay holds the clock in open sky; below it, a to-scale route bar, then quick facts beside a dated history. */
+:root {
+  color-scheme: dark;
+  --night: #0c0919;
+  --sand: #f7ead9;
+  --haze: #b9a7c8;
+  --flamingo: #ff5fa8;
+  --mango: #ffb454;
+  --surf: #46e1d0;
+  --line: rgba(247, 234, 217, 0.13);
+  --line-strong: rgba(247, 234, 217, 0.34);
+  --rail: rgba(247, 234, 217, 0.09);
+  --veil: rgba(12, 9, 25, 0.6);
+  --shade: rgba(12, 9, 25, 0.55);
+  --glow: rgba(255, 95, 168, 0.6);
+  --font-display: "Anton", Impact, "Haettenschweiler", "Arial Narrow Bold", sans-serif;
+  --font-body: "Barlow", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-label: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", system-ui, sans-serif;
+  --font-sign: "Mr Dafoe", "Brush Script MT", "Segoe Script", cursive;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { background: var(--night); }
+body {
+  margin: 0;
+  background: var(--night);
+  color: var(--sand);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--sand); text-underline-offset: 3px; text-decoration-color: var(--line-strong); }
+a:hover { text-decoration-color: var(--flamingo); }
+:focus-visible { outline: 2px solid var(--surf); outline-offset: 3px; }
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* ---------- Hero ---------- */
+.hero { position: relative; overflow: hidden; isolation: isolate; background: var(--night); }
+#scene { position: absolute; inset: 0; width: 100%; height: 100%; display: block; z-index: -1; }
+.hero-inner {
+  max-width: 1212px;
+  margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px clamp(230px, 27vw, 310px);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  text-shadow: 0 1px 14px var(--shade);
+}
+.topbar {
+  display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px;
+  font-family: var(--font-label); text-transform: uppercase; letter-spacing: 0.14em; font-size: 13px;
+}
+.brand { font-weight: 700; color: var(--sand); }
+.tag { color: var(--haze); font-weight: 500; }
+
+.lede { margin-top: clamp(28px, 6vw, 80px); display: grid; gap: 2px; }
+.sign {
+  margin: 0;
+  font-family: var(--font-sign);
+  font-size: clamp(32px, 4.6vw, 50px);
+  line-height: 1.1;
+  color: var(--flamingo);
+  text-shadow: 0 0 6px var(--glow), 0 0 22px var(--glow), 0 0 44px var(--flamingo);
+  transform: rotate(-4deg);
+  transform-origin: left bottom;
+  justify-self: start;
+  padding-inline: 2px 10px;
+  animation: neon 1.7s steps(1, end) both;
+}
+@keyframes neon {
+  0% { opacity: 0.35; } 6% { opacity: 1; } 9% { opacity: 0.4; } 13% { opacity: 1; }
+  27% { opacity: 0.55; } 30% { opacity: 1; } 100% { opacity: 1; }
+}
+h1 {
+  margin: 0;
+  font-family: var(--font-label);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: clamp(17px, 2.1vw, 24px);
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+.clock {
+  display: grid;
+  grid-template-columns: repeat(4, auto);
+  justify-content: start;
+  column-gap: clamp(10px, 3.2vw, 46px);
+  margin-top: 4px;
+}
+.unit { display: flex; flex-direction: column; gap: 6px; }
+.num {
+  display: flex;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(52px, 15vw, 188px);
+  line-height: 0.92;
+  color: var(--sand);
+  text-shadow: 0 0 34px rgba(255, 95, 168, 0.32), 0 2px 0 var(--shade);
+  font-variant-numeric: tabular-nums;
+}
+.dg { display: inline-block; width: 0.54em; text-align: center; }
+.lbl {
+  font-family: var(--font-label);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: clamp(12px, 1.2vw, 15px);
+  color: var(--mango);
+  padding-left: 0.1em;
+}
+
+.when {
+  margin: 8px 0 0;
+  display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: baseline;
+  font-size: clamp(16px, 1.6vw, 19px);
+}
+.when strong { font-weight: 600; }
+.when span { color: var(--haze); }
+
+.mode { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.mode-label {
+  font-family: var(--font-label); text-transform: uppercase; letter-spacing: 0.14em;
+  font-size: 13px; font-weight: 600; color: var(--haze);
+}
+.seg {
+  display: inline-flex; padding: 3px; gap: 2px;
+  border: 1px solid var(--line-strong); border-radius: 999px;
+  background: var(--veil);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+}
+.seg button {
+  appearance: none; border: 0; cursor: pointer;
+  font: 600 13px/1 var(--font-label); text-transform: uppercase; letter-spacing: 0.1em;
+  padding: 9px 14px; border-radius: 999px;
+  color: var(--haze); background: transparent; text-shadow: none;
+  transition: background-color 0.2s, color 0.2s;
+}
+.seg button:hover { color: var(--sand); }
+.seg button[aria-pressed="true"] { background: var(--sand); color: var(--night); }
+.note { margin: 0; max-width: 62ch; font-size: 14px; color: var(--haze); }
+
+/* ---------- Main ---------- */
+.wrap {
+  max-width: 1212px;
+  margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: clamp(36px, 6vw, 72px) clamp(48px, 7vw, 88px);
+  display: grid;
+  gap: clamp(48px, 7vw, 80px);
+}
+h2 { margin: 0; text-wrap: balance; }
+.h-big {
+  font-family: var(--font-display); font-weight: 400;
+  font-size: clamp(32px, 4.4vw, 52px); line-height: 1.02; letter-spacing: 0.005em;
+}
+.h-small {
+  font-family: var(--font-label); font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.16em; font-size: 14px; color: var(--haze);
+}
+
+.route { display: grid; gap: 28px; }
+.route-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 40px; }
+.pct-line { margin: 0; max-width: 40ch; color: var(--haze); }
+.pct {
+  display: block;
+  font-family: var(--font-display); font-size: clamp(30px, 3.4vw, 40px); line-height: 1.1;
+  color: var(--mango); font-variant-numeric: tabular-nums;
+}
+
+.track { position: relative; }
+.track-marks { position: relative; height: 48px; }
+.mark-label {
+  position: absolute; top: 0; white-space: nowrap;
+  font-family: var(--font-label); font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.08em; font-size: 12px; line-height: 16px; color: var(--haze);
+}
+.mark-label.is-launch { color: var(--flamingo); }
+.mark-stem { position: absolute; bottom: 0; width: 1px; background: var(--line-strong); }
+.rail { position: relative; height: 8px; border-radius: 2px; background: var(--rail); }
+.fill {
+  position: absolute; inset: 0 auto 0 0; width: 0; border-radius: 2px;
+  background: linear-gradient(90deg, var(--mango), var(--flamingo));
+}
+.dot {
+  position: absolute; top: 50%; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px;
+  background: var(--night); border: 2px solid var(--sand); transform: rotate(45deg);
+}
+.dot.is-launch { border-radius: 50%; transform: none; width: 13px; height: 13px; margin: -6.5px 0 0 -6.5px; border-color: var(--flamingo); box-shadow: 0 0 0 4px rgba(255, 95, 168, 0.18), 0 0 18px var(--glow); }
+.now-tick { position: absolute; top: -7px; bottom: -7px; width: 2px; margin-left: -1px; background: var(--surf); box-shadow: 0 0 10px var(--surf); }
+.track-years { position: relative; height: 30px; }
+.year {
+  position: absolute; top: 10px; white-space: nowrap;
+  font-family: var(--font-label); font-weight: 500; letter-spacing: 0.06em; font-size: 13px;
+  color: var(--haze); font-variant-numeric: tabular-nums;
+}
+.year.is-now { color: var(--surf); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; }
+
+.split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.55fr); gap: clamp(40px, 6vw, 88px); align-items: start; }
+.facts, .history { display: grid; gap: 22px; min-width: 0; }
+.facts dl { margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 26px 24px; }
+.facts dl > div { border-top: 1px solid var(--line); padding-top: 14px; display: grid; gap: 4px; align-content: start; min-width: 0; }
+.facts dt {
+  font-family: var(--font-label); font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.1em; font-size: 13px; color: var(--haze);
+}
+.facts dd { margin: 0; display: grid; gap: 2px; }
+.facts .big { font-family: var(--font-display); font-size: 40px; line-height: 1.05; color: var(--sand); font-variant-numeric: tabular-nums; }
+.facts .txt { font-size: 18px; font-weight: 600; line-height: 1.3; }
+.facts small { font-size: 13px; color: var(--haze); }
+
+.timeline { list-style: none; margin: 0; padding: 0; display: grid; gap: 22px; position: relative; }
+.timeline::before { content: ""; position: absolute; left: 6px; top: 10px; bottom: 10px; width: 2px; background: var(--line); }
+.timeline li {
+  position: relative;
+  display: grid; grid-template-columns: 7.2rem minmax(0, 1fr); gap: 2px 20px;
+  padding-left: 34px;
+}
+.timeline li::before {
+  content: ""; position: absolute; left: 0; top: 6px; width: 14px; height: 14px; border-radius: 50%;
+  background: var(--night); border: 2px solid var(--line-strong);
+}
+.timeline li.is-past::before { background: var(--haze); border-color: var(--haze); }
+.timeline li.is-next::before { background: var(--flamingo); border-color: var(--flamingo); box-shadow: 0 0 0 5px rgba(255, 95, 168, 0.18), 0 0 18px var(--glow); }
+.timeline time {
+  font-family: var(--font-label); font-weight: 600; letter-spacing: 0.06em; font-size: 15px;
+  color: var(--mango); font-variant-numeric: tabular-nums; padding-top: 2px;
+}
+.timeline li.is-next time { color: var(--flamingo); }
+.timeline h3 { margin: 0; font-size: 18px; font-weight: 600; line-height: 1.35; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.timeline p { margin: 2px 0 0; color: var(--haze); max-width: 58ch; }
+.to-go {
+  font-family: var(--font-label); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; font-size: 12px;
+  color: var(--night); background: var(--flamingo); padding: 3px 8px 2px; border-radius: 3px;
+}
+
+/* ---------- Footer ---------- */
+.foot { border-top: 1px solid var(--line); }
+.foot-inner {
+  max-width: 1212px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 36px;
+  display: grid; gap: 8px;
+  font-size: 13px; color: var(--haze);
+}
+.foot p { margin: 0; max-width: 80ch; }
+
+@media (max-width: 860px) {
+  .split { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 520px) {
+  .lbl { letter-spacing: 0.1em; }
+  .timeline li { grid-template-columns: minmax(0, 1fr); }
+  .facts .big { font-size: 34px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sign { animation: none; }
+  .seg button { transition: none; }
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <canvas id="scene" aria-hidden="true"></canvas>
+  <div class="hero-inner">
+    <div class="topbar">
+      <span class="brand">GTA VI Countdown</span>
+      <span class="tag">Fan-made &middot; Unofficial</span>
+    </div>
+
+    <div class="lede">
+      <p class="sign" aria-hidden="true">Welcome to Leonida</p>
+      <h1 id="headline">Grand Theft Auto VI arrives in</h1>
+    </div>
+
+    <div class="clock" role="timer" aria-labelledby="clock-text">
+      <div class="unit"><span class="num" data-unit="d" aria-hidden="true"><span class="dg">0</span><span class="dg">0</span></span><span class="lbl" aria-hidden="true">Days</span></div>
+      <div class="unit"><span class="num" data-unit="h" aria-hidden="true"><span class="dg">0</span><span class="dg">0</span></span><span class="lbl" aria-hidden="true">Hours</span></div>
+      <div class="unit"><span class="num" data-unit="m" aria-hidden="true"><span class="dg">0</span><span class="dg">0</span></span><span class="lbl" aria-hidden="true">Minutes</span></div>
+      <div class="unit"><span class="num" data-unit="s" aria-hidden="true"><span class="dg">0</span><span class="dg">0</span></span><span class="lbl" aria-hidden="true">Seconds</span></div>
+      <span class="sr-only" id="clock-text">Counting down to Grand Theft Auto VI.</span>
+    </div>
+
+    <p class="when" id="when"><strong>Thursday, November 19, 2026</strong><span>PlayStation 5 &middot; Xbox Series X|S</span></p>
+
+    <div class="mode">
+      <span class="mode-label" id="mode-label">Count down to</span>
+      <div class="seg" role="group" aria-labelledby="mode-label">
+        <button type="button" id="mode-local" aria-pressed="true">Your midnight</button>
+        <button type="button" id="mode-et" aria-pressed="false">Midnight ET</button>
+      </div>
+    </div>
+    <p class="note" id="note">Counting to 12:00 AM on Thursday, November 19 in your time zone. Store unlock times can vary by platform and region.</p>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="route" aria-labelledby="route-title">
+    <div class="route-head">
+      <h2 class="h-big" id="route-title">The long road to Leonida</h2>
+      <p class="pct-line"><span class="pct" id="pct">99.26%</span>of the wait since Rockstar first confirmed the game in February 2022 is behind you.</p>
+    </div>
+    <div class="track" id="track" role="img" aria-label="Timeline from February 2022 to launch on November 19, 2026.">
+      <div class="track-marks" id="track-marks"></div>
+      <div class="rail" id="rail"><div class="fill" id="fill"></div></div>
+      <div class="track-years" id="track-years"></div>
+    </div>
+  </section>
+
+  <div class="split">
+    <section class="facts" aria-labelledby="facts-title">
+      <h2 class="h-small" id="facts-title">By the numbers</h2>
+      <dl>
+        <div>
+          <dt>Days since GTA V</dt>
+          <dd><span class="big" data-since="2013-09-17">4,798</span><small>Launched Sep 17, 2013</small></dd>
+        </div>
+        <div>
+          <dt>Days since Trailer 1</dt>
+          <dd><span class="big" data-since="2023-12-04">1,068</span><small>Posted Dec 4, 2023</small></dd>
+        </div>
+        <div>
+          <dt>Delays</dt>
+          <dd><span class="big">2</span><small>Fall 2025, then May 26, 2026, then Nov 19, 2026</small></dd>
+        </div>
+        <div>
+          <dt>Launch platforms</dt>
+          <dd><span class="txt">PlayStation 5<br>Xbox Series X|S</span></dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="history" aria-labelledby="history-title">
+      <h2 class="h-small" id="history-title">How we got here</h2>
+      <ol class="timeline">
+        <li data-date="2022-02-04" data-mark="Confirmed">
+          <time datetime="2022-02-04">Feb 4, 2022</time>
+          <div><h3>Rockstar confirms it</h3><p>A Rockstar Newswire post says active development on the next Grand Theft Auto is well underway.</p></div>
+        </li>
+        <li data-date="2022-09-18" data-mark="Leak">
+          <time datetime="2022-09-18">Sep 18, 2022</time>
+          <div><h3>The leak</h3><p>More than 90 clips of early test footage spread online. Rockstar confirms they are genuine and says work continues.</p></div>
+        </li>
+        <li data-date="2023-12-04" data-mark="Trailer 1">
+          <time datetime="2023-12-04">Dec 4, 2023</time>
+          <div><h3>Trailer 1</h3><p>Posted a day early after it leaked. It introduces Lucia, the state of Leonida and Vice City, with a 2025 target.</p></div>
+        </li>
+        <li data-date="2025-05-02">
+          <time datetime="2025-05-02">May 2, 2025</time>
+          <div><h3>First delay</h3><p>Launch moves from fall 2025 to May 26, 2026.</p></div>
+        </li>
+        <li data-date="2025-05-06" data-mark="Trailer 2">
+          <time datetime="2025-05-06">May 6, 2025</time>
+          <div><h3>Trailer 2</h3><p>Jason and Lucia take the spotlight, with a wave of screenshots and a rebuilt official site.</p></div>
+        </li>
+        <li data-date="2025-11-06" data-mark="2nd delay">
+          <time datetime="2025-11-06">Nov 6, 2025</time>
+          <div><h3>Second delay</h3><p>Rockstar asks for more time to polish and sets Thursday, November 19, 2026.</p></div>
+        </li>
+        <li data-date="2026-11-19" data-mark="Launch" class="is-launch">
+          <time datetime="2026-11-19">Nov 19, 2026</time>
+          <div><h3>Launch <span class="to-go" id="to-go">13 days to go</span></h3><p>Grand Theft Auto VI arrives on PlayStation 5 and Xbox Series X|S.</p></div>
+        </li>
+      </ol>
+    </section>
+  </div>
+</main>
+
+<footer class="foot">
+  <div class="foot-inner">
+    <p>Fan-made countdown. Not affiliated with or endorsed by Rockstar Games or Take-Two Interactive. Grand Theft Auto is a trademark of Take-Two Interactive.</p>
+    <p>Launch date as announced by Rockstar on November 6, 2025 and reaffirmed by Take-Two through 2026. Official news lives at <a href="https://www.rockstargames.com/VI" target="_blank" rel="noopener">rockstargames.com/VI</a>.</p>
+  </div>
+</footer>
+
+<script>
+(() => {
+  'use strict';
+
+  /* ---------- Dates ---------- */
+  const LAUNCH_LOCAL = new Date(2026, 10, 19, 0, 0, 0);          // midnight in the viewer's time zone
+  const LAUNCH_ET = new Date(Date.UTC(2026, 10, 19, 5, 0, 0));    // midnight Eastern (EST, UTC-5)
+  const WAIT_START = new Date(2022, 1, 4);                        // Rockstar confirms development
+  const DAY = 86400000;
+  const STORAGE_KEY = 'gta6-countdown-mode';
+
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const $ = (sel, root = document) => root.querySelector(sel);
+  const pad = (n) => String(n).padStart(2, '0');
+  const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+  const parseDay = (s) => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+  const startOfToday = () => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); };
+  const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
+  let mode = 'local';
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved === 'local' || saved === 'et') mode = saved;
+  } catch (e) { /* storage unavailable */ }
+  const target = () => (mode === 'et' ? LAUNCH_ET : LAUNCH_LOCAL);
+
+  /* ---------- Elements ---------- */
+  const units = ['d', 'h', 'm', 's'].map((k) => ({ el: $(`.num[data-unit="${k}"]`), val: null }));
+  const headline = $('#headline');
+  const whenEl = $('#when');
+  const noteEl = $('#note');
+  const clockText = $('#clock-text');
+  const toGo = $('#to-go');
+  const pctEl = $('#pct');
+  const btnLocal = $('#mode-local');
+  const btnEt = $('#mode-et');
+  const modeLabel = $('#mode-label');
+
+  /* ---------- Clock ---------- */
+  function renderUnit(u, value) {
+    const str = pad(value);
+    if (u.val === str) return;
+    const first = u.val === null;
+    u.val = str;
+    const spans = u.el.children;
+    if (spans.length !== str.length) {
+      u.el.textContent = '';
+      for (const ch of str) {
+        const s = document.createElement('span');
+        s.className = 'dg';
+        s.textContent = ch;
+        u.el.appendChild(s);
+      }
+      return;
+    }
+    for (let i = 0; i < str.length; i++) {
+      if (spans[i].textContent === str[i]) continue;
+      spans[i].textContent = str[i];
+      if (!first && !reduceMotion.matches && spans[i].animate) {
+        spans[i].animate(
+          [{ transform: 'translateY(-0.16em)', opacity: 0.3 }, { transform: 'none', opacity: 1 }],
+          { duration: 420, easing: 'cubic-bezier(.2,.8,.2,1)' }
+        );
+      }
+    }
+  }
+
+  const fmtTime = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' });
+  const fmtDayTime = new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  let tz = '';
+  try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { tz = ''; }
+
+  function updateNote(isOut) {
+    if (isOut) {
+      noteEl.textContent = mode === 'et'
+        ? `Counting up from midnight Eastern on November 19, which was ${fmtDayTime.format(LAUNCH_ET)} where you are.`
+        : 'Counting up from midnight on November 19 in your time zone.';
+      return;
+    }
+    const tail = ' Store unlock times can vary by platform and region.';
+    if (mode === 'et') {
+      const same = LAUNCH_ET.getTime() === LAUNCH_LOCAL.getTime();
+      noteEl.textContent = same
+        ? `Counting to midnight Eastern, which is also your local midnight.${tail}`
+        : `Counting to midnight Eastern, which is ${fmtDayTime.format(LAUNCH_ET)} where you are.${tail}`;
+    } else {
+      const zone = tz ? ` (${tz.replace(/_/g, ' ')})` : '';
+      noteEl.textContent = `Counting to ${fmtTime.format(LAUNCH_LOCAL)} on Thursday, November 19 in your time zone${zone}.${tail}`;
+    }
+  }
+
+  function applyState(isOut) {
+    headline.textContent = isOut ? 'Grand Theft Auto VI has been out for' : 'Grand Theft Auto VI arrives in';
+    modeLabel.textContent = isOut ? 'Count up from' : 'Count down to';
+    whenEl.innerHTML = isOut
+      ? '<strong>Out now</strong><span>Launched Thursday, November 19, 2026 on PlayStation 5 and Xbox Series X|S</span>'
+      : '<strong>Thursday, November 19, 2026</strong><span>PlayStation 5 &middot; Xbox Series X|S</span>';
+    updateNote(isOut);
+  }
+
+  let released = null;
+  let minuteKey = '';
+  function tick() {
+    const now = Date.now();
+    const t = target().getTime();
+    const isOut = now >= t;
+    const total = Math.floor(Math.abs(t - now) / 1000);
+    const d = Math.floor(total / 86400);
+    const h = Math.floor((total % 86400) / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    renderUnit(units[0], d);
+    renderUnit(units[1], h);
+    renderUnit(units[2], m);
+    renderUnit(units[3], s);
+
+    if (isOut !== released) { released = isOut; applyState(isOut); }
+
+    const key = `${mode}|${isOut}|${d}|${h}|${m}`;
+    if (key !== minuteKey) {
+      minuteKey = key;
+      const span = `${plural(d, 'day')}, ${plural(h, 'hour')} and ${plural(m, 'minute')}`;
+      clockText.textContent = isOut ? `Grand Theft Auto VI has been out for ${span}.` : `${span} until Grand Theft Auto VI launches.`;
+      document.title = isOut ? 'Out now · GTA VI Countdown' : `${d}d ${pad(h)}h ${pad(m)}m · GTA VI Countdown`;
+      updateDays(isOut);
+      layoutRoute();
+    }
+  }
+
+  function loop() {
+    tick();
+    setTimeout(loop, 1000 - (Date.now() % 1000) + 15);
+  }
+
+  function setMode(next) {
+    if (next === mode) return;
+    mode = next;
+    try { localStorage.setItem(STORAGE_KEY, next); } catch (e) { /* storage unavailable */ }
+    syncButtons();
+    released = null;
+    minuteKey = '';
+    tick();
+  }
+  function syncButtons() {
+    btnLocal.setAttribute('aria-pressed', String(mode === 'local'));
+    btnEt.setAttribute('aria-pressed', String(mode === 'et'));
+  }
+  btnLocal.addEventListener('click', () => setMode('local'));
+  btnEt.addEventListener('click', () => setMode('et'));
+
+  /* ---------- Day counts and timeline state ---------- */
+  function updateDays(isOut) {
+    const today = startOfToday();
+    document.querySelectorAll('[data-since]').forEach((el) => {
+      const days = Math.round((today - parseDay(el.dataset.since)) / DAY);
+      el.textContent = days.toLocaleString();
+    });
+
+    let nextFound = false;
+    document.querySelectorAll('.timeline li[data-date]').forEach((li) => {
+      const isLaunch = li.classList.contains('is-launch');
+      const past = isLaunch ? isOut : parseDay(li.dataset.date) <= today;
+      li.classList.toggle('is-past', past);
+      const next = !past && !nextFound;
+      li.classList.toggle('is-next', next);
+      if (next) nextFound = true;
+    });
+
+    if (isOut) {
+      toGo.textContent = 'Out now';
+    } else {
+      const days = Math.round((LAUNCH_LOCAL - today) / DAY);
+      toGo.textContent = days <= 0 ? 'Launch day' : days === 1 ? 'Tomorrow' : `${days} days to go`;
+    }
+  }
+
+  /* ---------- Route bar (drawn to a date scale) ---------- */
+  const track = $('#track');
+  const marksEl = $('#track-marks');
+  const rail = $('#rail');
+  const fill = $('#fill');
+  const yearsEl = $('#track-years');
+  const routeStart = WAIT_START.getTime();
+  const routeEnd = LAUNCH_LOCAL.getTime();
+
+  const marks = [...document.querySelectorAll('.timeline li[data-mark]')].map((li) => {
+    const launch = li.classList.contains('is-launch');
+    const label = document.createElement('span');
+    label.className = 'mark-label' + (launch ? ' is-launch' : '');
+    label.textContent = li.dataset.mark;
+    const stem = document.createElement('span');
+    stem.className = 'mark-stem';
+    const dot = document.createElement('span');
+    dot.className = 'dot' + (launch ? ' is-launch' : '');
+    marksEl.append(label, stem);
+    rail.appendChild(dot);
+    return { time: parseDay(li.dataset.date).getTime(), label, stem, dot };
+  });
+
+  const years = [{ text: 'Feb 2022', time: routeStart, align: 'start' }];
+  for (let y = 2023; y <= 2026; y++) years.push({ text: String(y), time: new Date(y, 0, 1).getTime(), align: 'center' });
+  years.forEach((yr) => {
+    yr.el = document.createElement('span');
+    yr.el.className = 'year';
+    yr.el.textContent = yr.text;
+    yearsEl.appendChild(yr.el);
+  });
+  const nowLabel = document.createElement('span');
+  nowLabel.className = 'year is-now';
+  nowLabel.textContent = 'Today';
+  yearsEl.appendChild(nowLabel);
+  const nowTick = document.createElement('span');
+  nowTick.className = 'now-tick';
+  rail.appendChild(nowTick);
+
+  function layoutRoute() {
+    const W = track.clientWidth;
+    if (!W) return;
+    const xOf = (time) => clamp((time - routeStart) / (routeEnd - routeStart), 0, 1) * W;
+    const ROW = 20;
+    const rowEnds = [-Infinity, -Infinity];
+
+    marks.forEach((mk) => {
+      const x = xOf(mk.time);
+      const w = mk.label.offsetWidth;
+      const left = clamp(x - w / 2, 0, W - w);
+      let row = rowEnds.findIndex((end) => left >= end + 8);
+      if (row === -1) row = rowEnds[0] <= rowEnds[1] ? 0 : 1;
+      rowEnds[row] = left + w;
+      mk.label.style.left = `${left}px`;
+      mk.label.style.top = `${row * ROW}px`;
+      const stemX = clamp(x, 0.5, W - 0.5);
+      mk.stem.style.left = `${stemX}px`;
+      mk.stem.style.top = `${row * ROW + 18}px`;
+      mk.dot.style.left = `${stemX}px`;
+    });
+
+    const now = Date.now();
+    const pct = clamp((now - routeStart) / (target().getTime() - routeStart), 0, 1);
+    const pctText = `${(Math.floor(pct * 10000) / 100).toFixed(2)}%`;
+    pctEl.textContent = pctText;
+    fill.style.width = `${xOf(Math.min(now, routeEnd))}px`;
+    track.setAttribute('aria-label', `Timeline from February 2022 to launch on November 19, 2026. ${pctText} of the wait has passed.`);
+
+    const showNow = now < routeEnd;
+    nowLabel.hidden = !showNow;
+    nowTick.hidden = !showNow;
+    let nowBox = null;
+    if (showNow) {
+      const x = xOf(now);
+      const w = nowLabel.offsetWidth;
+      const left = clamp(x - w / 2, 0, W - w);
+      nowLabel.style.left = `${left}px`;
+      nowTick.style.left = `${clamp(x, 1, W - 1)}px`;
+      nowBox = [left - 10, left + w + 10];
+    }
+    let prevEnd = -Infinity;
+    years.forEach((yr) => {
+      yr.el.hidden = false;
+      const x = xOf(yr.time);
+      const w = yr.el.offsetWidth;
+      const left = yr.align === 'start' ? 0 : clamp(x - w / 2, 0, W - w);
+      yr.el.style.left = `${left}px`;
+      const hitsNow = !!nowBox && left < nowBox[1] && left + w > nowBox[0];
+      const hitsPrev = left < prevEnd + 12;
+      yr.el.hidden = hitsNow || hitsPrev;
+      if (!yr.el.hidden) prevEnd = left + w;
+    });
+  }
+
+  if ('ResizeObserver' in window) new ResizeObserver(() => layoutRoute()).observe(track);
+  else window.addEventListener('resize', layoutRoute);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(layoutRoute);
+
+  syncButtons();
+  loop();
+
+  /* ---------- Dusk over the bay ---------- */
+  const canvas = $('#scene');
+  const ctx = canvas && canvas.getContext ? canvas.getContext('2d') : null;
+  if (!ctx) return;
+  const hero = canvas.parentElement;
+  const inner = $('.hero-inner', hero);
+  const bg = document.createElement('canvas');
+  const bctx = bg.getContext('2d');
+  const WIN = ['255,206,140', '110,240,225', '255,128,196'];
+  let W = 0, H = 0, horizon = 0, sun = { x: 0, y: 0, r: 40 };
+  let stars = [], twinkles = [], palms = [];
+
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function build() {
+    const rand = mulberry32(1986);
+    const pb = parseFloat(getComputedStyle(inner).paddingBottom) || 240;
+    const waterH = clamp(pb * 0.48, 80, 160);
+    horizon = H - waterH;
+    const room = Math.max(36, (horizon - (H - pb)) * 0.9);
+    const r = clamp(W * 0.06, 38, 104);
+    sun = { x: W * 0.66, y: horizon - r * 0.3, r };
+    const b = bctx;
+    b.clearRect(0, 0, W, H);
+
+    // Sky
+    const sky = b.createLinearGradient(0, 0, 0, horizon);
+    [[0, '#0c0919'], [0.36, '#1c1037'], [0.6, '#451755'], [0.79, '#9c2a6c'], [0.92, '#e8586f'], [1, '#ffa566']]
+      .forEach(([o, c]) => sky.addColorStop(o, c));
+    b.fillStyle = sky;
+    b.fillRect(0, 0, W, horizon + 1);
+
+    // Sun and its glow
+    const glow = b.createRadialGradient(sun.x, sun.y, r * 0.6, sun.x, sun.y, r * 6);
+    glow.addColorStop(0, 'rgba(255,170,110,0.55)');
+    glow.addColorStop(0.35, 'rgba(255,90,130,0.2)');
+    glow.addColorStop(1, 'rgba(255,90,130,0)');
+    b.fillStyle = glow;
+    b.fillRect(0, 0, W, horizon);
+    const disc = b.createLinearGradient(0, sun.y - r, 0, sun.y + r);
+    disc.addColorStop(0, '#fff0b8');
+    disc.addColorStop(0.55, '#ffb070');
+    disc.addColorStop(1, '#ff6a5e');
+    b.fillStyle = disc;
+    b.beginPath();
+    b.arc(sun.x, sun.y, r, 0, Math.PI * 2);
+    b.fill();
+
+    // Cloud streaks lit from below
+    const streaks = [[-0.55, 0.15, 1.1, 0.07, 0.75], [-0.1, -0.4, 2.4, 0.05, 0.55], [-1.5, 1.2, 3.2, 0.09, 0.32], [-2.6, -1.8, 2.6, 0.07, 0.22]];
+    for (const [yo, xo, len, th, a] of streaks) {
+      b.fillStyle = `rgba(78,18,76,${a})`;
+      b.beginPath();
+      b.ellipse(sun.x + xo * r, sun.y + yo * r, r * len, Math.max(2, r * th), 0, 0, Math.PI * 2);
+      b.fill();
+    }
+
+    // Stars
+    stars = [];
+    const nStars = Math.round((W * horizon) / 7000);
+    for (let i = 0; i < nStars; i++) {
+      stars.push({ x: rand() * W, y: Math.pow(rand(), 1.6) * horizon * 0.58, a: 0.2 + rand() * 0.55, p: rand() * 6.283, sp: 0.5 + rand() * 1.5, s: rand() < 0.12 ? 1.6 : 1 });
+    }
+
+    // Water
+    const water = b.createLinearGradient(0, horizon, 0, H);
+    water.addColorStop(0, '#5a1d55');
+    water.addColorStop(0.32, '#2b1240');
+    water.addColorStop(1, '#0c0919');
+    b.fillStyle = water;
+    b.fillRect(0, horizon, W, H - horizon);
+
+    // Skyline across the bay
+    const builds = [];
+    let x = -8;
+    while (x < W + 8) {
+      const w = 9 + rand() * 30;
+      const c = (x + w / 2) / W;
+      const downtown = Math.exp(-(((c - 0.24) / 0.12) ** 2)) + 0.5 * Math.exp(-(((c - 0.93) / 0.06) ** 2));
+      const nearSun = Math.exp(-(((c - 0.66) / 0.09) ** 2));
+      const h = Math.max(3, room * (0.06 + 0.94 * downtown * (0.4 + 0.6 * rand())) * (1 - 0.75 * nearSun) + rand() * 6);
+      builds.push({ x, w, h, cap: rand() });
+      x += w - 1 + (rand() < 0.25 ? rand() * 8 : 0);
+    }
+    b.fillStyle = 'rgba(14,6,26,0.5)';
+    for (const bd of builds) b.fillRect(bd.x, horizon, bd.w, bd.h * 0.42);
+
+    twinkles = [];
+    const sil = '#160a27';
+    for (const bd of builds) {
+      const top = horizon - bd.h;
+      b.fillStyle = sil;
+      b.fillRect(bd.x, top, bd.w, bd.h + 1);
+      if (bd.h > room * 0.45 && bd.cap < 0.3) {
+        b.fillRect(bd.x + bd.w * 0.2, top - bd.h * 0.08, bd.w * 0.6, bd.h * 0.08 + 1);
+        b.fillRect(bd.x + bd.w * 0.36, top - bd.h * 0.14, bd.w * 0.28, bd.h * 0.06 + 1);
+      } else if (bd.h > room * 0.55 && bd.cap > 0.86) {
+        b.fillRect(bd.x + bd.w / 2 - 1, top - bd.h * 0.22, 2, bd.h * 0.22);
+      }
+      if (bd.h > 16) {
+        for (let wy = top + 5; wy < horizon - 4; wy += 5) {
+          for (let wx = bd.x + 3; wx < bd.x + bd.w - 3; wx += 4) {
+            if (rand() >= 0.2) continue;
+            const win = { x: wx, y: wy, c: rand() < 0.72 ? 0 : rand() < 0.5 ? 1 : 2, a: 0.35 + rand() * 0.45, p: rand() * 6.283, sp: 0.6 + rand() * 1.8 };
+            if (rand() < 0.05) { twinkles.push(win); continue; }
+            b.fillStyle = `rgba(${WIN[win.c]},${win.a})`;
+            b.fillRect(wx, wy, 1.6, 2.2);
+          }
+        }
+      }
+    }
+    b.fillStyle = 'rgba(255,190,140,0.5)';
+    b.fillRect(0, horizon, W, 1);
+
+    // Palms
+    palms = [];
+    const mobile = W < 680;
+    const s = clamp(Math.min(W / 1150, H / 760), 0.58, 1.2);
+    const angles = [-185, -160, -134, -110, -88, -64, -40, -15, 12, 38, 142];
+    const mk = (o) => ({
+      ...o,
+      ph: rand() * 6.283,
+      fronds: angles.map((deg) => ({
+        a: ((deg + (rand() - 0.5) * 10) * Math.PI) / 180,
+        L: (105 + rand() * 40) * o.s * (deg < -60 && deg > -120 ? 0.85 : 1),
+        g: 0.62 + rand() * 0.22,
+        leaf: 26 + rand() * 8,
+        ph: rand() * 6.283,
+      })),
+    });
+    palms.push(mk({ x: W * (mobile ? 0.97 : 0.95), y: H + 16, h: mobile ? pb * 1.25 : H * 0.8, lean: -W * (mobile ? 0.1 : 0.075), bow: W * 0.025, s: s * (mobile ? 0.85 : 1), base: 26 * s, tip: 11 * s }));
+    if (!mobile) palms.push(mk({ x: W * 0.865, y: H + 16, h: H * 0.54, lean: W * 0.03, bow: -W * 0.012, s: s * 0.78, base: 21 * s, tip: 9 * s }));
+    palms.push(mk({ x: W * 0.035, y: H + 16, h: pb * 0.82, lean: W * (mobile ? 0.07 : 0.04), bow: W * 0.008, s: s * 0.72, base: 19 * s, tip: 8 * s }));
+  }
+
+  function drawPalm(p, t) {
+    const sway = Math.sin(t * 0.42 + p.ph) * p.h * 0.012 + Math.sin(t * 1.07 + p.ph * 2) * p.h * 0.003;
+    const bx = p.x, by = p.y;
+    const cx = bx + p.lean + sway, cy = by - p.h;
+    const qx = bx + p.lean * 0.2 + p.bow + sway * 0.35, qy = by - p.h * 0.55;
+
+    const N = 32, L = [], R = [];
+    for (let i = 0; i <= N; i++) {
+      const u = i / N, v = 1 - u;
+      const x = v * v * bx + 2 * v * u * qx + u * u * cx;
+      const y = v * v * by + 2 * v * u * qy + u * u * cy;
+      const dx = 2 * v * (qx - bx) + 2 * u * (cx - qx);
+      const dy = 2 * v * (qy - by) + 2 * u * (cy - qy);
+      const len = Math.hypot(dx, dy) || 1;
+      const half = ((p.base * v + p.tip * u) / 2) * (1 + 0.07 * Math.sin(u * 70));
+      L.push(x - (dy / len) * half, y + (dx / len) * half);
+      R.push(x + (dy / len) * half, y - (dx / len) * half);
+    }
+    ctx.beginPath();
+    ctx.moveTo(L[0], L[1]);
+    for (let i = 2; i < L.length; i += 2) ctx.lineTo(L[i], L[i + 1]);
+    for (let i = R.length - 2; i >= 0; i -= 2) ctx.lineTo(R[i], R[i + 1]);
+    ctx.closePath();
+    ctx.fill();
+
+    for (const f of p.fronds) {
+      const a = f.a + Math.sin(t * 0.9 + f.ph) * 0.04;
+      const g = f.g * (1 + Math.sin(t * 1.25 + f.ph) * 0.05);
+      const ux = Math.cos(a), uy = Math.sin(a), len = f.L;
+      ctx.lineWidth = 2.4 * p.s;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      for (let k = 1; k <= 14; k++) {
+        const u = k / 14;
+        ctx.lineTo(cx + ux * len * u, cy + uy * len * u + g * len * u * u);
+      }
+      ctx.stroke();
+
+      ctx.lineWidth = 1.5 * p.s;
+      ctx.beginPath();
+      for (let u = 0.1; u <= 1.0001; u += 0.045) {
+        const px = cx + ux * len * u, py = cy + uy * len * u + g * len * u * u;
+        let tx = ux, ty = uy + 2 * g * u;
+        const tl = Math.hypot(tx, ty) || 1;
+        tx /= tl; ty /= tl;
+        const leaf = f.leaf * p.s * (0.3 + 0.7 * Math.sin(Math.PI * Math.min(u * 1.1, 1)));
+        for (let side = -1; side <= 1; side += 2) {
+          const lx = -ty * side * 0.85 + tx * 0.5;
+          const ly = tx * side * 0.85 + ty * 0.5 + 0.6;
+          const ll = Math.hypot(lx, ly) || 1;
+          ctx.moveTo(px, py);
+          ctx.lineTo(px + (lx / ll) * leaf, py + (ly / ll) * leaf);
+        }
+      }
+      ctx.stroke();
+    }
+
+    ctx.beginPath();
+    for (const [ox, oy] of [[-5, 7], [5, 8], [0, 12]]) {
+      const ccx = cx + ox * p.s, ccy = cy + oy * p.s, cr = 4.5 * p.s;
+      ctx.moveTo(ccx + cr, ccy);
+      ctx.arc(ccx, ccy, cr, 0, Math.PI * 2);
+    }
+    ctx.fill();
+  }
+
+  function frame(ms) {
+    const t = reduceMotion.matches ? 0 : ms / 1000;
+    ctx.clearRect(0, 0, W, H);
+    ctx.drawImage(bg, 0, 0, W, H);
+
+    for (const st of stars) {
+      ctx.fillStyle = `rgba(255,236,220,${(st.a * (0.65 + 0.35 * Math.sin(t * st.sp + st.p))).toFixed(3)})`;
+      ctx.fillRect(st.x, st.y, st.s, st.s);
+    }
+    for (const w of twinkles) {
+      ctx.fillStyle = `rgba(${WIN[w.c]},${(w.a * (0.5 + 0.5 * Math.sin(t * w.sp + w.p))).toFixed(3)})`;
+      ctx.fillRect(w.x, w.y, 1.6, 2.2);
+    }
+
+    const span = H - horizon;
+    for (let y = horizon + 3; y < H; y += 4) {
+      const k = (y - horizon) / span;
+      const wob = 0.5 * Math.sin(t * 1.3 + y * 0.23) + 0.5 * Math.sin(t * 0.6 + y * 0.051);
+      const w = sun.r * (1.8 - k) * (0.62 + 0.38 * wob);
+      ctx.fillStyle = `rgba(255,${(176 - k * 70) | 0},${(112 + k * 30) | 0},${(0.6 * Math.pow(1 - k, 1.4)).toFixed(3)})`;
+      ctx.fillRect(sun.x - w / 2 + Math.sin(t * 0.8 + y * 0.12) * 3, y, w, 1.5);
+    }
+
+    ctx.fillStyle = '#07040d';
+    ctx.strokeStyle = '#07040d';
+    ctx.lineCap = 'round';
+    for (const p of palms) drawPalm(p, t);
+  }
+
+  function resize() {
+    const rect = hero.getBoundingClientRect();
+    W = Math.max(1, rect.width);
+    H = Math.max(1, rect.height);
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    for (const c of [canvas, bg]) {
+      c.width = Math.round(W * dpr);
+      c.height = Math.round(H * dpr);
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    bctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    build();
+    frame(performance.now());
+  }
+
+  let running = false, onScreen = true, rafId = 0, last = 0, pending = false;
+  function animate(ms) {
+    rafId = 0;
+    if (!running) return;
+    if (ms - last >= 32) { last = ms; frame(ms); }
+    rafId = requestAnimationFrame(animate);
+  }
+  function updateRunning() {
+    const should = onScreen && !document.hidden && !reduceMotion.matches;
+    if (should && !running) { running = true; rafId = requestAnimationFrame(animate); }
+    else if (!should && running) { running = false; if (rafId) cancelAnimationFrame(rafId); rafId = 0; }
+  }
+  function scheduleResize() {
+    if (pending) return;
+    pending = true;
+    requestAnimationFrame(() => { pending = false; resize(); });
+  }
+
+  resize();
+  if ('ResizeObserver' in window) new ResizeObserver(scheduleResize).observe(hero);
+  else window.addEventListener('resize', scheduleResize);
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver((entries) => { onScreen = entries[0].isIntersecting; updateRunning(); }).observe(hero);
+  }
+  document.addEventListener('visibilitychange', updateRunning);
+  const onMotionChange = () => { updateRunning(); frame(performance.now()); };
+  if (reduceMotion.addEventListener) reduceMotion.addEventListener('change', onMotionChange);
+  updateRunning();
+})();
+</script>
+</body>
+</html>
