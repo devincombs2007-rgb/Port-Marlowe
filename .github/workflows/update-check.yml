@@ -42,9 +42,14 @@ jobs:
           done
       - name: Latest GameCI action releases
         run: |
-          for r in unity-builder unity-test-runner unity-activate unity-return-license docker; do
-            curl -fsS -H "Authorization: Bearer ${{ github.token }}" "https://api.github.com/repos/game-ci/$r/releases/latest" \
+          for r in game-ci/unity-builder game-ci/unity-test-runner game-ci/cli actions/checkout actions/cache actions/upload-artifact \
+                   actions/setup-dotnet actions/upload-pages-artifact actions/deploy-pages actions/configure-pages; do
+            curl -fsS -H "Authorization: Bearer ${{ github.token }}" "https://api.github.com/repos/$r/releases/latest" \
               | jq -r --arg r "$r" '"\($r)\t\(.tag_name)\t\(.published_at[0:10])"' || echo "$r: no release info"
+          done
+          echo "== does the GameCI image generation -4 exist yet?"
+          for t in ubuntu-6000.6.8f1-base-4 ubuntu-6000.6.8f1-webgl-4; do
+            echo "  $t -> $(curl -s -o /dev/null -w '%{http_code}' https://hub.docker.com/v2/namespaces/unityci/repositories/editor/tags/$t)"
           done
       - name: Unity registry package versions (latest non-preview)
         run: |

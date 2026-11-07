@@ -12,7 +12,7 @@ passed as analyzers best-effort; package assemblies that rely on editor-only cod
 are reported separately from project assemblies.
 
 Usage:
-  compile_check.py --data <Editor/Data> --project <repo> --work <dir> --unity-version 6000.6.5f1
+  compile_check.py --data <Editor/Data> --project <repo> --work <dir> --unity-version 6000.6.8f1
 """
 import argparse
 import glob
@@ -130,6 +130,15 @@ def resolve_packages(data_dir, project, work):
     pkg_dir = os.path.join(work, "packages")
     os.makedirs(pkg_dir, exist_ok=True)
     wanted = dict(manifest.get("dependencies", {}))
+    if os.path.isdir(bundled_dir):
+        log("  editor-bundled package archives: " + ", ".join(sorted(f[:-4] for f in os.listdir(bundled_dir) if f.endswith(".tgz"))))
+    if os.path.isdir(builtin_dir):
+        builtins = []
+        for d in sorted(os.listdir(builtin_dir)):
+            pj = os.path.join(builtin_dir, d, "package.json")
+            if os.path.isfile(pj) and not d.startswith("com.unity.modules."):
+                builtins.append(f"{d}@{json.load(open(pj)).get('version', '?')}")
+        log("  editor built-in packages: " + ", ".join(builtins))
     resolved = {}
     queue = list(wanted.items())
     while queue:

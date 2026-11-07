@@ -14,8 +14,8 @@ jobs:
   unity-registry-and-image:
     runs-on: ubuntu-latest
     env:
-      UNITY_VERSION: 6000.6.5f1
-      IMAGE: unityci/editor:ubuntu-6000.6.5f1-base-3
+      UNITY_VERSION: 6000.6.8f1
+      IMAGE: unityci/editor:ubuntu-6000.6.8f1-base-3
     steps:
       - name: Unity release API (newest releases + target version)
         run: |

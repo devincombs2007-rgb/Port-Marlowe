@@ -24,8 +24,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  UNITY_VERSION: 6000.6.5f1
-  UNITY_REVISION: 3ff58d469c8a
+  UNITY_VERSION: 6000.6.8f1
+  UNITY_REVISION: 237b6593792b
 
 jobs:
   core-tests:
@@ -76,7 +76,7 @@ jobs:
     name: Unity API compile check (no editor run)
     runs-on: ubuntu-latest
     env:
-      IMAGE: unityci/editor:ubuntu-6000.6.5f1-base-3
+      IMAGE: unityci/editor:ubuntu-6000.6.8f1-base-3
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
