@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes">
+    <title>{{{ PRODUCT_NAME }}}</title>
+    <style>
+      html, body { margin: 0; padding: 0; border: 0; width: 100%; height: 100%; overflow: hidden; background: #0d0f12; }
+      #unity-canvas { display: block; width: 100%; height: 100%; background: #0d0f12; outline: none; }
+      #pm-overlay { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+                    color: #eee9df; font: 600 28px/1.4 system-ui, sans-serif; background: #0d0f12; text-align: center; }
+      #pm-title { color: #f0a848; font-size: 56px; letter-spacing: 6px; margin-bottom: 24px; }
+      #pm-bar { width: 50vw; max-width: 640px; height: 10px; background: #2a2f36; border-radius: 5px; overflow: hidden; margin: 18px 0; }
+      #pm-fill { width: 0%; height: 100%; background: #f0a848; transition: width 0.2s; }
+      #pm-hint { font-weight: 400; font-size: 20px; color: #a9aba9; }
+      #pm-error { color: #ff8a7a; font-size: 20px; max-width: 80vw; }
+    </style>
+  </head>
+  <body>
+    <canvas id="unity-canvas" tabindex="-1"></canvas>
+    <div id="pm-overlay">
+      <div id="pm-title">PORT MARLOWE</div>
+      <div id="pm-status">Loading…</div>
+      <div id="pm-bar"><div id="pm-fill"></div></div>
+      <div id="pm-hint">Xbox: use the controller. Phone: landscape, touch controls. Computer: keyboard and mouse, or a controller.</div>
+      <div id="pm-error"></div>
+    </div>
+    <script>
+      // Console browsers (Edge on Xbox) and TV/phone browsers map controller buttons to browser
+      // navigation: ask for raw gamepad input where supported, and trap "back" so pressing B in a
+      // menu cannot leave the game page.
+      try { navigator.gamepadInputEmulation = "gamepad"; } catch (e) {}
+      history.pushState({ pm: 1 }, "");
+      window.addEventListener("popstate", function () { history.pushState({ pm: 1 }, ""); });
+
+      var canvas = document.querySelector("#unity-canvas");
+      var overlay = document.querySelector("#pm-overlay");
+      var status = document.querySelector("#pm-status");
+      var fill = document.querySelector("#pm-fill");
+      var ready = null;
+
+      function start() {
+        if (!ready) return;
+        overlay.style.display = "none";
+        canvas.focus();
+        var el = document.documentElement;
+        var fs = el.requestFullscreen || el.webkitRequestFullscreen;
+        if (fs) { try { fs.call(el).catch(function () {}); } catch (e) {} }
+        window.removeEventListener("keydown", start);
+        overlay.removeEventListener("click", start);
+        overlay.removeEventListener("touchend", start);
+      }
+
+      // Browsers expose gamepads only after a button press on the page; poll for one to start.
+      function pollPad() {
+        var pads = navigator.getGamepads ? navigator.getGamepads() : [];
+        for (var i = 0; i < pads.length; i++) {
+          var p = pads[i];
+          if (p && p.buttons && p.buttons.some(function (b) { return b.pressed; })) { start(); return; }
+        }
+        if (overlay.style.display !== "none") requestAnimationFrame(pollPad);
+      }
+
+      var script = document.createElement("script");
+      script.src = "Build/{{{ LOADER_FILENAME }}}";
+      script.onload = function () {
+        createUnityInstance(canvas, {
+          dataUrl: "Build/{{{ DATA_FILENAME }}}",
+          frameworkUrl: "Build/{{{ FRAMEWORK_FILENAME }}}",
+#if USE_THREADS
+          workerUrl: "Build/{{{ WORKER_FILENAME }}}",
+#endif
+#if USE_WASM
+          codeUrl: "Build/{{{ CODE_FILENAME }}}",
+#endif
+#if MEMORY_FILENAME
+          memoryUrl: "Build/{{{ MEMORY_FILENAME }}}",
+#endif
+#if SYMBOLS_FILENAME
+          symbolsUrl: "Build/{{{ SYMBOLS_FILENAME }}}",
+#endif
+          streamingAssetsUrl: "StreamingAssets",
+          companyName: {{{ JSON.stringify(COMPANY_NAME) }}},
+          productName: {{{ JSON.stringify(PRODUCT_NAME) }}},
+          productVersion: {{{ JSON.stringify(PRODUCT_VERSION) }}},
+          // TVs and phones report high pixel ratios; render at CSS size to keep the frame rate up.
+          devicePixelRatio: Math.min(window.devicePixelRatio || 1, 1.25),
+        }, function (progress) {
+          fill.style.width = Math.round(progress * 100) + "%";
+        }).then(function (instance) {
+          ready = instance;
+          status.textContent = "Press A (or any key, or tap) to start";
+          window.addEventListener("keydown", start);
+          overlay.addEventListener("click", start);
+          overlay.addEventListener("touchend", start);
+          requestAnimationFrame(pollPad);
+        }).catch(function (message) {
+          status.textContent = "The game could not start in this browser.";
+          document.querySelector("#pm-error").textContent = String(message);
+        });
+      };
+      document.body.appendChild(script);
+    </script>
+  </body>
+</html>

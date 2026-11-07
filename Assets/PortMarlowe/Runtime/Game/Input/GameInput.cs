@@ -76,6 +76,8 @@ namespace PortMarlowe.Game.Input
             ShoulderSwap.AddBinding("<Keyboard>/c");
             Pause = _gameplay.AddAction("Pause", InputActionType.Button, "<Gamepad>/start");
             Pause.AddBinding("<Keyboard>/escape");
+            // Some browsers (Edge on Xbox) keep the Menu button for themselves; D-pad left also pauses.
+            Pause.AddBinding("<Gamepad>/dpad/left");
             Diagnostics = _gameplay.AddAction("Diagnostics", InputActionType.Button, "<Gamepad>/select");
             Diagnostics.AddBinding("<Keyboard>/f3");
 
@@ -266,7 +268,7 @@ namespace PortMarlowe.Game.Input
             { "R-stick click", "Swap camera shoulder" },
             { "D-pad down", "Switch character" },
             { "D-pad up", "Partner: follow / hold" },
-            { "Menu", "Pause" },
+            { "Menu / D-pad left", "Pause" },
             { "View", "Diagnostics overlay" },
         };
     }

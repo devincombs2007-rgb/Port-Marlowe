@@ -9,6 +9,12 @@ with URP. The target is Xbox Series X in Developer Mode (UWP); development happe
 > on a desktop player, or on Xbox**, and **no installable package exists yet**.
 > See [`Docs/STATUS.md`](Docs/STATUS.md) for the evidence and the blockers.
 
+## Play it
+
+- **On Xbox, phone or computer, in a browser:** see [`Docs/PlayOnXbox.md`](Docs/PlayOnXbox.md). It is
+  playable after a one-time Unity licence setup, which can be done from a phone, and the first
+  browser build.
+
 ## Repository layout
 
 | Path | Contents |

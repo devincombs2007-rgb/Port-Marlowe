@@ -178,7 +178,9 @@ namespace PortMarlowe.EditorTools
             PlayerSettings.WebGL.exceptionSupport = WebGLExceptionSupport.ExplicitlyThrownExceptionsOnly;
             PlayerSettings.WebGL.nameFilesAsHashes = false;
             PlayerSettings.WebGL.powerPreference = WebGLPowerPreference.HighPerformance;
-            PlayerSettings.WebGL.initialMemorySize = 512;
+            // Console (Edge on Xbox) and phone browsers: start small, grow only when needed.
+            PlayerSettings.WebGL.template = "PROJECT:PortMarlowe";
+            PlayerSettings.WebGL.initialMemorySize = 256;
             PlayerSettings.WebGL.maximumMemorySize = 2048;
             PlayerSettings.WebGL.memoryGrowthMode = WebGLMemoryGrowthMode.Geometric;
         }

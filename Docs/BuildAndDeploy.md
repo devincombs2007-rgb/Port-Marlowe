@@ -182,6 +182,13 @@ you do not need to install a Unity editor.
 You can do step 4 from a phone browser. You can also add the email and password secrets from a phone
 first, and the licence secret later.
 
+### Personal with only a phone
+
+The repository includes a one-time cloud desktop, `.devcontainer/unity-licence`, that runs Unity Hub
+in GitHub Codespaces. You open it in a phone browser. A script then saves the three secrets without
+displaying them. Step-by-step: `PlayOnXbox.md` step 1. The install and launch are checked by
+`licence-helper-check.yml`; the Unity sign-in itself has not been tested.
+
 ### Plus / Pro: phone only
 
 On https://github.com/devincombs2007-rgb/Port-Marlowe/settings/secrets/actions, add:

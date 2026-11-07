@@ -1,0 +1,36 @@
+name: licence-helper-check
+
+# Checks the phone-only Unity licence helper (.devcontainer/unity-licence): the install script
+# works on the codespace's base image and Unity Hub starts on a virtual display. It cannot test
+# the Unity sign-in itself, which needs a person.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'Tools/Licence/**'
+      - '.devcontainer/unity-licence/**'
+      - '.github/workflows/licence-helper-check.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  install-and-launch:
+    runs-on: ubuntu-latest
+    container: mcr.microsoft.com/devcontainers/base:bookworm
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Unity Hub with the helper script
+        run: bash Tools/Licence/install-unity-hub.sh
+      - name: Unity Hub starts on a virtual display
+        run: |
+          apt-get install -y -q xvfb >/dev/null
+          Xvfb :1 -screen 0 1280x800x24 >/dev/null 2>&1 &
+          sleep 3
+          export DISPLAY=:1
+          bash Tools/Licence/start-unity-hub.sh > hub.log 2>&1 &
+          sleep 60
+          echo "== processes"; pgrep -fa unityhub | head -5 || true
+          echo "== hub log (tail)"; tail -40 hub.log || true
+          pgrep -f unityhub >/dev/null || { echo "::error ::Unity Hub did not stay running"; exit 1; }
+          echo "Unity Hub is running on the virtual display."

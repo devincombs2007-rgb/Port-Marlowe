@@ -1,0 +1,21 @@
+{
+  // One-time helper for phone-only setups: a cloud Linux desktop (opened in a phone or computer
+  // browser) running Unity Hub, used to create the free Unity Personal licence file and store it,
+  // with the Unity sign-in, as this repository's Actions secrets. Not used for development.
+  "name": "Unity licence helper (Unity Hub on a browser desktop)",
+  "image": "mcr.microsoft.com/devcontainers/base:bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/desktop-lite:1": {
+      "password": "vscode",
+      "webPort": "6080",
+      "vncPort": "5901"
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "forwardPorts": [6080],
+  "portsAttributes": {
+    "6080": { "label": "Desktop (Unity Hub)", "onAutoForward": "notify" }
+  },
+  "postCreateCommand": "bash Tools/Licence/install-unity-hub.sh",
+  "hostRequirements": { "cpus": 2, "memory": "4gb" }
+}
