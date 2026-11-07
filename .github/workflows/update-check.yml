@@ -1,0 +1,57 @@
+# Read-only software update check (no secrets, builds nothing). Answers: is there a newer
+# Unity release than the pinned one, which package versions ship with it, which GameCI
+# editor images exist for it (Linux / Web / Windows-UWP), and what the latest GameCI actions are.
+name: update-check
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/update-check.yml
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pinned version
+        run: cat ProjectSettings/ProjectVersion.txt
+      - name: Newest Unity releases (all streams)
+        run: |
+          curl -fsS "https://services.api.unity.com/unity/editor/release/v1/releases?limit=25&order=RELEASE_DATE_DESC" \
+            | jq -r '.results[] | "\(.version)\t\(.releaseDate[0:10])\t\(.stream)\t\(.shortRevision // "")\trecommended=\(.recommended // false)"'
+      - name: Newest per stream (LTS, SUPPORTED, TECH, BETA)
+        run: |
+          for s in LTS SUPPORTED TECH BETA; do
+            curl -fsS "https://services.api.unity.com/unity/editor/release/v1/releases?limit=3&order=RELEASE_DATE_DESC&stream=$s" \
+              | jq -r --arg s "$s" '.results[] | "\($s)\t\(.version)\t\(.releaseDate[0:10])\t\(.shortRevision // "")"' || echo "$s query failed"
+          done
+      - name: GameCI editor images for the newest 6000.x versions
+        run: |
+          for v in $(curl -fsS "https://services.api.unity.com/unity/editor/release/v1/releases?limit=25&order=RELEASE_DATE_DESC" | jq -r '.results[].version' | grep -E '^6000\.' | head -6); do
+            echo "== $v"
+            for m in base linux-il2cpp webgl windows-mono universal-windows-platform; do
+              os=ubuntu; [ "$m" = universal-windows-platform ] && os=windows; [ "$m" = windows-mono ] && os=ubuntu
+              tag="$os-$v-$m-3"
+              code=$(curl -s -o /dev/null -w '%{http_code}' "https://hub.docker.com/v2/namespaces/unityci/repositories/editor/tags/$tag")
+              echo "  $tag -> $code"
+            done
+          done
+      - name: Latest GameCI action releases
+        run: |
+          for r in unity-builder unity-test-runner unity-activate unity-return-license docker; do
+            curl -fsS -H "Authorization: Bearer ${{ github.token }}" "https://api.github.com/repos/game-ci/$r/releases/latest" \
+              | jq -r --arg r "$r" '"\($r)\t\(.tag_name)\t\(.published_at[0:10])"' || echo "$r: no release info"
+          done
+      - name: Unity registry package versions (latest non-preview)
+        run: |
+          for p in com.unity.inputsystem com.unity.render-pipelines.universal com.unity.ugui com.unity.test-framework com.unity.ai.navigation; do
+            curl -fsS "https://packages.unity.com/$p" | jq -r --arg p "$p" '"\($p)\tlatest=\(.["dist-tags"].latest)"' || echo "$p failed"
+          done
+      - name: Runner toolchain
+        run: |
+          dotnet --list-sdks | tail -3
+          python3 --version
