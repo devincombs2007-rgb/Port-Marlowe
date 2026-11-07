@@ -12,7 +12,7 @@ _Updated 2026‑11‑07. Branch `claude/m1-foundation`._
 | Last verified package | **none.** No UWP package has been compiled. |
 | Save schema | version 1 |
 | Active task | M1 playable milestone: first licensed run (tests, smoke run, desktop and browser builds), then visual upgrades |
-| Next dependency | Unity licence secrets on CI (`BuildAndDeploy.md` §6). For a Personal licence, the `.ulf` file must be created once in Unity Hub on a computer. The secrets unlock the editor tests, the smoke run, the desktop and browser builds, and the UWP package. Browser play also needs GitHub Pages pointed at `gh-pages` (one setting). |
+| Next dependency | Unity licence secrets on CI (`BuildAndDeploy.md` §6). For a Personal licence, the `.ulf` file must be created once in Unity Hub on a computer. The secrets unlock the editor tests, the smoke run, the desktop and browser builds, and the UWP package. Browser play also needs GitHub Pages pointed at `gh-pages` (one setting). A phone-only route exists: `PlayOnXbox.md`. |
 
 ## Blockers
 
@@ -75,6 +75,8 @@ A dash means not yet.
 | Ambient traffic (AI cars on lane routes; first pass, no signals) | implemented | – | ✔ | – | – | – | – | – |
 | Minimap (camera-aligned; police shown only when seen/heard) | implemented | – | ✔ | – | – | – | – | – |
 | Browser build (Unity Web, GitHub Pages) with on-screen touch controls and tappable menus | implemented | – | ✔ | – | – | – | – | – |
+| Xbox Edge browser play: console page template (press A to start, fullscreen, back-trap), D‑pad‑left pause | implemented | – | pending CI | – | – | – | – | – |
+| Phone-only Unity licence helper (Codespaces desktop with Unity Hub, secrets script) | implemented | – | install check pending | – | – | – | – | – |
 | Report-driven police (evidence pipeline, five stages, search, challenge, arrest) | implemented | ✔ | ✔ | – | – | – | – | – |
 | Safehouse (door, bed rest + autosave, wardrobe) | implemented | – | ✔ | – | – | – | – | – |
 | Save/load (manual + autosave, checksum, backup recovery, migration) | implemented | ✔ | ✔ | – | – | – | – | – |

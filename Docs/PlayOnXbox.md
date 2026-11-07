@@ -23,7 +23,8 @@ monthly hours.
    Setup takes about 5 minutes. If the Code button is hidden, use the browser's "desktop site" mode.
 2. When it is ready, open the **Ports** tab.
    1. Find **6080 – Desktop (Unity Hub)** and tap the globe icon.
-   2. On the page that opens, tap **vnc.html ▸ Connect** and enter the password `vscode`.
+   2. On the page that opens, tap **Connect** and enter the password `vscode`. If you see a file
+      list instead, tap **vnc.html** first.
 3. On that desktop, double-click **Unity Hub (licence helper)**.
    1. **Sign in.** A browser opens inside the desktop; allow it to open Unity Hub when asked.
    2. Go to **Preferences ▸ Licenses ▸ Add ▸ Get a free personal license**.
