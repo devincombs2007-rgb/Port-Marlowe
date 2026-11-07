@@ -75,8 +75,8 @@ A dash means not yet.
 | Ambient traffic (AI cars on lane routes; first pass, no signals) | implemented | – | ✔ | – | – | – | – | – |
 | Minimap (camera-aligned; police shown only when seen/heard) | implemented | – | ✔ | – | – | – | – | – |
 | Browser build (Unity Web, GitHub Pages) with on-screen touch controls and tappable menus | implemented | – | ✔ | – | – | – | – | – |
-| Xbox Edge browser play: console page template (press A to start, fullscreen, back-trap), D‑pad‑left pause | implemented | – | pending CI | – | – | – | – | – |
-| Phone-only Unity licence helper (Codespaces desktop with Unity Hub, secrets script) | implemented | – | install check pending | – | – | – | – | – |
+| Xbox Edge browser play: console page template (press A to start, fullscreen, back-trap), D‑pad‑left pause | implemented | – | ✔ | – | – | – | – | – |
+| Phone-only Unity licence helper (Codespaces desktop with Unity Hub, secrets script) | implemented | – | Unity Hub 3.22.6 installs and launches (CI); sign-in untested | – | – | – | – | – |
 | Report-driven police (evidence pipeline, five stages, search, challenge, arrest) | implemented | ✔ | ✔ | – | – | – | – | – |
 | Safehouse (door, bed rest + autosave, wardrobe) | implemented | – | ✔ | – | – | – | – | – |
 | Save/load (manual + autosave, checksum, backup recovery, migration) | implemented | ✔ | ✔ | – | – | – | – | – |
