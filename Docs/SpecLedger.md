@@ -91,11 +91,11 @@ The milestone columns are:
 | PM-057 | Presentation | Camera profiles | M1 | implemented | C | On-foot, vehicle and interior profiles; swept collision; switch transitions. |
 | PM-058 | Presentation | Audiovisual feedback | M1 | implemented | C | Synthesised SFX, rumble, camera shake (with a reduced-shake option), post volume (URP). |
 | PM-059 | Presentation | Radio/podcasts/phone | Prod | planned | — | — |
-| PM-060 | Presentation | HUD/map/accessibility | M1 (HUD) | implemented | C | Heat panel with the reason, prompts, vehicle, clock, toasts. Camera-aligned minimap showing partner, safehouse, owned car, and police only when seen or heard. Invert Y, sensitivity, vibration, reduced shake. No full-screen map yet. |
+| PM-060 | Presentation | HUD/map/accessibility | M1 (HUD) | implemented | C | Heat panel with the reason, prompts, vehicle, clock, toasts. Camera-aligned minimap showing partner, safehouse, owned car, and police only when seen or heard. Invert Y, sensitivity, vibration, reduced shake. No full-screen map yet. On-screen touch controls for phones and tablets (virtual gamepad), and tappable menus. |
 | PM-061 | Runtime | Streaming/persistence | M1 (single district) | implemented | C | One district built at load. Streaming is planned. |
 | PM-062 | Runtime | Save migration | M1 | implemented | U | Versioned, checksummed, migrated, with temp/backup recovery. |
 | PM-063 | Runtime | Simulation tiers/budgets | M1 (budgets) | implemented (budgets) | C | Pedestrian budget, police unit cap, nearest-20 streetlights, partner AI at 4 Hz. |
-| PM-064 | Runtime | Package/lifecycle/controller | M1 | implemented | C | Suspend → pause + autosave; controller disconnect → pause; UWP settings. The package is **not** built yet. |
+| PM-064 | Runtime | Package/lifecycle/controller | M1 | implemented | C | Suspend → pause + autosave; controller disconnect → pause; UWP settings. The package is **not** built yet. Browser (Unity Web) profile published to GitHub Pages; an IndexedDB flush after saves; no Quit in browsers. |
 | PM-065 | Runtime | Instrumentation/regression | M1 | implemented | C, P | Diagnostics overlay and JSON report; `-pmAutotest`; PlayMode smoke tests; CI. |
 | PM-066 | Assets | Sourcing/licenses | M1 | implemented | — | `AssetManifest.md`; CC0 fetch with a hash lock; reference images excluded. |
 | PM-067 | Assets | Art-direction harmonization | VS | planned | — | `ArtBible.md` (starting values). |

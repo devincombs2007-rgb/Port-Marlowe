@@ -1,24 +1,25 @@
 # Port Marlowe — current status
 
-_Updated 2026‑10‑12. Branch `claude/m1-foundation`._
+_Updated 2026‑11‑07. Branch `claude/m1-foundation`._
 
 ## Current-state note
 
 | Item | Value |
 | --- | --- |
-| Editor | Unity 6000.6.8f1 (newest SUPPORTED/recommended), URP 17.6.0 |
+| Editor | Unity 6000.6.8f1 (newest SUPPORTED/recommended, released 2026‑11‑03), URP 17.6.0, Input System 1.20.1 |
 | Project path | repository root (`Assets/PortMarlowe/…`) |
-| Build action | `PortMarlowe.EditorTools.BuildTool.BuildFromCommandLine -pmProfile <LinuxDev\|WindowsDev\|UwpDiagnostic\|UwpRelease>` (see `BuildAndDeploy.md`) |
+| Build action | `PortMarlowe.EditorTools.BuildTool.BuildFromCommandLine -pmProfile <LinuxDev\|WindowsDev\|Web\|UwpDiagnostic\|UwpRelease>` (see `BuildAndDeploy.md`) |
 | Last verified package | **none.** No UWP package has been compiled. |
 | Save schema | version 1 |
-| Active task | M1 playable milestone: runtime review, then visual upgrades (CC0 PBR is wired) |
-| Next dependency | A Unity licence secret on CI. It unlocks the editor tests, the player build, the smoke run, and the UWP export plus package. |
+| Active task | M1 playable milestone: first licensed run (tests, smoke run, desktop and browser builds), then visual upgrades |
+| Next dependency | Unity licence secrets on CI (`BuildAndDeploy.md` §6). For a Personal licence, the `.ulf` file must be created once in Unity Hub on a computer. The secrets unlock the editor tests, the smoke run, the desktop and browser builds, and the UWP package. Browser play also needs GitHub Pages pointed at `gh-pages` (one setting). |
 
 ## Blockers
 
 1. **No Unity licence available to automation.** The repository has no `UNITY_*` secrets, so CI jobs that run the editor are skipped:
    - EditMode/PlayMode tests;
    - the Linux player build and headless smoke run;
+   - the browser (Web) build published to GitHub Pages;
    - the Windows UWP export and MSBuild package.
 
    The jobs are written and wired to start as soon as secrets are added (`BuildAndDeploy.md` §6).
@@ -73,6 +74,7 @@ A dash means not yet.
 | Pedestrians (budgeted, out-of-view spawning, perception, reactions, phone reports) | implemented | ✔ observation | ✔ | – | – | – | – | – |
 | Ambient traffic (AI cars on lane routes; first pass, no signals) | implemented | – | ✔ | – | – | – | – | – |
 | Minimap (camera-aligned; police shown only when seen/heard) | implemented | – | ✔ | – | – | – | – | – |
+| Browser build (Unity Web, GitHub Pages) with on-screen touch controls and tappable menus | implemented | – | ✔ | – | – | – | – | – |
 | Report-driven police (evidence pipeline, five stages, search, challenge, arrest) | implemented | ✔ | ✔ | – | – | – | – | – |
 | Safehouse (door, bed rest + autosave, wardrobe) | implemented | – | ✔ | – | – | – | – | – |
 | Save/load (manual + autosave, checksum, backup recovery, migration) | implemented | ✔ | ✔ | – | – | – | – | – |
