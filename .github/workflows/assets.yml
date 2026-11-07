@@ -17,10 +17,10 @@ jobs:
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Query Poly Haven and ambientCG APIs
         run: python3 Tools/Assets/discover_cc0.py --out cc0-candidates.json --limit 8
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: cc0-candidates
           path: cc0-candidates.json
@@ -28,7 +28,7 @@ jobs:
   fetch-verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: python3 -m pip install --quiet pillow
       - name: Fetch, hash-check and convert CC0 surface sets
         run: python3 Tools/Assets/fetch_cc0.py --update-lock --contact-sheet cc0-contact.jpg
@@ -36,7 +36,7 @@ jobs:
         run: cat Tools/Assets/cc0_lock.json
       - name: Converted output sizes
         run: du -ah Assets/ThirdParty/CC0 | sort -h | tail -40
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: cc0-surfaces-preview
           path: |

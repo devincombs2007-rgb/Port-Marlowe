@@ -32,15 +32,15 @@ jobs:
     name: Core simulation tests (dotnet)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: '10.0.x'
       - name: Build core as .NET Standard 2.1 / C# 9 (Unity profile)
         run: dotnet build Tools/CoreTests/Core/PortMarlowe.Core.csproj -warnaserror
       - name: Run NUnit tests
         run: dotnet test Tools/CoreTests/Tests/PortMarlowe.CoreTests.csproj --logger "trx;LogFileName=core.trx" --results-directory TestResults
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: core-test-results
@@ -64,6 +64,14 @@ jobs:
           echo "UNITY_PASSWORD: $(set_or_not "$UNITY_PASSWORD")"
           echo "UNITY_LICENSE:  $(set_or_not "$UNITY_LICENSE")"
           echo "UNITY_SERIAL:   $(set_or_not "$UNITY_SERIAL")"
+          if [ -n "$UNITY_LICENSE" ]; then
+            # Shape check only; nothing from the secret is printed.
+            if printf '%s' "$UNITY_LICENSE" | grep -q '<DeveloperData Value="'; then
+              echo "UNITY_LICENSE format: looks like a Unity licence file (.ulf)"
+            else
+              echo "::warning ::UNITY_LICENSE is set but does not look like the contents of Unity_lic.ulf (no DeveloperData field). Paste the whole file."
+            fi
+          fi
           if [ -n "$UNITY_EMAIL" ] && [ -n "$UNITY_PASSWORD" ] && { [ -n "$UNITY_LICENSE" ] || [ -n "$UNITY_SERIAL" ]; }; then
             echo "available=true" >> "$GITHUB_OUTPUT"
             echo "Unity licence secrets present: licensed jobs will run."
@@ -78,13 +86,15 @@ jobs:
     env:
       IMAGE: unityci/editor:ubuntu-6000.6.8f1-base-3
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: |
+            8.0.x
+            10.0.x
       - name: Restore extracted editor assemblies (workflow-private cache, never published)
         id: editor-cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: editor
           key: unity-editor-managed-${{ env.UNITY_VERSION }}-v1
@@ -104,7 +114,7 @@ jobs:
           du -sh editor
       - name: Save extracted editor assemblies (saved even if the compile step later fails)
         if: steps.editor-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: editor
           key: unity-editor-managed-${{ env.UNITY_VERSION }}-v1
@@ -116,8 +126,11 @@ jobs:
     needs: [license-probe]
     if: needs.license-probe.outputs.available == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write   # the test runner posts a "Test Results" check
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           lfs: true
       - name: Fetch CC0 surface sets (pinned; procedural fallback if unavailable)
@@ -125,7 +138,7 @@ jobs:
         run: |
           python3 -m pip install --quiet pillow
           python3 Tools/Assets/fetch_cc0.py
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: Library
           key: Library-linux-${{ hashFiles('Packages/manifest.json', 'ProjectSettings/ProjectVersion.txt') }}
@@ -139,7 +152,8 @@ jobs:
           unityVersion: ${{ env.UNITY_VERSION }}
           testMode: all
           artifactsPath: test-results
-      - uses: actions/upload-artifact@v4
+          checkName: Unity test results
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: unity-test-results
@@ -151,7 +165,7 @@ jobs:
     if: needs.license-probe.outputs.available == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           lfs: true
       - name: Fetch CC0 surface sets (pinned; procedural fallback if unavailable)
@@ -159,7 +173,7 @@ jobs:
         run: |
           python3 -m pip install --quiet pillow
           python3 Tools/Assets/fetch_cc0.py
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: Library
           key: Library-linux-build-${{ hashFiles('Packages/manifest.json', 'ProjectSettings/ProjectVersion.txt') }}
@@ -175,16 +189,20 @@ jobs:
           buildMethod: PortMarlowe.EditorTools.BuildTool.BuildFromCommandLine
           customParameters: -pmProfile LinuxDev
           buildsPath: Builds
+          versioning: None   # shallow checkout: no git history for semantic versioning
       - name: Headless gameplay smoke run - no GPU, logic only, graphics unverified
         run: |
-          exe=$(find Builds -maxdepth 3 -type f -name 'PortMarlowe*' -perm -u+x | head -1)
+          exe=$(find Builds -maxdepth 4 -type f -name 'PortMarlowe.x86_64' | head -1)
+          if [ -z "$exe" ]; then echo "::error ::Linux player not found under Builds/"; find Builds -maxdepth 4 | head -40; exit 1; fi
           echo "player: $exe"
+          # The build was written by root inside the GameCI container.
+          sudo chown -R "$(id -u):$(id -g)" Builds
           chmod +x "$exe"
-          timeout 600 "$exe" -batchmode -nographics -logFile player.log -pmAutotest autotest.json || code=$?
+          timeout 600 "$exe" -batchmode -nographics -logFile player.log -pmAutotest "$PWD/autotest.json" || code=$?
           cat autotest.json 2>/dev/null || echo "no autotest report"
           tail -n 80 player.log
           exit ${code:-0}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: linux-player-smoke
@@ -199,7 +217,7 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 150
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           lfs: true
       - name: Fetch CC0 surface sets (pinned; procedural fallback if unavailable)
@@ -208,17 +226,22 @@ jobs:
         run: |
           python -m pip install --quiet pillow
           python Tools/Assets/fetch_cc0.py
-      - name: Install Unity editor + UWP module (official silent installers)
+      - name: Install Unity editor + UWP module (official silent installers, URLs from Unity's release API)
         shell: pwsh
         run: |
-          $base = "https://download.unity3d.com/download_unity/$env:UNITY_REVISION"
-          Invoke-WebRequest "$base/Windows64EditorInstaller/UnitySetup64-$env:UNITY_VERSION.exe" -OutFile editor.exe
-          Invoke-WebRequest "$base/TargetSupportInstaller/UnitySetup-Universal-Windows-Platform-Support-for-Editor-$env:UNITY_VERSION.exe" -OutFile uwp.exe
+          $rel = (Invoke-RestMethod "https://services.api.unity.com/unity/editor/release/v1/releases?version=$env:UNITY_VERSION").results[0]
+          if (-not $rel) { Write-Error "Unity $env:UNITY_VERSION not found in the release API"; exit 1 }
+          $win = $rel.downloads | Where-Object { $_.platform -eq 'WINDOWS' -and $_.architecture -eq 'X86_64' } | Select-Object -First 1
+          $uwp = $win.modules | Where-Object { $_.id -eq 'universal-windows-platform' } | Select-Object -First 1
+          if (-not $win.url -or -not $uwp.url) { Write-Error "Editor or UWP module download not listed for $env:UNITY_VERSION"; exit 1 }
+          "Editor: $($win.url)"; "UWP module: $($uwp.url)"
+          Invoke-WebRequest $win.url -OutFile editor.exe
+          Invoke-WebRequest $uwp.url -OutFile uwp.exe
           Start-Process .\editor.exe -ArgumentList '/S','/D=C:\Unity' -Wait
           Start-Process .\uwp.exe -ArgumentList '/S','/D=C:\Unity' -Wait
-          Test-Path C:\Unity\Editor\Unity.exe
-          Get-ChildItem C:\Unity\Editor\Data\PlaybackEngines
-      - name: Activate licence
+          if (-not (Test-Path C:\Unity\Editor\Unity.exe)) { Write-Error "Unity.exe missing after install"; exit 1 }
+          Get-ChildItem C:\Unity\Editor\Data\PlaybackEngines | Select-Object -ExpandProperty Name
+      - name: Activate licence (online, serial from Personal .ulf or Plus/Pro serial)
         shell: pwsh
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
@@ -226,13 +249,26 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
           UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
         run: |
-          if ($env:UNITY_SERIAL) {
-            & C:\Unity\Editor\Unity.exe -batchmode -quit -nographics -logFile activate.log -serial $env:UNITY_SERIAL -username $env:UNITY_EMAIL -password $env:UNITY_PASSWORD | Out-Null
-          } else {
-            New-Item -ItemType Directory -Force C:\ProgramData\Unity | Out-Null
-            Set-Content -Path C:\ProgramData\Unity\Unity_lic.ulf -Value $env:UNITY_LICENSE -NoNewline
+          # A Unity_lic.ulf made by Unity Hub is bound to the machine that created it, so it is not
+          # copied onto the runner. Like GameCI, read the serial embedded in it (DeveloperData,
+          # base64, first 4 bytes are padding) and activate this machine online with it.
+          $serial = $env:UNITY_SERIAL
+          if (-not $serial) {
+            $m = [regex]::Match($env:UNITY_LICENSE, '<DeveloperData Value="([^"]+)"')
+            if (-not $m.Success) { Write-Error "UNITY_LICENSE is not a Unity licence file (no DeveloperData field)."; exit 1 }
+            $raw = [System.Text.Encoding]::GetEncoding(28591).GetString([Convert]::FromBase64String($m.Groups[1].Value))
+            $serial = $raw.Substring(4)
           }
-          if (Test-Path activate.log) { Get-Content activate.log -Tail 30 }
+          Write-Output "::add-mask::$serial"
+          $uargs = @('-batchmode','-quit','-nographics','-logFile','activate.log','-serial',$serial,'-username',$env:UNITY_EMAIL,'-password',$env:UNITY_PASSWORD)
+          for ($i = 1; $i -le 3; $i++) {
+            $p = Start-Process -FilePath C:\Unity\Editor\Unity.exe -ArgumentList $uargs -Wait -PassThru -NoNewWindow
+            if ($p.ExitCode -eq 0) { "Activation succeeded (attempt $i)."; break }
+            "Activation attempt $i failed with exit code $($p.ExitCode)."
+            if (Test-Path activate.log) { Get-Content activate.log -Tail 25 }
+            if ($i -eq 3) { Write-Error "Unity licence activation failed. Check the secrets, and that the Unity account does not require two-factor sign-in."; exit 1 }
+            Start-Sleep -Seconds (15 * $i)
+          }
       - name: Export UWP Visual Studio solution
         shell: pwsh
         run: |
@@ -256,7 +292,18 @@ jobs:
           & $msbuild $sln.FullName /m /p:Configuration=Master /p:Platform=x64 /p:AppxBundle=Never /p:UapAppxPackageBuildMode=SideloadOnly /p:AppxPackageSigningEnabled=true /p:PackageCertificateKeyFile="$env:RUNNER_TEMP\pm_ci.pfx" /p:PackageCertificatePassword=ci-only /p:AppxPackageDir="$PWD\Delivery\" /v:minimal
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Get-ChildItem Delivery -Recurse | Select-Object FullName, Length
-      - uses: actions/upload-artifact@v4
+      - name: Return licence seat
+        if: always()
+        shell: pwsh
+        env:
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        run: |
+          if (Test-Path C:\Unity\Editor\Unity.exe) {
+            $p = Start-Process -FilePath C:\Unity\Editor\Unity.exe -ArgumentList @('-batchmode','-quit','-nographics','-returnlicense','-username',$env:UNITY_EMAIL,'-password',$env:UNITY_PASSWORD,'-logFile','return.log') -Wait -PassThru -NoNewWindow
+            "Return licence exit code: $($p.ExitCode)"
+          }
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: uwp-package
