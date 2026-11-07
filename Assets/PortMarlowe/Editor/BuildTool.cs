@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using PortMarlowe.Core.Save;
@@ -33,6 +34,17 @@ namespace PortMarlowe.EditorTools
             WindowsDev,
             UwpDiagnostic,
             UwpRelease,
+            Web,
+        }
+
+        /// <summary>
+        /// Per-build adjustments contributed by other editor assemblies (e.g. the URP backend switching
+        /// to a WebGL-friendly renderer). Discovered through TypeCache; After always runs.
+        /// </summary>
+        public interface IBuildProfileStep
+        {
+            void Before(Profile profile, ProjectSetupLog log);
+            void After(Profile profile, ProjectSetupLog log);
         }
 
         [MenuItem("Port Marlowe/Build/Linux Dev")]
@@ -40,6 +52,9 @@ namespace PortMarlowe.EditorTools
 
         [MenuItem("Port Marlowe/Build/Windows Dev")]
         public static void MenuWindows() => Build(Profile.WindowsDev, null);
+
+        [MenuItem("Port Marlowe/Build/Web (browser)")]
+        public static void MenuWeb() => Build(Profile.Web, null);
 
         [MenuItem("Port Marlowe/Build/UWP Diagnostic (VS solution)")]
         public static void MenuUwpDiagnostic() => Build(Profile.UwpDiagnostic, null);
@@ -104,15 +119,68 @@ namespace PortMarlowe.EditorTools
                     options.targetGroup = BuildTargetGroup.WSA;
                     options.locationPathName = output ?? "Builds/UWP";
                     break;
+                case Profile.Web:
+                    options.target = BuildTarget.WebGL;
+                    options.targetGroup = BuildTargetGroup.WebGL;
+                    options.locationPathName = output ?? "Builds/Web";
+                    ConfigureWeb();
+                    break;
             }
 
+            var steps = new List<IBuildProfileStep>();
+            foreach (var type in TypeCache.GetTypesDerivedFrom<IBuildProfileStep>())
+            {
+                if (!type.IsAbstract && !type.IsInterface && type.GetConstructor(Type.EmptyTypes) != null)
+                {
+                    steps.Add((IBuildProfileStep)Activator.CreateInstance(type));
+                }
+            }
+
+            var log = new ProjectSetupLog();
             Debug.Log($"[PM build] {profile} -> {options.locationPathName}");
-            var report = BuildPipeline.BuildPlayer(options);
+            BuildReport report;
+            try
+            {
+                foreach (var step in steps)
+                {
+                    step.Before(profile, log);
+                }
+
+                report = BuildPipeline.BuildPlayer(options);
+            }
+            finally
+            {
+                foreach (var step in steps)
+                {
+                    step.After(profile, log);
+                }
+
+                AssetDatabase.SaveAssets();
+            }
+
             WriteSummary(profile, options, report);
             bool ok = report.summary.result == BuildResult.Succeeded;
             Debug.Log($"[PM build] {profile}: {report.summary.result}, {report.summary.totalErrors} errors, {report.summary.totalWarnings} warnings, " +
                       $"{report.summary.totalSize / (1024.0 * 1024.0):0.0} MB, {report.summary.totalTime.TotalSeconds:0} s");
             return ok;
+        }
+
+        /// <summary>
+        /// Browser build settings: gzip with a JavaScript decompression fallback so plain static hosts
+        /// (GitHub Pages cannot set Content-Encoding) work, cached data, bounded memory growth, and only
+        /// explicitly thrown exceptions (smaller, faster code).
+        /// </summary>
+        private static void ConfigureWeb()
+        {
+            PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Gzip;
+            PlayerSettings.WebGL.decompressionFallback = true;
+            PlayerSettings.WebGL.dataCaching = true;
+            PlayerSettings.WebGL.exceptionSupport = WebGLExceptionSupport.ExplicitlyThrownExceptionsOnly;
+            PlayerSettings.WebGL.nameFilesAsHashes = false;
+            PlayerSettings.WebGL.powerPreference = WebGLPowerPreference.HighPerformance;
+            PlayerSettings.WebGL.initialMemorySize = 512;
+            PlayerSettings.WebGL.maximumMemorySize = 2048;
+            PlayerSettings.WebGL.memoryGrowthMode = WebGLMemoryGrowthMode.Geometric;
         }
 
         /// <summary>GameCI passes a directory; desktop targets need an executable path inside it.</summary>

@@ -48,7 +48,10 @@ namespace PortMarlowe.Game
         public bool Transitioning => _transitioning;
         public int SessionsStarted { get; private set; }
 
-        public bool CanQuitApplication => !(Application.platform == RuntimePlatform.WSAPlayerX64 && SystemInfo.deviceType == DeviceType.Console);
+        // No Quit on Xbox (system Home button) or in a browser tab (Application.Quit does nothing there).
+        public bool CanQuitApplication =>
+            Application.platform != RuntimePlatform.WebGLPlayer &&
+            !(Application.platform == RuntimePlatform.WSAPlayerX64 && SystemInfo.deviceType == DeviceType.Console);
 
         private void Awake()
         {
@@ -58,7 +61,25 @@ namespace PortMarlowe.Game
             GameLayers.ConfigureCollisionMatrix();
             GameSettings.Load();
             RenderBackends.Current.ApplyQuality(GameSettings.Quality);
+            EnsureEventSystem();
             ParseCommandLine();
+        }
+
+        /// <summary>
+        /// One persistent UI event system (pointer and touch for menus and on-screen controls). It
+        /// lives on the bootstrap so session rebuilds never create a second one.
+        /// </summary>
+        private void EnsureEventSystem()
+        {
+            if (UnityEngine.EventSystems.EventSystem.current != null)
+            {
+                return;
+            }
+
+            var go = new GameObject("EventSystem");
+            go.transform.SetParent(transform, false);
+            go.AddComponent<UnityEngine.EventSystems.EventSystem>();
+            go.AddComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>();
         }
 
         private void OnDestroy()

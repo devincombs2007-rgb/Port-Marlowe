@@ -39,6 +39,8 @@ namespace PortMarlowe.Game.UI
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1920f, 1080f);
             scaler.matchWidthOrHeight = 0.5f;
+            // Pointer/touch input for tappable menus and on-screen controls.
+            go.AddComponent<GraphicRaycaster>();
             return canvas;
         }
 

@@ -80,6 +80,11 @@ namespace PortMarlowe.Game.SaveSystem
         public SaveResult RequestSave(string slot, string reason)
         {
             var result = _coordinator.RequestSave(slot, () => Capture(reason), this);
+            if (result.Success && !result.Deferred)
+            {
+                Platform.WebStorage.Flush();
+            }
+
             if (result.Deferred)
             {
                 _s.Notify("Save queued: " + result.Error + ".", 3f);
@@ -97,6 +102,11 @@ namespace PortMarlowe.Game.SaveSystem
             var r = _coordinator.Tick(this);
             if (r != null)
             {
+                if (r.Success)
+                {
+                    Platform.WebStorage.Flush();
+                }
+
                 _s.Notify(r.Success ? "Saved." : "Save failed: " + r.Error, 2.5f);
             }
         }

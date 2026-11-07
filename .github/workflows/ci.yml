@@ -210,6 +210,64 @@ jobs:
             autotest.json
             player.log
 
+  web-build:
+    name: Unity Web (browser) build, published to GitHub Pages (licensed)
+    needs: [license-probe]
+    if: needs.license-probe.outputs.available == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # publishes the build to the gh-pages branch
+    steps:
+      - uses: actions/checkout@v7
+      - name: Fetch CC0 surface sets (pinned; procedural fallback if unavailable)
+        continue-on-error: true
+        run: |
+          python3 -m pip install --quiet pillow
+          python3 Tools/Assets/fetch_cc0.py
+      - uses: actions/cache@v6
+        with:
+          path: Library
+          key: Library-web-${{ hashFiles('Packages/manifest.json', 'ProjectSettings/ProjectVersion.txt') }}
+      - uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+        with:
+          unityVersion: ${{ env.UNITY_VERSION }}
+          targetPlatform: WebGL
+          buildMethod: PortMarlowe.EditorTools.BuildTool.BuildFromCommandLine
+          customParameters: -pmProfile Web
+          buildsPath: Builds
+          versioning: None
+      - name: Locate the Web build
+        id: site
+        run: |
+          sudo chown -R "$(id -u):$(id -g)" Builds
+          index=$(find Builds -maxdepth 4 -name index.html | head -1)
+          if [ -z "$index" ]; then echo "::error ::index.html not found under Builds/"; find Builds -maxdepth 4 | head -40; exit 1; fi
+          site=$(dirname "$index")
+          touch "$site/.nojekyll"
+          du -sh "$site"; find "$site" -type f -size +90M -exec echo "::error ::file over GitHub Pages' 100 MB limit: {}" \;
+          echo "dir=$site" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: web-build
+          path: ${{ steps.site.outputs.dir }}
+      - name: Publish to the gh-pages branch (single commit, replaces the previous build)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd "${{ steps.site.outputs.dir }}"
+          git init -q -b gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Port Marlowe Web build from ${GITHUB_SHA::7}"
+          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" gh-pages
+          echo "Published. Once GitHub Pages serves the gh-pages branch, play at: https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}/" >> "$GITHUB_STEP_SUMMARY"
+
   uwp-package:
     name: Windows UWP export + MSBuild package (licensed)
     needs: [license-probe]

@@ -73,6 +73,14 @@ namespace PortMarlowe.Game.UI
             {
                 _rows[i] = UiFactory.Text(_root, "Row" + i, 34, UiFactory.TextMain, TextAnchor.MiddleLeft);
                 SetTopLeft(_rows[i].rectTransform, new Vector2(40f, -120f - i * 50f), new Vector2(740f, 48f));
+
+                // Tap or click a row to choose it (touch screens and mouse); the controller path is unchanged.
+                _rows[i].raycastTarget = true;
+                var button = _rows[i].gameObject.AddComponent<Button>();
+                button.transition = Selectable.Transition.None;
+                button.navigation = new Navigation { mode = Navigation.Mode.None };
+                int row = i;
+                button.onClick.AddListener(() => TapRow(row));
             }
 
             _footer = UiFactory.Text(_root, "Footer", 22, UiFactory.TextDim, TextAnchor.LowerLeft);
@@ -191,6 +199,41 @@ namespace PortMarlowe.Game.UI
                 _stack.Pop();
                 OnOpenChanged();
             }
+        }
+
+        /// <summary>Pointer/touch selection: choose the row and activate it (adjustable rows step forward).</summary>
+        public void TapRow(int row)
+        {
+            // Keep the UI event system from holding a selection that a pad's A button would re-submit.
+            UnityEngine.EventSystems.EventSystem.current?.SetSelectedGameObject(null);
+            if (!IsOpen)
+            {
+                return;
+            }
+
+            var page = _stack.Peek();
+            if (row < 0 || row >= page.Items.Count)
+            {
+                return;
+            }
+
+            page.Selected = row;
+            var item = page.Items[row];
+            if (item.Enabled())
+            {
+                if (item.Confirm != null)
+                {
+                    _s.Audio?.PlayOneShot(Audio.SfxKind.UiConfirm, Vector3.zero, 0.6f);
+                    item.Confirm();
+                }
+                else if (item.Adjust != null)
+                {
+                    _s.Audio?.PlayOneShot(Audio.SfxKind.UiMove, Vector3.zero, 0.5f);
+                    item.Adjust(1);
+                }
+            }
+
+            Render();
         }
 
         public void CloseAll()

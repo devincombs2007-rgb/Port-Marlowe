@@ -23,6 +23,12 @@ namespace PortMarlowe.EditorTools
             importer.textureCompression = TextureImporterCompression.CompressedHQ;
             importer.streamingMipmaps = true;
             importer.wrapMode = UnityEngine.TextureWrapMode.Repeat;
+
+            // Browser builds: 1K surfaces keep the download and phone memory reasonable.
+            var web = importer.GetPlatformTextureSettings("WebGL");
+            web.overridden = true;
+            web.maxTextureSize = 1024;
+            importer.SetPlatformTextureSettings(web);
             switch (file)
             {
                 case "normal":

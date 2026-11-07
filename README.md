@@ -1,11 +1,11 @@
 # Port Marlowe
 
 Port Marlowe is an original third-person open-world game set in a coastal city. You play two
-partners, and the police respond only to what witnesses report. It is built in **Unity 6000.6.5f1**
+partners, and the police respond only to what witnesses report. It is built in **Unity 6000.6.8f1**
 with URP. The target is Xbox Series X in Developer Mode (UWP); development happens on desktop.
 
 > **Status:** the first playable milestone is implemented. Its rules are unit-tested and all of its
-> code compiles against the real Unity 6000.6.5f1 APIs. It has **not yet run in the Unity editor,
+> code compiles against the real Unity 6000.6.8f1 APIs. It has **not yet run in the Unity editor,
 > on a desktop player, or on Xbox**, and **no installable package exists yet**.
 > See [`Docs/STATUS.md`](Docs/STATUS.md) for the evidence and the blockers.
 
@@ -25,7 +25,7 @@ with URP. The target is Xbox Series X in Developer Mode (UWP); development happe
 
 ## Quick start
 
-1. Open the project in Unity 6000.6.5f1.
+1. Open the project in Unity 6000.6.8f1.
 2. Run **Port Marlowe ▸ Run Project Setup**.
 3. Open `Assets/PortMarlowe/Scenes/Boot.unity` and press Play.
 

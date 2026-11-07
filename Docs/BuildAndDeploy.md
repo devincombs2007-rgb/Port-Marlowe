@@ -11,9 +11,9 @@ things separate:
 
 | Item | Value | Source |
 | --- | --- | --- |
-| Unity editor | **6000.6.5f1** (revision `3ff58d469c8a`), stream SUPPORTED, recommended | Unity release API, checked 2026‑10‑12 |
+| Unity editor | **6000.6.8f1** (revision `237b6593792b`), stream SUPPORTED, recommended | Unity release API, checked 2026‑11‑07 (released 2026‑11‑03) |
 | Render pipeline | URP 17.6.0 (bundled with the editor) | editor `BuiltInPackages` |
-| Input System | 1.20.0 (bundled) | editor package cache |
+| Input System | 1.20.1 (bundled) | editor package cache |
 | uGUI / Test Framework | 2.6.0 / 1.8.0 (bundled) | editor `BuiltInPackages` |
 | UWP toolchain (CI) | GitHub `windows-latest`: Visual Studio 2026 (18.x) with UWP/C++ workloads, Windows SDK 10.0.26100 | runner image inventory |
 | Core library | .NET Standard 2.1, C# 9, no engine references | `Tools/CoreTests/Core/PortMarlowe.Core.csproj` |
@@ -24,7 +24,7 @@ registry download for them.
 
 ## 2. First open (any machine with a licensed editor)
 
-1. Open the project folder in Unity 6000.6.5f1. On first import Unity generates `ProjectSettings/*`,
+1. Open the project folder in Unity 6000.6.8f1. On first import Unity generates `ProjectSettings/*`,
    `Library/` and a `.meta` file for every asset.
 2. Run **Port Marlowe ▸ Run Project Setup**. Headless equivalent:
    `Unity -batchmode -nographics -projectPath . -executeMethod PortMarlowe.EditorTools.ProjectSetup.RunFromCommandLine -logFile setup.log`
@@ -56,6 +56,7 @@ Unity -batchmode -nographics -quit -projectPath . -buildTarget <target> \
 | `WindowsDev` | `StandaloneWindows64` | `Builds/WindowsDev/PortMarlowe.exe` | Desktop play-testing with an Xbox controller | desktop evidence |
 | `UwpDiagnostic` | `WSAPlayer` | `Builds/UWP/*.sln` | Development UWP solution (profiler connection) | UWP export, **not** a package |
 | `UwpRelease` | `WSAPlayer` | `Builds/UWP/*.sln` | Non-development UWP solution | UWP export, **not** a package |
+| `Web` | `WebGL` | `Builds/Web/` (`index.html`) | Browser build: gzip with decompression fallback, Forward renderer, 1K surfaces | browser evidence (not console) |
 
 The tool always runs Project Setup first. It also writes `Builds/build-summary-<profile>.json`, which
 records the result, errors, size, time and editor version.
@@ -133,21 +134,108 @@ certificate. That job runs only when Unity licence secrets are configured (see �
 | Job | Needs a licence? | What it proves |
 | --- | --- | --- |
 | `core-tests` | no | The engine-independent core builds as .NET Standard 2.1 / C# 9 with warnings as errors, and its NUnit tests pass. |
-| `unity-compile-check` | no | Project assemblies compile against the real Unity 6000.6.5f1 managed assemblies and packages, taken from the GameCI editor image. It does **not** run the editor or the import pipeline, and it does not run URP shader compilation. |
+| `unity-compile-check` | no | Project assemblies compile against the real Unity 6000.6.8f1 managed assemblies and packages, taken from the GameCI editor image. It does **not** run the editor or the import pipeline, and it does not run URP shader compilation. |
 | `license-probe` | no | Reports whether licence secrets exist. Values are never printed. |
 | `unity-tests` | yes | EditMode and PlayMode tests in a real editor (GameCI). |
 | `linux-player` | yes | `LinuxDev` build, then a headless `-pmAutotest` run. |
+| `web-build` | yes | Unity Web build (gzip + decompression fallback) published to the `gh-pages` branch for GitHub Pages. |
 | `uwp-package` | yes | Silent install of the editor and UWP module, UWP export, then MSBuild Master x64 sideload package, uploaded as an artifact. |
 
-## 6. Enabling the licensed jobs
+## 6. Enabling the licensed jobs (Unity activation)
 
-Add repository secrets. Use either:
+_Verified 2026‑11‑07 against GameCI's documentation (game-ci/documentation, updated 2026‑10‑24) and
+its source: `unity-builder` v4.8.2, `unity-test-runner` v4.3.2, and the `game-ci/cli` it runs._
 
-- `UNITY_LICENSE` (the contents of a `.ulf` file) together with `UNITY_EMAIL` and `UNITY_PASSWORD`; or
-- `UNITY_SERIAL`, `UNITY_EMAIL` and `UNITY_PASSWORD` for a Pro/Plus seat.
+**How activation works.** For a free Personal licence, the actions do not copy your licence file onto
+the build machine. They read the serial embedded in `Unity_lic.ulf` and activate the machine online
+with your Unity email and password. All three secrets are therefore required. Our own Windows/UWP job
+uses the same method and returns the licence seat at the end of the run.
 
-The licence must be one you are entitled to use on CI machines. Nothing in the repository contains
-licence data.
+**Which licence do you have?** Check https://id.unity.com/en/subscriptions (this works on a phone).
+If it shows a Unity Plus, Pro or Enterprise subscription with a serial key, follow the second route.
+Otherwise you have Personal.
+
+### Personal (free): needs a computer once
+
+You need a computer (Windows, macOS or Linux) to create the licence file. You only need Unity Hub;
+you do not need to install a Unity editor.
+
+1. Install Unity Hub from https://unity.com/download and sign in with your Unity account.
+2. In Unity Hub, open **Preferences (Settings) ▸ Licenses**, click **Add**, and choose **Get a free
+   personal license**. Do this even if a licence is already listed; otherwise the file may not be
+   written.
+3. Open the licence file in a text editor and copy all of it:
+   - Windows: `C:\ProgramData\Unity\Unity_lic.ulf`
+   - macOS: `/Library/Application Support/Unity/Unity_lic.ulf`
+   - Linux: `~/.local/share/unity3d/Unity/Unity_lic.ulf`
+
+   These folders may be hidden.
+4. Open https://github.com/devincombs2007-rgb/Port-Marlowe/settings/secrets/actions and click **New
+   repository secret** three times:
+
+   | Secret name | Value |
+   | --- | --- |
+   | `UNITY_LICENSE` | the whole file contents |
+   | `UNITY_EMAIL` | your Unity account email |
+   | `UNITY_PASSWORD` | your Unity account password |
+
+You can do step 4 from a phone browser. You can also add the email and password secrets from a phone
+first, and the licence secret later.
+
+### Plus / Pro: phone only
+
+On https://github.com/devincombs2007-rgb/Port-Marlowe/settings/secrets/actions, add:
+
+| Secret name | Value |
+| --- | --- |
+| `UNITY_SERIAL` | the serial shown on the subscriptions page |
+| `UNITY_EMAIL` | your Unity account email |
+| `UNITY_PASSWORD` | your Unity account password |
+
+### Notes
+
+- **Where to add secrets.** Use github.com in a browser. On a phone, switch to the desktop site if the
+  **Settings** tab is hidden.
+- **Never paste these values anywhere else** (chat, issues, commits).
+  - GitHub masks secret values in logs.
+  - The *Unity licence availability* job prints only `set` or `missing`, and whether `UNITY_LICENSE`
+    looks like a licence file.
+- **Two-step sign-in.** Activation signs in non-interactively. If the Unity account asks for a
+  verification code at sign-in, activation can fail. The job log then reports "Activation failed".
+- **Running the jobs.** Push any commit, or open
+  https://github.com/devincombs2007-rgb/Port-Marlowe/actions/workflows/ci.yml and choose **Run
+  workflow** on `claude/m1-foundation`. These jobs then run:
+  - EditMode and PlayMode tests;
+  - the Linux player and its headless smoke run;
+  - the Web build;
+  - the Windows UWP package.
+- **Expired licence.** If activation later fails with a licence-expired message, repeat steps 2–4 of
+  the Personal route.
+
+### Playing in a browser (GitHub Pages)
+
+The `web-build` job builds the same Unity project for the Web and pushes it to the `gh-pages` branch.
+It is not a separate browser remake.
+
+1. After the first successful `web-build` run, open
+   https://github.com/devincombs2007-rgb/Port-Marlowe/settings/pages.
+2. Set **Build and deployment ▸ Source** to **Deploy from a branch**, choose **`gh-pages` / (root)**,
+   and save. This one-time step can be done on a phone.
+3. Play at **https://devincombs2007-rgb.github.io/Port-Marlowe/**.
+
+Controls:
+
+- **Desktop browsers:** keyboard and mouse, or a controller.
+- **Phones and tablets:** on-screen touch controls. Landscape works best. Menus can be tapped.
+
+Browser builds differ from the desktop build:
+
+- Performance quality profile;
+- forward renderer with no ambient occlusion;
+- 1K surface textures;
+- saves kept in the browser's site storage.
+
+Graphics in the browser are unverified until it has run on a real device.
 
 ## 7. Saves and settings on device
 

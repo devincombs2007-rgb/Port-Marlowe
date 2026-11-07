@@ -17,7 +17,7 @@ gameplay package is imported. Licence: project‑original.
 | Audio: engine, siren, horn, alarm, impacts, UI | `Audio/GameAudio.cs` (synthesised clips) | Functional placeholders. |
 | UI font | Unity built‑in `LegacyRuntime.ttf` | Engine resource. |
 
-Unity packages in use (all bundled with editor 6000.6.5f1):
+Unity packages in use (all bundled with editor 6000.6.8f1):
 
 - URP 17.6.0
 - Input System 1.20.0

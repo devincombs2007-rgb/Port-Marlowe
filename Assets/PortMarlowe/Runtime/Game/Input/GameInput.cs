@@ -107,7 +107,7 @@ namespace PortMarlowe.Game.Input
             InputSystem.onDeviceChange += OnDeviceChange;
         }
 
-        /// <summary>Raised when the active gamepad disconnects (true) or reconnects (false).</summary>
+        /// <summary>Raised with false when a physical gamepad disconnects and true when one connects.</summary>
         public event Action<bool> GamepadConnectionChanged;
 
         public bool GameplayEnabled { get; private set; } = true;
@@ -234,18 +234,20 @@ namespace PortMarlowe.Game.Input
 
         private void OnDeviceChange(InputDevice device, InputDeviceChange change)
         {
-            if (!(device is Gamepad))
+            // Only physical pads: the on-screen touch controls add and remove a virtual gamepad,
+            // which must not trigger the "controller disconnected" pause.
+            if (!(device is Gamepad) || !device.native)
             {
                 return;
             }
 
             if (change == InputDeviceChange.Disconnected || change == InputDeviceChange.Removed)
             {
-                GamepadConnectionChanged?.Invoke(true);
+                GamepadConnectionChanged?.Invoke(false);
             }
             else if (change == InputDeviceChange.Reconnected || change == InputDeviceChange.Added)
             {
-                GamepadConnectionChanged?.Invoke(false);
+                GamepadConnectionChanged?.Invoke(true);
             }
         }
 

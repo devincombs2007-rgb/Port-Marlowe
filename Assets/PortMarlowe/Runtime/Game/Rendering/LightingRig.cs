@@ -146,7 +146,8 @@ namespace PortMarlowe.Game.Rendering
             _probeTimer -= Time.deltaTime;
             if (force || _probeTimer <= 0f)
             {
-                _probeTimer = 20f;
+                // Browsers: one capture at start (realtime probe updates are costly on WebGL).
+                _probeTimer = Application.platform == RuntimePlatform.WebGLPlayer ? float.PositiveInfinity : 20f;
                 _probe.RenderProbe();
             }
         }

@@ -18,7 +18,7 @@ IDs follow the row order of the master prompt's coverage checklist (§1.8).
 | Code | Meaning |
 | --- | --- |
 | **U** | Core rules are covered by NUnit tests (79 tests, CI `core-tests`) |
-| **C** | Compiles against the real Unity 6000.6.5f1 assemblies (CI `unity-compile-check`) |
+| **C** | Compiles against the real Unity 6000.6.8f1 assemblies (CI `unity-compile-check`) |
 | **P** | Covered by a PlayMode or autotest step that is written but **not yet run** (needs a licensed editor) |
 
 No item has editor, desktop-player, UWP or Xbox evidence yet.

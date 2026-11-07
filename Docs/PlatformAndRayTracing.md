@@ -37,7 +37,7 @@ Evidence labels:
 
 | Area | Status here |
 | --- | --- |
-| C# against the real Unity 6000.6.5f1 APIs | **Verified** for the player pass of Core, Runtime and the packages it uses (CI compile check) |
+| C# against the real Unity 6000.6.8f1 APIs | **Verified** for the player pass of Core, Runtime and the packages it uses (CI compile check) |
 | Core simulation rules | **Verified** (79 NUnit tests, CI) |
 | Editor import, scenes, PlayMode behaviour | Not run: needs a Unity licence secret on CI |
 | Graphics quality, GPU frame time, shader compilation | **Unverified.** The sandbox and the Linux CI runners have no GPU. |

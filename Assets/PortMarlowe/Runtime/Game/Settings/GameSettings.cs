@@ -36,7 +36,9 @@ namespace PortMarlowe.Game
             ReducedCameraShake = PlayerPrefs.GetInt(Prefix + "reducedShake", 0) == 1;
             ShowDiagnostics = PlayerPrefs.GetInt(Prefix + "diagnostics", 0) == 1;
             HoldToSprint = PlayerPrefs.GetInt(Prefix + "holdToSprint", 1) == 1;
-            int defaultQuality = Application.isConsolePlatform || Application.platform == RuntimePlatform.WSAPlayerX64 ? 0 : 2;
+            bool constrained = Application.isConsolePlatform || Application.platform == RuntimePlatform.WSAPlayerX64 ||
+                               Application.platform == RuntimePlatform.WebGLPlayer || Application.isMobilePlatform;
+            int defaultQuality = constrained ? 0 : 2;
             Quality = (QualityProfile)Mathf.Clamp(PlayerPrefs.GetInt(Prefix + "quality", defaultQuality), 0, 2);
         }
 

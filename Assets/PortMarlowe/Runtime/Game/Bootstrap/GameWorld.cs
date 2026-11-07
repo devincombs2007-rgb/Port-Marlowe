@@ -80,6 +80,7 @@ namespace PortMarlowe.Game
             s.Lighting = LightingRig.Create(root, s.Clock, s.Materials, s.District);
             s.Hud = Hud.Create(root, s);
             Minimap.Create(s.Hud.CanvasRoot, s);
+            TouchControls.Create(s.Hud.CanvasRoot, s);
 
             s.Crime = new CrimeSystem(s);
             s.Switcher = new SwitchController(s);

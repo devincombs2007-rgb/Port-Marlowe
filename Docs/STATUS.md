@@ -6,7 +6,7 @@ _Updated 2026‑10‑12. Branch `claude/m1-foundation`._
 
 | Item | Value |
 | --- | --- |
-| Editor | Unity 6000.6.5f1 (newest SUPPORTED/recommended), URP 17.6.0 |
+| Editor | Unity 6000.6.8f1 (newest SUPPORTED/recommended), URP 17.6.0 |
 | Project path | repository root (`Assets/PortMarlowe/…`) |
 | Build action | `PortMarlowe.EditorTools.BuildTool.BuildFromCommandLine -pmProfile <LinuxDev\|WindowsDev\|UwpDiagnostic\|UwpRelease>` (see `BuildAndDeploy.md`) |
 | Last verified package | **none.** No UWP package has been compiled. |
@@ -33,7 +33,7 @@ _Updated 2026‑10‑12. Branch `claude/m1-foundation`._
 | Evidence | Result |
 | --- | --- |
 | Core rules (crime, police, seats, switching, partner AI, saves, economy, district plan) | **79/79 NUnit tests pass** on CI (`core-tests`) |
-| All project C# against the real Unity 6000.6.5f1 and package assemblies | **0 errors, 0 warnings**, editor and player passes (`unity-compile-check`). Covers Core, Runtime, EditorTools, Rendering.Urp (+Editor), EditMode and PlayMode tests. |
+| All project C# against the real Unity 6000.6.8f1 and package assemblies | **0 errors, 0 warnings**, editor and player passes (`unity-compile-check`). Covers Core, Runtime, EditorTools, Rendering.Urp (+Editor), EditMode and PlayMode tests. |
 | CC0 surface sets: download, hash, convert | 10/10 sets on CI (`assets` workflow). Hashes are pinned in `Tools/Assets/cc0_lock.json`. |
 | Editor import, scenes, PlayMode, autotest | Not run (blocker 1) |
 | Desktop player | Not built (blocker 1) |
