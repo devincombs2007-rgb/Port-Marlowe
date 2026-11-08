@@ -122,3 +122,17 @@ def test_learner_mid_lookup_and_labelling(tmp_path):
     rows = led.labeled_samples()
     assert len(rows) == 2 and all(r["outcome"] == 1 for r in rows)
     assert logit(0.5) == 0 and math.isclose(sigmoid(logit(0.8)), 0.8)
+
+
+def test_background_refit_swaps_in_new_state(tmp_path):
+    import time as _time
+
+    led = Ledger(str(tmp_path / "l.sqlite"))
+    synthetic(led, 80, truth=lambda p: p)
+    pl = ProbabilityLearner(led, min_markets=40, refit_every_markets=1, background=True)
+    assert not pl.state.active
+    pl.on_labeled()
+    deadline = _time.time() + 20
+    while not pl.state.active and _time.time() < deadline:
+        _time.sleep(0.05)
+    assert pl.state.active and pl.state.n_markets == 80
