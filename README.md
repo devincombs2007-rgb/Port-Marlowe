@@ -110,6 +110,7 @@ Run it under something that restarts it (systemd, `tmux`, a small VPS) if you wa
 | `check [--raw]` | exchange status, open windows per series, parsed strike/book, spot sources, balance |
 | `calibrate [--series S] [--days N]` | model vs. outcome vs. market mid |
 | `learn [--days N]` | pre-train the probability learner on settled markets (slow on purpose: Kalshi rate-limits) |
+| `analyze [--live]` | P&L by coin, time left, price paid and side, with honest (per-market) t-stats |
 | `export-learning` / `import-learning [--dir D]` | save or load what the bot has learned (default folder `learned/`) |
 | `status [--live]` | P&L summary in the terminal |
 | `cancel-all [--demo] [--everything]` | cancel the bot's resting orders (or all of them) |

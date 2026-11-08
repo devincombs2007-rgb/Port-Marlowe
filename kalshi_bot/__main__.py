@@ -223,6 +223,12 @@ def _mode(args: argparse.Namespace) -> str:
     return "live" if getattr(args, "live", False) else ("demo" if getattr(args, "demo", False) else "dry_run")
 
 
+def cmd_analyze(args: argparse.Namespace, cfg: Config) -> None:
+    from .analyze import report
+
+    print(report(Ledger(cfg.db_path), _mode(args)))
+
+
 def cmd_status(args: argparse.Namespace, cfg: Config) -> None:
     from .dashboard.server import build_summary
 
@@ -310,6 +316,11 @@ def main(argv: list[str] | None = None) -> None:
         e.add_argument("--live", action="store_true")
         e.add_argument("--demo", action="store_true")
         e.set_defaults(func=func)
+
+    a = sub.add_parser("analyze", help="where the bot makes and loses money (by coin, time left, price, side)")
+    a.add_argument("--live", action="store_true")
+    a.add_argument("--demo", action="store_true")
+    a.set_defaults(func=cmd_analyze)
 
     s = sub.add_parser("status", help="print P&L summary from the local ledger")
     s.add_argument("--live", action="store_true")
