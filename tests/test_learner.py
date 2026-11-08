@@ -78,8 +78,8 @@ def test_edge_widens_after_adverse_markouts_and_narrows_after_good_ones(tmp_path
     el.update(T0 + 100, mid_after=lambda t, ts: 0.47, outcome=lambda t: None)  # YES bought at 50, now worth 47
     assert el.edge("KXETH15M") == 4.0
     for i in range(10, 20):
-        el.on_fill(fill(i, side="no", price=40, ts=T0 + 200 + i), "KXETH15M")
-    el.update(T0 + 400, mid_after=lambda t, ts: 0.50, outcome=lambda t: None)  # NO bought at 40, worth 50
+        el.on_fill(fill(i, side="no", price=40, ts=T0 + 200 + 70 * i), "KXETH15M")  # spread over 10+ minutes
+    el.update(T0 + 2000, mid_after=lambda t, ts: 0.50, outcome=lambda t: None)  # NO bought at 40, worth 50
     # only the 10 fills since the change count (+10c each), not the earlier -3c ones -> narrow
     assert el.edge("KXETH15M") == 3.5
     reloaded = EdgeLearner(led, "dry_run", base_edge=3.0)
@@ -102,6 +102,19 @@ def test_edge_does_not_overreact_to_fills_from_before_a_change(tmp_path):
     assert el.edge("KXSOL15M") == 4.0
 
 
+def test_narrowing_needs_results_spread_over_time(tmp_path):
+    led = Ledger(str(tmp_path / "l.sqlite"))
+    el = EdgeLearner(led, "dry_run", base_edge=3.0, adjust_every=10, narrow_min_span_sec=600)
+    for i in range(10):  # one burst: 10 great fills within 10 seconds
+        el.on_fill(fill(i, side="no", price=40, ts=T0 + i), "KXETH15M")
+    el.update(T0 + 100, mid_after=lambda t, ts: 0.50, outcome=lambda t: None)
+    assert el.edge("KXETH15M") == 3.0
+    for i in range(10, 20):  # more good fills, now spanning > 10 minutes in total
+        el.on_fill(fill(i, side="no", price=40, ts=T0 + 700 + i), "KXETH15M")
+    el.update(T0 + 900, mid_after=lambda t, ts: 0.50, outcome=lambda t: None)
+    assert el.edge("KXETH15M") == 2.5
+
+
 def test_markout_falls_back_to_settlement(tmp_path):
     led = Ledger(str(tmp_path / "l.sqlite"))
     el = EdgeLearner(led, "dry_run", base_edge=3.0)
@@ -109,7 +122,7 @@ def test_markout_falls_back_to_settlement(tmp_path):
     el.update(T0 + 30, mid_after=lambda t, ts: None, outcome=lambda t: None)
     assert len(el.pending) == 1  # not due yet
     el.update(T0 + 120, mid_after=lambda t, ts: None, outcome=lambda t: 0)
-    assert el.pending == [] and el.series["KXETH15M"].markouts == [[-60.0, 2]]
+    assert el.pending == [] and el.series["KXETH15M"].markouts == [[-60.0, 2, T0]]
 
 
 def test_bench_after_clear_losses(tmp_path):

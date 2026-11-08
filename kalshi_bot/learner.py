@@ -242,7 +242,7 @@ class ProbabilityLearner:
 @dataclass
 class SeriesStats:
     edge: float
-    markouts: list[list[float]] = field(default_factory=list)  # [markout_cents, contracts]
+    markouts: list[list[float]] = field(default_factory=list)  # [markout_cents, contracts, fill_ts]
     fills_measured: int = 0
     since_adjust: int = 0
     market_pnls: list[list[float]] = field(default_factory=list)  # [pnl_cents, contracts]
@@ -264,8 +264,8 @@ class PendingMarkout:
 class EdgeLearner:
     def __init__(self, ledger: Ledger, mode: str, base_edge: float, min_edge: float = 1.0, max_edge: float = 10.0,
                  horizon_sec: float = 60.0, adjust_every: int = 10, window: int = 40, widen_below: float = 0.5,
-                 narrow_above: float = 2.5, bench_min_markets: int = 20, bench_t: float = -2.0,
-                 bench_hours: float = 6.0):
+                 narrow_above: float = 2.5, narrow_min_span_sec: float = 600.0, bench_min_markets: int = 20,
+                 bench_t: float = -2.0, bench_hours: float = 6.0):
         self.ledger = ledger
         self.mode = mode
         self.base_edge = base_edge
@@ -274,6 +274,7 @@ class EdgeLearner:
         self.adjust_every = adjust_every
         self.window = window
         self.widen_below, self.narrow_above = widen_below, narrow_above
+        self.narrow_min_span = narrow_min_span_sec
         self.bench_min_markets, self.bench_t, self.bench_hours = bench_min_markets, bench_t, bench_hours
         raw = ledger.get_state(mode, "edge_learner") or {}
         self.series: dict[str, SeriesStats] = {k: SeriesStats(**v) for k, v in (raw.get("series") or {}).items()}
@@ -314,15 +315,15 @@ class EdgeLearner:
                     continue  # give up on it
             yes_value = mid * 100.0
             value = yes_value if p.side == "yes" else 100.0 - yes_value
-            self._record_markout(p.series, value - p.price, p.count, now)
+            self._record_markout(p.series, value - p.price, p.count, p.ts)
             changed = True
         self.pending = keep
         if changed:
             self._save()
 
-    def _record_markout(self, series: str, markout: float, count: int, now: float) -> None:
+    def _record_markout(self, series: str, markout: float, count: int, fill_ts: float) -> None:
         st = self._get(series)
-        st.markouts.append([round(markout, 3), count])
+        st.markouts.append([round(markout, 3), count, fill_ts])
         st.markouts = st.markouts[-200:]
         st.fills_measured += 1
         st.since_adjust += 1
@@ -333,12 +334,16 @@ class EdgeLearner:
         # controller keep reacting to a problem it already responded to.
         n_since_change = min(st.fills_measured - st.changed_at, self.window, len(st.markouts))
         recent = st.markouts[-n_since_change:] if n_since_change else []
-        total = sum(c for _, c in recent)
-        avg = sum(m * c for m, c in recent) / total if total else 0.0
+        total = sum(r[1] for r in recent)
+        avg = sum(r[0] * r[1] for r in recent) / total if total else 0.0
+        stamps = [r[2] for r in recent if len(r) > 2]
+        span = (max(stamps) - min(stamps)) if stamps else 0.0
         old = st.edge
+        # Quick to get careful, slow to get greedy: fills arrive in bursts during a
+        # single price move, so narrowing needs good results spread over time.
         if avg < self.widen_below:
             st.edge = min(self.max_edge, st.edge + 1.0)
-        elif avg > self.narrow_above:
+        elif avg > self.narrow_above and span >= self.narrow_min_span:
             st.edge = max(self.min_edge, st.edge - 0.5)
         if st.edge != old:
             st.changed_at = st.fills_measured
@@ -375,12 +380,12 @@ class EdgeLearner:
         out = {}
         for name, st in sorted(self.series.items()):
             recent = st.markouts[-self.window:]
-            total = sum(c for _, c in recent)
+            total = sum(r[1] for r in recent)
             pnl = [p for p, _ in st.market_pnls]
             out[name] = {
                 "edge": st.edge,
                 "fills_measured": st.fills_measured,
-                "avg_markout_cents": (sum(m * c for m, c in recent) / total) if total else None,
+                "avg_markout_cents": (sum(r[0] * r[1] for r in recent) / total) if total else None,
                 "markets": len(pnl),
                 "pnl_cents": sum(pnl),
                 "benched_until": st.benched_until if st.benched_until > now else None,

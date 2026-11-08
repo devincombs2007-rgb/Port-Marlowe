@@ -119,7 +119,7 @@ def test_learner_records_samples_sets_edge_and_benches(tmp_path):
     eng.tick(CLOSE + 30)
     assert led.labeled_samples()[0]["outcome"] == 0
     eng.learner.update(CLOSE + 400)
-    assert eng.learner.edges.series["KXBTC15M"].markouts == [[-43.0, 2]]
+    assert eng.learner.edges.series["KXBTC15M"].markouts == [[-43.0, 2, OPEN + 301]]
 
     eng.learner.edges._get("KXBTC15M").benched_until = CLOSE + 10_000
     k.add_market("KXBTC15M-W2-00", CLOSE, CLOSE + 900, 100_000.0)
