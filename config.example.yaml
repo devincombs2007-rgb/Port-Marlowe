@@ -1,0 +1,61 @@
+# Copy to config.yaml (git-ignored) and edit. Every key is optional; these are the defaults.
+# API credentials never go here: use .env (see .env.example).
+
+markets:
+  - {series: KXBTC15M, symbol: BTC}
+  - {series: KXETH15M, symbol: ETH}
+  - {series: KXSOL15M, symbol: SOL}
+  - {series: KXDOGE15M, symbol: DOGE}
+  - {series: KXHYPE15M, symbol: HYPE}
+
+strategy:
+  min_edge_cents: 3.0          # bid at least this far below fair value
+  improve_best_bid: true       # bid 1c above the best other bid when that is still inside the edge
+  reprice_threshold_cents: 1
+  min_seconds_to_close: 90     # pull everything before the settlement-averaging minute
+  min_seconds_since_open: 15
+  min_fair: 0.08               # skip lopsided markets: small wins, big losses
+  max_fair: 0.92
+  inventory_skew_cents: 0.25   # per contract of net YES (or NO) held
+  max_skew_cents: 5.0
+  vol_multiplier: 1.15
+  settlement_window_sec: 60
+  stale_spot_seconds: 4.0
+  shock_sigma: 3.0
+  shock_lookback_sec: 5
+  shock_cooldown_sec: 15
+  max_places_per_tick: 8
+
+sizing:
+  order_fraction: 0.02             # each order costs ~2% of equity
+  min_contracts: 1
+  max_contracts: 100
+  max_market_loss_fraction: 0.06   # worst case in a single 15-minute market
+  max_total_exposure_fraction: 0.30
+
+risk:
+  daily_loss_limit_fraction: 0.10  # pause until midnight ET after losing 10% on the day
+  max_drawdown_fraction: 0.25      # halt until `reset-halt` after a 25% fall from peak
+  kill_file: KILL                  # `touch KILL` to flatten quotes immediately
+
+fees:
+  maker_rate: 0.0     # check Kalshi's current fee schedule
+  taker_rate: 0.07
+
+paper:
+  starting_balance_usd: 50
+  fill_at_touch: true
+
+dashboard:
+  host: 127.0.0.1
+  port: 8050
+
+poll_interval_sec: 2.0
+spot_poll_interval_sec: 1.0
+market_refresh_sec: 20
+spot_sources: [coinbase, kraken, hyperliquid]
+vol_halflife_minutes: 60
+db_path: data/bot.sqlite
+log_path: data/bot.log
+order_price_field: cents
+use_order_expiration: true

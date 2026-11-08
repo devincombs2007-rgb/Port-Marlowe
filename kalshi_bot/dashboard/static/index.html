@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Port Marlowe Bot</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #181b22;
+    --panel-2: #1f232c;
+    --border: #2a2f3a;
+    --text: #e6e8ee;
+    --muted: #8b93a5;
+    --faint: #555d6e;
+    --pos: #3ecf8e;
+    --pos-bg: rgba(62, 207, 142, 0.12);
+    --neg: #f2555a;
+    --neg-bg: rgba(242, 85, 90, 0.12);
+    --accent: #e6e8ee;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 20px 16px 48px; }
+  header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  h1 { font-size: 18px; margin: 0; font-weight: 650; letter-spacing: .2px; }
+  .sub { color: var(--muted); font-size: 12px; }
+  .seg { display: inline-flex; background: var(--panel-2); border: 1px solid var(--border); border-radius: 999px; padding: 3px; }
+  .seg button {
+    background: none; border: 0; color: var(--muted); padding: 6px 14px; border-radius: 999px;
+    font: inherit; font-weight: 600; cursor: pointer;
+  }
+  .seg button.on { background: var(--accent); color: #111; }
+  .pill { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .pill.ok { background: var(--pos-bg); color: var(--pos); }
+  .pill.stop { background: var(--neg-bg); color: var(--neg); }
+  .pill.idle { background: var(--panel-2); color: var(--muted); }
+  .grid { display: grid; gap: 12px; }
+  .tiles { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); margin-bottom: 12px; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; min-width: 0; }
+  .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .6px; font-weight: 600; }
+  .big { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 4px; }
+  .pos { color: var(--pos); } .neg { color: var(--neg); } .muted { color: var(--muted); }
+  .row2 { grid-template-columns: 1fr; }
+  @media (min-width: 900px) { .row2 { grid-template-columns: 1fr 1fr; } }
+  .cal-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 10px 0 12px; }
+  .cal-title { font-weight: 650; font-variant-numeric: tabular-nums; }
+  .nav { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); cursor: pointer; font-size: 16px; }
+  .nav:disabled { opacity: .3; cursor: default; }
+  .cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+  .dow { text-align: center; color: var(--muted); font-size: 12px; font-weight: 600; }
+  .day {
+    border: 1px solid var(--border); border-radius: 10px; min-height: 52px; padding: 5px 2px; text-align: center;
+    background: var(--panel-2); font-family: var(--mono); font-size: 11px; display: flex; flex-direction: column; justify-content: center;
+  }
+  .day .d { color: var(--muted); font-size: 11px; }
+  .day.empty { visibility: hidden; }
+  .day.future { opacity: .35; }
+  .day.win { background: var(--pos-bg); border-color: rgba(62, 207, 142, .45); color: var(--pos); }
+  .day.loss { background: var(--neg-bg); border-color: rgba(242, 85, 90, .45); color: var(--neg); }
+  .day.today { outline: 2px solid var(--text); outline-offset: -2px; }
+  .day .vs { display: none; }
+  @media (max-width: 560px) {
+    .cal { gap: 4px; }
+    .day { min-height: 44px; font-size: 10px; }
+    .day .vf { display: none; }
+    .day .vs { display: inline; }
+  }
+  .foot { color: var(--muted); font-size: 12px; margin-top: 10px; }
+  .chart-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  svg { display: block; width: 100%; height: auto; }
+  .tbl { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  .tbl th, .tbl td { padding: 7px 8px; border-bottom: 1px solid var(--border); text-align: right; white-space: nowrap; }
+  .tbl th:first-child, .tbl td:first-child { text-align: left; }
+  .tbl th { color: var(--muted); font-size: 12px; font-weight: 600; }
+  .scroll { overflow-x: auto; }
+  .warn { background: var(--neg-bg); color: var(--neg); border: 1px solid rgba(242,85,90,.4); border-radius: 12px; padding: 10px 14px; margin-bottom: 12px; display: none; }
+  #tip { position: fixed; pointer-events: none; background: #000c; color: #fff; padding: 4px 8px; border-radius: 6px; font-size: 12px; display: none; font-family: var(--mono); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Kalshi 15-minute crypto maker</h1>
+      <div class="sub"><span id="updated">loading…</span> · <span id="state" class="pill idle">—</span></div>
+    </div>
+    <div class="seg" id="modes"></div>
+  </header>
+
+  <div class="warn" id="warn"></div>
+
+  <div class="grid tiles">
+    <div class="card"><div class="label">7-day P&amp;L</div><div class="big" id="t-week">—</div><div class="sub" id="t-week-sub"></div></div>
+    <div class="card"><div class="label">Equity</div><div class="big" id="t-equity">—</div><div class="sub" id="t-equity-sub"></div></div>
+    <div class="card"><div class="label">All-time P&amp;L</div><div class="big" id="t-total">—</div><div class="sub" id="t-total-sub"></div></div>
+    <div class="card"><div class="label">Win rate</div><div class="big" id="t-wr">—</div><div class="sub" id="t-wr-sub"></div></div>
+    <div class="card"><div class="label">Largest loss</div><div class="big" id="t-ll">—</div><div class="sub" id="t-ll-sub"></div></div>
+  </div>
+
+  <div class="grid row2">
+    <div class="card">
+      <div class="label">Daily P&amp;L</div>
+      <div class="cal-head">
+        <button class="nav" id="prev" aria-label="Previous month">‹</button>
+        <div class="cal-title" id="cal-title">—</div>
+        <button class="nav" id="next" aria-label="Next month">›</button>
+      </div>
+      <div class="cal" id="cal"></div>
+      <div class="foot">Each day = markets that closed midnight to midnight ET. Open positions are not counted until they settle.</div>
+    </div>
+    <div class="card">
+      <div class="chart-head">
+        <div class="label">Equity curve</div>
+        <div class="big" id="curve-val" style="font-size:16px">—</div>
+      </div>
+      <div id="chart" style="margin-top:10px"></div>
+      <div style="margin-top:10px" class="seg" id="curve-mode">
+        <button data-v="balance">Balance</button><button data-v="pnl" class="on">P&amp;L</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:12px">
+    <div class="label">Live windows</div>
+    <div class="scroll"><table class="tbl" id="markets"></table></div>
+  </div>
+  <div class="card" style="margin-top:12px">
+    <div class="label">Open positions</div>
+    <div class="scroll"><table class="tbl" id="positions"></table></div>
+  </div>
+</div>
+<div id="tip"></div>
+
+<script>
+(function () {
+  "use strict";
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* storage unavailable */ } },
+  };
+  let mode = store.get("mode", "dry_run");
+  let curveMode = store.get("curve", "pnl");
+  let month = null;
+  let last = null;
+
+  const $ = (id) => document.getElementById(id);
+  const usd = (c, sign) => {
+    if (c === null || c === undefined) return "—";
+    const v = c / 100;
+    const s = Math.abs(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return (sign ? (v > 0 ? "+" : v < 0 ? "−" : "") : (v < 0 ? "−" : "")) + "$" + s;
+  };
+  const cls = (c) => (c > 0 ? "pos" : c < 0 ? "neg" : "muted");
+  const label = (m) => ({ live: "Live", dry_run: "Dry-run", demo: "Demo" }[m] || m);
+
+  function renderModes(modes) {
+    const el = $("modes");
+    el.innerHTML = "";
+    modes.forEach((m) => {
+      const b = document.createElement("button");
+      b.textContent = label(m);
+      if (m === mode) b.className = "on";
+      b.onclick = () => { mode = m; store.set("mode", m); month = null; load(); };
+      el.appendChild(b);
+    });
+  }
+
+  function renderCalendar(mo, now) {
+    const [y, m] = mo.key.split("-").map(Number);
+    const total = mo.total_cents;
+    $("cal-title").innerHTML = new Date(y, m - 1, 1).toLocaleString(undefined, { month: "long", year: "numeric" }) +
+      ` · <span class="${cls(total)}">${usd(total, true)}</span> <span class="muted">${mo.win_days}W ${mo.loss_days}L</span>`;
+    const cal = $("cal");
+    cal.innerHTML = "";
+    "SMTWTFS".split("").forEach((d) => { const e = document.createElement("div"); e.className = "dow"; e.textContent = d; cal.appendChild(e); });
+    const first = new Date(y, m - 1, 1).getDay();
+    const ndays = new Date(y, m, 0).getDate();
+    const todayET = new Date(new Date(now * 1000).toLocaleString("en-US", { timeZone: "America/New_York" }));
+    for (let i = 0; i < first; i++) { const e = document.createElement("div"); e.className = "day empty"; cal.appendChild(e); }
+    for (let d = 1; d <= ndays; d++) {
+      const key = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+      const info = mo.days[key];
+      const e = document.createElement("div");
+      let c = "day";
+      const isToday = todayET.getFullYear() === y && todayET.getMonth() === m - 1 && todayET.getDate() === d;
+      const isFuture = new Date(y, m - 1, d) > todayET && !isToday;
+      if (info) c += info.pnl_cents > 0 ? " win" : info.pnl_cents < 0 ? " loss" : "";
+      if (isFuture) c += " future";
+      if (isToday) c += " today";
+      e.className = c;
+      const short = info ? (info.pnl_cents > 0 ? "+" : info.pnl_cents < 0 ? "−" : "") + Math.round(Math.abs(info.pnl_cents) / 100) : "";
+      e.innerHTML = `<span class="d">${d}</span>` +
+        (info ? `<span class="vf">${usd(info.pnl_cents, true).replace("$", "")}</span><span class="vs">${short}</span>` : "");
+      if (info) e.title = `${info.markets} markets settled, ${info.wins} profitable`;
+      cal.appendChild(e);
+    }
+    $("prev").disabled = mo.key <= mo.first;
+    const nowKey = `${todayET.getFullYear()}-${String(todayET.getMonth() + 1).padStart(2, "0")}`;
+    $("next").disabled = mo.key >= nowKey;
+  }
+
+  function shiftMonth(delta) {
+    const [y, m] = (month || last.month.key).split("-").map(Number);
+    const d = new Date(y, m - 1 + delta, 1);
+    month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    load();
+  }
+
+  function renderChart(points, isPnl) {
+    const W = 600, H = 260, P = { l: 56, r: 12, t: 12, b: 26 };
+    const el = $("chart");
+    if (!points.length) {
+      el.innerHTML = `<div class="muted" style="padding:40px 0;text-align:center">No ${isPnl ? "settled markets" : "equity snapshots"} yet.</div>`;
+      $("curve-val").textContent = "—"; $("curve-val").className = "big";
+      return;
+    }
+    const pts = isPnl ? [[points[0][0], 0], ...points] : points;
+    const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1] / 100);
+    let x0 = Math.min(...xs), x1 = Math.max(...xs); if (x1 === x0) x1 = x0 + 1;
+    let y0 = Math.min(...ys, isPnl ? 0 : Infinity), y1 = Math.max(...ys, isPnl ? 0 : -Infinity);
+    if (y1 === y0) { y1 += 1; y0 -= 1; }
+    const pad = (y1 - y0) * 0.08; y0 -= pad; y1 += pad;
+    const X = (x) => P.l + (x - x0) / (x1 - x0) * (W - P.l - P.r);
+    const Y = (y) => P.t + (1 - (y - y0) / (y1 - y0)) * (H - P.t - P.b);
+    const d = pts.map((p, i) => `${i ? "L" : "M"}${X(p[0]).toFixed(1)},${Y(p[1] / 100).toFixed(1)}`).join("");
+    const endV = ys[ys.length - 1];
+    const color = isPnl ? (endV >= 0 ? "var(--pos)" : "var(--neg)") : "var(--pos)";
+    let grid = "";
+    for (let i = 0; i <= 3; i++) {
+      const v = y0 + (y1 - y0) * i / 3;
+      grid += `<line x1="${P.l}" x2="${W - P.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--border)" stroke-width="1"/>` +
+        `<text x="${P.l - 8}" y="${Y(v) + 4}" text-anchor="end" fill="var(--muted)" font-size="11">${v.toLocaleString(undefined, { maximumFractionDigits: 0 })}</text>`;
+    }
+    const fmtD = (t) => new Date(t * 1000).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    grid += `<text x="${P.l}" y="${H - 6}" fill="var(--muted)" font-size="11">${fmtD(x0)}</text>` +
+      `<text x="${W - P.r}" y="${H - 6}" fill="var(--muted)" font-size="11" text-anchor="end">${fmtD(x1)}</text>`;
+    const zero = isPnl ? `<line x1="${P.l}" x2="${W - P.r}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--faint)" stroke-dasharray="3 4"/>` : "";
+    el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" id="svg">${grid}${zero}<path d="${d}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round"/>` +
+      `<circle id="dot" r="4" fill="${color}" style="display:none"/></svg>`;
+    $("curve-val").textContent = isPnl ? usd(endV * 100, true) : usd(endV * 100);
+    $("curve-val").className = "big " + (isPnl ? cls(endV) : "");
+    const svg = $("svg"), dot = $("dot"), tip = $("tip");
+    svg.onmousemove = (ev) => {
+      const r = svg.getBoundingClientRect();
+      const x = (ev.clientX - r.left) / r.width * W;
+      let best = pts[0];
+      for (const p of pts) if (Math.abs(X(p[0]) - x) < Math.abs(X(best[0]) - x)) best = p;
+      dot.setAttribute("cx", X(best[0])); dot.setAttribute("cy", Y(best[1] / 100)); dot.style.display = "";
+      tip.style.display = "block"; tip.style.left = ev.clientX + 12 + "px"; tip.style.top = ev.clientY - 28 + "px";
+      tip.textContent = `${new Date(best[0] * 1000).toLocaleString()}  ${isPnl ? usd(best[1], true) : usd(best[1])}`;
+    };
+    svg.onmouseleave = () => { dot.style.display = "none"; tip.style.display = "none"; };
+  }
+
+  function renderTables(s) {
+    const mk = (s.status && s.status.markets) || {};
+    const rows = Object.entries(mk).map(([t, m]) => {
+      if (!m.quoting) return `<tr><td>${t}</td><td colspan="7" class="muted" style="text-align:left">${m.reason}</td></tr>`;
+      const o = m.orders || {};
+      const q = (x) => (x ? `${x.count}@${x.price}¢` : "—");
+      return `<tr><td>${t}</td><td>${Number(m.spot).toLocaleString(undefined, { maximumFractionDigits: 4 })}</td>` +
+        `<td>${Number(m.strike).toLocaleString(undefined, { maximumFractionDigits: 4 })}</td><td>${Math.floor(m.tau / 60)}:${String(m.tau % 60).padStart(2, "0")}</td>` +
+        `<td>${(m.fair * 100).toFixed(1)}¢</td><td>${m.best_yes_bid ?? "—"} / ${m.best_no_bid ?? "—"}</td>` +
+        `<td title="${m.note || ""}">${m.note && !o.yes && !o.no ? "out of band" : `${q(o.yes)} / ${q(o.no)}`}</td><td>${m.position.yes}Y ${m.position.no}N</td></tr>`;
+    });
+    $("markets").innerHTML = `<tr><th>Market</th><th>Spot</th><th>Strike</th><th>Left</th><th>Fair YES</th><th>Book Y/N bid</th><th>Our Y/N bid</th><th>Position</th></tr>` +
+      (rows.join("") || `<tr><td colspan="8" class="muted" style="text-align:left">Bot not running in this mode.</td></tr>`);
+    const pos = s.open_positions.map((p) => `<tr><td>${p.ticker}</td><td>${p.yes}</td><td>${p.no}</td><td>${usd(p.cost_cents)}</td><td class="neg">${usd(-p.worst_case_cents)}</td></tr>`);
+    $("positions").innerHTML = `<tr><th>Market</th><th>YES</th><th>NO</th><th>Cost</th><th>Worst case</th></tr>` +
+      (pos.join("") || `<tr><td colspan="5" class="muted" style="text-align:left">Flat.</td></tr>`);
+  }
+
+  function render(s) {
+    last = s;
+    renderModes(s.modes);
+    const st = s.status || {};
+    const age = st.ts ? Math.max(0, Math.round(s.now - st.ts)) : null;
+    $("updated").textContent = age === null ? "no data yet" : `updated ${age}s ago`;
+    const pill = $("state");
+    if (s.halted) { pill.className = "pill stop"; pill.textContent = "halted"; }
+    else if (age === null || age > 30) { pill.className = "pill idle"; pill.textContent = "not running"; }
+    else if (st.stop_reason) { pill.className = "pill stop"; pill.textContent = "paused"; }
+    else { pill.className = "pill ok"; pill.textContent = "quoting"; }
+    const warn = $("warn");
+    const reason = s.halted || (age !== null && age <= 30 ? st.stop_reason : null);
+    warn.style.display = reason ? "block" : "none";
+    warn.textContent = reason ? `Not quoting: ${reason}` : "";
+
+    const w = s.week, t = s.totals;
+    $("t-week").textContent = usd(w.pnl_cents, true); $("t-week").className = "big " + cls(w.pnl_cents);
+    $("t-week-sub").textContent = `${w.markets} markets · ${w.fills} fills · ${usd(w.volume_cents)} volume`;
+    $("t-equity").textContent = st.equity_cents !== undefined ? usd(st.equity_cents) : "—";
+    $("t-equity-sub").textContent = st.cash_cents !== undefined ? `cash ${usd(st.cash_cents)} · ${st.resting_orders} resting` : "";
+    $("t-total").textContent = usd(t.pnl_cents, true); $("t-total").className = "big " + cls(t.pnl_cents);
+    $("t-total-sub").textContent = `${t.markets} markets · fees ${usd(t.fees_cents)}`;
+    $("t-wr").textContent = t.win_rate === null ? "—" : (t.win_rate * 100).toFixed(0) + "%";
+    $("t-wr-sub").textContent = t.avg_win_cents !== null ? `avg win ${usd(t.avg_win_cents)} · avg loss ${usd(t.avg_loss_cents)}` : "";
+    $("t-ll").textContent = usd(t.largest_loss_cents, true); $("t-ll").className = "big " + (t.largest_loss_cents ? "neg" : "muted");
+    $("t-ll-sub").textContent = t.avg_win_cents && t.largest_loss_cents ? `= ${(Math.abs(t.largest_loss_cents) / t.avg_win_cents).toFixed(1)} average wins` : "";
+
+    renderCalendar(s.month, s.now);
+    document.querySelectorAll("#curve-mode button").forEach((b) => b.classList.toggle("on", b.dataset.v === curveMode));
+    renderChart(curveMode === "pnl" ? s.pnl_curve : s.equity_curve, curveMode === "pnl");
+    renderTables(s);
+  }
+
+  async function load() {
+    const q = new URLSearchParams({ mode });
+    if (month) q.set("month", month);
+    try {
+      const r = await fetch("/api/summary?" + q.toString());
+      if (!r.ok) throw new Error(await r.text());
+      render(await r.json());
+    } catch (e) {
+      $("updated").textContent = "dashboard error: " + e.message;
+    }
+  }
+
+  $("prev").onclick = () => shiftMonth(-1);
+  $("next").onclick = () => shiftMonth(1);
+  document.querySelectorAll("#curve-mode button").forEach((b) => {
+    b.onclick = () => { curveMode = b.dataset.v; store.set("curve", curveMode); if (last) render(last); };
+  });
+  load();
+  setInterval(load, 5000);
+})();
+</script>
+</body>
+</html>
