@@ -37,3 +37,15 @@ def test_trade_and_helpers():
     assert (t.yes_price, t.count, t.taker_side) == (44, 7, "no")
     assert get_cents({"a_dollars": "0.07"}, "a") == 7
     assert parse_ts(1_700_000_000_000) == 1_700_000_000.0
+
+
+def test_rate_limiter_spaces_requests():
+    from kalshi_bot.kalshi_client import RateLimiter
+
+    t = [0.0]
+    slept = []
+    rl = RateLimiter(rate=4.0, burst=2.0, clock=lambda: t[0], sleep=lambda s: (slept.append(s), t.__setitem__(0, t[0] + s)))
+    for _ in range(6):
+        rl.acquire()
+    # 2 from the burst, then 4 more at 4/s -> about 1 second of waiting
+    assert abs(sum(slept) - 1.0) < 1e-6

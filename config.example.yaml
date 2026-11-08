@@ -51,7 +51,9 @@ dashboard:
   port: 8050
 
 learning: true                 # learn from results (kalshi_bot/learner.py)
+learned_dir: learned           # snapshot that seeds a fresh database (export-learning / import-learning)
 poll_interval_sec: 2.0
+kalshi_max_requests_per_sec: 8   # stay under Kalshi's rate limit
 spot_poll_interval_sec: 1.0
 market_refresh_sec: 20
 spot_sources: [coinbase, kraken]

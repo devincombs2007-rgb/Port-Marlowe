@@ -163,3 +163,36 @@ def test_background_refit_swaps_in_new_state(tmp_path):
     while not pl.state.active and _time.time() < deadline:
         _time.sleep(0.05)
     assert pl.state.active and pl.state.n_markets == 80
+
+
+def test_snapshot_roundtrip(tmp_path):
+    from kalshi_bot.snapshot import export_snapshot, has_snapshot, import_snapshot
+
+    src = Ledger(str(tmp_path / "src.sqlite"))
+    synthetic(src, 60, truth=lambda p: p)
+    ProbabilityLearner(src, min_markets=40).refit()
+    el = EdgeLearner(src, "dry_run", base_edge=3.0)
+    el._get("KXSOL15M").edge = 9.0
+    el._save()
+    res = export_snapshot(src, "dry_run", tmp_path / "learned")
+    assert res["markets"] == 60 and has_snapshot(tmp_path / "learned")
+
+    dst = Ledger(str(tmp_path / "dst.sqlite"))
+    out = import_snapshot(dst, "dry_run", tmp_path / "learned")
+    assert out["samples_added"] == 600 and out["took_model"] and out["took_edges"]
+    assert ProbabilityLearner(dst).state.active
+    assert EdgeLearner(dst, "dry_run", base_edge=3.0).edge("KXSOL15M") == 9.0
+    again = import_snapshot(dst, "dry_run", tmp_path / "learned")  # idempotent
+    assert again["samples_added"] == 0 and not again["took_model"] and not again["took_edges"]
+    # Paper-learned edges are not pushed into live trading.
+    assert not import_snapshot(dst, "live", tmp_path / "learned")["took_edges"]
+
+
+def test_max_edge_bench_on_markouts(tmp_path):
+    led = Ledger(str(tmp_path / "l.sqlite"))
+    el = EdgeLearner(led, "dry_run", base_edge=10.0, max_edge=10.0, adjust_every=10, bench_hours=6)
+    for i in range(20):
+        el.on_fill(fill(i, price=50, ts=T0 + i * 30), "KXSOL15M")
+    el.update(T0 + 2000, mid_after=lambda t, ts: 0.45, outcome=lambda t: None)
+    assert el.benched("KXSOL15M", T0 + 2000)
+    assert not el.benched("KXSOL15M", T0 + 8 * 3600)

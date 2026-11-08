@@ -35,7 +35,7 @@ def _auth(cfg: Config, required: bool) -> KalshiAuth | None:
 
 def _client(cfg: Config, demo: bool, auth_required: bool) -> KalshiClient:
     base = os.environ.get("KALSHI_BASE_URL") or (DEMO_BASE_URL if demo else PROD_BASE_URL)
-    return KalshiClient(base, auth=_auth(cfg, auth_required))
+    return KalshiClient(base, auth=_auth(cfg, auth_required), max_requests_per_sec=cfg.kalshi_max_requests_per_sec)
 
 
 def cmd_run(args: argparse.Namespace, cfg: Config) -> None:
@@ -78,6 +78,13 @@ def cmd_run(args: argparse.Namespace, cfg: Config) -> None:
     learner = None
     if cfg.learning:
         from .learner import Learner
+        from .snapshot import has_snapshot, import_snapshot
+
+        if not ledger.sample_counts() and has_snapshot(cfg.learned_dir):
+            res = import_snapshot(ledger, broker.mode, cfg.learned_dir)
+            log.info("seeded learning from %s/: %d samples, model %s, edges %s", cfg.learned_dir,
+                     res["samples_added"], "imported" if res["took_model"] else "kept",
+                     "imported" if res["took_edges"] else "kept")
 
         learner = Learner(ledger, broker.mode, cfg.strategy.min_edge_cents)
         st = learner.prob.state
@@ -196,6 +203,26 @@ def cmd_learn(args: argparse.Namespace, cfg: Config) -> None:
     print("the bot will", "USE the learned blend" if st.active else "keep the plain model (learned blend did not beat it)")
 
 
+def cmd_export_learning(args: argparse.Namespace, cfg: Config) -> None:
+    from .snapshot import export_snapshot
+
+    res = export_snapshot(Ledger(cfg.db_path), _mode(args), args.dir or cfg.learned_dir)
+    print(f"exported {res['samples']} samples from {res['markets']} markets to {res['folder']}/")
+
+
+def cmd_import_learning(args: argparse.Namespace, cfg: Config) -> None:
+    from .snapshot import import_snapshot
+
+    res = import_snapshot(Ledger(cfg.db_path), _mode(args), args.dir or cfg.learned_dir)
+    print(f"added {res['samples_added']} samples; probability model {'imported' if res['took_model'] else 'kept local'}; "
+          f"edges {'imported' if res['took_edges'] else 'kept local'}")
+    print("the bot refits on these the next time a market settles while it runs")
+
+
+def _mode(args: argparse.Namespace) -> str:
+    return "live" if getattr(args, "live", False) else ("demo" if getattr(args, "demo", False) else "dry_run")
+
+
 def cmd_status(args: argparse.Namespace, cfg: Config) -> None:
     from .dashboard.server import build_summary
 
@@ -273,6 +300,16 @@ def main(argv: list[str] | None = None) -> None:
     ln.add_argument("--days", type=float, default=7.0)
     ln.add_argument("--pause", type=float, default=0.8, help="seconds between Kalshi requests (rate limits)")
     ln.set_defaults(func=cmd_learn)
+
+    for name, func, helptext in (
+        ("export-learning", cmd_export_learning, "write what the bot learned to a folder (default: learned/)"),
+        ("import-learning", cmd_import_learning, "load a learned/ snapshot into the local database"),
+    ):
+        e = sub.add_parser(name, help=helptext)
+        e.add_argument("--dir", help="snapshot folder (default: learned_dir from config)")
+        e.add_argument("--live", action="store_true")
+        e.add_argument("--demo", action="store_true")
+        e.set_defaults(func=func)
 
     s = sub.add_parser("status", help="print P&L summary from the local ledger")
     s.add_argument("--live", action="store_true")

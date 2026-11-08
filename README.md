@@ -28,12 +28,16 @@ Every 2 seconds, for each series:
 
 With `learning: true` (the default) the bot gets better at its own job from the results it sees. It does not invent new strategies. See `kalshi_bot/learner.py`.
 
-- **What a contract is worth.** Every minute it records its model's probability next to Kalshi's mid price for each live market. When the market settles, those rows get the outcome. A small logistic regression then learns how much to trust each signal, and how that changes as the window runs down. It starts from "trust my model" and moves only as far as the data justifies. It switches to the learned blend only after the blend beats the plain model on markets it wasn't trained on, and it refits every few settled markets. `python -m kalshi_bot learn --days 7` pre-trains it on recent settled markets so it doesn't start cold.
+- **What a contract is worth.** Every minute it records its model's probability next to Kalshi's mid price for each live market. When the market settles, those rows get the outcome. A small logistic regression then learns how much to trust each signal, and how that changes as the window runs down. It starts from "trust my model" and moves only as far as the data justifies. It switches to the learned blend only after the blend beats the plain model on markets it wasn't trained on, and it refits every few settled markets.
 - **How much edge to demand, per coin.** One minute after each fill it checks Kalshi's mid. Negative "markouts" mean it was picked off by someone who knew more. Those widen that coin's edge by 1¢; consistently good markouts narrow it by 0.5¢ (range 1–10¢).
-- **When to sit out.** If a coin's settled P&L is clearly negative (t-stat below −2 over at least 20 markets), it's benched for 6 hours and comes back with a wider edge.
+- **When to sit out.** A coin is benched for 6 hours in either of two cases. It is still being picked off at the 10¢ maximum edge, or its settled P&L is clearly negative (t-stat below −2 over at least 20 markets). It comes back with a wider edge.
 - **Growing.** Order sizes are a fraction of equity, so wins compound and losses shrink the next bets.
 
 All of it is visible on the dashboard's "What the bot has learned" panel, including every change it made and why.
+
+**It doesn't start from zero.** The `learned/` folder holds a snapshot of everything learned so far: about 27,000 labelled market samples, the fitted model and each coin's edge. A fresh database loads it automatically on first `run`. To save a new snapshot after letting it run, use `python -m kalshi_bot export-learning`. To merge someone else's snapshot, use `import-learning --dir <folder>`. To rebuild from scratch, use `python -m kalshi_bot learn --days 7`.
+
+**First paper session (Nov 8 2026, about 3 hours, $50 start):** +$75 over 59 markets on paper. That's too short to mean anything, and paper fills are optimistic. The learned blend predicted unseen markets better than both the original model and Kalshi's price (log-loss 0.444 vs 0.462 / 0.458). The edge learner found that BTC, ETH and HYPE fills hold their value at 4.5–8¢ of edge. DOGE and SOL kept getting picked off even at 8–10¢.
 
 What it can't do: learning only works if there is something to learn. If Kalshi's own price already contains everything the model knows, the blend converges toward the market price and the profit source shrinks to the spread. On thin data it mostly learns noise, which is why the guards above are deliberately slow.
 
@@ -74,12 +78,12 @@ Requires Python 3.10+.
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
-pytest                                   # 52 tests
+pytest                                   # 58 tests
 
 cp config.example.yaml config.yaml       # optional; defaults are the same
 python -m kalshi_bot check               # connectivity + how Kalshi's responses parse
 python -m kalshi_bot calibrate --days 7  # does the model beat the market?
-python -m kalshi_bot learn --days 7      # pre-train the learner on settled markets
+python -m kalshi_bot learn --days 7      # optional: the learned/ snapshot already seeds the learner
 python -m kalshi_bot run                 # dry-run: real data, simulated fills, $50 paper balance
 python -m kalshi_bot dashboard           # http://127.0.0.1:8050
 ```
@@ -106,6 +110,7 @@ Run it under something that restarts it (systemd, `tmux`, a small VPS) if you wa
 | `check [--raw]` | exchange status, open windows per series, parsed strike/book, spot sources, balance |
 | `calibrate [--series S] [--days N]` | model vs. outcome vs. market mid |
 | `learn [--days N]` | pre-train the probability learner on settled markets (slow on purpose: Kalshi rate-limits) |
+| `export-learning` / `import-learning [--dir D]` | save or load what the bot has learned (default folder `learned/`) |
 | `status [--live]` | P&L summary in the terminal |
 | `cancel-all [--demo] [--everything]` | cancel the bot's resting orders (or all of them) |
 | `reset-halt [--live]` | clear a drawdown halt; also resets peak equity (use after a withdrawal) |
@@ -138,6 +143,7 @@ kalshi_bot/
   ledger.py          SQLite: fills, settlements, equity, daily P&L
   calibrate.py       model vs. market scoring, history sampling for `learn`
   learner.py         probability blend + per-series edge learning
+  snapshot.py        export/import of learned state (the learned/ folder)
   dashboard/         stdlib HTTP server + single-page dashboard
 tests/               unit tests and engine integration tests with fake exchange/feeds
 ```

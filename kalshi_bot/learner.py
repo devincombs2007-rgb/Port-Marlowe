@@ -339,6 +339,14 @@ class EdgeLearner:
         stamps = [r[2] for r in recent if len(r) > 2]
         span = (max(stamps) - min(stamps)) if stamps else 0.0
         old = st.edge
+        if st.edge >= self.max_edge and avg < self.widen_below and len(recent) >= 2 * self.adjust_every:
+            # Already as careful as we go and still picked off: sit this one out.
+            st.benched_until = max(st.benched_until, fill_ts + self.bench_hours * 3600)
+            st.changed_at = st.fills_measured
+            add_event(self.ledger, self.mode,
+                      f"{series}: benched for {self.bench_hours:g}h; still picked off at the {self.max_edge:g}c "
+                      f"maximum edge (avg 1-min markout {avg:+.2f}c over {len(recent)} fills)")
+            return
         # Quick to get careful, slow to get greedy: fills arrive in bursts during a
         # single price move, so narrowing needs good results spread over time.
         if avg < self.widen_below:

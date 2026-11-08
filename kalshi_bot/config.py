@@ -128,7 +128,11 @@ class Config:
     # Learn from results: blend the pricing model with the market's price, and adapt
     # each series' edge from post-fill markouts (see kalshi_bot/learner.py).
     learning: bool = True
+    # Committed snapshot of what the bot has learned; seeds a fresh database.
+    learned_dir: str = "learned"
     poll_interval_sec: float = 2.0
+    # Client-side cap on Kalshi requests; smoother than hitting HTTP 429 and backing off.
+    kalshi_max_requests_per_sec: float = 8.0
     spot_poll_interval_sec: float = 1.0
     market_refresh_sec: float = 20.0
     spot_sources: list[str] = field(default_factory=lambda: ["coinbase", "kraken"])

@@ -9,6 +9,7 @@ from __future__ import annotations
 import base64
 import logging
 import re
+import threading
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -272,6 +273,30 @@ def parse_trade(t: dict) -> PublicTrade:
 # ------------------------------------------------------------------------- client
 
 
+class RateLimiter:
+    """Token bucket shared by every thread using one client."""
+
+    def __init__(self, rate: float, burst: float | None = None, clock=time.monotonic, sleep=time.sleep):
+        self.rate = rate
+        self.capacity = burst if burst is not None else max(1.0, rate)
+        self.tokens = self.capacity
+        self._clock, self._sleep = clock, sleep
+        self._t = clock()
+        self._lock = threading.Lock()
+
+    def acquire(self) -> None:
+        while True:
+            with self._lock:
+                now = self._clock()
+                self.tokens = min(self.capacity, self.tokens + (now - self._t) * self.rate)
+                self._t = now
+                if self.tokens >= 1:
+                    self.tokens -= 1
+                    return
+                wait = (1 - self.tokens) / self.rate
+            self._sleep(wait)
+
+
 class KalshiClient:
     def __init__(
         self,
@@ -280,6 +305,7 @@ class KalshiClient:
         session: requests.Session | None = None,
         timeout: float = 8.0,
         max_retries: int = 2,
+        max_requests_per_sec: float | None = None,
     ):
         self.base_url = base_url.rstrip("/")
         self._path_prefix = urlparse(self.base_url).path
@@ -287,6 +313,7 @@ class KalshiClient:
         self.session = session or requests.Session()
         self.timeout = timeout
         self.max_retries = max_retries
+        self.limiter = RateLimiter(max_requests_per_sec) if max_requests_per_sec else None
 
     # -- transport
 
@@ -308,6 +335,8 @@ class KalshiClient:
             headers = {"Accept": "application/json"}
             if self.auth is not None:
                 headers.update(self.auth.headers(method, self._path_prefix + endpoint))
+            if self.limiter is not None:
+                self.limiter.acquire()
             try:
                 resp = self.session.request(
                     method, url, params=params or None, json=body, headers=headers, timeout=self.timeout
