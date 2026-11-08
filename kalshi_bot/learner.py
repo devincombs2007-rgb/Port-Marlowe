@@ -247,6 +247,7 @@ class SeriesStats:
     since_adjust: int = 0
     market_pnls: list[list[float]] = field(default_factory=list)  # [pnl_cents, contracts]
     benched_until: float = 0.0
+    changed_at: int = 0  # fills_measured when the edge last changed
 
 
 @dataclass
@@ -328,7 +329,10 @@ class EdgeLearner:
         if st.since_adjust < self.adjust_every:
             return
         st.since_adjust = 0
-        recent = st.markouts[-self.window:]
+        # Judge only fills made at the current edge; older ones would make the
+        # controller keep reacting to a problem it already responded to.
+        n_since_change = min(st.fills_measured - st.changed_at, self.window, len(st.markouts))
+        recent = st.markouts[-n_since_change:] if n_since_change else []
         total = sum(c for _, c in recent)
         avg = sum(m * c for m, c in recent) / total if total else 0.0
         old = st.edge
@@ -337,8 +341,10 @@ class EdgeLearner:
         elif avg > self.narrow_above:
             st.edge = max(self.min_edge, st.edge - 0.5)
         if st.edge != old:
+            st.changed_at = st.fills_measured
             add_event(self.ledger, self.mode,
-                      f"{series}: edge {old:g}c -> {st.edge:g}c (avg 1-min markout {avg:+.2f}c over last {len(recent)} fills)")
+                      f"{series}: edge {old:g}c -> {st.edge:g}c (avg 1-min markout {avg:+.2f}c over the "
+                      f"{len(recent)} fills since its last change)")
 
     def on_settled(self, series: str, pnl_cents: float, contracts: int, now: float) -> None:
         st = self._get(series)
@@ -352,6 +358,7 @@ class EdgeLearner:
             if t < self.bench_t and st.benched_until <= now:
                 st.benched_until = now + self.bench_hours * 3600
                 st.edge = min(self.max_edge, st.edge + 2.0)
+                st.changed_at = st.fills_measured
                 st.market_pnls = []
                 add_event(self.ledger, self.mode,
                           f"{series}: benched for {self.bench_hours:g}h; lost {-mean / 100:.2f} USD per market over "

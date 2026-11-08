@@ -80,12 +80,26 @@ def test_edge_widens_after_adverse_markouts_and_narrows_after_good_ones(tmp_path
     for i in range(10, 20):
         el.on_fill(fill(i, side="no", price=40, ts=T0 + 200 + i), "KXETH15M")
     el.update(T0 + 400, mid_after=lambda t, ts: 0.50, outcome=lambda t: None)  # NO bought at 40, worth 50
-    # window mixes -3 and +10 markouts -> avg +3.5 > 2.5 -> narrow
+    # only the 10 fills since the change count (+10c each), not the earlier -3c ones -> narrow
     assert el.edge("KXETH15M") == 3.5
     reloaded = EdgeLearner(led, "dry_run", base_edge=3.0)
     assert reloaded.edge("KXETH15M") == 3.5
     events = led.get_state("dry_run", "learning_events")
     assert any("edge 3c -> 4c" in e[1] for e in events)
+
+
+def test_edge_does_not_overreact_to_fills_from_before_a_change(tmp_path):
+    led = Ledger(str(tmp_path / "l.sqlite"))
+    el = EdgeLearner(led, "dry_run", base_edge=3.0, adjust_every=10, window=40)
+    for i in range(10):
+        el.on_fill(fill(i, price=50, ts=T0 + i), "KXSOL15M")
+    el.update(T0 + 100, mid_after=lambda t, ts: 0.40, outcome=lambda t: None)  # -10c each
+    assert el.edge("KXSOL15M") == 4.0
+    # After widening, fills are fine (+1.5c): no further widening despite the bad history.
+    for i in range(10, 20):
+        el.on_fill(fill(i, price=50, ts=T0 + 200 + i), "KXSOL15M")
+    el.update(T0 + 400, mid_after=lambda t, ts: 0.515, outcome=lambda t: None)
+    assert el.edge("KXSOL15M") == 4.0
 
 
 def test_markout_falls_back_to_settlement(tmp_path):
