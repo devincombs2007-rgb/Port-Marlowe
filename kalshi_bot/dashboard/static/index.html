@@ -130,6 +130,17 @@
     <div class="scroll"><table class="tbl" id="markets"></table></div>
   </div>
   <div class="card" style="margin-top:12px">
+    <div class="chart-head"><div class="label">What the bot has learned</div><span id="learn-state" class="pill idle">—</span></div>
+    <div class="sub" id="learn-sub" style="margin:6px 0 10px"></div>
+    <div class="grid row2">
+      <div class="scroll"><table class="tbl" id="learn-prob"></table></div>
+      <div class="scroll"><table class="tbl" id="learn-trust"></table></div>
+    </div>
+    <div class="scroll" style="margin-top:12px"><table class="tbl" id="learn-series"></table></div>
+    <div class="label" style="margin-top:14px">Recent changes</div>
+    <ul id="learn-events" class="sub" style="margin:6px 0 0; padding-left:18px"></ul>
+  </div>
+  <div class="card" style="margin-top:12px">
     <div class="label">Open positions</div>
     <div class="scroll"><table class="tbl" id="positions"></table></div>
   </div>
@@ -260,19 +271,60 @@
   function renderTables(s) {
     const mk = (s.status && s.status.markets) || {};
     const rows = Object.entries(mk).map(([t, m]) => {
-      if (!m.quoting) return `<tr><td>${t}</td><td colspan="7" class="muted" style="text-align:left">${m.reason}</td></tr>`;
+      if (!m.quoting) return `<tr><td>${t}</td><td colspan="9" class="muted" style="text-align:left">${m.reason}</td></tr>`;
       const o = m.orders || {};
       const q = (x) => (x ? `${x.count}@${x.price}¢` : "—");
       return `<tr><td>${t}</td><td>${Number(m.spot).toLocaleString(undefined, { maximumFractionDigits: 4 })}</td>` +
         `<td>${Number(m.strike).toLocaleString(undefined, { maximumFractionDigits: 4 })}</td><td>${Math.floor(m.tau / 60)}:${String(m.tau % 60).padStart(2, "0")}</td>` +
-        `<td>${(m.fair * 100).toFixed(1)}¢</td><td>${m.best_yes_bid ?? "—"} / ${m.best_no_bid ?? "—"}</td>` +
+        `<td>${m.p_model !== undefined ? (m.p_model * 100).toFixed(1) + "¢" : "—"}</td>` +
+        `<td>${m.p_market !== null && m.p_market !== undefined ? (m.p_market * 100).toFixed(1) + "¢" : "—"}</td>` +
+        `<td>${(m.fair * 100).toFixed(1)}¢ <span class="muted">${m.fair_source === "learned" ? "L" : "M"}</span></td>` +
+        `<td>${m.edge !== undefined ? m.edge + "¢" : "—"}</td>` +
         `<td title="${m.note || ""}">${m.note && !o.yes && !o.no ? "out of band" : `${q(o.yes)} / ${q(o.no)}`}</td><td>${m.position.yes}Y ${m.position.no}N</td></tr>`;
     });
-    $("markets").innerHTML = `<tr><th>Market</th><th>Spot</th><th>Strike</th><th>Left</th><th>Fair YES</th><th>Book Y/N bid</th><th>Our Y/N bid</th><th>Position</th></tr>` +
-      (rows.join("") || `<tr><td colspan="8" class="muted" style="text-align:left">Bot not running in this mode.</td></tr>`);
+    $("markets").innerHTML = `<tr><th>Market</th><th>Spot</th><th>Strike</th><th>Left</th><th>Model</th><th>Kalshi mid</th><th title="L = learned blend, M = plain model">Fair used</th><th>Edge</th><th>Our Y/N bid</th><th>Position</th></tr>` +
+      (rows.join("") || `<tr><td colspan="10" class="muted" style="text-align:left">Bot not running in this mode.</td></tr>`);
     const pos = s.open_positions.map((p) => `<tr><td>${p.ticker}</td><td>${p.yes}</td><td>${p.no}</td><td>${usd(p.cost_cents)}</td><td class="neg">${usd(-p.worst_case_cents)}</td></tr>`);
     $("positions").innerHTML = `<tr><th>Market</th><th>YES</th><th>NO</th><th>Cost</th><th>Worst case</th></tr>` +
       (pos.join("") || `<tr><td colspan="5" class="muted" style="text-align:left">Flat.</td></tr>`);
+  }
+
+  function renderLearning(L) {
+    if (!L) return;
+    const P = L.probability, h = P.holdout || {}, c = P.counts || {};
+    const pill = $("learn-state");
+    pill.className = "pill " + (P.active ? "ok" : "idle");
+    pill.textContent = P.active ? "using learned prices" : "using plain model";
+    const live = c.live_markets || 0, hist = c.history_markets || 0;
+    $("learn-sub").textContent = `Trained on ${P.n_markets} settled markets (${hist} from history, ${live} watched live), ` +
+      (P.fitted_at ? `last refit ${new Date(P.fitted_at * 1000).toLocaleString()}.` : "not fitted yet.") +
+      " The learned blend is only used once it beats the plain model on markets it was not trained on.";
+    if (h.logloss) {
+      const best = Math.min(h.logloss.model, h.logloss.market, h.logloss.learned);
+      const row = (k, name) => `<tr><td>${name}</td><td class="${h.logloss[k] === best ? "pos" : ""}">${h.logloss[k].toFixed(4)}</td><td>${h.brier[k].toFixed(4)}</td></tr>`;
+      $("learn-prob").innerHTML = `<tr><th>Test on newest ${h.markets} markets</th><th>Log-loss</th><th>Brier</th></tr>` +
+        row("model", "Pricing model") + row("market", "Kalshi price") + row("learned", "Learned blend") +
+        `<tr><td colspan="3" class="muted" style="text-align:left">Lower is better.</td></tr>`;
+    } else {
+      $("learn-prob").innerHTML = `<tr><td class="muted" style="text-align:left">Needs at least 10 settled markets before the first test.</td></tr>`;
+    }
+    const w = P.weights || [0, 1, 0, 0, 0];
+    const at = (f) => [w[1] + w[3] * f, w[2] + w[4] * f];
+    const fmt = (x) => x.toFixed(2);
+    const [m10, k10] = at(600 / 900), [m2, k2] = at(120 / 900);
+    $("learn-trust").innerHTML = `<tr><th>How much it trusts…</th><th>10 min left</th><th>2 min left</th></tr>` +
+      `<tr><td>its own model</td><td>${fmt(m10)}</td><td>${fmt(m2)}</td></tr>` +
+      `<tr><td>Kalshi's price</td><td>${fmt(k10)}</td><td>${fmt(k2)}</td></tr>` +
+      `<tr><td colspan="3" class="muted" style="text-align:left">Weights on each signal (in log-odds). Starts at 1 / 0.</td></tr>`;
+    const rows = Object.entries(L.series || {}).map(([name, s]) => {
+      const status = s.benched_until ? `<span class="neg">benched until ${new Date(s.benched_until * 1000).toLocaleTimeString()}</span>` : "active";
+      const mk = s.avg_markout_cents === null ? "—" : `<span class="${cls(s.avg_markout_cents)}">${s.avg_markout_cents > 0 ? "+" : ""}${s.avg_markout_cents.toFixed(2)}¢</span>`;
+      return `<tr><td>${name}</td><td>${s.edge}¢</td><td>${s.fills_measured}</td><td>${mk}</td><td>${s.markets}</td><td class="${cls(s.pnl_cents)}">${usd(s.pnl_cents, true)}</td><td>${status}</td></tr>`;
+    });
+    $("learn-series").innerHTML = `<tr><th>Series</th><th title="Minimum distance from fair value it bids">Edge</th><th>Fills checked</th><th title="Value 1 minute after the fill vs the price paid, per contract">Avg 1-min markout</th><th>Settled mkts</th><th>P&amp;L</th><th>Status</th></tr>` +
+      (rows.join("") || `<tr><td colspan="7" class="muted" style="text-align:left">No fills measured yet.</td></tr>`);
+    const ev = (L.events || []).slice().reverse();
+    $("learn-events").innerHTML = ev.length ? ev.map(([t, txt]) => `<li>${new Date(t * 1000).toLocaleString()} — ${txt.replace(/</g, "&lt;")}</li>`).join("") : "<li>Nothing yet.</li>";
   }
 
   function render(s) {
@@ -307,6 +359,7 @@
     document.querySelectorAll("#curve-mode button").forEach((b) => b.classList.toggle("on", b.dataset.v === curveMode));
     renderChart(curveMode === "pnl" ? s.pnl_curve : s.equity_curve, curveMode === "pnl");
     renderTables(s);
+    renderLearning(s.learning);
   }
 
   async function load() {

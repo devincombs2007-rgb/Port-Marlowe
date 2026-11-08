@@ -19,7 +19,7 @@ from dataclasses import dataclass
 
 from .kalshi_client import KalshiClient, get_cents, parse_market
 from .model import fair_yes_probability
-from .spot import VolEstimator, historical_minute_closes
+from .spot import SECONDS_PER_YEAR, historical_minute_closes
 
 log = logging.getLogger(__name__)
 
@@ -31,12 +31,25 @@ class Sample:
     model_p: float
     market_p: float | None
     outcome: int
+    ts: float = 0.0
 
 
-def _close_at(closes: list[tuple[float, float]], times: list[float], ts: float) -> float | None:
-    """Close of the last full minute ending at or before ts."""
-    i = bisect.bisect_right(times, ts - 60) - 1
-    return closes[i][1] if i >= 0 else None
+def ewma_sigma_series(closes: list[tuple[float, float]], halflife_minutes: float, floor_annual: float = 0.15,
+                      cap_annual: float = 4.0, min_samples: int = 30) -> list[float | None]:
+    """sigma per sqrt(second) known at each candle's close, from that candle and earlier ones only."""
+    alpha = 1.0 - 0.5 ** (1.0 / halflife_minutes)
+    lo, hi = floor_annual / math.sqrt(SECONDS_PER_YEAR), cap_annual / math.sqrt(SECONDS_PER_YEAR)
+    out: list[float | None] = [None]
+    var = None
+    n = 0
+    for i in range(1, len(closes)):
+        (t0, c0), (t1, c1) = closes[i - 1], closes[i]
+        gap = max(1.0, (t1 - t0) / 60.0)
+        sample = math.log(c1 / c0) ** 2 / gap
+        var = sample if var is None else (1 - alpha) * var + alpha * sample
+        n += 1
+        out.append(min(max(math.sqrt(var / 60.0), lo), hi) if n >= min_samples else None)
+    return out
 
 
 def _market_mid(candles: list[dict], ts: float) -> float | None:
@@ -62,6 +75,7 @@ def run_calibration(
     vol_halflife_minutes: float = 60.0,
     vol_multiplier: float = 1.0,
     window: int = 60,
+    request_pause: float = 0.35,
 ) -> list[Sample]:
     now = time.time()
     start = now - days * 86400
@@ -79,6 +93,7 @@ def run_calibration(
     if not closes:
         raise RuntimeError(f"no spot history for {symbol}")
     times = [t for t, _ in closes]
+    sigmas = ewma_sigma_series(closes, vol_halflife_minutes)
 
     samples: list[Sample] = []
     for n, m in enumerate(markets, 1):
@@ -90,18 +105,14 @@ def run_calibration(
                 )
             except Exception as exc:  # noqa: BLE001
                 log.info("candles for %s failed: %s", m.ticker, exc)
-            time.sleep(0.05)
+            time.sleep(request_pause)
         for cp in checkpoints:
             t = m.close_ts - cp
-            spot = _close_at(closes, times, t)
-            if spot is None:
+            # Last 1-minute candle that has closed by t; no look-ahead.
+            i = bisect.bisect_right(times, t - 60) - 1
+            if i < 0:
                 continue
-            # Volatility from the 6 hours before the checkpoint only (no look-ahead).
-            vol = VolEstimator(halflife_minutes=vol_halflife_minutes, min_samples=30)
-            lo = bisect.bisect_left(times, t - 6 * 3600)
-            hi = bisect.bisect_right(times, t - 60)
-            vol.seed(symbol, closes[lo:hi])
-            sigma = vol.sigma(symbol)
+            spot, sigma = closes[i][1], sigmas[i]
             if sigma is None:
                 continue
             p = fair_yes_probability(
@@ -114,7 +125,7 @@ def run_calibration(
                 window=window,
                 vol_multiplier=vol_multiplier,
             )
-            samples.append(Sample(m.ticker, cp, p, _market_mid(candles, t), int(m.result == "yes")))
+            samples.append(Sample(m.ticker, cp, p, _market_mid(candles, t), int(m.result == "yes"), t))
         if n % 25 == 0:
             print(f"  ...{n}/{len(markets)}")
     return samples

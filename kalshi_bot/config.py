@@ -125,15 +125,21 @@ class Config:
     fees: FeesConfig = field(default_factory=FeesConfig)
     paper: PaperConfig = field(default_factory=PaperConfig)
     dashboard: DashboardConfig = field(default_factory=DashboardConfig)
+    # Learn from results: blend the pricing model with the market's price, and adapt
+    # each series' edge from post-fill markouts (see kalshi_bot/learner.py).
+    learning: bool = True
     poll_interval_sec: float = 2.0
     spot_poll_interval_sec: float = 1.0
     market_refresh_sec: float = 20.0
-    spot_sources: list[str] = field(default_factory=lambda: ["coinbase", "kraken", "hyperliquid"])
+    spot_sources: list[str] = field(default_factory=lambda: ["coinbase", "kraken"])
+    # Used only when no primary source is fresh. Hyperliquid quotes perpetuals,
+    # which trade at a small basis to spot.
+    spot_fallback_sources: list[str] = field(default_factory=lambda: ["hyperliquid"])
     vol_halflife_minutes: float = 60.0
     db_path: str = "data/bot.sqlite"
     log_path: str = "data/bot.log"
     # "cents" sends yes_price/no_price as integers; "dollars" sends yes_price_dollars strings.
-    order_price_field: str = "cents"
+    order_price_field: str = "dollars"
     # Give live orders an exchange-side expiry at (close - min_seconds_to_close), so
     # quotes cannot sit into the final minutes even if the bot crashes.
     use_order_expiration: bool = True

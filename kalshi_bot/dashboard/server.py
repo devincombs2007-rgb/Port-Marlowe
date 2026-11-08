@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
+from ..learner import describe_from_ledger
 from ..ledger import ET, Ledger, et_date
 
 log = logging.getLogger(__name__)
@@ -93,6 +94,7 @@ def build_summary(ledger: Ledger, mode: str, month: str | None = None, now: floa
             **ledger.fill_stats(mode),
         },
         "open_positions": open_pos,
+        "learning": describe_from_ledger(ledger, mode, now),
     }
 
 

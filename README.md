@@ -24,6 +24,19 @@ Every 2 seconds, for each series:
 6. **Size from equity.** Each order is about 2% of equity. The worst case in any one market is capped at 6% of equity, and total worst-case exposure at 30%. Contract counts grow as the account grows.
 7. **Book it.** Fills and settlements go into a SQLite ledger. The dashboard reads from it.
 
+### How it learns
+
+With `learning: true` (the default) the bot gets better at its own job from the results it sees. It does not invent new strategies. See `kalshi_bot/learner.py`.
+
+- **What a contract is worth.** Every minute it records its model's probability next to Kalshi's mid price for each live market. When the market settles, those rows get the outcome. A small logistic regression then learns how much to trust each signal, and how that changes as the window runs down. It starts from "trust my model" and moves only as far as the data justifies. It switches to the learned blend only after the blend beats the plain model on markets it wasn't trained on, and it refits every few settled markets. `python -m kalshi_bot learn --days 7` pre-trains it on recent settled markets so it doesn't start cold.
+- **How much edge to demand, per coin.** One minute after each fill it checks Kalshi's mid. Negative "markouts" mean it was picked off by someone who knew more. Those widen that coin's edge by 1¢; consistently good markouts narrow it by 0.5¢ (range 1–10¢).
+- **When to sit out.** If a coin's settled P&L is clearly negative (t-stat below −2 over at least 20 markets), it's benched for 6 hours and comes back with a wider edge.
+- **Growing.** Order sizes are a fraction of equity, so wins compound and losses shrink the next bets.
+
+All of it is visible on the dashboard's "What the bot has learned" panel, including every change it made and why.
+
+What it can't do: learning only works if there is something to learn. If Kalshi's own price already contains everything the model knows, the blend converges toward the market price and the profit source shrinks to the spread. On thin data it mostly learns noise, which is why the guards above are deliberately slow.
+
 ### Risk controls
 
 | Control | Default | Effect |
@@ -61,11 +74,12 @@ Requires Python 3.10+.
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
-pytest                                   # 41 tests
+pytest                                   # 52 tests
 
 cp config.example.yaml config.yaml       # optional; defaults are the same
 python -m kalshi_bot check               # connectivity + how Kalshi's responses parse
 python -m kalshi_bot calibrate --days 7  # does the model beat the market?
+python -m kalshi_bot learn --days 7      # pre-train the learner on settled markets
 python -m kalshi_bot run                 # dry-run: real data, simulated fills, $50 paper balance
 python -m kalshi_bot dashboard           # http://127.0.0.1:8050
 ```
@@ -91,19 +105,24 @@ Run it under something that restarts it (systemd, `tmux`, a small VPS) if you wa
 | `dashboard [--port N]` | daily P&L calendar, equity curve, live quotes, open positions |
 | `check [--raw]` | exchange status, open windows per series, parsed strike/book, spot sources, balance |
 | `calibrate [--series S] [--days N]` | model vs. outcome vs. market mid |
+| `learn [--days N]` | pre-train the probability learner on settled markets (slow on purpose: Kalshi rate-limits) |
 | `status [--live]` | P&L summary in the terminal |
 | `cancel-all [--demo] [--everything]` | cancel the bot's resting orders (or all of them) |
 | `reset-halt [--live]` | clear a drawdown halt; also resets peak equity (use after a withdrawal) |
 
 Every setting is listed with comments in `config.example.yaml`.
 
-## Things to confirm on first run
+## Checked against the real API (Nov 2026)
 
-I wrote this without access to Kalshi's API (the build environment's network blocked it). The code follows Kalshi's v2 REST API and reads both integer-cent and `*_dollars` price fields. It was tested end to end only against a local mock exchange. Run `python -m kalshi_bot check --raw` first and confirm:
+`python -m kalshi_bot check --raw` against production confirmed:
+- All five series list a market every 15 minutes, with `floor_strike` and `strike_type: greater_or_equal`.
+- Prices are dollar strings (`yes_bid_dollars`), and trade sizes can be fractional. The parser handles both.
+- Rules: YES if the 60-second BRTI average before close is at least the 60-second average before open.
+- The BTC book is typically 1¢ wide with thousands of contracts per level. A bot demanding 3¢ of edge sits behind that and mostly fills when the price runs through it, which is exactly what the edge learner watches for.
 
-- **Series tickers.** `KXDOGE15M` and `KXHYPE15M` are guesses based on the post. Disable any series that lists no markets.
-- **Strike field.** The strike should come back as `floor_strike`, with a sensible `strike_type`.
-- **Order fields.** If live orders are rejected for their fields, try `order_price_field: dollars`, or `use_order_expiration: false`.
+Not yet checked, because they need API keys: the order-placement fields. If live orders are rejected for their fields, try `order_price_field: cents` or `use_order_expiration: false`.
+
+Unauthenticated market data is rate-limited. The bot alone stays under the limit, and `learn` paces itself to share it.
 
 ## Layout
 
@@ -117,7 +136,8 @@ kalshi_bot/
   broker.py          LiveBroker (Kalshi) and PaperBroker (simulated fills from the public trade tape)
   engine.py          the loop
   ledger.py          SQLite: fills, settlements, equity, daily P&L
-  calibrate.py       model vs. market scoring
+  calibrate.py       model vs. market scoring, history sampling for `learn`
+  learner.py         probability blend + per-series edge learning
   dashboard/         stdlib HTTP server + single-page dashboard
 tests/               unit tests and engine integration tests with fake exchange/feeds
 ```

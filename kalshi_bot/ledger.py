@@ -66,6 +66,20 @@ CREATE TABLE IF NOT EXISTS equity (
     cash_cents REAL NOT NULL
 );
 CREATE INDEX IF NOT EXISTS equity_mode_ts ON equity(mode, ts);
+CREATE TABLE IF NOT EXISTS samples (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ticker TEXT NOT NULL,
+    series TEXT,
+    ts REAL NOT NULL,
+    tau REAL NOT NULL,
+    p_model REAL NOT NULL,
+    p_market REAL,
+    outcome INTEGER,
+    source TEXT NOT NULL DEFAULT 'live',
+    UNIQUE(ticker, ts, source)
+);
+CREATE INDEX IF NOT EXISTS samples_ticker ON samples(ticker);
+CREATE INDEX IF NOT EXISTS samples_outcome ON samples(outcome, ts);
 CREATE TABLE IF NOT EXISTS state (
     mode TEXT NOT NULL,
     key TEXT NOT NULL,
@@ -281,6 +295,55 @@ class Ledger:
             step = len(pts) / max_points
             pts = [pts[int(i * step)] for i in range(max_points)] + [pts[-1]]
         return pts
+
+    # -- learning samples (shared by every mode: they describe markets, not our trades)
+
+    def add_sample(self, ticker: str, series: str, ts: float, tau: float, p_model: float,
+                   p_market: float | None, outcome: int | None = None, source: str = "live") -> None:
+        self._x(
+            "INSERT OR IGNORE INTO samples(ticker, series, ts, tau, p_model, p_market, outcome, source) "
+            "VALUES (?,?,?,?,?,?,?,?)",
+            (ticker, series, ts, tau, p_model, p_market, outcome, source),
+        )
+
+    def add_samples(self, rows: list[tuple]) -> None:
+        with self._lock:
+            self._conn.execute("BEGIN")
+            self._conn.executemany(
+                "INSERT OR IGNORE INTO samples(ticker, series, ts, tau, p_model, p_market, outcome, source) "
+                "VALUES (?,?,?,?,?,?,?,?)",
+                rows,
+            )
+            self._conn.execute("COMMIT")
+
+    def unlabeled_tickers(self, closed_before: float) -> list[str]:
+        rows = self._q(
+            "SELECT DISTINCT s.ticker FROM samples s LEFT JOIN markets m ON m.ticker = s.ticker "
+            "WHERE s.outcome IS NULL AND (m.close_ts IS NULL OR m.close_ts < ?)",
+            (closed_before,),
+        )
+        return [r["ticker"] for r in rows]
+
+    def label_samples(self, ticker: str, outcome: int) -> int:
+        return self._x("UPDATE samples SET outcome=? WHERE ticker=? AND outcome IS NULL", (outcome, ticker))
+
+    def labeled_samples(self, limit: int = 40000) -> list[dict[str, Any]]:
+        rows = self._q(
+            "SELECT * FROM (SELECT * FROM samples WHERE outcome IS NOT NULL ORDER BY ts DESC LIMIT ?) ORDER BY ts",
+            (limit,),
+        )
+        return [dict(r) for r in rows]
+
+    def sample_counts(self) -> dict[str, int]:
+        rows = self._q(
+            "SELECT source, COUNT(*) AS n, COUNT(DISTINCT ticker) AS m FROM samples WHERE outcome IS NOT NULL "
+            "GROUP BY source"
+        )
+        out: dict[str, int] = {}
+        for r in rows:
+            out[f"{r['source']}_samples"] = r["n"]
+            out[f"{r['source']}_markets"] = r["m"]
+        return out
 
     # -- key/value state
 

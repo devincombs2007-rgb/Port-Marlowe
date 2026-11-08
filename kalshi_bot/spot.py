@@ -238,9 +238,11 @@ class SpotFeed:
         stale_after: float = 4.0,
         history_seconds: int = 1800,
         vol: VolEstimator | None = None,
+        fallback: list[PriceSource] | None = None,
     ):
         self.symbols = list(symbols)
-        self.sources = sources
+        self.fallback_names = {s.name for s in fallback or []}
+        self.sources = list(sources) + list(fallback or [])
         self.poll_interval = poll_interval
         self.stale_after = stale_after
         self.vol = vol
@@ -294,10 +296,12 @@ class SpotFeed:
             self.vol.update(symbol, ts, composite)
 
     def _composite_locked(self, symbol: str, now: float) -> float | None:
-        fresh = [px for (src, sym), (px, ts) in self._latest.items() if sym == symbol and now - ts <= self.stale_after]
-        if not fresh:
-            return None
-        return statistics.median(fresh)
+        fresh = [
+            (src, px) for (src, sym), (px, ts) in self._latest.items() if sym == symbol and now - ts <= self.stale_after
+        ]
+        primary = [px for src, px in fresh if src not in self.fallback_names]
+        pool = primary or [px for _, px in fresh]
+        return statistics.median(pool) if pool else None
 
     def price(self, symbol: str, now: float | None = None) -> float | None:
         now = time.time() if now is None else now

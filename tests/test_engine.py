@@ -96,3 +96,33 @@ def test_kill_file_cancels_everything(tmp_path):
     eng.tick(OPEN + 302)
     assert broker.resting() == []
     assert "kill file" in led.get_state("dry_run", "status")["stop_reason"]
+
+
+def test_learner_records_samples_sets_edge_and_benches(tmp_path):
+    from kalshi_bot.learner import Learner
+
+    cfg, k, led, broker, feed, eng = build(tmp_path)
+    eng.learner = Learner(led, "dry_run", base_edge=3.0)
+    eng.learner.edges._get("KXBTC15M").edge = 7.0
+    eng.tick(OPEN + 300)
+    orders = {o.side: o.price for o in broker.resting()}
+    assert orders["yes"] == 43  # fair 50 - learned edge 7
+    st = led.get_state("dry_run", "status")["markets"]["KXBTC15M-W1-00"]
+    assert st["edge"] == 7.0 and st["p_market"] == (44 + 55) / 200  # mid of 44 bid / 55 ask
+    assert led.unlabeled_tickers(CLOSE + 10) == ["KXBTC15M-W1-00"]
+
+    # A fill feeds the edge learner; settlement labels the samples.
+    k.add_trade("KXBTC15M-W1-00", "t1", 40, 2, "no", OPEN + 301)
+    eng.tick(OPEN + 303)
+    assert len(eng.learner.edges.pending) == 1
+    k.markets["KXBTC15M-W1-00"].update(status="settled", result="no")
+    eng.tick(CLOSE + 30)
+    assert led.labeled_samples()[0]["outcome"] == 0
+    eng.learner.update(CLOSE + 400)
+    assert eng.learner.edges.series["KXBTC15M"].markouts == [[-43.0, 2]]
+
+    eng.learner.edges._get("KXBTC15M").benched_until = CLOSE + 10_000
+    k.add_market("KXBTC15M-W2-00", CLOSE, CLOSE + 900, 100_000.0)
+    eng.tick(CLOSE + 300)
+    assert broker.resting() == []
+    assert "benched" in led.get_state("dry_run", "status")["markets"]["KXBTC15M-W2-00"]["reason"]

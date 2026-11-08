@@ -50,12 +50,14 @@ dashboard:
   host: 127.0.0.1
   port: 8050
 
+learning: true                 # learn from results (kalshi_bot/learner.py)
 poll_interval_sec: 2.0
 spot_poll_interval_sec: 1.0
 market_refresh_sec: 20
-spot_sources: [coinbase, kraken, hyperliquid]
+spot_sources: [coinbase, kraken]
+spot_fallback_sources: [hyperliquid]   # perps: used only if spot sources are down
 vol_halflife_minutes: 60
 db_path: data/bot.sqlite
 log_path: data/bot.log
-order_price_field: cents
+order_price_field: dollars
 use_order_expiration: true

@@ -111,6 +111,14 @@ def get_count(obj: dict, key: str = "count") -> int | None:
     return int(round(float(v)))
 
 
+def _float_count(obj: dict, key: str = "count") -> float:
+    for k in (key, f"{key}_fp"):
+        v = obj.get(k)
+        if v is not None and v != "":
+            return float(v)
+    return 0.0
+
+
 def _levels(raw: Any, dollars: bool) -> list[tuple[int, int]]:
     out: list[tuple[int, int]] = []
     for level in raw or []:
@@ -241,7 +249,7 @@ class PublicTrade:
     trade_id: str
     ticker: str
     yes_price: int
-    count: int
+    count: float  # Kalshi allows fractional contracts on the tape
     taker_side: str  # "yes": taker bought YES (hit NO bids); "no": taker bought NO (hit YES bids)
     ts: float
 
@@ -255,7 +263,7 @@ def parse_trade(t: dict) -> PublicTrade:
         trade_id=str(t.get("trade_id")),
         ticker=t["ticker"],
         yes_price=yes_price,
-        count=get_count(t) or 0,
+        count=_float_count(t),
         taker_side=(t.get("taker_side") or "").lower(),
         ts=parse_ts(t.get("created_time")) or 0.0,
     )
@@ -310,7 +318,8 @@ class KalshiClient:
                 continue
             if resp.status_code == 429 or resp.status_code >= 500:
                 last_err = KalshiAPIError(resp.status_code, method, endpoint, resp.text)
-                time.sleep(min(0.25 * 2**attempt, 2.0))
+                # Rate limited: back off for real (1s, 2s, ...); server errors: retry quickly.
+                time.sleep(min(2.0**attempt, 8.0) if resp.status_code == 429 else min(0.25 * 2**attempt, 2.0))
                 continue
             if resp.status_code >= 400:
                 raise KalshiAPIError(resp.status_code, method, endpoint, resp.text)

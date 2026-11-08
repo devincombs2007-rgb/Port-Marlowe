@@ -3,6 +3,7 @@ keep one maker bid per side resting at the right price and size."""
 
 from __future__ import annotations
 
+import dataclasses
 import logging
 import threading
 import time
@@ -13,6 +14,7 @@ import requests
 from .broker import Broker, RestingOrder, resting_cost
 from .config import Config, MarketSpec
 from .kalshi_client import KalshiAPIError, KalshiClient, MarketInfo, parse_market, parse_orderbook
+from .learner import Learner
 from .ledger import Ledger, et_date
 from .model import fair_yes_probability
 from .risk import RiskManager
@@ -33,6 +35,7 @@ class Engine:
         vol: VolEstimator,
         risk: RiskManager,
         clock: Callable[[], float] = time.time,
+        learner: Learner | None = None,
     ):
         self.cfg = cfg
         self.client = client
@@ -42,6 +45,7 @@ class Engine:
         self.vol = vol
         self.risk = risk
         self.clock = clock
+        self.learner = learner
         self.mode = broker.mode
         self._markets: dict[str, list[MarketInfo]] = {}
         self._markets_fetched: dict[str, float] = {}
@@ -101,7 +105,11 @@ class Engine:
         now = self.clock() if now is None else now
         for f in self.broker.sync(now):
             log.info("FILL %s %s %d @ %dc", f.ticker, f.side.upper(), f.count, f.price)
+            if self.learner:
+                self.learner.on_fill(f, self._series_of(f.ticker))
         self._settle(now)
+        if self.learner:
+            self.learner.update(now)
 
         equity = self.broker.equity_cents()
         self._update_day_state(now, equity)
@@ -207,7 +215,7 @@ class Engine:
 
         window = s.settlement_window_sec
         realized = self.feed.window_average(spec.symbol, m.close_ts - window, now) if tau < window else None
-        fair = fair_yes_probability(
+        p_model = fair_yes_probability(
             spot=spot,
             strike_type=m.strike_type,
             floor_strike=m.floor_strike,
@@ -226,6 +234,16 @@ class Engine:
             book = own_yes if o.side == "yes" else own_no
             book[o.price] = book.get(o.price, 0) + o.remaining
         top = book_top(yes_levels, no_levels, own_yes, own_no)
+        p_mid = (top.yes_bid + top.yes_ask) / 200.0 if top.yes_bid is not None and top.yes_ask is not None else None
+
+        fair, fair_source = p_model, "model"
+        if self.learner:
+            self.learner.observe(ticker, spec.series, now, tau, p_model, p_mid)
+            fair, fair_source = self.learner.fair(p_model, p_mid, tau)
+            if self.learner.benched(spec.series, now):
+                return self._pull(own, ticker, "benched by the learner after losses", budget)
+            s = dataclasses.replace(s, min_edge_cents=self.learner.edge(spec.series))
+
         pos = self.ledger.position(self.mode, ticker)
         targets = compute_quotes(fair, top, pos.net_yes, s)
 
@@ -275,6 +293,10 @@ class Engine:
             "strike": m.strike,
             "tau": round(tau),
             "fair": round(fair, 4),
+            "fair_source": fair_source,
+            "p_model": round(p_model, 4),
+            "p_market": round(p_mid, 4) if p_mid is not None else None,
+            "edge": s.min_edge_cents,
             "sigma_annual": round(sigma * (365 * 24 * 3600) ** 0.5, 3),
             "best_yes_bid": top.yes_bid,
             "best_no_bid": top.no_bid,
@@ -286,8 +308,17 @@ class Engine:
 
     # ----------------------------------------------------------------- settlement
 
+    def _series_of(self, ticker: str) -> str:
+        for spec in self.cfg.markets:
+            if ticker.startswith(spec.series + "-"):
+                return spec.series
+        return ticker.split("-", 1)[0]
+
     def _settle(self, now: float, force: bool = False) -> None:
-        for ticker in self.ledger.open_positions(self.mode):
+        tickers = set(self.ledger.open_positions(self.mode))
+        if self.learner:
+            tickers |= set(self.ledger.unlabeled_tickers(now - 5))
+        for ticker in sorted(tickers):
             meta = self.ledger.market_meta(ticker) or {}
             close_ts = meta.get("close_ts")
             if close_ts is not None and now < close_ts + 5:
@@ -309,6 +340,10 @@ class Engine:
                     ticker, s.result.upper(), s.yes_count, s.no_count, s.cost_cents / 100,
                     s.payout_cents / 100, s.pnl_cents / 100,
                 )
+            if self.learner:
+                self.learner.on_market_result(ticker, m.result or "")
+                if s is not None:
+                    self.learner.on_settled(self._series_of(ticker), s.pnl_cents, s.yes_count + s.no_count, now)
 
     # ---------------------------------------------------------------- bookkeeping
 

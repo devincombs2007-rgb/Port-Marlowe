@@ -26,7 +26,7 @@ class RestingOrder:
     price: int
     remaining: int
     created_ts: float
-    queue_ahead: int = 0  # paper only: contracts ahead of us at our price
+    queue_ahead: float = 0.0  # paper only: contracts ahead of us at our price
 
 
 class Broker(Protocol):
@@ -250,13 +250,13 @@ class PaperBroker:
                 continue
             qty = 0
             if o.price > level:
-                qty = min(o.remaining, tr.count)
+                qty = min(o.remaining, int(tr.count))
             elif o.price == level and self.paper.fill_at_touch:
                 if tr.count <= o.queue_ahead:
                     o.queue_ahead -= tr.count
                 else:
-                    qty = min(o.remaining, tr.count - o.queue_ahead)
-                    o.queue_ahead = 0
+                    qty = min(o.remaining, int(tr.count - o.queue_ahead))
+                    o.queue_ahead = 0.0
             if qty <= 0:
                 continue
             fill = Fill(

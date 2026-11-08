@@ -72,10 +72,18 @@ def cmd_run(args: argparse.Namespace, cfg: Config) -> None:
                  f"{sigma * (365 * 24 * 3600) ** 0.5:.0%} annualised" if sigma else "not ready (will warm up live)")
 
     feed = SpotFeed(symbols, build_sources(cfg.spot_sources), cfg.spot_poll_interval_sec,
-                    cfg.strategy.stale_spot_seconds, vol=vol)
+                    cfg.strategy.stale_spot_seconds, vol=vol, fallback=build_sources(cfg.spot_fallback_sources))
     feed.start()
     broker.start()
-    engine = Engine(cfg, client, broker, ledger, feed, vol, RiskManager(cfg.risk, cfg.sizing))
+    learner = None
+    if cfg.learning:
+        from .learner import Learner
+
+        learner = Learner(ledger, broker.mode, cfg.strategy.min_edge_cents)
+        st = learner.prob.state
+        log.info("learning on: probability model %s (%d labelled markets)",
+                 "uses learned blend" if st.active else "uses plain model", st.n_markets)
+    engine = Engine(cfg, client, broker, ledger, feed, vol, RiskManager(cfg.risk, cfg.sizing), learner=learner)
 
     def _stop(signum: int, _frame: object) -> None:
         log.info("signal %d received", signum)
@@ -129,7 +137,7 @@ def cmd_check(args: argparse.Namespace, cfg: Config) -> None:
             print("  (none - check the series ticker, or disable it in config)")
     print("\nspot sources:")
     symbols = sorted({m.symbol for m in cfg.markets})
-    for src in build_sources(cfg.spot_sources):
+    for src in build_sources(cfg.spot_sources + cfg.spot_fallback_sources):
         print(f"  {src.name}: {src.fetch(symbols)}")
     auth = _auth(cfg, required=False)
     if auth:
@@ -153,6 +161,39 @@ def cmd_calibrate(args: argparse.Namespace, cfg: Config) -> None:
         )
         if samples:
             print(report(samples))
+
+
+def cmd_learn(args: argparse.Namespace, cfg: Config) -> None:
+    """Pre-train the probability learner on recently settled markets."""
+    from .calibrate import run_calibration
+    from .learner import ProbabilityLearner
+
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+    client = _client(cfg, False, auth_required=False)
+    client.max_retries = 6  # background job: wait out rate limits rather than fail
+    ledger = Ledger(cfg.db_path)
+    checkpoints = tuple(range(840, 59, -60))
+    specs = [m for m in cfg.enabled_markets() if args.series in (None, m.series)]
+    for spec in specs:
+        samples = run_calibration(
+            client, spec.series, spec.symbol, days=args.days, checkpoints=checkpoints, with_market=True,
+            vol_halflife_minutes=cfg.vol_halflife_minutes, vol_multiplier=cfg.strategy.vol_multiplier,
+            window=cfg.strategy.settlement_window_sec, request_pause=args.pause,
+        )
+        ledger.add_samples([(s.ticker, spec.series, s.ts, float(s.checkpoint), s.model_p, s.market_p, s.outcome,
+                             "history") for s in samples])
+        print(f"  stored {len(samples)} samples")
+    st = ProbabilityLearner(ledger).refit()
+    h = st.holdout
+    print(f"\ntrained on {st.n_markets} markets / {st.n_samples} samples")
+    if h:
+        print(f"held-out test on the newest {h['markets']} markets ({h['samples']} samples), lower is better:")
+        for k in ("model", "market", "learned"):
+            print(f"  {k:<8} log-loss {h['logloss'][k]:.4f}   Brier {h['brier'][k]:.4f}")
+    print("weights:", ", ".join(f"{n}={w:+.3f}" for n, w in zip(
+        ["bias", "model", "market", "model*t", "market*t"], st.weights)))
+    print("the bot will", "USE the learned blend" if st.active else "keep the plain model (learned blend did not beat it)")
 
 
 def cmd_status(args: argparse.Namespace, cfg: Config) -> None:
@@ -226,6 +267,12 @@ def main(argv: list[str] | None = None) -> None:
     k.add_argument("--checkpoints", default="600,300,120", help="seconds before close, comma-separated")
     k.add_argument("--no-market", action="store_true", help="skip fetching Kalshi price history")
     k.set_defaults(func=cmd_calibrate)
+
+    ln = sub.add_parser("learn", help="pre-train the probability learner on settled markets")
+    ln.add_argument("--series", help="one series ticker (default: all enabled)")
+    ln.add_argument("--days", type=float, default=7.0)
+    ln.add_argument("--pause", type=float, default=0.8, help="seconds between Kalshi requests (rate limits)")
+    ln.set_defaults(func=cmd_learn)
 
     s = sub.add_parser("status", help="print P&L summary from the local ledger")
     s.add_argument("--live", action="store_true")
