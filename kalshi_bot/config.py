@@ -134,7 +134,7 @@ class Config:
     # Client-side cap on Kalshi requests; smoother than hitting HTTP 429 and backing off.
     kalshi_max_requests_per_sec: float = 8.0
     spot_poll_interval_sec: float = 1.0
-    market_refresh_sec: float = 20.0
+    market_refresh_sec: float = 60.0  # windows last 15 min; a closed window triggers a refresh anyway
     spot_sources: list[str] = field(default_factory=lambda: ["coinbase", "kraken"])
     # Used only when no primary source is fresh. Hyperliquid quotes perpetuals,
     # which trade at a small basis to spot.

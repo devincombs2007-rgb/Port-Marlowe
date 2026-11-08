@@ -55,7 +55,7 @@ learned_dir: learned           # snapshot that seeds a fresh database (export-le
 poll_interval_sec: 2.0
 kalshi_max_requests_per_sec: 8   # stay under Kalshi's rate limit
 spot_poll_interval_sec: 1.0
-market_refresh_sec: 20
+market_refresh_sec: 60
 spot_sources: [coinbase, kraken]
 spot_fallback_sources: [hyperliquid]   # perps: used only if spot sources are down
 vol_halflife_minutes: 60
