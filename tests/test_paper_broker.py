@@ -146,3 +146,19 @@ def test_tape_interval_backs_off_on_rate_limit(tmp_path):
     fail[0] = False
     b.sync(T0 + 30)
     assert 6 < b._tape_interval < 13.5
+
+
+def test_one_tape_request_per_sync_round_robin(tmp_path):
+    k = FakeKalshi()
+    asked = []
+    real = k.get_trades
+    k.get_trades = lambda ticker, **kw: (asked.append(ticker), real(ticker, **kw))[1]
+    led = Ledger(str(tmp_path / "t.sqlite"))
+    b = PaperBroker(k, led, FeesConfig(), PaperConfig(trades_poll_sec=0))
+    b.start()
+    b.place("A", "yes", 45, 1, queue_ahead=0, now=T0)
+    b.place("B", "yes", 45, 1, queue_ahead=0, now=T0)
+    b.sync(T0 + 1)
+    b.sync(T0 + 2)
+    b.sync(T0 + 3)
+    assert asked == ["A", "B", "A"]

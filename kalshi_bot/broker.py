@@ -239,9 +239,11 @@ class PaperBroker:
             if t not in tickers:
                 del self._seen[t]
                 self._last_trade_ts.pop(t, None)
-        for ticker in tickers:
-            if now - self._last_fetch.get(ticker, 0.0) < self._tape_interval:
-                continue
+        # One tape request per tick, oldest-fetched market first: spreads requests
+        # evenly instead of bursting one per market.
+        due = [t for t in tickers if now - self._last_fetch.get(t, 0.0) >= self._tape_interval]
+        due.sort(key=lambda t: self._last_fetch.get(t, 0.0))
+        for ticker in due[:1]:
             self._last_fetch[ticker] = now
             # Only trades newer than what we have already seen (minus a little overlap).
             since = min(o.created_ts for o in candidates if o.ticker == ticker)
@@ -270,17 +272,13 @@ class PaperBroker:
                 new.extend(self.apply_trade(tr))
         return new
 
-    def _fetch_tape(self, ticker: str, min_ts: int, page: int = 200, max_pages: int = 5) -> list[dict]:
-        out: list[dict] = []
-        cursor = None
-        for _ in range(max_pages):
-            data = self.client.get_trades(ticker, min_ts=min_ts, limit=page, cursor=cursor, retries=0)
-            batch = data.get("trades") or []
-            out.extend(batch)
-            cursor = data.get("cursor")
-            if not cursor or len(batch) < page:
-                break
-        return out
+    def _fetch_tape(self, ticker: str, min_ts: int, limit: int = 1000) -> list[dict]:
+        # A single request: following pages back-to-back bursts into the rate limit.
+        data = self.client.get_trades(ticker, min_ts=min_ts, limit=limit, retries=0)
+        trades = data.get("trades") or []
+        if len(trades) >= limit:
+            log.debug("paper: %s tape page full; older trades in this interval are skipped", ticker)
+        return trades
 
     def apply_trade(self, tr) -> list[Fill]:
         if tr.taker_side == "no":
