@@ -211,6 +211,7 @@ class PaperBroker:
         self._seen: dict[str, set[str]] = {}
         self._last_fetch: dict[str, float] = {}
         self._last_trade_ts: dict[str, float] = {}
+        self._tape_interval = paper.trades_poll_sec  # adapts to Kalshi's rate limit
         self._now = 0.0
 
     def start(self) -> None:
@@ -239,7 +240,7 @@ class PaperBroker:
                 del self._seen[t]
                 self._last_trade_ts.pop(t, None)
         for ticker in tickers:
-            if now - self._last_fetch.get(ticker, 0.0) < self.paper.trades_poll_sec:
+            if now - self._last_fetch.get(ticker, 0.0) < self._tape_interval:
                 continue
             self._last_fetch[ticker] = now
             # Only trades newer than what we have already seen (minus a little overlap).
@@ -247,10 +248,18 @@ class PaperBroker:
             since = max(since, self._last_trade_ts.get(ticker, 0.0) - 2)
             try:
                 raw = self._fetch_tape(ticker, int(since) - 1)
+            except KalshiAPIError as exc:
+                if exc.status == 429:
+                    # Back off for every market (the limit is shared), recover slowly on success.
+                    self._tape_interval = min(30.0, max(self._tape_interval, 1.0) * 1.5)
+                    log.info("paper: trade tape rate-limited; polling each market every %.0fs", self._tape_interval)
+                else:
+                    log.info("paper: trades for %s failed (will retry): %s", ticker, exc)
+                continue
             except Exception as exc:  # noqa: BLE001
                 log.info("paper: trades for %s failed (will retry): %s", ticker, exc)
-                self._last_fetch[ticker] = now - self.paper.trades_poll_sec / 2
                 continue
+            self._tape_interval = max(self.paper.trades_poll_sec, self._tape_interval * 0.97)
             seen = self._seen.setdefault(ticker, set())
             trades = sorted((parse_trade(t) for t in raw), key=lambda t: t.ts)
             for tr in trades:

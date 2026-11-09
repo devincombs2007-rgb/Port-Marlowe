@@ -120,3 +120,29 @@ def test_tape_is_fetched_incrementally(tmp_path):
     b.sync(T0 + 200)
     assert seen_min_ts[0] == int(T0) - 1
     assert seen_min_ts[1] == int(T0 + 100 - 2) - 1  # starts just before the last trade seen
+
+
+def test_tape_interval_backs_off_on_rate_limit(tmp_path):
+    from kalshi_bot.kalshi_client import KalshiAPIError
+
+    k = FakeKalshi()
+    fail = [True]
+    real = k.get_trades
+
+    def flaky(*a, **kw):
+        if fail[0]:
+            raise KalshiAPIError(429, "GET", "/markets/trades", "too many requests")
+        return real(*a, **kw)
+
+    k.get_trades = flaky
+    led = Ledger(str(tmp_path / "t.sqlite"))
+    b = PaperBroker(k, led, FeesConfig(), PaperConfig(trades_poll_sec=6))
+    b.start()
+    b.place("T", "yes", 45, 10, queue_ahead=0, now=T0)
+    b.sync(T0 + 1)
+    assert b._tape_interval == 9.0
+    b.sync(T0 + 11)
+    assert b._tape_interval == 13.5
+    fail[0] = False
+    b.sync(T0 + 30)
+    assert 6 < b._tape_interval < 13.5
