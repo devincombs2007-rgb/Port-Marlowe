@@ -104,3 +104,19 @@ def test_tape_fetch_is_throttled(tmp_path):
     b.sync(T0 + 3)
     b.sync(T0 + 8)
     assert len(calls) == 2
+
+
+def test_tape_is_fetched_incrementally(tmp_path):
+    k = FakeKalshi()
+    seen_min_ts = []
+    real = k.get_trades
+    k.get_trades = lambda ticker, min_ts=None, **kw: (seen_min_ts.append(min_ts), real(ticker, min_ts=min_ts, **kw))[1]
+    led = Ledger(str(tmp_path / "t.sqlite"))
+    b = PaperBroker(k, led, FeesConfig(), PaperConfig(trades_poll_sec=0))
+    b.start()
+    b.place("T", "yes", 30, 10, queue_ahead=0, now=T0)
+    k.add_trade("T", "a", 50, 1, "no", T0 + 100)
+    b.sync(T0 + 101)
+    b.sync(T0 + 200)
+    assert seen_min_ts[0] == int(T0) - 1
+    assert seen_min_ts[1] == int(T0 + 100 - 2) - 1  # starts just before the last trade seen

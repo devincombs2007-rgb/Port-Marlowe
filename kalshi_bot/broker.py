@@ -210,6 +210,7 @@ class PaperBroker:
         self._cancelled: dict[str, tuple[RestingOrder, float]] = {}
         self._seen: dict[str, set[str]] = {}
         self._last_fetch: dict[str, float] = {}
+        self._last_trade_ts: dict[str, float] = {}
         self._now = 0.0
 
     def start(self) -> None:
@@ -236,13 +237,16 @@ class PaperBroker:
         for t in list(self._seen):
             if t not in tickers:
                 del self._seen[t]
+                self._last_trade_ts.pop(t, None)
         for ticker in tickers:
             if now - self._last_fetch.get(ticker, 0.0) < self.paper.trades_poll_sec:
                 continue
             self._last_fetch[ticker] = now
+            # Only trades newer than what we have already seen (minus a little overlap).
             since = min(o.created_ts for o in candidates if o.ticker == ticker)
+            since = max(since, self._last_trade_ts.get(ticker, 0.0) - 2)
             try:
-                raw = self.client.get_trades(ticker, min_ts=int(since) - 1, retries=0).get("trades") or []
+                raw = self._fetch_tape(ticker, int(since) - 1)
             except Exception as exc:  # noqa: BLE001
                 log.info("paper: trades for %s failed (will retry): %s", ticker, exc)
                 self._last_fetch[ticker] = now - self.paper.trades_poll_sec / 2
@@ -250,11 +254,24 @@ class PaperBroker:
             seen = self._seen.setdefault(ticker, set())
             trades = sorted((parse_trade(t) for t in raw), key=lambda t: t.ts)
             for tr in trades:
+                self._last_trade_ts[ticker] = max(self._last_trade_ts.get(ticker, 0.0), tr.ts)
                 if tr.trade_id in seen:
                     continue
                 seen.add(tr.trade_id)
                 new.extend(self.apply_trade(tr))
         return new
+
+    def _fetch_tape(self, ticker: str, min_ts: int, page: int = 200, max_pages: int = 5) -> list[dict]:
+        out: list[dict] = []
+        cursor = None
+        for _ in range(max_pages):
+            data = self.client.get_trades(ticker, min_ts=min_ts, limit=page, cursor=cursor, retries=0)
+            batch = data.get("trades") or []
+            out.extend(batch)
+            cursor = data.get("cursor")
+            if not cursor or len(batch) < page:
+                break
+        return out
 
     def apply_trade(self, tr) -> list[Fill]:
         if tr.taker_side == "no":
