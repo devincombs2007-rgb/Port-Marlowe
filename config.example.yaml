@@ -45,8 +45,9 @@ fees:
 paper:
   starting_balance_usd: 50
   fill_at_touch: true
-  trades_poll_sec: 6         # Kalshi rate-limits the trade tape
-  keep_cancelled_sec: 120
+  trades_poll_sec: 30        # Kalshi allows few unauthenticated trade-tape requests
+  trades_poll_max_sec: 90
+  keep_cancelled_sec: 180    # keep above trades_poll_max_sec
 
 dashboard:
   host: 127.0.0.1

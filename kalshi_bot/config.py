@@ -108,10 +108,14 @@ class PaperConfig:
     # Model queue position at our price level. When False, only trades that print
     # strictly through our price fill us (more conservative).
     fill_at_touch: bool = True
-    # Fetch each market's public trade tape at most this often (Kalshi rate-limits it).
-    trades_poll_sec: float = 6.0
-    # Trades that printed before a cancel still fill the cancelled order for this long.
-    keep_cancelled_sec: float = 120.0
+    # Fetch each market's public trade tape at most this often. Kalshi allows only a
+    # handful of unauthenticated trade-tape requests per minute; on HTTP 429 the
+    # interval backs off up to trades_poll_max_sec.
+    trades_poll_sec: float = 30.0
+    trades_poll_max_sec: float = 90.0
+    # Trades that printed before a cancel still fill the cancelled order for this long
+    # (must exceed trades_poll_max_sec so slow polling loses no fills).
+    keep_cancelled_sec: float = 180.0
 
 
 @dataclass

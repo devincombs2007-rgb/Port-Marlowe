@@ -253,7 +253,7 @@ class PaperBroker:
             except KalshiAPIError as exc:
                 if exc.status == 429:
                     # Back off for every market (the limit is shared), recover slowly on success.
-                    self._tape_interval = min(30.0, max(self._tape_interval, 1.0) * 1.5)
+                    self._tape_interval = min(self.paper.trades_poll_max_sec, max(self._tape_interval, 1.0) * 1.5)
                     log.info("paper: trade tape rate-limited; polling each market every %.0fs", self._tape_interval)
                 else:
                     log.info("paper: trades for %s failed (will retry): %s", ticker, exc)

@@ -136,7 +136,7 @@ def test_tape_interval_backs_off_on_rate_limit(tmp_path):
 
     k.get_trades = flaky
     led = Ledger(str(tmp_path / "t.sqlite"))
-    b = PaperBroker(k, led, FeesConfig(), PaperConfig(trades_poll_sec=6))
+    b = PaperBroker(k, led, FeesConfig(), PaperConfig(trades_poll_sec=6, trades_poll_max_sec=30))
     b.start()
     b.place("T", "yes", 45, 10, queue_ahead=0, now=T0)
     b.sync(T0 + 1)
