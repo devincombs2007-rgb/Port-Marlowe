@@ -205,7 +205,12 @@ class PaperBroker:
         self.fees = fees
         self.paper = paper
         self._orders: dict[str, RestingOrder] = {}
+        # Cancelled orders stay matchable for trades that printed before the cancel,
+        # so fetching the tape every few seconds (Kalshi rate-limits it) loses nothing.
+        self._cancelled: dict[str, tuple[RestingOrder, float]] = {}
         self._seen: dict[str, set[str]] = {}
+        self._last_fetch: dict[str, float] = {}
+        self._now = 0.0
 
     def start(self) -> None:
         if self.ledger.get_state(self.mode, "paper_start_cents") is None:
@@ -218,15 +223,29 @@ class PaperBroker:
         v = self.ledger.get_state(self.mode, "paper_start_cents")
         return float(v if v is not None else self.paper.starting_balance_usd * 100)
 
+    def _candidates(self) -> list[RestingOrder]:
+        return list(self._orders.values()) + [o for o, _ in self._cancelled.values()]
+
     def sync(self, now: float) -> list[Fill]:
+        self._now = now
+        keep = self.paper.keep_cancelled_sec
+        self._cancelled = {k: v for k, v in self._cancelled.items() if now - v[1] <= keep}
         new: list[Fill] = []
-        tickers = sorted({o.ticker for o in self._orders.values()})
+        candidates = self._candidates()
+        tickers = sorted({o.ticker for o in candidates})
+        for t in list(self._seen):
+            if t not in tickers:
+                del self._seen[t]
         for ticker in tickers:
-            since = min(o.created_ts for o in self._orders.values() if o.ticker == ticker)
+            if now - self._last_fetch.get(ticker, 0.0) < self.paper.trades_poll_sec:
+                continue
+            self._last_fetch[ticker] = now
+            since = min(o.created_ts for o in candidates if o.ticker == ticker)
             try:
-                raw = self.client.get_trades(ticker, min_ts=int(since) - 1).get("trades") or []
+                raw = self.client.get_trades(ticker, min_ts=int(since) - 1, retries=0).get("trades") or []
             except Exception as exc:  # noqa: BLE001
-                log.warning("paper: trades for %s failed: %s", ticker, exc)
+                log.info("paper: trades for %s failed (will retry): %s", ticker, exc)
+                self._last_fetch[ticker] = now - self.paper.trades_poll_sec / 2
                 continue
             seen = self._seen.setdefault(ticker, set())
             trades = sorted((parse_trade(t) for t in raw), key=lambda t: t.ts)
@@ -245,9 +264,12 @@ class PaperBroker:
         else:
             return []
         fills: list[Fill] = []
-        for o in list(self._orders.values()):
-            if o.ticker != tr.ticker or o.side != hit_side or tr.ts < o.created_ts:
+        for o in self._candidates():
+            if o.ticker != tr.ticker or o.side != hit_side or tr.ts < o.created_ts or o.remaining <= 0:
                 continue
+            cancelled = self._cancelled.get(o.order_id)
+            if cancelled is not None and tr.ts >= cancelled[1]:
+                continue  # printed after we pulled the order
             qty = 0
             if o.price > level:
                 qty = min(o.remaining, int(tr.count))
@@ -273,7 +295,8 @@ class PaperBroker:
                 fills.append(fill)
             o.remaining -= qty
             if o.remaining <= 0:
-                del self._orders[o.order_id]
+                self._orders.pop(o.order_id, None)
+                self._cancelled.pop(o.order_id, None)
         return fills
 
     def resting(self, ticker: str | None = None) -> list[RestingOrder]:
@@ -283,16 +306,20 @@ class PaperBroker:
               expires_ts: float | None = None) -> RestingOrder | None:
         if count <= 0:
             return None
+        self._now = max(self._now, now)
         o = RestingOrder(f"paper-{uuid.uuid4().hex[:16]}", ticker, side, price, count, now, queue_ahead)
         self._orders[o.order_id] = o
         return o
 
     def cancel(self, order: RestingOrder) -> bool:
-        self._orders.pop(order.order_id, None)
+        o = self._orders.pop(order.order_id, None)
+        if o is not None:
+            self._cancelled[o.order_id] = (o, self._now)
         return True
 
     def cancel_all(self) -> None:
-        self._orders.clear()
+        for o in list(self._orders.values()):
+            self.cancel(o)
 
     def cash_cents(self) -> float:
         return self._starting() + self.ledger.realized_pnl(self.mode) - self.ledger.open_cost(self.mode)

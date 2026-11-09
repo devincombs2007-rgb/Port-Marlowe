@@ -35,7 +35,7 @@ class FakeKalshi:
         yes, no = self.books.get(ticker, ([], []))
         return {"orderbook": {"yes": yes, "no": no}}
 
-    def get_trades(self, ticker, min_ts=None, limit=1000, cursor=None):
+    def get_trades(self, ticker, min_ts=None, limit=1000, cursor=None, retries=None):
         return {"trades": [t for t in self.trades.get(ticker, []) if min_ts is None or t["_ts"] >= min_ts]}
 
     def add_trade(self, ticker, trade_id, yes_price, count, taker_side, ts):

@@ -325,13 +325,14 @@ class KalshiClient:
         params: dict | None = None,
         body: dict | None = None,
         signed: bool = False,
+        retries: int | None = None,
     ) -> dict:
         if signed and self.auth is None:
             raise RuntimeError("this endpoint needs API credentials (KALSHI_API_KEY_ID / KALSHI_PRIVATE_KEY_PATH)")
         url = self.base_url + endpoint
         params = {k: v for k, v in (params or {}).items() if v is not None}
         last_err: Exception | None = None
-        for attempt in range(self.max_retries + 1):
+        for attempt in range((self.max_retries if retries is None else retries) + 1):
             headers = {"Accept": "application/json"}
             if self.auth is not None:
                 headers.update(self.auth.headers(method, self._path_prefix + endpoint))
@@ -380,9 +381,11 @@ class KalshiClient:
     def get_orderbook(self, ticker: str, depth: int | None = None) -> dict:
         return self._request("GET", f"/markets/{ticker}/orderbook", params={"depth": depth})
 
-    def get_trades(self, ticker: str, min_ts: int | None = None, limit: int = 1000, cursor: str | None = None) -> dict:
+    def get_trades(self, ticker: str, min_ts: int | None = None, limit: int = 1000, cursor: str | None = None,
+                   retries: int | None = None) -> dict:
         return self._request(
-            "GET", "/markets/trades", params={"ticker": ticker, "min_ts": min_ts, "limit": limit, "cursor": cursor}
+            "GET", "/markets/trades", params={"ticker": ticker, "min_ts": min_ts, "limit": limit, "cursor": cursor},
+            retries=retries,
         )
 
     def get_market_candlesticks(

@@ -10,7 +10,8 @@ T0 = 1_800_000_000.0
 def setup(tmp_path, at_touch=True):
     k = FakeKalshi()
     led = Ledger(str(tmp_path / "p.sqlite"))
-    b = PaperBroker(k, led, FeesConfig(), PaperConfig(starting_balance_usd=100, fill_at_touch=at_touch))
+    b = PaperBroker(k, led, FeesConfig(), PaperConfig(starting_balance_usd=100, fill_at_touch=at_touch,
+                                                      trades_poll_sec=0))
     b.start()
     return k, led, b
 
@@ -60,3 +61,46 @@ def test_full_fill_removes_order(tmp_path):
     k.add_trade("T", "a", 40, 10, "no", T0 + 1)
     b.sync(T0 + 2)
     assert b.resting() == []
+
+
+def test_cancelled_order_still_fills_on_trades_from_before_the_cancel(tmp_path):
+    k, led, b = setup(tmp_path)
+    b.sync(T0)
+    o = b.place("T", "yes", 45, 10, queue_ahead=0, now=T0)
+    k.add_trade("T", "before", 44, 3, "no", T0 + 1)  # printed while the order rested
+    b.sync(T0 + 2)  # (pretend the tape was not fetched yet) - this fetch applies it
+    assert led.position("dry_run", "T").yes_count == 3
+    b.cancel(o)  # cancelled at T0 + 2
+    k.add_trade("T", "after", 40, 5, "no", T0 + 3)  # after the cancel: must not fill
+    b.sync(T0 + 4)
+    assert led.position("dry_run", "T").yes_count == 3
+
+
+def test_late_fetch_after_cancel_still_counts_earlier_trade(tmp_path):
+    k = FakeKalshi()
+    led = Ledger(str(tmp_path / "t.sqlite"))
+    b = PaperBroker(k, led, FeesConfig(), PaperConfig(trades_poll_sec=6))
+    b.start()
+    o = b.place("T", "yes", 45, 10, queue_ahead=0, now=T0)
+    b.sync(T0 + 0.5)  # first fetch: nothing yet
+    k.add_trade("T", "x", 44, 4, "no", T0 + 1)  # sells through our bid while it rests
+    b.sync(T0 + 2)  # throttled: tape not fetched
+    b.cancel(o)  # pulled at T0 + 2, before we ever saw the trade
+    fills = b.sync(T0 + 7)  # next fetch finds it
+    assert [(f.side, f.price, f.count) for f in fills] == [("yes", 45, 4)]
+    assert b.resting() == []
+
+
+def test_tape_fetch_is_throttled(tmp_path):
+    k = FakeKalshi()
+    calls = []
+    real = k.get_trades
+    k.get_trades = lambda *a, **kw: (calls.append(1), real(*a, **kw))[1]
+    led = Ledger(str(tmp_path / "t.sqlite"))
+    b = PaperBroker(k, led, FeesConfig(), PaperConfig(trades_poll_sec=6))
+    b.start()
+    b.place("T", "yes", 45, 10, queue_ahead=0, now=T0)
+    b.sync(T0 + 1)
+    b.sync(T0 + 3)
+    b.sync(T0 + 8)
+    assert len(calls) == 2

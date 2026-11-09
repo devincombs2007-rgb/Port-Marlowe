@@ -45,6 +45,8 @@ fees:
 paper:
   starting_balance_usd: 50
   fill_at_touch: true
+  trades_poll_sec: 6         # Kalshi rate-limits the trade tape
+  keep_cancelled_sec: 120
 
 dashboard:
   host: 127.0.0.1
