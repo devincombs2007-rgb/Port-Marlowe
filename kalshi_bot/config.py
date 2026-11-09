@@ -80,6 +80,9 @@ class SizingConfig:
     max_market_loss_fraction: float = 0.06
     # Worst-case loss across all open markets plus resting orders.
     max_total_exposure_fraction: float = 0.30
+    # Size orders as if equity were at most this (USD). Lets you start small without
+    # moving money out of the account. None = use the full balance.
+    max_equity_usd: float | None = None
 
 
 @dataclass
@@ -90,7 +93,7 @@ class RiskConfig:
     # Halt (until `reset-halt`) after falling this far from peak equity.
     max_drawdown_fraction: float = 0.25
     # If this file exists, cancel everything and stop quoting.
-    kill_file: str = "KILL"
+    kill_file: str = "data/KILL"
 
 
 @dataclass
@@ -119,6 +122,22 @@ class PaperConfig:
 
 
 @dataclass
+class NotifyConfig:
+    """Phone/chat notifications. Channels (ntfy, Telegram, Discord) are set in .env."""
+
+    # "each": one message per settled market; "summary": a roll-up every
+    # summary_every_min; "off": no win/loss messages (alerts still go out).
+    settlements: str = "summary"
+    summary_every_min: float = 60.0
+    # Any single market winning or losing at least this much is sent right away.
+    big_result_usd: float = 5.0
+    daily_summary: bool = True
+    # Halts, benched coins, repeated errors, start/stop.
+    alerts: bool = True
+    min_alert_gap_sec: float = 600.0
+
+
+@dataclass
 class DashboardConfig:
     host: str = "127.0.0.1"
     port: int = 8050
@@ -133,6 +152,7 @@ class Config:
     fees: FeesConfig = field(default_factory=FeesConfig)
     paper: PaperConfig = field(default_factory=PaperConfig)
     dashboard: DashboardConfig = field(default_factory=DashboardConfig)
+    notify: NotifyConfig = field(default_factory=NotifyConfig)
     # Learn from results: blend the pricing model with the market's price, and adapt
     # each series' edge from post-fill markouts (see kalshi_bot/learner.py).
     learning: bool = True
@@ -234,6 +254,8 @@ def _validate(cfg: Config) -> None:
         raise ValueError("strategy.min_fair/max_fair must satisfy 0 < min < max < 1")
     if s.min_edge_cents < 1:
         raise ValueError("strategy.min_edge_cents must be at least 1")
+    if cfg.notify.settlements not in ("each", "summary", "off"):
+        raise ValueError("notify.settlements must be 'each', 'summary' or 'off'")
     if cfg.order_price_field not in ("cents", "dollars"):
         raise ValueError("order_price_field must be 'cents' or 'dollars'")
     if cfg.sizing.min_contracts < 1 or cfg.sizing.max_contracts < cfg.sizing.min_contracts:

@@ -1,0 +1,21 @@
+# systemd alternative to Docker. Edit the paths and user, then:
+#   sudo cp deploy/kalshi-bot.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now kalshi-bot
+#   journalctl -u kalshi-bot -f
+[Unit]
+Description=Kalshi 15-minute crypto maker bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=kalshi
+WorkingDirectory=/home/kalshi/Port-Marlowe
+# Paper trading. For real money use: ... -m kalshi_bot run --live --yes
+ExecStart=/home/kalshi/Port-Marlowe/.venv/bin/python -m kalshi_bot run
+Restart=always
+RestartSec=15
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

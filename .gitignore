@@ -14,3 +14,4 @@ data/
 *.key
 config.yaml
 KILL
+secrets/

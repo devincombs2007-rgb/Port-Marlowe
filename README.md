@@ -6,6 +6,16 @@ It rebuilds the setup described in a Reddit post ("Promising Results – Update 
 
 > **Read before using real money.** Nothing here has been shown to make money. The bot can lose your whole balance. It defaults to dry-run (paper trading on real market data) and needs `--live` to send orders. Run it in dry-run and run `calibrate` (below) before you risk a dollar.
 
+## Run it by itself, 24/7
+
+**[DEPLOY.md](DEPLOY.md)** is the copy-paste guide for running it on a cheap always-on server with Docker. Once set up, it:
+- trades on its own (paper first, then live when you switch it)
+- restarts itself after crashes and reboots
+- keeps learning
+- messages your phone (ntfy, Telegram or Discord): hourly win/loss roll-ups, any big single win or loss, a daily summary, and urgent alerts whenever it pauses, benches a coin or runs into trouble
+
+Before going live, `check-orders` places and cancels one 1¢ order to prove real orders work. `sizing.max_equity_usd` lets you start small.
+
 ## What the bot does
 
 Each 15-minute market settles YES if the 60-second average of the CF Benchmarks index just before close is at or above the same average taken just before the window opened. That opening average is the market's `floor_strike`.
@@ -47,7 +57,7 @@ What it can't do: learning only works if there is something to learn. If Kalshi'
 |---|---|---|
 | Daily loss limit | 10% of the day's starting equity | stop quoting until midnight ET |
 | Max drawdown | 25% from peak equity | halt until `reset-halt` |
-| Kill file | `touch KILL` | cancel everything, stop quoting |
+| Kill file | `touch data/KILL` | cancel everything, stop quoting |
 | Exchange-side expiry | close − 90s | live orders expire even if the bot crashes |
 | Shutdown / repeated errors | — | cancel all resting orders |
 | Order ownership | `kb-` client IDs | never touches orders you placed by hand |
@@ -78,7 +88,7 @@ Requires Python 3.10+.
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
-pytest                                   # 58 tests
+pytest                                   # 74 tests
 
 cp config.example.yaml config.yaml       # optional; defaults are the same
 python -m kalshi_bot check               # connectivity + how Kalshi's responses parse
@@ -94,12 +104,13 @@ Run the dry-run for at least a week or two. Look at the calendar's losing days a
 
 1. Create an API key on Kalshi (Account & security → API keys). Save the private key `.pem` outside this repo.
 2. `cp .env.example .env` and fill in `KALSHI_API_KEY_ID` and `KALSHI_PRIVATE_KEY_PATH`.
-3. Rehearse on Kalshi's demo exchange: `python -m kalshi_bot run --live --demo`
-4. Real money: `python -m kalshi_bot run --live`. It counts down for 10 seconds before starting.
+3. Prove that orders work: `python -m kalshi_bot check-orders` places one 1¢ bid, confirms it, and cancels it.
+4. Optionally rehearse on Kalshi's demo exchange (needs a separate demo key): `python -m kalshi_bot run --live --demo`
+5. Real money: `python -m kalshi_bot run --live`. It counts down for 10 seconds before starting. Consider `sizing.max_equity_usd` to start small.
 
 Use a dedicated account, or don't trade these series by hand while the bot runs. The bot counts every fill in its series as its own.
 
-Run it under something that restarts it (systemd, `tmux`, a small VPS) if you want it running 24/7. On restart it cancels its old orders and picks up from the ledger.
+For 24/7 operation follow [DEPLOY.md](DEPLOY.md) (Docker), or use `deploy/kalshi-bot.service` (systemd). On restart it cancels its old orders and picks up from the ledger.
 
 ## Commands
 
@@ -110,6 +121,8 @@ Run it under something that restarts it (systemd, `tmux`, a small VPS) if you wa
 | `check [--raw]` | exchange status, open windows per series, parsed strike/book, spot sources, balance |
 | `calibrate [--series S] [--days N]` | model vs. outcome vs. market mid |
 | `learn [--days N]` | pre-train the probability learner on settled markets (slow on purpose: Kalshi rate-limits) |
+| `check-orders [--demo]` | place and cancel one harmless 1¢ order to prove live trading works |
+| `notify-test` | send a test message to every notification channel in `.env` |
 | `analyze [--live]` | P&L by coin, time left, price paid and side, with honest (per-market) t-stats |
 | `export-learning` / `import-learning [--dir D]` | save or load what the bot has learned (default folder `learned/`) |
 | `status [--live]` | P&L summary in the terminal |
@@ -145,6 +158,7 @@ kalshi_bot/
   calibrate.py       model vs. market scoring, history sampling for `learn`
   learner.py         probability blend + per-series edge learning
   snapshot.py        export/import of learned state (the learned/ folder)
+  notify.py          phone/chat notifications (ntfy, Telegram, Discord)
   dashboard/         stdlib HTTP server + single-page dashboard
 tests/               unit tests and engine integration tests with fake exchange/feeds
 ```

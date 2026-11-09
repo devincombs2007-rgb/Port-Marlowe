@@ -17,6 +17,7 @@ from .kalshi_client import KalshiAPIError, KalshiClient, MarketInfo, parse_marke
 from .learner import Learner
 from .ledger import Ledger, et_date
 from .model import fair_yes_probability
+from .notify import Notifier, null_notifier
 from .risk import RiskManager
 from .spot import SpotFeed, VolEstimator
 from .strategy import book_top, compute_quotes, should_replace
@@ -36,6 +37,7 @@ class Engine:
         risk: RiskManager,
         clock: Callable[[], float] = time.time,
         learner: Learner | None = None,
+        notifier: Notifier | None = None,
     ):
         self.cfg = cfg
         self.client = client
@@ -47,6 +49,9 @@ class Engine:
         self.clock = clock
         self.learner = learner
         self.mode = broker.mode
+        self.notifier = notifier or null_notifier(self.mode)
+        if learner is not None and self.notifier.enabled:
+            learner.set_event_hook(self._on_learning_event)
         self._markets: dict[str, list[MarketInfo]] = {}
         self._markets_fetched: dict[str, float] = {}
         self._known_tickers: set[str] = set()
@@ -73,8 +78,15 @@ class Engine:
 
     def run(self) -> None:
         failures = 0
+        stop_note = "shut down"
         try:
             self.startup()
+            learned = ""
+            if self.learner:
+                st = self.learner.prob.state
+                learned = (f"Pricing: {'learned blend' if st.active else 'plain model'} "
+                           f"({st.n_markets} markets learned).")
+            self.notifier.started(self.broker.equity_cents(), [m.series for m in self.cfg.enabled_markets()], learned)
             while not self._stop.is_set():
                 started = self.clock()
                 try:
@@ -88,10 +100,19 @@ class Engine:
                         log.exception("tick failed (%d in a row)", failures)
                     if failures >= 3:
                         self._safe_cancel_all()
+                        self.notifier.alert("errors", "Bot is having trouble",
+                                            f"{failures} failed cycles in a row; orders pulled. Last error: {exc}")
                 self._stop.wait(max(0.0, self.cfg.poll_interval_sec - (self.clock() - started)))
+        except BaseException as exc:
+            stop_note = f"crashed: {exc!r}"
+            raise
         finally:
             log.info("shutting down: cancelling resting orders")
             self._safe_cancel_all()
+            try:
+                self.notifier.stopped(self.broker.equity_cents(), stop_note)
+            except Exception:  # noqa: BLE001
+                log.exception("stop notification failed")
 
     def _safe_cancel_all(self) -> None:
         try:
@@ -114,12 +135,15 @@ class Engine:
         equity = self.broker.equity_cents()
         self._update_day_state(now, equity)
         self._record_equity(now, equity)
+        self.notifier.maybe_summary(equity, equity - (self._day_start or equity))
 
         halted = self.ledger.get_state(self.mode, "halted")
         reason = self.risk.stop_reason(equity, self._day_start or equity, self._peak or equity, halted)
         if reason:
             if reason != self._last_stop_reason:
                 log.warning("not quoting: %s", reason)
+                self.notifier.alert(f"stop:{reason.split(' ')[0]}", "Trading paused",
+                                    f"{reason}. Equity {equity / 100:,.2f} USD. Resting orders cancelled.")
             if not halted and self.risk.is_persistent(reason):
                 self.ledger.set_state(self.mode, "halted", reason)
             self._last_stop_reason = reason
@@ -128,6 +152,7 @@ class Engine:
             return
         if self._last_stop_reason:
             log.info("quoting resumed")
+            self.notifier.send("Trading resumed", f"Equity {equity / 100:,.2f} USD.")
         self._last_stop_reason = None
 
         budget = self.cfg.strategy.max_places_per_tick
@@ -264,7 +289,9 @@ class Engine:
                     self.broker.cancel(o)
                 continue
             side_cost = resting_cost(side_orders)
-            count = self.risk.order_size(side, target, equity, pos, exposure - side_cost, cash + side_cost)
+            cap = self.cfg.sizing.max_equity_usd
+            sizing_equity = min(equity, cap * 100) if cap is not None else equity
+            count = self.risk.order_size(side, target, sizing_equity, pos, exposure - side_cost, cash + side_cost)
             keep: RestingOrder | None = None
             for o in side_orders:
                 if keep is None and count > 0 and o.remaining <= count and not should_replace(
@@ -340,6 +367,8 @@ class Engine:
                     ticker, s.result.upper(), s.yes_count, s.no_count, s.cost_cents / 100,
                     s.payout_cents / 100, s.pnl_cents / 100,
                 )
+            if s is not None:
+                self.notifier.settled(ticker, s.result, s.pnl_cents, self.broker.equity_cents())
             if self.learner:
                 self.learner.on_market_result(ticker, m.result or "")
                 if s is not None:
@@ -347,8 +376,20 @@ class Engine:
 
     # ---------------------------------------------------------------- bookkeeping
 
+    def _on_learning_event(self, text: str) -> None:
+        # Edge tweaks happen often; only tell the owner about the big decisions.
+        if "benched" in text:
+            self.notifier.alert(f"bench:{text.split(':')[0]}", "Coin benched", text)
+        elif text.startswith("probability model"):
+            self.notifier.send("Pricing model changed", text)
+
     def _update_day_state(self, now: float, equity: float) -> None:
         today = et_date(now)
+        if self._day is not None and self._day != today:
+            d = self.ledger.daily_pnl(self.mode).get(self._day)
+            if d:
+                n, wins = int(d["markets"]), int(d["wins"])
+                self.notifier.daily(self._day, d["pnl_cents"], n, wins, n - wins, equity)
         if self._day != today or self._day_start is None:
             self._day, self._day_start = today, equity
             self.ledger.set_state(self.mode, "day", today)

@@ -90,7 +90,14 @@ def cmd_run(args: argparse.Namespace, cfg: Config) -> None:
         st = learner.prob.state
         log.info("learning on: probability model %s (%d labelled markets)",
                  "uses learned blend" if st.active else "uses plain model", st.n_markets)
-    engine = Engine(cfg, client, broker, ledger, feed, vol, RiskManager(cfg.risk, cfg.sizing), learner=learner)
+    from .notify import Notifier, channels_from_env
+
+    channels = channels_from_env()
+    notifier = Notifier(channels, cfg.notify, mode=broker.mode)
+    log.info("notifications: %s", ", ".join(c.name for c in channels) if channels else
+             "off (set NTFY_TOPIC, TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID or DISCORD_WEBHOOK_URL in .env)")
+    engine = Engine(cfg, client, broker, ledger, feed, vol, RiskManager(cfg.risk, cfg.sizing), learner=learner,
+                    notifier=notifier)
 
     def _stop(signum: int, _frame: object) -> None:
         log.info("signal %d received", signum)
@@ -223,6 +230,59 @@ def _mode(args: argparse.Namespace) -> str:
     return "live" if getattr(args, "live", False) else ("demo" if getattr(args, "demo", False) else "dry_run")
 
 
+def cmd_check_orders(args: argparse.Namespace, cfg: Config) -> None:
+    """Prove the live order path: rest a 1-contract YES bid at 1c, confirm it, cancel it."""
+    import uuid
+
+    from .broker import CLIENT_ID_PREFIX
+    from .kalshi_client import KalshiAPIError
+
+    client = _client(cfg, args.demo, auth_required=True)
+    where = "Kalshi DEMO" if args.demo else "Kalshi (real money)"
+    bal = client.get_balance()
+    print(f"{where}: balance {float(bal.get('balance') or 0) / 100:.2f} USD")
+    spec = cfg.enabled_markets()[0]
+    now = time.time()
+    markets = [parse_market(m, spec.series) for m in client.get_markets(series_ticker=spec.series, status="open",
+                                                                         limit=20).get("markets") or []]
+    markets = [m for m in markets if m.close_ts - now > 180 and (m.open_ts is None or m.open_ts <= now)]
+    if not markets:
+        sys.exit(f"no open {spec.series} window with 3+ minutes left; try again in a few minutes")
+    m = min(markets, key=lambda x: x.close_ts)
+    coid = f"{CLIENT_ID_PREFIX}check-{uuid.uuid4().hex[:12]}"
+    expires = int(m.close_ts - cfg.strategy.min_seconds_to_close) if cfg.use_order_expiration else None
+    print(f"placing a 1-contract YES bid at 1c on {m.ticker} (it will not fill; max cost 1c)...")
+    try:
+        order = client.create_order(m.ticker, "yes", 1, 1, coid, post_only=True,
+                                    price_field=cfg.order_price_field, expiration_ts=expires)
+    except KalshiAPIError as exc:
+        print(f"REJECTED: {exc}")
+        print("Try in config.yaml: order_price_field: cents   and/or   use_order_expiration: false")
+        sys.exit(1)
+    oid = order.get("order_id")
+    print(f"  accepted: order {oid} status={order.get('status')}")
+    resting = {o.get("order_id") for o in client.get_orders(status="resting", ticker=m.ticker)}
+    print(f"  visible as resting: {'yes' if oid in resting else 'NO'}")
+    client.cancel_order(oid)
+    still = {o.get("order_id") for o in client.get_orders(status="resting", ticker=m.ticker)}
+    print(f"  cancelled: {'yes' if oid not in still else 'NO - cancel it on kalshi.com!'}")
+    if oid in resting and oid not in still:
+        print("Live order placement works.")
+    else:
+        sys.exit("something did not behave as expected; do not run live until this passes")
+
+
+def cmd_notify_test(args: argparse.Namespace, cfg: Config) -> None:
+    from .notify import Notifier, channels_from_env
+
+    channels = channels_from_env()
+    if not channels:
+        sys.exit("no notification channel set: put NTFY_TOPIC (or Telegram/Discord settings) in .env")
+    Notifier(channels, cfg.notify, mode="dry_run", background=False).send(
+        "Test notification", "If you can read this on your phone, notifications work.")
+    print("sent via", ", ".join(c.name for c in channels))
+
+
 def cmd_analyze(args: argparse.Namespace, cfg: Config) -> None:
     from .analyze import report
 
@@ -316,6 +376,13 @@ def main(argv: list[str] | None = None) -> None:
         e.add_argument("--live", action="store_true")
         e.add_argument("--demo", action="store_true")
         e.set_defaults(func=func)
+
+    co = sub.add_parser("check-orders", help="place and cancel one harmless 1c order to prove live trading works")
+    co.add_argument("--demo", action="store_true", help="use Kalshi's demo exchange")
+    co.set_defaults(func=cmd_check_orders)
+
+    nt = sub.add_parser("notify-test", help="send a test notification to every configured channel")
+    nt.set_defaults(func=cmd_notify_test)
 
     a = sub.add_parser("analyze", help="where the bot makes and loses money (by coin, time left, price, side)")
     a.add_argument("--live", action="store_true")

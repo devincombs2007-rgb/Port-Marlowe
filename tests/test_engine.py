@@ -126,3 +126,34 @@ def test_learner_records_samples_sets_edge_and_benches(tmp_path):
     eng.tick(CLOSE + 300)
     assert broker.resting() == []
     assert "benched" in led.get_state("dry_run", "status")["markets"]["KXBTC15M-W2-00"]["reason"]
+
+
+def test_engine_sends_settlement_and_pause_notifications(tmp_path):
+    from kalshi_bot.config import NotifyConfig
+    from kalshi_bot.notify import Notifier
+
+    from .test_notify import Capture
+
+    cfg, k, led, broker, feed, eng = build(tmp_path)
+    ch = Capture()
+    eng.notifier = Notifier([ch], NotifyConfig(settlements="each"), mode="dry_run", background=False)
+    eng.tick(OPEN + 300)
+    k.add_trade("KXBTC15M-W1-00", "t1", 40, 2, "no", OPEN + 301)
+    eng.tick(OPEN + 303)
+    k.markets["KXBTC15M-W1-00"].update(status="settled", result="yes")
+    eng.tick(CLOSE + 30)
+    assert ch.msgs[-1][0] == "[PAPER] Won +$1.10 on BTC"
+    (tmp_path / "KILL").write_text("")
+    eng.tick(CLOSE + 40)
+    assert ch.msgs[-1][0] == "[PAPER] Trading paused" and ch.msgs[-1][2] is True
+
+
+def test_max_equity_cap_limits_order_size(tmp_path):
+    cfg, k, led, broker, feed, eng = build(tmp_path)
+    eng.tick(OPEN + 300)
+    uncapped = {o.side: o.remaining for o in broker.resting()}
+    broker.cancel_all()
+    cfg.sizing.max_equity_usd = 25.0  # paper equity is $100
+    eng.tick(OPEN + 302)
+    capped = {o.side: o.remaining for o in broker.resting()}
+    assert capped["yes"] < uncapped["yes"] and capped["no"] < uncapped["no"]

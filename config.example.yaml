@@ -32,11 +32,12 @@ sizing:
   max_contracts: 100
   max_market_loss_fraction: 0.06   # worst case in a single 15-minute market
   max_total_exposure_fraction: 0.30
+  max_equity_usd: null             # e.g. 50: bet as if the account held at most $50
 
 risk:
   daily_loss_limit_fraction: 0.10  # pause until midnight ET after losing 10% on the day
   max_drawdown_fraction: 0.25      # halt until `reset-halt` after a 25% fall from peak
-  kill_file: KILL                  # `touch KILL` to flatten quotes immediately
+  kill_file: data/KILL             # `touch data/KILL` to pull all orders and stop quoting
 
 fees:
   maker_rate: 0.0     # check Kalshi's current fee schedule

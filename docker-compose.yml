@@ -1,0 +1,27 @@
+# Runs the bot 24/7 and restarts it after crashes and reboots.
+#   docker compose up -d --build     start (paper trading unless BOT_ARGS says --live)
+#   docker compose logs -f bot       watch it
+#   docker compose down              stop (cancels resting orders)
+services:
+  bot:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      KALSHI_PRIVATE_KEY_PATH: /secrets/kalshi.pem
+    # BOT_ARGS in .env: empty = paper trading, "--live --yes" = real money
+    entrypoint: ["sh", "-c", "exec python -m kalshi_bot run $$BOT_ARGS"]
+    volumes:
+      - ./data:/app/data
+      - ./secrets:/secrets:ro
+    stop_grace_period: 30s
+
+  dashboard:
+    build: .
+    restart: unless-stopped
+    command: ["dashboard", "--host", "0.0.0.0", "--port", "8050"]
+    volumes:
+      - ./data:/app/data
+    # Only reachable from the server itself; use an SSH tunnel to view it (see DEPLOY.md).
+    ports:
+      - "127.0.0.1:8050:8050"

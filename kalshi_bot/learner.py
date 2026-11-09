@@ -137,6 +137,7 @@ class ProbabilityLearner:
                  sample_every_sec: float = 60.0, min_tau: float = 60.0, background: bool = False):
         self.ledger = ledger
         self.background = background
+        self.on_event: Callable[[str], None] | None = None
         self._refitting = threading.Lock()
         self.l2 = l2
         self.min_markets = min_markets
@@ -222,7 +223,7 @@ class ProbabilityLearner:
         log.info("probability model refit on %d markets: holdout log-loss model %.4f / market %.4f / learned %.4f -> %s",
                  len(order), ll["model"], ll["market"], ll["learned"], "USING learned" if st.active else "using model")
         if st.active != was_active:
-            add_event(self.ledger, SHARED, f"probability model {'switched to learned blend' if st.active else 'back to plain model'}"
+            add_event(self.ledger, SHARED, hook=self.on_event, text=f"probability model {'switched to learned blend' if st.active else 'back to plain model'}"
                       f" (holdout log-loss learned {ll['learned']:.4f} vs model {ll['model']:.4f}, market {ll['market']:.4f})")
         return st
 
@@ -268,6 +269,7 @@ class EdgeLearner:
                  bench_t: float = -2.0, bench_hours: float = 6.0):
         self.ledger = ledger
         self.mode = mode
+        self.on_event: Callable[[str], None] | None = None
         self.base_edge = base_edge
         self.min_edge, self.max_edge = min_edge, max_edge
         self.horizon = horizon_sec
@@ -343,7 +345,7 @@ class EdgeLearner:
             # Already as careful as we go and still picked off: sit this one out.
             st.benched_until = max(st.benched_until, fill_ts + self.bench_hours * 3600)
             st.changed_at = st.fills_measured
-            add_event(self.ledger, self.mode,
+            add_event(self.ledger, self.mode, hook=self.on_event, text=
                       f"{series}: benched for {self.bench_hours:g}h; still picked off at the {self.max_edge:g}c "
                       f"maximum edge (avg 1-min markout {avg:+.2f}c over {len(recent)} fills)")
             return
@@ -355,7 +357,7 @@ class EdgeLearner:
             st.edge = max(self.min_edge, st.edge - 0.5)
         if st.edge != old:
             st.changed_at = st.fills_measured
-            add_event(self.ledger, self.mode,
+            add_event(self.ledger, self.mode, hook=self.on_event, text=
                       f"{series}: edge {old:g}c -> {st.edge:g}c (avg 1-min markout {avg:+.2f}c over the "
                       f"{len(recent)} fills since its last change)")
 
@@ -373,7 +375,7 @@ class EdgeLearner:
                 st.edge = min(self.max_edge, st.edge + 2.0)
                 st.changed_at = st.fills_measured
                 st.market_pnls = []
-                add_event(self.ledger, self.mode,
+                add_event(self.ledger, self.mode, hook=self.on_event, text=
                           f"{series}: benched for {self.bench_hours:g}h; lost {-mean / 100:.2f} USD per market over "
                           f"{len(pnls)} markets (t={t:.1f}); edge raised to {st.edge:g}c for the comeback")
         self._save()
@@ -404,8 +406,13 @@ class EdgeLearner:
 # ------------------------------------------------------------------- facade
 
 
-def add_event(ledger: Ledger, mode: str, text: str) -> None:
+def add_event(ledger: Ledger, mode: str, text: str, hook: Callable[[str], None] | None = None) -> None:
     log.info("LEARNED: %s", text)
+    if hook is not None:
+        try:
+            hook(text)
+        except Exception:  # noqa: BLE001 - a notification problem must not break learning
+            log.exception("learning event hook failed")
     events = ledger.get_state(mode, "learning_events") or []
     events.append([time.time(), text])
     ledger.set_state(mode, "learning_events", events[-100:])
@@ -433,6 +440,10 @@ class Learner:
 
     def edge(self, series: str) -> float:
         return self.edges.edge(series)
+
+    def set_event_hook(self, hook: Callable[[str], None] | None) -> None:
+        self.prob.on_event = hook
+        self.edges.on_event = hook
 
     def benched(self, series: str, now: float) -> bool:
         return self.edges.benched(series, now)
