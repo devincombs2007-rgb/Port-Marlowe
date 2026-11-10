@@ -991,6 +991,176 @@ body:has(#live:not([hidden])) .toast, body:has(#rest:not([hidden])) .toast { bot
 }
 body:has(#sheetWrap.open) .toast { top: calc(12px + env(safe-area-inset-top, 0px)); bottom: auto; }
 </style>
+<style>
+/* ================= V8: PLAYER — overall rating, player card, quests, command bar, live core ================= */
+/* Tier colors arrive as --tc (bright) and --tc2 (deep). --tk is whichever reads on the current ground. */
+.pc, .ovr-chip { --tk: var(--tc); }
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) .pc, :root:not([data-theme="dark"]) .ovr-chip { --tk: var(--tc2); } }
+:root[data-theme="light"] .pc, :root[data-theme="light"] .ovr-chip { --tk: var(--tc2); }
+@keyframes v8Out { to { opacity: 0; } }
+
+/* Today: command pill, overall chip */
+.cmd-row { display: flex; align-items: center; gap: 8px; margin: 0 0 16px; }
+.cmd-pill { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; min-height: 46px; padding: 0 12px 0 14px; border-radius: 14px; background: var(--card); box-shadow: inset 0 0 0 1px var(--control-edge); color: var(--fg3); font-size: 14.5px; text-align: left; }
+.cmd-pill > .ic { color: var(--red); }
+.cmd-pill .grow { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cmd-pill:active { transform: scale(.985); }
+.ovr-chip { width: 46px; height: 46px; border-radius: 14px; flex: none; display: grid; place-items: center; align-content: center; gap: 2px; background: var(--card); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--tk) 70%, transparent); }
+.ovr-chip b { font: 700 17px/1 var(--font-display); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.ovr-chip i { font: 600 7.5px/1 var(--font-text); font-style: normal; letter-spacing: .12em; color: var(--fg3); }
+.ovr-chip:active { transform: scale(.94); }
+
+/* Live core behind the charge hero */
+.card.hero { position: relative; overflow: hidden; isolation: isolate; }
+.card.hero > :not(#core) { position: relative; z-index: 1; }
+#core { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; opacity: 0; transition: opacity 1.4s ease; }
+#core.on { opacity: 1; }
+
+/* Hexagon */
+.radar { display: block; overflow: visible; flex: none; }
+.radar .rd-grid { fill: none; stroke: var(--line2); stroke-width: 1; }
+.radar .rd-shape { fill: color-mix(in srgb, var(--tk, var(--red)) 24%, transparent); stroke: var(--tk, var(--red)); stroke-width: 2; stroke-linejoin: round; }
+.radar text { fill: var(--fg3); font: 600 9.5px var(--font-text); letter-spacing: .08em; }
+.view-in .radar .rd-in, .pcard .radar .rd-in { animation: rdIn .8s cubic-bezier(.2,.9,.25,1) both; }
+@keyframes rdIn { from { transform: scale(.15); opacity: 0; } }
+
+/* You: player card summary */
+.pc { position: relative; overflow: hidden; background: radial-gradient(120% 80% at 0% 0%, color-mix(in srgb, var(--tk) 15%, transparent), transparent 60%), var(--card); }
+.pc-top { display: flex; align-items: center; gap: 14px; }
+.pc-ovr { width: 76px; height: 76px; border-radius: 22px; flex: none; display: grid; place-items: center; align-content: center; gap: 3px; background: color-mix(in srgb, var(--tk) 13%, var(--card2)); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--tk) 62%, transparent); }
+.pc-ovr b { font: 700 36px/.95 var(--font-display); letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.pc-ovr i { font: 600 10px/1 var(--font-text); font-style: normal; letter-spacing: .16em; color: var(--tk); }
+.pc-ovr:active { transform: scale(.96); }
+.pc-tier { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font: 600 11px/1.2 var(--font-text); letter-spacing: .13em; text-transform: uppercase; color: var(--tk); margin-bottom: 3px; }
+.pc-name { display: flex; align-items: center; gap: 8px; max-width: 100%; text-align: left; }
+.pc-name .ic { color: var(--fg3); }
+.dl { font: 600 11.5px/1 var(--font-text); letter-spacing: 0; text-transform: none; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dl.up { color: var(--good); } .dl.dn { color: var(--crit); }
+.pc-body { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+.pc-attrs { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.pc-a { display: flex; align-items: center; gap: 8px; }
+.pc-a .ab { width: 28px; font: 600 10.5px/1 var(--font-text); letter-spacing: .08em; color: var(--fg3); }
+.pc-a .track { flex: 1; height: 5px; border-radius: 3px; background: var(--card2); overflow: hidden; }
+.pc-a .track i { display: block; height: 100%; border-radius: 3px; transition: width .7s cubic-bezier(.2,.8,.2,1); }
+.pc-a b { width: 22px; text-align: right; font: 600 13.5px/1 var(--font-display); }
+@media (max-width: 359px) { .pc-body { flex-direction: column; } .pc-attrs { width: 100%; } }
+.pc-btns .btn { padding: 0 10px; white-space: nowrap; }
+
+/* Daily quests */
+.quest .q-ring { position: relative; width: 34px; height: 34px; border-radius: 50%; flex: none; display: grid; place-items: center; color: #fff; background: conic-gradient(var(--qc) calc(var(--p) * 360deg), var(--card3) 0); }
+.quest .q-ring::before { content: ''; position: absolute; inset: 3px; border-radius: 50%; background: var(--card); }
+.quest .q-ring > * { position: relative; }
+.quest .q-ring i { font: 600 8.5px/1 var(--font-text); font-style: normal; letter-spacing: .06em; color: var(--fg2); }
+.quest.done .q-ring { background: var(--qc); }
+.quest.done .q-ring::before { display: none; }
+.quest .s { white-space: normal; }
+.li.quest + .li.quest::before { left: 64px; }
+
+/* Command bar */
+.cmd { position: fixed; inset: 0; z-index: 80; display: flex; justify-content: center; align-items: flex-start; padding: calc(10px + env(safe-area-inset-top, 0px)) 10px 0; }
+.cmd[hidden] { display: none; }
+.cmd.out { animation: v8Out .18s ease both; }
+.cmd-scrim { position: absolute; inset: 0; background: var(--scrim); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); animation: fadeIn .18s ease both; }
+.cmd-panel { position: relative; width: min(560px, 100%); max-height: min(560px, calc(100vh - 28px)); display: flex; flex-direction: column; background: var(--card); border-radius: 20px; box-shadow: var(--shadow), inset 0 0 0 1px var(--line2); overflow: hidden; animation: cmdIn .24s cubic-bezier(.2,.9,.25,1) both; }
+@keyframes cmdIn { from { transform: translateY(-12px) scale(.98); opacity: 0; } }
+.cmd-in { display: flex; align-items: center; gap: 10px; padding: 6px 8px 6px 16px; border-bottom: 1px solid var(--line); color: var(--red); cursor: text; }
+.cmd-in input, .cmd-in input:focus { background: transparent; border: 0; border-radius: 0; padding: 12px 0; font-size: 17px; color: var(--fg); outline: none; }
+.cmd-x { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: var(--fg3); flex: none; }
+.cmd-list { overflow-y: auto; padding: 6px; overscroll-behavior: contain; }
+.cmd-it { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 52px; padding: 8px 10px; border-radius: 12px; text-align: left; }
+.cmd-it[aria-selected="true"] { background: var(--card2); }
+.cmd-it .grow { overflow: hidden; }
+.cmd-it .t { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-size: 15.5px; font-weight: 500; line-height: 1.3; overflow: hidden; }
+.cmd-it .s { display: block; font-size: 12.5px; color: var(--fg2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cmd-it .end { color: var(--fg3); opacity: 0; flex: none; }
+.cmd-it[aria-selected="true"] .end { opacity: 1; }
+.cmd-try { padding: 12px 10px 8px; border-top: 1px solid var(--line); margin-top: 6px; }
+.cmd-try .cap { display: block; margin-bottom: 8px; }
+@media (pointer: coarse) { .cmd-panel { max-height: min(440px, 54vh); } }
+@media (min-width: 700px) { .cmd { padding-top: 14vh; } }
+
+/* Player card, full screen. Always dark, like the recap story. */
+.pcard { position: fixed; inset: 0; z-index: 88; overflow-y: auto; overscroll-behavior: contain; color: #f5f5f7;
+  background: radial-gradient(70% 42% at 50% 14%, color-mix(in srgb, var(--tc, #ffd60a) 22%, transparent), transparent 70%), radial-gradient(80% 46% at 90% 100%, color-mix(in srgb, var(--tc2, #8a6400) 34%, transparent), transparent 70%), #000; color-scheme: dark; animation: ovIn .36s cubic-bezier(.2,.9,.25,1) both;
+  --bg: #000; --bg2: #0b0b0d; --card: #141416; --card2: #1f1f22; --chip: #232327; --card3: #2a2a2e; --line: rgba(255,255,255,.08); --line2: rgba(255,255,255,.14); --fg: #f5f5f7; --fg2: #a1a1a6; --fg3: #96969f;
+  --red: #e82127; --body: #ff375f; --fuel: #30d158; --mind: #40c8ff; --sleep: #7d7aff; --gold: #ffd60a; --good: #30d158; --warn: #ff9f0a; --crit: #ff453a; --on-fg: #000; --control-edge: rgba(245,245,247,.08); }
+.pcard[hidden] { display: none; }
+.pcard.out { animation: v8Out .24s ease both; }
+.pcard:focus { outline: none; }
+.pk-wrap { position: relative; max-width: 560px; margin: 0 auto; padding: calc(8px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) calc(40px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.pcard .icon-btn { background: rgba(255,255,255,.1); box-shadow: none; }
+.pk-stage { display: grid; place-items: center; padding: 14px 0 4px; perspective: 1100px; touch-action: pan-y; }
+.pk-card { --mx: 50; --my: 40; --rx: 0deg; --ry: 0deg; --tk: var(--tc); position: relative; width: min(330px, 86vw); aspect-ratio: 5 / 7.2; border-radius: 26px; overflow: hidden; transform: rotateX(var(--rx)) rotateY(var(--ry));
+  background: linear-gradient(155deg, color-mix(in srgb, var(--tc) 30%, #101012) 0%, #0c0c0e 40%, color-mix(in srgb, var(--tc2) 46%, #08080a) 100%);
+  box-shadow: 0 30px 70px rgba(0,0,0,.6), 0 0 70px color-mix(in srgb, var(--tc) 16%, transparent), inset 0 0 0 1.5px color-mix(in srgb, var(--tc) 55%, transparent); }
+.pk-in { position: absolute; inset: 0; z-index: 1; padding: 20px 20px 16px; display: flex; flex-direction: column; }
+.pk-head { display: flex; justify-content: space-between; align-items: flex-start; }
+.pk-ovr b { display: block; font: 700 64px/.86 var(--font-display); letter-spacing: -.05em; font-variant-numeric: tabular-nums; }
+.pk-ovr i { display: block; margin-top: 7px; font: 600 11px/1 var(--font-text); font-style: normal; letter-spacing: .2em; color: var(--tc); }
+.pk-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 9px; padding-top: 4px; }
+.pk-meta .wordmark { font-size: 10px; color: #fff; }
+.pk-tier { font: 700 10.5px/1 var(--font-text); letter-spacing: .16em; text-transform: uppercase; padding: 6px 10px; border-radius: 99px; color: #0b0b0d; background: var(--tc); }
+.pk-radar { flex: 1; min-height: 0; display: grid; place-items: center; margin: -10px 0 -2px; }
+.pk-radar .radar { width: auto; height: 100%; max-height: 214px; }
+.pk-radar .radar .rd-grid { stroke: rgba(255,255,255,.16); }
+.pk-radar .radar text { fill: rgba(245,245,247,.62); }
+.pk-name { font: 700 27px/1.05 var(--font-display); letter-spacing: -.03em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pk-arch { font-size: 12.5px; color: rgba(245,245,247,.66); margin-top: 3px; }
+.pk-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px 6px; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,.14); }
+.pk-grid div { display: flex; align-items: baseline; gap: 6px; }
+.pk-grid b { font: 700 21px/1 var(--font-display); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.pk-grid span { font: 600 10px/1 var(--font-text); letter-spacing: .12em; color: rgba(245,245,247,.6); }
+.pk-foot { display: flex; justify-content: space-between; gap: 8px; margin-top: 12px; font-size: 10px; letter-spacing: .03em; color: rgba(245,245,247,.5); white-space: nowrap; }
+.pk-foil, .pk-glare { position: absolute; inset: 0; z-index: 2; pointer-events: none; border-radius: inherit; }
+.pk-foil { opacity: .2; mix-blend-mode: color-dodge; background-size: 260% 260%; background-position: calc(var(--mx) * 1%) calc(var(--my) * 1%);
+  background-image: repeating-linear-gradient(115deg, rgba(255,60,120,0) 0%, rgba(255,80,120,.6) 8%, rgba(255,220,80,.6) 16%, rgba(80,255,160,.6) 24%, rgba(80,200,255,.6) 32%, rgba(150,110,255,.6) 40%, rgba(255,60,120,0) 50%); }
+.pk-glare { mix-blend-mode: overlay; background: radial-gradient(circle at calc(var(--mx) * 1%) calc(var(--my) * 1%), rgba(255,255,255,.5), rgba(255,255,255,0) 52%); }
+.pk-card[data-tier="rookie"] .pk-foil { opacity: .07; }
+.pk-card[data-tier="prospect"] .pk-foil { opacity: .13; }
+.pk-card[data-tier="all-star"] .pk-foil { opacity: .28; }
+.pk-card[data-tier="mvp"] .pk-foil, .pk-card[data-tier="legend"] .pk-foil { opacity: .42; }
+.pk-attr { position: relative; }
+.pk-attr + .pk-attr::before { content: ''; position: absolute; top: 0; left: 18px; right: 0; height: 1px; background: var(--line); }
+.pk-attr summary { display: flex; align-items: center; gap: 12px; padding: 13px 18px; list-style: none; cursor: pointer; }
+.pk-attr summary::-webkit-details-marker { display: none; }
+.pk-attr .ab { width: 34px; flex: none; font: 600 11.5px/1 var(--font-text); letter-spacing: .1em; }
+.pk-attr .t { font-size: 15.5px; font-weight: 500; }
+.pk-attr .gbar { margin: 8px 0 0; height: 5px; }
+.pk-facts { padding: 0 18px 15px 64px; display: flex; flex-direction: column; gap: 7px; font-size: 13.5px; color: var(--fg2); }
+.pk-facts > div { display: flex; align-items: center; gap: 9px; }
+.pk-facts > div i { width: 6px; height: 6px; border-radius: 50%; flex: none; }
+.pk-tip { display: flex; gap: 8px; margin: 6px 0 0; padding: 10px 12px; border-radius: 12px; background: var(--card2); color: var(--fg); font-size: 13.5px; line-height: 1.4; }
+.pk-tip .ic { color: var(--gold); flex: none; margin-top: 2px; }
+.sc-h { margin: 18px 0 6px; font: 600 11px/1 var(--font-text); letter-spacing: .1em; text-transform: uppercase; color: var(--fg3); }
+.sc-row { display: flex; gap: 10px; padding: 7px 0; }
+.sc-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; margin-top: 7px; }
+.sc-row .t { font-size: 15px; font-weight: 600; }
+.sc-fix { display: flex; gap: 6px; margin-top: 5px; font-size: 13px; color: var(--fg); line-height: 1.4; }
+.sc-fix .ic { color: var(--gold); flex: none; margin-top: 2px; }
+.sc-plan { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; font-size: 14.5px; }
+.sc-proj { display: flex; gap: 8px; margin: 16px 0 0; padding: 12px; border-radius: 12px; background: var(--card2); font-size: 13.5px; line-height: 1.4; }
+.sc-proj .ic { color: var(--good); flex: none; margin-top: 1px; }
+.pk-career { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pk-career .card { display: flex; flex-direction: column; gap: 3px; }
+.pk-career .v { font: 600 24px/1.1 var(--font-display); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.pk-career .k { font-size: 11.5px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--fg2); }
+.pk-heat { gap: 2.5px; }
+.pk-heat i { border-radius: 2.5px; }
+
+/* Rank up */
+.rank { position: fixed; inset: 0; z-index: 97; display: grid; place-items: center; overflow: hidden; background: rgba(0,0,0,.88); color: #fff; opacity: 0; pointer-events: none; cursor: pointer; transition: opacity .3s ease; -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+.rank[hidden] { display: none; }
+.rank.show { opacity: 1; pointer-events: auto; }
+.rk-rays { position: absolute; left: 50%; top: 44%; width: 170vmax; height: 170vmax; transform: translate(-50%, -50%); opacity: .75; animation: rkSpin 26s linear infinite;
+  background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--tc) 22%, transparent) 0 6deg, transparent 6deg 18deg); -webkit-mask: radial-gradient(circle, #000 0, transparent 44%); mask: radial-gradient(circle, #000 0, transparent 44%); }
+@keyframes rkSpin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+.rk-in { position: relative; text-align: center; padding: 0 24px; transform: scale(.84); transition: transform .75s cubic-bezier(.2,1.3,.3,1); }
+.rank.show .rk-in { transform: none; }
+.rk-num { font: 700 150px/.9 var(--font-display); letter-spacing: -.06em; margin: 12px 0 6px; text-shadow: 0 0 60px color-mix(in srgb, var(--tc) 60%, transparent); }
+.rk-tier { font: 700 30px/1.1 var(--font-display); letter-spacing: .03em; text-transform: uppercase; color: var(--tc); margin-bottom: 8px; }
+.rank .sub { color: rgba(255,255,255,.72); font-size: 15px; }
+@media (prefers-reduced-motion: reduce) { .rk-rays, .view-in .radar .rd-in, .pcard .radar .rd-in, .cmd-panel, .pcard { animation: none; } .rk-in { transition: none; } .pk-card { transform: none; } }
+</style>
 </head>
 <body>
 <div class="splash" aria-hidden="true"><div class="wordmark">IMP<em>4</em>EVR</div></div>
@@ -1716,6 +1886,7 @@ VIEWS.today = () => {
   const first = S.core.name ? `, ${esc(S.core.name)}` : '';
   const acts = `${syncEl(true)}<button class="icon-btn accent" data-act="coach" aria-label="Open Autopilot coach">${ic('spark', 19)}</button>`;
   let h = header(`${greet()}${first}`, fmtDate(k, { weekday: 'long', month: 'long', day: 'numeric' }), acts);
+  h += cmdPill();
   h += '<div class="cols"><div class="col">' + weekStrip();
 
   // Charge hero
@@ -1746,6 +1917,8 @@ VIEWS.today = () => {
     ['goBreathe', 'wind', 'Breathe', 'var(--sleep)'], [(new Date().getHours() >= 18 || new Date().getHours() < 3) ? 'sleepMode' : 'logSleep', 'moon', (new Date().getHours() >= 18 || new Date().getHours() < 3) ? 'Sleep mode' : 'Sleep', '#5e5ce6'], ['goJournal', 'book', 'Journal', 'var(--gold)'], ['hoops', 'ball', 'Hoops', 'var(--warn)']
   ];
   h += `<div class="tiles" role="group" aria-label="Quick actions" style="margin-top:14px">${tiles.map(([a, i, l, c]) => `<button class="tile" data-act="${a}"><span class="ti" style="--tile-color:${c}">${ic(i, 21, 1.8)}</span><span>${l}</span></button>`).join('')}</div>`;
+
+  h += questCard(k);
 
   // Habits
   const hs = habitsFor(k);
@@ -2584,15 +2757,9 @@ function badges() {
   ];
 }
 VIEWS.you = () => {
-  const xp = totalXP(), L = levelOf(xp), name = S.core.name || 'You';
-  const days = Object.values(S.days), wN = sum(days, d => (d.workouts || []).length), fH = sum(days, d => focusMin(d)) / 60;
-  const best = Object.keys(S.days).length ? Math.max(...Object.keys(S.days).map(charge)) : 0;
   let h = header('You', 'Progress · Settings', syncEl());
   h += '<div class="cols"><div class="col">';
-  h += `<section class="card"><div class="hgap" style="flex-wrap:nowrap;gap:14px"><div class="mark red" style="width:56px;height:56px;border-radius:18px;font-size:24px">${esc(name.slice(0, 1).toUpperCase())}</div>
-    <div class="grow"><button class="h2" data-act="editName" style="text-align:left">${esc(name)} ${ic('edit', 15)}</button><div class="sub">Level ${L.lv} · ${fmtN(xp)} XP</div></div></div>
-    <div class="mbar" style="margin-top:16px"><div class="between"><span class="lbl">Level ${L.lv + 1}</span><span class="tiny tn">${fmtN(L.need - L.into)} XP to go</span></div><div class="track">${barW(L.into / L.need * 100, 'xpbar', 'var(--gold)')}</div></div>
-    <div class="statrow" style="margin-top:18px"><div class="stat"><span class="v">${wN}</span><span class="k">Workouts</span></div><div class="stat"><span class="v">${r1(fH)}</span><span class="k">Focus hrs</span></div><div class="stat"><span class="v">${streak()}</span><span class="k">Streak</span></div><div class="stat"><span class="v">${best}%</span><span class="k">Best day</span></div></div></section>`;
+  h += playerHero();
 
   // 30-day charge
   const d30 = lastN(30), v30 = d30.map(k => S.days[k] || k === TODAY() ? charge(k) : null);
@@ -2632,6 +2799,8 @@ VIEWS.you = () => {
     <button class="li" data-act="editHabits"><span class="badge-ic" style="background:var(--card3);color:var(--fg)">${ic('check', 17)}</span><span class="grow"><span class="t" style="display:block">Habits</span><span class="s">${S.core.habits.length} active</span></span><span class="end">${ic('chev', 18)}</span></button>
     <div class="li"><span class="badge-ic" style="background:var(--card3);color:var(--fg)">${ic('scale', 17)}</span><span class="grow t">Units</span>${seg('units', [['lb', 'lb'], ['kg', 'kg']], S.core.units)}</div>
     <div class="li"><span class="badge-ic" style="background:var(--card3);color:var(--fg)">${ic('timer', 17)}</span><span class="grow t">Rest timer</span>${seg('restDef', [[60, '60s'], [90, '90s'], [120, '2m'], [180, '3m']], S.core.rest)}</div>
+    <div class="li"><span class="badge-ic" style="background:var(--card3);color:var(--fg)">${ic('bolt', 17)}</span><span class="grow t">Live visuals</span>${seg('fxSet', [['on', 'On'], ['off', 'Off']], Core.on ? 'on' : 'off')}</div>
+    ${S.sample ? `<div class="li"><span class="badge-ic" style="background:var(--red)">${ic('spark', 17)}</span><span class="grow"><span class="t" style="display:block">Autopilot model</span><span class="s" style="white-space:normal">${{ fable: 'Asks for Fable 5.2, the most capable. Uses more of your Claude plan.', auto: 'The balanced everyday model.', fast: 'The fastest replies, lighter on your plan.' }[AI.mode()]}</span><span style="display:block;margin-top:8px">${seg('aiMode', AI.MODES, AI.mode())}</span></span></div>` : ''}
   </div></div>`;
   h += sec('Data');
   h += `<div class="card flush"><div class="list">
@@ -2640,7 +2809,7 @@ VIEWS.you = () => {
     <button class="li" data-act="exportData"><span class="badge-ic" style="background:var(--card3);color:var(--fg)">${ic('download', 17)}</span><span class="grow t">Export backup</span></button>
     <button class="li" data-act="resetAll"><span class="badge-ic" style="background:var(--card3);color:var(--crit)">${ic('trash', 17)}</span><span class="grow t" style="color:var(--crit)">Erase all data</span></button></div></div>`;
   h += '</div></div>';
-  h += `<p class="tiny" style="text-align:center;margin:24px 0 0"><span class="wordmark" style="font-size:10px;color:var(--fg3)">IMP<em>4</em>EVR</span><br><span style="display:inline-block;margin-top:8px">Improve forever. One rep at a time.</span><br><button class="link kbd-hint" data-act="shortcuts" style="font-size:12px;margin-top:10px">Keyboard shortcuts</button></p>`;
+  h += `<p class="tiny" style="text-align:center;margin:24px 0 0"><span class="wordmark" style="font-size:10px;color:var(--fg3)">IMP<em>4</em>EVR</span><br><span style="display:inline-block;margin-top:8px">Improve forever. One rep at a time. Version ${VERSION}.</span><br><button class="link kbd-hint" data-act="shortcuts" style="font-size:12px;margin-top:10px">Keyboard shortcuts</button></p>`;
   return h;
 };
 // Unit preferences apply to existing measurements too, so their physical meaning stays the same.
@@ -2775,7 +2944,7 @@ ACT.resetAll = () => confirmSheet('Erase everything?', 'This deletes all your da
 // ================= AI (Autopilot) =================
 async function initAI() {
   const C = window.claude; if (!C || typeof C.use !== 'function') { S.sample = null; return; }
-  try { S.sample = await C.use('sample'); } catch (e) { S.sample = null; }
+  try { S.sample = AI.wrap(await C.use('sample')); } catch (e) { S.sample = null; }
   if (S.sample) { try { const l = await S.sample.limits(); S.aiImages = !!(l && l.images); S.aiTools = !!(l && l.tools); S.aiImgTypes = l && l.images ? l.images.mediaTypes : []; } catch (e) {} }
   try { const downloads = await C.use('downloads'); S.downloads = downloads && typeof downloads.save === 'function' ? downloads : BrowserDownloads; } catch (e) { S.downloads = BrowserDownloads; }
   scheduleRender();
@@ -2882,7 +3051,7 @@ ACT.coach = () => {
     return;
   }
   const chips = ['Plan the rest of my day', 'I had 3 eggs and toast', 'Build me a 45-min push workout', 'Why am I so tired lately?', 'What should I eat to hit protein?'];
-  openSheet(`${sheetHead('Autopilot', `<button class="btn sm ghost" data-act="chatClear">Clear</button>`)}
+  openSheet(`${sheetHead('Autopilot', `<span class="pill" id="aiModel">${AI.pill()}</span><button class="btn sm ghost" data-act="chatClear">Clear</button>`)}
     <div class="chat" id="chatBox"></div>
     <div class="chips" style="margin-top:6px">${chips.map(c => `<button class="chip" data-act="chatChip">${esc(c)}</button>`).join('')}</div>
     <form class="composer" data-submit="chatSend"><input id="chatIn" name="m" placeholder="Message Autopilot" autocomplete="off" maxlength="1500" autofocus><button class="icon-btn accent" type="submit" aria-label="Send" style="width:46px;height:46px;flex:none">${ic('send', 19)}</button></form>`, () => { if (chatCtl) chatCtl.abort(); });
@@ -6330,6 +6499,685 @@ render = function () { growRender(); growCheck(); };
 // widgets, CarPlay and native shells see the challenge and quit counters too
 const growSnap = snapshot;
 snapshot = function () { const o = growSnap(), st = chalState(); o.challenge = st ? { name: st.def.name, day: st.day, days: st.def.days, todayDone: st.today } : null; o.quit = (S.core.quit || []).map(q => ({ name: q.name, days: Math.floor(quitDays(q)) })); o.goals = (S.core.lt || []).filter(g => !g.doneAt).map(g => ({ title: g.title, pct: r0(goalPct(g) * 100) })); return o; };
+// ================= V8: PLAYER — overall rating, attributes, player card, scouting report, daily quests, command bar, live core =================
+// Everything here is worked out from the days already logged: nothing new has to be entered to get a rating.
+const VERSION = '8.0';
+ICONS.search = '<circle cx="11" cy="11" r="6.5"/>' + P('M16 16l4.5 4.5');
+ICONS.card = '<rect x="5" y="3" width="14" height="18" rx="2.5"/>' + P('M9 8h6M9 16.5h2.5');
+ICONS.quest = P('M12 3.2l2.6 5.5 6 .8-4.4 4.2 1.1 6-5.3-3-5.3 3 1.1-6L3.4 9.5l6-.8z');
+ICONS.enter = P('M19 5v7a3 3 0 0 1-3 3H6M9.5 11.5L6 15l3.5 3.5');
+
+// ---------- Attributes: six ratings from the last 28 days, 40 to 99 ----------
+const ATTR = [['str', 'Strength', 'STR', 'var(--body)'], ['eng', 'Engine', 'ENG', 'var(--warn)'], ['fuel', 'Fuel', 'FUL', 'var(--fuel)'], ['foc', 'Focus', 'FOC', 'var(--mind)'], ['rec', 'Recovery', 'REC', 'var(--sleep)'], ['dsc', 'Discipline', 'DSC', 'var(--gold)']];
+const TIERS = [[0, 'Rookie', '#a3a3ad', '#3a3a42'], [55, 'Prospect', '#e0a070', '#6e3f22'], [65, 'Starter', '#e3e7ee', '#6f7888'], [75, 'Pro', '#ffd60a', '#8a6400'], [85, 'All-Star', '#ff5a7a', '#8a0f2b'], [92, 'MVP', '#6fe0ff', '#6a5cff'], [97, 'Legend', '#ffffff', '#e82127']];
+const tierOf = v => TIERS.filter(t => v >= t[0]).pop();
+// best single lift against bodyweight that earns full marks; lifts logged per hand or with added weight are left out
+function strStd(n) {
+  const s = String(n).toLowerCase();
+  if (/dumbbell|split squat|lunge|pull-?up|chin-?up|dip|curl|raise|extension|pushdown|calf|leg curl|plank|crunch|carry|swing|jump|shrug|face pull|fly/.test(s)) return 0;
+  if (/romanian|rdl|stiff/.test(s)) return 1.9; if (/deadlift/.test(s)) return 2.5; if (/front squat/.test(s)) return 1.7; if (/squat/.test(s)) return 2;
+  if (/incline/.test(s)) return 1.3; if (/bench/.test(s)) return 1.5; if (/overhead press|military|^ohp/.test(s)) return 1; if (/row/.test(s)) return 1.4;
+  if (/hip thrust/.test(s)) return 2.4; if (/power clean/.test(s)) return 1.4; if (/leg press/.test(s)) return 3.5;
+  return 0;
+}
+const PL = {
+  memo: { ch: {}, at: {}, live: null },
+  clear() { this.memo = { ch: {}, at: {}, live: null }; },
+  ch(k) { const m = this.memo.ch; return m[k] !== undefined ? m[k] : (m[k] = S.days[k] ? charge(k) : 0); },
+  rate: s => Math.round(40 + 59 * Math.pow(clamp(+s || 0, 0, 1), 1.08)),
+  bw(end) { const k = sortedDays().filter(x => x <= end && S.days[x].weight).pop(); return k ? +S.days[k].weight : (S.core.units === 'kg' ? 77 : 170); },
+  streakAt(end) { let k = end, n = 0; if (this.ch(k) < 50) k = addDays(k, -1); while (n < 400 && S.days[k] && (this.ch(k) >= 50 || S.days[k].frozen)) { n++; k = addDays(k, -1); } return n; },
+  // With no date this is the live rating: each attribute takes the better of "through today" and "through yesterday",
+  // so a half-logged morning never drags the number down and a finished workout counts right away.
+  attrs(end) {
+    if (!end) {
+      if (this.memo.live) return this.memo.live;
+      const t = this.attrs(TODAY()), y = this.attrs(addDays(TODAY(), -1)), list = t.list.map(a => y.by[a.id].rating > a.rating ? y.by[a.id] : a);
+      const live = { end: t.end, span: t.span, list, by: Object.fromEntries(list.map(a => [a.id, a])), ovr: Math.round(avg(list.map(a => a.rating))), has: t.has || y.has };
+      live.tier = tierOf(live.ovr); return this.memo.live = live;
+    }
+    const hit = this.memo.at[end]; if (hit) return hit;
+    const g = S.core.goals, c0 = S.core.created || end;
+    const ks = lastN(28, end).filter(k => k >= c0 || S.days[k]), span = Math.max(7, ks.length), wk = span / 7;
+    const ds = ks.map(k => S.days[k]).filter(Boolean), c01 = v => clamp(+v || 0, 0, 1), per = n => r1(n / wk);
+    const part = (id, w, v, text) => ({ id, w, v: c01(v), text });
+    // Strength: how often you lift, how much work you do, and your best lifts against bodyweight
+    const lifts = sum(ds, d => (d.workouts || []).length), sets = sum(ds, d => sum(d.workouts || [], w => sum(w.ex || [], e => (e.sets || []).length)));
+    const bw = this.bw(end), rels = Object.entries(S.core.prs || {}).filter(([, p]) => p && p.e1 > 0 && (p.date || '') <= end).map(([n, p]) => [n, p.e1 / bw, strStd(n)]).filter(x => x[2]).sort((a, b) => b[1] / b[2] - a[1] / a[2]);
+    const top = rels.slice(0, 3), rel = top.length ? avg(top.map(x => c01(x[1] / x[2]))) * (0.6 + 0.4 * top.length / 3) : 0;
+    const str = [part('freq', 0.45, lifts / (wk * 4), `${per(lifts)} lifts a week`), part('sets', 0.2, sets / (wk * 60), `${r0(sets / wk)} hard sets a week`),
+      part('rel', 0.35, rel, top.length ? `${top[0][0]} at ${top[0][1].toFixed(2)}× bodyweight` : 'No barbell records yet')];
+    // Engine: daily movement and conditioning
+    const cardio = sum(ds, d => (d.acts || []).filter(a => a.min >= 15 && !/stretch/i.test(a.type || '')).length), stepDays = ds.filter(d => stepsOf(d) > 0);
+    const eng = [part('move', stepDays.length ? 0.45 : 0.6, sum(ds, d => c01(moveMin(d) / (g.move || 45))) / span, `${r0(sum(ds, d => moveMin(d)) / span)} active min a day`),
+      part('cardio', stepDays.length ? 0.3 : 0.4, cardio / (wk * 3), `${per(cardio)} conditioning sessions a week`)];
+    if (stepDays.length) eng.push(part('steps', 0.25, avg(stepDays.map(d => c01(stepsOf(d) / (g.steps || 8000)))), `${fmtN(avg(stepDays.map(stepsOf)))} steps a day`));
+    // Fuel: protein, calories, water and whether food gets logged at all
+    const fd = ds.filter(d => (d.food || []).length), tot = fd.map(foodTot);
+    const protN = tot.filter(t => t.p >= 0.9 * g.p).length, calN = tot.filter(t => { const r = t.cal / (g.cal || 1); return r >= 0.85 && r <= 1.12; }).length;
+    const fuel = [part('prot', 0.35, protN / span, `Protein goal on ${protN} of ${span} days`), part('cal', 0.25, calN / span, `Calories on target ${calN} of ${span} days`),
+      part('water', 0.25, sum(ds, d => c01((d.water || 0) / (g.water || 8))) / span, `${r1(sum(ds, d => d.water || 0) / span)} of ${g.water} glasses a day`), part('logged', 0.15, fd.length / span, `Food logged ${fd.length} of ${span} days`)];
+    // Focus: deep work first, then breathing, journaling and brain games
+    const mindN = ds.filter(d => (d.mind || []).length).length, jN = ds.filter(d => d.journal && (d.journal.text || '').trim()).length, gN = ds.filter(d => (d.games || []).length).length;
+    const foc = [part('focus', 0.6, sum(ds, d => c01(focusMin(d) / (g.focus || 90))) / span, `${r0(sum(ds, d => focusMin(d)) / span)} of ${g.focus} focus min a day`), part('mindful', 0.15, mindN / (wk * 4), `Breathing ${per(mindN)} days a week`),
+      part('journal', 0.15, jN / (wk * 3), `${per(jN)} journal entries a week`), part('games', 0.1, gN / (wk * 2), `Brain games ${per(gN)} days a week`)];
+    // Recovery: how long, how regular and how good the sleep is
+    const sl = ds.map(d => d.sleep).filter(s => s && s.min), beds = sl.filter(s => s.bed).map(s => { const m = timeToMin(s.bed); return m < 720 ? m + 1440 : m; });
+    const mean = avg(beds), sd = beds.length >= 3 ? Math.sqrt(avg(beds.map(b => (b - mean) ** 2))) : null;
+    const rec = [part('dur', 0.4, sl.length ? avg(sl.map(s => c01(s.min / ((g.sleep || 8) * 60)))) : 0, sl.length ? `${fmtHM(avg(sl.map(s => s.min)))} a night, goal ${g.sleep}h` : 'No sleep logged'),
+      part('cons', 0.25, sd === null ? 0 : 1 - (sd - 20) / 80, sd === null ? 'Log 3 nights to rate your bedtime' : `Bedtime varies by ${r0(sd)} min`),
+      part('quality', 0.15, sl.length ? (avg(sl.map(s => s.q || 3)) - 1) / 4 : 0, sl.length ? `Quality ${r1(avg(sl.map(s => s.q || 3)))} of 5` : 'No quality ratings'),
+      part('logged', 0.2, sl.length / span, `Sleep logged ${sl.length} of ${span} nights`)];
+    // Discipline: habits, days that count, the streak and finished tasks
+    const due = sum(ks, k => habitsFor(k).length), hd = sum(ks, k => { const d = S.days[k]; return d ? habitsFor(k).filter(h => d.habits[h.id]).length : 0; });
+    const act = ks.filter(k => this.ch(k) >= 50).length, st = this.streakAt(end), td = sum(ds, d => d.tdone || 0);
+    const dsc = [part('habits', 0.5, due ? hd / due : act / span, due ? `${r0(hd / due * 100)}% of habits done` : 'No habits set'), part('active', 0.25, act / span, `Charge above 50% on ${act} of ${span} days`),
+      part('streak', 0.15, st / 30, `${st}-day streak`), part('tasks', 0.1, td / (wk * 5), `${per(td)} tasks a week`)];
+    const raw = { str, eng, fuel, foc, rec, dsc };
+    const list = ATTR.map(([id, name, ab, color]) => { const parts = raw[id], score = sum(parts, p => p.v * p.w) / sum(parts, p => p.w); return { id, name, ab, color, parts, score, rating: this.rate(score) }; });
+    const out = { end, span, list, by: Object.fromEntries(list.map(a => [a.id, a])), ovr: Math.round(avg(list.map(a => a.rating))), has: ds.length > 0 };
+    out.tier = tierOf(out.ovr);
+    return this.memo.at[end] = out;
+  },
+  // change over the past week; nothing to compare against in the first week
+  delta(id) { const a = this.attrs(), k = addDays(TODAY(), -7); if ((S.core.created || TODAY()) > k && !sortedDays().some(x => x <= k)) return 0; const b = this.attrs(k); return id ? a.by[id].rating - b.by[id].rating : a.ovr - b.ovr; },
+  history(weeks = 12) { const first = sortedDays()[0] || TODAY(), out = []; for (let i = weeks - 1; i >= 0; i--) { const k = addDays(TODAY(), -7 * i); out.push(k >= first ? this.attrs(k).ovr : null); } return out; },
+  arch(A) {
+    if (!A.has || A.ovr < 46) return 'Undrafted';
+    const s = A.list.slice().sort((a, b) => b.rating - a.rating);
+    if (s[0].rating - s[5].rating <= 6 && A.ovr >= 68) return 'All-Around Threat';
+    return ARCH[[s[0].id, s[1].id].sort().join('+')] || 'Prospect';
+  },
+  tip(a, p) {
+    const g = S.core.goals;
+    return ({
+      'str.freq': 'Get four lifts in this week.', 'str.sets': 'Add a set to each main lift. Sixty hard sets a week is the target.', 'str.rel': 'Chase a rep record on bench, squat or deadlift.',
+      'eng.move': `Hit ${g.move} active minutes on rest days too. A 20-minute walk counts.`, 'eng.cardio': 'Add a conditioning day: hoop, run or bike for 20 minutes or more.', 'eng.steps': `Average ${fmtN(g.steps || 8000)} steps a day.`,
+      'fuel.prot': `Hit ${g.p} g of protein today, and again tomorrow.`, 'fuel.cal': `Land within 10% of ${fmtN(g.cal)} kcal.`, 'fuel.water': `Drink ${g.water} glasses a day.`, 'fuel.logged': 'Log every meal, including the bad ones.',
+      'foc.focus': `Run one more focus block a day. The goal is ${g.focus} minutes.`, 'foc.mindful': 'Breathe for three minutes, four days a week.', 'foc.journal': 'Journal three nights a week.', 'foc.games': 'Play a brain game twice a week.',
+      'rec.dur': `Sleep ${g.sleep} hours. Lights out by ${minToClock(bedTarget())}.`, 'rec.cons': `Keep lights-out within 30 minutes of ${minToClock(bedTarget())} every night.`, 'rec.quality': 'Screens off 30 minutes before bed, and a cooler room.', 'rec.logged': 'Log sleep every morning, or fall asleep in Sleep mode.',
+      'dsc.habits': 'Finish every habit today. Morning ones first.', 'dsc.active': 'Keep daily charge above 50% on your off days.', 'dsc.streak': 'Protect the streak. Thirty days maxes this out.', 'dsc.tasks': 'Clear two tasks a day.'
+    })[a.id + '.' + p.id] || '';
+  },
+  // the part of an attribute with the most room: what to do about it, and roughly what it is worth
+  upgrade(a) {
+    const tw = sum(a.parts, p => p.w), best = a.parts.slice().sort((x, y) => y.w * (1 - y.v) - x.w * (1 - x.v))[0];
+    if (!best || best.v >= 0.97) return null;
+    return { part: best, tip: this.tip(a, best), gain: Math.max(1, this.rate(a.score + best.w / tw * (Math.min(1, best.v + 0.3) - best.v)) - a.rating) };
+  },
+  scout(A) {
+    const s = A.list.slice().sort((a, b) => b.rating - a.rating), top = s.slice(0, 2), low = s.slice(-2).reverse(), bestPart = a => a.parts.slice().sort((x, y) => y.v * y.w - x.v * x.w)[0];
+    const weak = low.map(a => { const u = this.upgrade(a); return { attr: a.id, note: u ? u.part.text : bestPart(a).text, fix: u ? u.tip : '', gain: u ? u.gain : 0 }; });
+    const up = Math.round(sum(weak, w => w.gain) / 6);
+    return { headline: A.has ? `${A.tier[1]} ${this.arch(A).toLowerCase()}. ${top[0].name} leads at ${top[0].rating}, ${low[0].name.toLowerCase()} has the most room.` : 'Nothing to scout yet. Log a few days and the report writes itself.',
+      strengths: A.has ? top.map(a => ({ attr: a.id, note: bestPart(a).text })) : [], weaknesses: A.has ? weak : [],
+      projection: A.has && up > 0 ? `Close those two gaps and your overall climbs to about ${Math.min(99, A.ovr + up)}.` : '' };
+  }
+};
+const ARCH = { 'eng+str': 'Explosive Athlete', 'fuel+str': 'Mass Builder', 'foc+str': 'Iron Scholar', 'rec+str': 'Durable Lifter', 'dsc+str': 'Relentless Lifter', 'eng+fuel': 'Lean Machine', 'eng+foc': 'Floor General', 'eng+rec': 'Endless Motor',
+  'dsc+eng': 'Two-Way Grinder', 'foc+fuel': 'Clean Operator', 'fuel+rec': 'Recovery Specialist', 'dsc+fuel': 'Meal-Prep Pro', 'foc+rec': 'Calm Strategist', 'dsc+foc': 'Deep Worker', 'dsc+rec': 'Clockwork' };
+
+// ---------- Drawing: the hexagon ----------
+function radarSVG(A, size = 170, o = {}) {
+  const c = size / 2, R = c - (o.pad ?? 26), n = A.list.length, pt = (i, f) => { const a = -Math.PI / 2 + i * 2 * Math.PI / n; return [c + Math.cos(a) * R * f, c + Math.sin(a) * R * f]; };
+  const val = i => 0.14 + 0.86 * clamp((A.list[i].rating - 40) / 59, 0, 1), xy = p => p.map(v => v.toFixed(1)).join(',');
+  const poly = f => A.list.map((_, i) => xy(pt(i, typeof f === 'function' ? f(i) : f))).join(' ');
+  let g = [1, 0.66, 0.33].map(f => `<polygon points="${poly(f)}" class="rd-grid"/>`).join('');
+  g += A.list.map((_, i) => { const [x, y] = pt(i, 1); return `<line x1="${c}" y1="${c}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" class="rd-grid"/>`; }).join('');
+  g += `<g class="rd-in" style="transform-origin:${c}px ${c}px"><polygon points="${poly(val)}" class="rd-shape"/>${A.list.map((a, i) => { const [x, y] = pt(i, val(i)); return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.2" fill="${o.mono ? 'currentColor' : a.color}"/>`; }).join('')}</g>`;
+  if (o.labels !== false) g += A.list.map((a, i) => { const [x, y] = pt(i, 1 + 15 / R); return `<text x="${x.toFixed(1)}" y="${(y + 3.5).toFixed(1)}" text-anchor="middle">${a.ab}</text>`; }).join('');
+  return `<svg class="radar" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" role="img" aria-label="${A.list.map(a => `${a.name} ${a.rating}`).join(', ')}">${g}</svg>`;
+}
+const ovrDelta = (d, word = '') => d ? `<span class="dl ${d > 0 ? 'up' : 'dn'}">${d > 0 ? '▲' : '▼'} ${Math.abs(d)}${word}</span>` : '';
+
+// ---------- You: the profile card becomes the player card ----------
+function playerHero() {
+  const A = PL.attrs(), xp = totalXP(), L = levelOf(xp), name = S.core.name || 'You', t = A.tier;
+  const days = Object.values(S.days), wN = sum(days, d => (d.workouts || []).length), fH = sum(days, d => focusMin(d)) / 60, best = Math.max(0, ...Object.keys(S.days).map(k => PL.ch(k)));
+  return `<section class="card pc" style="--tc:${t[2]};--tc2:${t[3]}">
+    <div class="pc-top"><button class="pc-ovr" data-act="card" aria-label="Overall ${A.ovr}, ${t[1]}. Open player card"><b>${cnt(A.ovr, 'ovr')}</b><i>OVR</i></button>
+      <div class="grow"><div class="pc-tier">${t[1]}${ovrDelta(PL.delta(), ' this week')}</div><button class="h2 pc-name" data-act="editName">${esc(name)} ${ic('edit', 15)}</button><div class="sub">${PL.arch(A)} · Level ${L.lv}</div></div></div>
+    <div class="pc-body">${radarSVG(A, 168)}<div class="pc-attrs">${A.list.map(a => `<div class="pc-a"><span class="ab">${a.ab}</span><span class="track">${barW((a.rating - 40) / 59 * 100, 'pa-' + a.id, a.color)}</span><b class="tn">${a.rating}</b></div>`).join('')}</div></div>
+    <div class="mbar" style="margin-top:16px"><div class="between"><span class="lbl">${fmtN(xp)} XP</span><span class="tiny tn">${fmtN(L.need - L.into)} to level ${L.lv + 1}</span></div><div class="track">${barW(L.into / L.need * 100, 'xpbar', 'var(--gold)')}</div></div>
+    <div class="statrow" style="margin-top:18px"><div class="stat"><span class="v">${wN}</span><span class="k">Workouts</span></div><div class="stat"><span class="v">${r1(fH)}</span><span class="k">Focus h</span></div><div class="stat"><span class="v">${streak()}</span><span class="k">Streak</span></div><div class="stat"><span class="v">${best}%</span><span class="k">Best day</span></div></div>
+    <div class="grid2 pc-btns" style="margin-top:18px"><button class="btn sm" data-act="card">${ic('card', 15)} Player card</button><button class="btn sm ghost" data-act="scout">Scouting report</button></div></section>`;
+}
+const ovrChip = () => { const A = PL.attrs(); return `<button class="ovr-chip" data-act="card" style="--tc:${A.tier[2]};--tc2:${A.tier[3]}" aria-label="Overall ${A.ovr}, ${A.tier[1]}. Open player card"><b>${A.ovr}</b><i>OVR</i></button>`; };
+
+// ---------- The card, full screen: tilts and shines as you move it ----------
+const CAREER = [[13000, 'elephant', 'elephants'], [4000, 'car', 'cars'], [600, 'grand piano', 'grand pianos']];
+const Card = {
+  raf: 0,
+  el() { let e = $('#pcard'); if (!e) { e = document.createElement('div'); e.id = 'pcard'; e.className = 'pcard'; e.hidden = true; document.body.appendChild(e); } return e; },
+  isOpen() { const e = $('#pcard'); return !!e && !e.hidden; },
+  open(toScout) {
+    PL.clear(); const e = this.el(), t = PL.attrs().tier; e.style.setProperty('--tc', t[2]); e.style.setProperty('--tc2', t[3]); e.innerHTML = this.html(); e.hidden = false; e.classList.remove('out'); e.scrollTop = 0;
+    Modal.open(e, { label: 'Player card' }); afterRender(e); this.sway();
+    if (toScout) setTimeout(() => { const s = $('#pkScout'); if (s) s.scrollIntoView({ behavior: RM() ? 'auto' : 'smooth', block: 'start' }); }, 420);
+  },
+  repaint() { if (!this.isOpen()) return; const e = this.el(), y = e.scrollTop; PL.clear(); e.innerHTML = this.html(); e.scrollTop = y; afterRender(e); this.sway(); },
+  close() { const e = $('#pcard'); if (!e || e.hidden) return; cancelAnimationFrame(this.raf); this.raf = 0; e.classList.add('out'); setTimeout(() => { if (!e.classList.contains('out')) return; e.hidden = true; e.innerHTML = ''; Modal.close(e); }, 240); },
+  face(A) {
+    const t = A.tier, L = levelOf(totalXP()), st = streak(), wN = sum(Object.values(S.days), d => (d.workouts || []).length);
+    return `<div class="pk-card" id="pkCard" style="--tc:${t[2]};--tc2:${t[3]}" data-tier="${t[1].toLowerCase()}"><div class="pk-in">
+      <div class="pk-head"><div class="pk-ovr"><b>${A.ovr}</b><i>OVR</i></div><div class="pk-meta"><span class="wordmark">IMP<em>4</em>EVR</span><span class="pk-tier">${t[1]}</span></div></div>
+      <div class="pk-radar">${radarSVG(A, 214, { pad: 32 })}</div>
+      <div class="pk-name">${esc(S.core.name || 'You')}</div><div class="pk-arch">${PL.arch(A)} · Level ${L.lv}</div>
+      <div class="pk-grid">${A.list.map(a => `<div><b>${a.rating}</b><span>${a.ab}</span></div>`).join('')}</div>
+      <div class="pk-foot"><span>${st ? `${st}-day streak` : 'No streak yet'}</span><span>${fmtN(wN)} workout${wN === 1 ? '' : 's'}</span><span>Since ${fmtDate(S.core.created || TODAY(), { month: 'short', year: 'numeric' })}</span></div>
+    </div><i class="pk-foil"></i><i class="pk-glare"></i></div>`;
+  },
+  html() {
+    const A = PL.attrs(), low = A.list.slice().sort((a, b) => a.rating - b.rating)[0];
+    const hist = PL.history(12), days = Object.values(S.days), keys = sortedDays();
+    const wN = sum(days, d => (d.workouts || []).length), vol = sum(days, d => sum(d.workouts || [], w => w.vol)), volLb = S.core.units === 'kg' ? vol * 2.2046 : vol, cmp = CAREER.find(c => volLb >= c[0] * 2);
+    const fH = sum(days, d => focusMin(d)) / 60, water = sum(days, d => d.water || 0), shots = sum(days, d => hoopsTotals(d.hoops).a), nights = days.filter(d => d.sleep && d.sleep.min);
+    const longest = (() => { let b = 0, c = 0, k = keys[0]; if (!k) return 0; const end = TODAY(); while (k <= end) { if (S.days[k] && PL.ch(k) >= 50) { c++; b = Math.max(b, c); } else c = 0; k = addDays(k, 1); } return b; })();
+    const career = [[fmtN(keys.length), 'Days tracked', keys.length ? `since ${fmtDate(keys[0], { month: 'short', day: 'numeric', year: 'numeric' })}` : 'starts today'], [fmtN(wN), 'Workouts', `${fmtN(sum(days, d => moveMin(d)) / 60)} active hours`],
+      [vol >= 1e6 ? r1(vol / 1e6) + 'M' : vol >= 10000 ? r0(vol / 1000) + 'k' : fmtN(vol), `${wu()} lifted`, cmp ? `about ${fmtN(volLb / cmp[0])} ${cmp[2]}` : 'every plate counts'], [r1(fH), 'Focus hours', fH >= 2 ? `about ${fmtN(fH / 2)} feature films` : 'one block at a time'],
+      [nights.length ? r1(sum(nights, d => d.sleep.min) / nights.length / 60) + 'h' : '—', 'Average sleep', `${fmtN(nights.length)} nights logged`], [fmtN(water), 'Glasses of water', water >= 16 ? `about ${fmtN(water / 16)} gallons` : 'drink up'],
+      [fmtN(shots), 'Shots tracked', shots ? `${r0(sum(days, d => hoopsTotals(d.hoops).m) / shots * 100)}% made` : 'open the shot tracker'], [`${longest}`, 'Best streak', `${fmtN(totalXP())} XP earned`]];
+    const start = addDays(TODAY(), -(7 * 26 - 1) - parseKey(addDays(TODAY(), -(7 * 26 - 1))).getDay()), cells = []; for (let k = start; k <= TODAY(); k = addDays(k, 1)) cells.push(k);
+    return `<div class="pk-wrap">
+      <div class="ov-bar"><button class="icon-btn" data-act="cardClose" aria-label="Close">${ic('x', 18)}</button><span class="h3">Player card</span><button class="icon-btn" data-act="cardSave" aria-label="Save card as an image">${ic('download', 18)}</button></div>
+      <div class="pk-stage" id="pkStage">${this.face(A)}</div>
+      <p class="tiny" style="text-align:center;margin:14px 0 0">Rated from your last ${A.span} days. Drag the card to catch the light.</p>
+      ${sec('Attributes', `<span class="tiny">change over 7 days</span>`)}
+      <div class="card flush pk-list">${A.list.map(a => { const u = PL.upgrade(a), d = PL.delta(a.id);
+        return `<details class="pk-attr" ${a.id === low.id ? 'open' : ''}><summary><span class="ab" style="color:${a.color}">${a.ab}</span><span class="grow"><span class="between"><span class="t">${a.name}</span><span class="hgap" style="gap:8px;flex-wrap:nowrap">${ovrDelta(d)}<b class="num-s">${a.rating}</b></span></span><span class="gbar"><i data-w="${((a.rating - 40) / 59 * 100).toFixed(1)}" style="width:0%;background:${a.color}"></i></span></span></summary>
+          <div class="pk-facts">${a.parts.map(p => `<div><i style="background:${p.v >= 0.8 ? 'var(--good)' : p.v >= 0.5 ? 'var(--warn)' : 'var(--crit)'}"></i>${esc(p.text)}</div>`).join('')}${u && u.tip ? `<p class="pk-tip">${ic('spark', 14)}<span><b>Next:</b> ${esc(u.tip)} <span class="tn" style="color:var(--good)">About +${u.gain}.</span></span></p>` : `<p class="pk-tip">${ic('check', 14)}<span>Maxed out. Hold it here.</span></p>`}</div></details>`; }).join('')}</div>
+      ${sec('Scouting report')}<div id="pkScout">${scoutHTML(A)}</div>
+      ${sec('Overall · 12 weeks')}<div class="card">${lineChart(hist, { min: 40, max: 99, ticks: [40, 70, 99], color: A.tier[2] === '#ffffff' ? 'var(--fg)' : 'var(--red)', labels: hist.map((_, i) => i === 11 ? 'now' : i % 4 === 0 ? `${11 - i}w` : ''), label: 'Overall rating, last 12 weeks', empty: 'Log a few days to see this move' })}</div>
+      ${sec('Career')}<div class="pk-career">${career.map(([v, k, s]) => `<div class="card tight"><span class="v">${v}</span><span class="k">${k}</span><span class="tiny">${s}</span></div>`).join('')}</div>
+      ${sec('Every day · 26 weeks', `<span class="tiny">brighter = higher charge</span>`)}<div class="card"><div class="heat pk-heat" role="img" aria-label="Daily charge, last 26 weeks">${cells.map(k => { const c = PL.ch(k); return `<i title="${fmtDate(k)}: ${c}%" style="${c ? `background:color-mix(in srgb, var(--red) ${15 + c * 0.85}%, var(--card2))` : ''}"></i>`; }).join('')}</div></div>
+      <p class="tiny" style="text-align:center;margin:26px 0 0"><span class="wordmark" style="font-size:10px;color:var(--fg3)">IMP<em>4</em>EVR</span></p></div>`;
+  },
+  // the card drifts on its own until a finger or the pointer takes over
+  sway() {
+    cancelAnimationFrame(this.raf); const stage = $('#pkStage'); if (!stage) return;
+    let held = 0, tx = 50, ty = 40, x = 50, y = 40; const t0 = performance.now();
+    const set = () => { const c = $('#pkCard'); if (!c) return; c.style.setProperty('--mx', x.toFixed(1)); c.style.setProperty('--my', y.toFixed(1)); c.style.setProperty('--ry', ((x - 50) / 50 * 13).toFixed(2) + 'deg'); c.style.setProperty('--rx', ((50 - y) / 50 * 10).toFixed(2) + 'deg'); };
+    const move = e => { const r = stage.getBoundingClientRect(); tx = clamp((e.clientX - r.left) / r.width * 100, 0, 100); ty = clamp((e.clientY - r.top) / r.height * 100, 0, 100); held = performance.now(); };
+    stage.onpointermove = move; stage.onpointerdown = move;
+    if (RM()) { set(); return; }
+    const step = t => {
+      if (!this.isOpen()) return;
+      if (t - held > 1600) { const s = (t - t0) / 1000; tx = 50 + Math.sin(s * 0.7) * 34; ty = 42 + Math.cos(s * 0.53) * 26; }
+      x += (tx - x) * 0.09; y += (ty - y) * 0.09; set(); this.raf = requestAnimationFrame(step);
+    };
+    this.raf = requestAnimationFrame(step);
+  }
+};
+ACT.card = () => Card.open();
+ACT.cardClose = () => Card.close();
+ACT.scout = () => Card.open(true);
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && Card.isOpen() && Modal.active() === $('#pcard')) { e.preventDefault(); Card.close(); } });
+
+// ---------- Scouting report: written on the device, or in depth by Autopilot ----------
+function scoutHTML(A) {
+  const ai = S.core.scout && S.core.scout.data && Date.now() - S.core.scout.at < 14 * 864e5 ? S.core.scout : null, r = ai ? ai.data : PL.scout(A), name = id => (A.by[id] || {}).name || '';
+  const row = (x, good) => `<div class="sc-row"><span class="sc-dot" style="background:${(A.by[x.attr] || {}).color || 'var(--fg3)'}"></span><div class="grow"><div class="t">${esc(name(x.attr) || String(x.title || ''))}${A.by[x.attr] ? ` <span class="tn" style="color:var(--fg3);font-weight:500">${A.by[x.attr].rating}</span>` : ''}</div><div class="sub">${esc(x.note || '')}</div>${!good && x.fix ? `<div class="sc-fix">${ic('spark', 13)}<span>${esc(x.fix)}${x.gain ? ` <span class="tn" style="color:var(--good)">About +${x.gain}.</span>` : ''}</span></div>` : ''}</div></div>`;
+  let h = `<div class="card sc"><div class="between"><span class="cap">${ai ? `Autopilot${ai.model ? ' · ' + esc(ai.model) : ''} · ${fmtDate(dkey(new Date(ai.at)), { month: 'short', day: 'numeric' })}` : 'On-device read'}</span>${ai ? `<button class="link" data-act="scoutClear" style="font-size:13px">Reset</button>` : ''}</div>
+    <p class="h3" style="margin:8px 0 2px;line-height:1.35;text-wrap:pretty">${esc(r.headline || '')}</p>${r.comparison ? `<p class="sub" style="margin:6px 0 0">${esc(r.comparison)}</p>` : ''}`;
+  if ((r.strengths || []).length) h += `<div class="sc-h">Strengths</div>${r.strengths.map(x => row(x, true)).join('')}`;
+  if ((r.weaknesses || []).length) h += `<div class="sc-h">Development areas</div>${r.weaknesses.map(x => row(x, false)).join('')}`;
+  if ((r.plan || []).length) h += `<div class="sc-h">This week</div><ol class="sc-plan">${r.plan.map(p => `<li>${esc(p)}</li>`).join('')}</ol>`;
+  if (r.projection) h += `<p class="sc-proj">${ic('chart', 15)}<span>${esc(r.projection)}</span></p>`;
+  if (S.sample) h += `<button class="btn ${ai ? 'ghost' : 'red'} block sm" style="margin-top:16px" data-act="scoutAI" ${S.scoutBusy ? 'disabled' : ''}>${S.scoutBusy ? '<span class="thinking"><i></i><i></i><i></i></span> Autopilot is watching film…' : `${ic('spark', 15)} ${ai ? 'Run it again' : 'Get the deep report from Autopilot'}`}</button>`;
+  return h + '</div>';
+}
+ACT.scoutClear = () => { mutCore(c => { c.scout = null; }); Card.repaint(); };
+ACT.scoutAI = async () => {
+  if (!S.sample || S.scoutBusy) return;
+  const A = PL.attrs(), paint = () => { const s = $('#pkScout'); if (s) s.innerHTML = scoutHTML(PL.attrs()); };
+  S.scoutBusy = true; paint();
+  const prompt = `You are the head scout inside IMP4EVR, a self-improvement app that rates a person like an athlete. Write a scouting report on this person from their real data. Be specific, direct and encouraging without flattery. Use the numbers you are given and never invent others. Do not compare them to any real person.
+
+OVERALL: ${A.ovr} (${A.tier[1]}), archetype "${PL.arch(A)}", rated over the last ${A.span} days. Ratings run 40 to 99.
+ATTRIBUTES (id, name, rating, change over 7 days, the facts behind it):
+${A.list.map(a => `${a.id} | ${a.name} | ${a.rating} | ${PL.delta(a.id) >= 0 ? '+' : ''}${PL.delta(a.id)} | ${a.parts.map(p => `${p.text} (${r0(p.v * 100)}% of max)`).join('; ')}`).join('\n')}
+
+TODAY AND RECENT:
+${aiContext()}
+
+Reply with ONLY a JSON object, no other text:
+{"headline": "one sentence, max 22 words, the honest summary", "comparison": "one sentence on their play style, as a type of player, never a named person", "strengths": [{"attr": "one of str|eng|fuel|foc|rec|dsc", "note": "max 18 words, cite a number"}], "weaknesses": [{"attr": "id", "note": "max 18 words, cite a number", "fix": "one concrete action for this week, max 18 words"}], "plan": ["3 short actions for the next 7 days, each max 14 words, most valuable first"], "projection": "one sentence: the overall they can reach in 4 weeks if they follow the plan, and what unlocks it"}
+Give exactly 2 strengths and 2 weaknesses.`;
+  try {
+    const res = await S.sample(prompt, { cache: false, effort: 'medium' });
+    const m = /\{[\s\S]*\}/.exec(res.text || ''); let j = null; try { j = m && JSON.parse(m[0]); } catch (e) {}
+    if (!j || !j.headline) throw { code: 'invalid_json' };
+    const ids = new Set(ATTR.map(a => a[0])), str = (v, n) => String(v || '').slice(0, n), rows = (a, fix) => (Array.isArray(a) ? a : []).filter(x => x && ids.has(x.attr)).slice(0, 3).map(x => Object.assign({ attr: x.attr, note: str(x.note, 160) }, fix ? { fix: str(x.fix, 160) } : {}));
+    const data = { headline: str(j.headline, 200), comparison: str(j.comparison, 200), strengths: rows(j.strengths), weaknesses: rows(j.weaknesses, true), plan: (Array.isArray(j.plan) ? j.plan : []).slice(0, 4).map(p => str(p, 120)), projection: str(j.projection, 220) };
+    S.scoutBusy = false; mutCore(c => { c.scout = { at: Date.now(), ovr: A.ovr, model: AI.label(res.modelApplied), data }; });
+  } catch (e) { S.scoutBusy = false; const msg = aiErr(e); if (msg) toast(msg); }
+  paint();
+};
+
+// ---------- Save the card as an image ----------
+ACT.cardSave = async () => {
+  if (!S.downloads) return toast('Saving images isn’t available here');
+  const A = PL.attrs(), t = A.tier, W = 1080, H = 1500, cv = document.createElement('canvas'); cv.width = W; cv.height = H; const x = cv.getContext('2d');
+  const F = (w, s) => `${w} ${s}px -apple-system, BlinkMacSystemFont, "SF Pro Display", Inter, system-ui, sans-serif`, col = v => cssColor(v);
+  x.fillStyle = '#050506'; x.fillRect(0, 0, W, H);
+  const glow = (cx, cy, rad, c, a) => { const g = x.createRadialGradient(cx, cy, 0, cx, cy, rad); g.addColorStop(0, c); g.addColorStop(1, 'rgba(0,0,0,0)'); x.globalAlpha = a; x.fillStyle = g; x.fillRect(0, 0, W, H); x.globalAlpha = 1; };
+  glow(160, 120, 900, t[2], 0.34); glow(W - 80, H - 60, 900, t[3], 0.5);
+  x.strokeStyle = t[2]; x.globalAlpha = 0.55; x.lineWidth = 4; x.beginPath(); if (x.roundRect) x.roundRect(30, 30, W - 60, H - 60, 56); else x.rect(30, 30, W - 60, H - 60); x.stroke(); x.globalAlpha = 1;
+  x.fillStyle = '#fff'; x.font = F(700, 230); x.fillText(String(A.ovr), 86, 300); x.font = F(600, 38); x.fillStyle = t[2]; x.fillText('OVR  ·  ' + t[1].toUpperCase(), 96, 362);
+  x.font = F(600, 30); x.fillStyle = '#f5f5f7'; x.fillText('I M P', W - 330, 130); x.fillStyle = '#e82127'; x.fillText('4', W - 232, 130); x.fillStyle = '#f5f5f7'; x.fillText('E V R', W - 200, 130);
+  // hexagon
+  const cx = W / 2, cy = 690, R = 250, pt = (i, f) => { const a = -Math.PI / 2 + i * Math.PI / 3; return [cx + Math.cos(a) * R * f, cy + Math.sin(a) * R * f]; }, path = f => { x.beginPath(); A.list.forEach((_, i) => { const [px, py] = pt(i, typeof f === 'function' ? f(i) : f); i ? x.lineTo(px, py) : x.moveTo(px, py); }); x.closePath(); };
+  x.strokeStyle = 'rgba(255,255,255,.14)'; x.lineWidth = 2; for (const f of [1, 0.66, 0.33]) { path(f); x.stroke(); }
+  const val = i => 0.14 + 0.86 * clamp((A.list[i].rating - 40) / 59, 0, 1);
+  path(val); x.fillStyle = t[2]; x.globalAlpha = 0.28; x.fill(); x.globalAlpha = 1; x.strokeStyle = t[2]; x.lineWidth = 5; x.stroke();
+  A.list.forEach((a, i) => { const [px, py] = pt(i, val(i)); x.fillStyle = col(a.color); x.beginPath(); x.arc(px, py, 10, 0, 6.283); x.fill(); const [lx, ly] = pt(i, 1.17); x.font = F(600, 30); x.fillStyle = '#a1a1a6'; x.textAlign = 'center'; x.fillText(a.ab, lx, ly + 10); });
+  x.textAlign = 'left'; x.font = F(700, 84); x.fillStyle = '#fff'; x.fillText((S.core.name || 'You').slice(0, 18), 86, 1085); x.font = F(500, 38); x.fillStyle = '#a1a1a6'; x.fillText(`${PL.arch(A)}  ·  Level ${levelOf(totalXP()).lv}`, 88, 1142);
+  A.list.forEach((a, i) => { const gx = 86 + (i % 3) * 312, gy = 1262 + Math.floor(i / 3) * 104; x.font = F(700, 64); x.fillStyle = '#fff'; x.fillText(String(a.rating), gx, gy); const w = x.measureText(String(a.rating)).width; x.font = F(600, 30); x.fillStyle = col(a.color); x.fillText(a.ab, gx + w + 14, gy - 4); });
+  const blob = await new Promise(res => cv.toBlob(res, 'image/png'));
+  try { await S.downloads.save({ filename: `imp4evr-card-${TODAY()}.png`, data: blob }); toast('Card saved'); } catch (e) { if (e && e.code !== 'declined') toast('Couldn’t save it here'); }
+};
+
+// ---------- Moving up: a new tier takes over the screen, a new point gets a nod ----------
+function rankUp(from, A) {
+  let e = $('#rank'); if (!e) { e = document.createElement('div'); e.id = 'rank'; e.className = 'rank'; e.setAttribute('role', 'status'); e.dataset.act = 'rankClose'; document.body.appendChild(e); }
+  const t = A.tier; e.style.setProperty('--tc', t[2]); e.style.setProperty('--tc2', t[3]);
+  e.innerHTML = `<div class="rk-rays"></div><div class="rk-in"><div class="cap" style="color:${t[2]}">Rank up</div><div class="rk-num tn" id="rkNum">${from}</div><div class="rk-tier">${t[1]}</div><div class="sub">Overall ${from} → ${A.ovr}. ${PL.arch(A)}.</div></div>`;
+  e.hidden = false; e.classList.remove('show'); void e.offsetWidth; e.classList.add('show'); chime('done'); vib([40, 60, 40, 60, 120]);
+  const n = $('#rkNum'), t0 = performance.now(), step = now => { const p = Math.min(1, (now - t0 - 500) / 900); if (p > 0) n.textContent = Math.round(from + (A.ovr - from) * (1 - Math.pow(1 - p, 3))); if (p < 1 && !e.hidden) requestAnimationFrame(step); };
+  if (RM()) n.textContent = A.ovr; else requestAnimationFrame(step);
+  setTimeout(() => FX.burst(innerWidth / 2, innerHeight * 0.42, { n: 150, power: 13, colors: [t[2], '#ffffff', t[3], 'var(--gold)'] }), 650);
+  clearTimeout(rankUp.t); rankUp.t = setTimeout(() => ACT.rankClose(), 4600);
+}
+ACT.rankClose = () => { const e = $('#rank'); if (!e || e.hidden) return; clearTimeout(rankUp.t); e.classList.remove('show'); setTimeout(() => { e.hidden = true; }, 320); };
+function ovrCheck() {
+  if (!S.ready || !S.core || Store.wiping) return;
+  const A = PL.attrs(), seen = lsGet('ovr');
+  if (!seen || typeof seen.v !== 'number') { lsSet('ovr', { v: A.ovr, t: A.tier[1] }); return; }
+  if (A.ovr === seen.v) return;
+  const acted = Date.now() - (S.lastMut || 0) < 4000, quiet = !$('#ov').hidden || !$('#stage').hidden || (S.bootAt && Date.now() - S.bootAt < 2500);
+  lsSet('ovr', { v: A.ovr, t: A.tier[1] });
+  if (A.ovr < seen.v || quiet) return;
+  if (A.tier[1] !== seen.t && tierOf(seen.v)[0] < A.tier[0]) setTimeout(() => rankUp(seen.v, A), 500);
+  else if (acted) setTimeout(() => toast(`Overall ${A.ovr}  ▲ ${A.ovr - seen.v}`), 900);
+}
+
+// ---------- Daily quests: three a day, aimed at the ratings with the most room ----------
+// [id, attribute it trains, XP, title, progress as [have, need], what a tap opens]
+const QUESTS = [
+  ['lift', 'str', 50, () => 'Finish a workout', d => [d.workouts.length, 1], 'quickWorkout'],
+  ['sets', 'str', 40, () => 'Log 12 hard sets', d => [sum(d.workouts, w => sum(w.ex || [], e => (e.sets || []).length)), 12], 'quickWorkout'],
+  ['move', 'eng', 40, g => `Move for ${g.move} minutes`, (d, g) => [moveMin(d), g.move], 'questMove'],
+  ['cardio', 'eng', 35, () => 'Log a run, walk or hoop session', d => [d.acts.filter(a => a.min >= 15).length, 1], 'questMove'],
+  ['shots', 'eng', 35, () => 'Track 50 shots', d => [hoopsTotals(d.hoops).a, 50], 'hoops'],
+  ['prot', 'fuel', 40, g => `Hit ${g.p} g of protein`, (d, g) => [foodTot(d).p, g.p], 'addFood'],
+  ['water', 'fuel', 25, g => `Drink ${g.water} glasses of water`, (d, g) => [d.water || 0, g.water], 'water'],
+  ['meals', 'fuel', 25, () => 'Log three meals', d => [new Set(d.food.map(f => f.meal || 'Snacks')).size, 3], 'addFood'],
+  ['focus', 'foc', 40, g => `Focus for ${Math.min(g.focus, 50)} minutes`, (d, g) => [focusMin(d), Math.min(g.focus, 50)], 'goFocus'],
+  ['journal', 'foc', 25, () => 'Write in your journal', d => [d.journal && (d.journal.text || '').trim().length >= 20 ? 1 : 0, 1], 'goJournal'],
+  ['game', 'foc', 20, () => 'Play a brain game', d => [d.games.length, 1], 'questBrain'],
+  ['breathe', 'rec', 25, () => 'Breathe for three minutes', d => [mindMin(d), 3], 'goBreathe'],
+  ['checkin', 'rec', 15, () => 'Check in on energy and soreness', d => [d.check && d.check.energy && d.check.sore ? 1 : 0, 1], 'checkIn'],
+  ['sleeplog', 'rec', 15, () => 'Log last night’s sleep', d => [d.sleep ? 1 : 0, 1], 'logSleep'],
+  ['habits', 'dsc', 50, () => 'Finish every habit', (d, g, k) => { const hs = habitsFor(k); return [hs.filter(h => d.habits[h.id]).length, hs.length]; }, 'questHabits'],
+  ['tasks', 'dsc', 25, () => 'Complete two tasks', d => [d.tdone || 0, 2], 'questTasks']
+];
+const QUEST_SWEEP = 60;
+function questIds(k = TODAY()) {
+  const saved = lsGet('quests'); if (saved && saved.k === k && Array.isArray(saved.ids) && saved.ids.length === 3 && saved.ids.every(id => QUESTS.some(q => q[0] === id))) return saved.ids;
+  // seeded by the date, so the same day always deals the same three
+  let s = 0; for (const ch of k) s = (Math.imul(s, 31) + ch.charCodeAt(0)) | 0;
+  const rnd = () => { s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  const hooper = Object.values(S.days).some(d => Object.keys(d.hoops || {}).length), nHab = habitsFor(k).length;
+  const ok = q => !(q[0] === 'shots' && !hooper) && !(q[0] === 'habits' && nHab < 2);
+  const order = PL.attrs(addDays(k, -1)).list.slice().sort((a, b) => a.rating - b.rating).map(a => a.id);
+  const third = order.slice(2)[Math.floor(rnd() * 4)], ids = [];
+  for (const attr of [order[0], order[1], third]) { const pool = QUESTS.filter(q => q[1] === attr && ok(q) && !ids.includes(q[0])); if (pool.length) ids.push(pool[Math.floor(rnd() * pool.length)][0]); }
+  for (const q of QUESTS) { if (ids.length >= 3) break; if (ok(q) && !ids.includes(q[0])) ids.push(q[0]); }
+  lsSet('quests', { k, ids });
+  return ids;
+}
+function questState(k = TODAY()) {
+  const d = D(k), g = S.core.goals;
+  return questIds(k).map(id => { const q = QUESTS.find(x => x[0] === id), [have, need] = q[4](d, g, k), claimed = !!(d.qx && d.qx[id]); return { id, attr: q[1], xp: q[2], title: q[3](g), have, need, ok: claimed || (need > 0 && have >= need), claimed, act: q[5] }; });
+}
+// a finished quest is banked on the day, so the XP stays even if the entry is edited later
+function questCheck() {
+  if (!S.ready || !S.core || Store.wiping) return;
+  const k = TODAY(), qs = questState(k), fresh = qs.filter(q => q.ok && !q.claimed), d = D(k), sweep = qs.length === 3 && qs.every(q => q.ok) && !(d.qx && d.qx.sweep);
+  if (!fresh.length && !sweep) return;
+  const acted = Date.now() - (S.lastMut || 0) < 4000;
+  mut(k, x => { x.qx = Object.assign({}, x.qx || {}); for (const q of fresh) x.qx[q.id] = q.xp; if (sweep) x.qx.sweep = QUEST_SWEEP; });
+  if (!acted) return;
+  for (const q of fresh) FX.flash(`.quest[data-id="${q.id}"] .q-ring`);
+  if (sweep) setTimeout(() => moment('Daily sweep', `All three quests. +${QUEST_SWEEP} XP`, 'var(--gold)'), 400);
+  else if (fresh.length) setTimeout(() => { toast(`Quest complete · +${sum(fresh, q => q.xp)} XP`); chime('done'); FX.burstAt($(`.quest[data-id="${fresh[0].id}"] .q-ring`), { n: 26, power: 4.6, size: 0.85, life: 0.6, colors: [PL.attrs().by[fresh[0].attr].color, 'var(--gold)'] }); }, 250);
+}
+function questCard(k) {
+  const qs = questState(k), A = PL.attrs(), n = qs.filter(q => q.ok).length, left = sum(qs.filter(q => !q.ok), q => q.xp) + (D(k).qx && D(k).qx.sweep ? 0 : QUEST_SWEEP);
+  const num = v => Number.isInteger(v) ? fmtN(v) : String(r1(v));
+  return `${sec(`Daily quests · ${n}/${qs.length}`, `<span class="tiny tn">${n === qs.length ? 'Swept' : `+${left} XP left`}</span>`)}<div class="card flush quests"><div class="list">${qs.map(q => { const a = A.by[q.attr], p = clamp(q.have / (q.need || 1), 0, 1);
+    return `<button class="li quest ${q.ok ? 'done' : ''}" data-act="quest" data-id="${q.id}"><span class="q-ring" style="--p:${q.ok ? 1 : p.toFixed(3)};--qc:${a.color}">${q.ok ? ic('check', 15, 2.6) : `<i>${a.ab}</i>`}</span>
+      <span class="grow"><span class="t" style="display:block">${esc(q.title)}</span><span class="s">${q.ok ? 'Done' : `${num(Math.min(q.have, q.need))} of ${num(q.need)}`} · trains ${a.name.toLowerCase()}</span></span><span class="end"><span class="pill ${q.ok ? 'good' : ''}">+${q.xp} XP</span></span></button>`; }).join('')}</div></div>`;
+}
+ACT.quest = el => { const q = QUESTS.find(x => x[0] === el.dataset.id); if (q && ACT[q[5]]) ACT[q[5]]({ dataset: {} }); };
+ACT.questMove = () => openSheet(`${sheetHead('Log activity')}<div class="tiles">${ACTIVITIES.map(([n, i]) => `<button class="tile" data-act="logAct" data-v="${n}"><span class="ti" style="--tile-color:var(--warn)">${ic(i, 21, 1.8)}</span><span>${n}</span></button>`).join('')}</div>`);
+ACT.questBrain = () => { S.view = 'mind'; S.mindTab = 'brain'; render(); window.scrollTo(0, 0); };
+ACT.questHabits = () => { const s = $$('#main .sec').find(x => /^Habits/.test(x.textContent)); if (s) s.scrollIntoView({ behavior: RM() ? 'auto' : 'smooth', block: 'start' }); };
+ACT.questTasks = () => { const i = $('#taskIn'); if (i) { i.scrollIntoView({ behavior: RM() ? 'auto' : 'smooth', block: 'center' }); i.focus({ preventScroll: true }); } };
+const v8XP = dayXP;
+dayXP = function (d) { return v8XP(d) + (d && d.qx ? Math.round(sum(Object.values(d.qx))) : 0); };
+const v8Merge = mergeDay;
+mergeDay = function (local, remote) { v8Merge(local, remote); if (!local || !remote || !remote.qx) return; local.qx = Object.assign({}, local.qx || {}); for (const id in remote.qx) local.qx[id] = Math.max(+local.qx[id] || 0, +remote.qx[id] || 0); };
+
+// ---------- Command bar: type what you did, or where you want to go ----------
+const NUMW = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, half: 0.5, couple: 2 };
+const qtyOf = s => { s = String(s).trim(); if (/^\d+\s*\/\s*\d+$/.test(s)) { const [a, b] = s.split('/').map(Number); return b ? a / b : null; } if (/^\d*\.?\d+$/.test(s)) return +s; return NUMW[s] ?? null; };
+const qtyText = q => Number.isInteger(q * 4) ? fracN(q) : String(r1(q));
+const FOOD_ALIAS = { toast: 'whole wheat bread', shake: 'whey protein', 'protein shake': 'whey protein', protein: 'whey protein', whey: 'whey protein', pb: 'peanut butter', burger: 'cheeseburger', fries: 'french fries', oj: 'orange juice', oatmeal: 'oats', yogurt: 'greek yogurt',
+  rice: 'white rice', burrito: 'chicken burrito', ramen: 'instant ramen', chicken: 'chicken breast', beef: 'ground beef 90', steak: 'sirloin steak', milk: 'milk 2%', bread: 'whole wheat bread', egg: 'eggs large', eggs: 'eggs large', coffee: 'coffee black', pasta: 'pasta cooked', salad: 'salad greens', potato: 'potato baked', tuna: 'tuna canned' };
+const fStem = w => w.length > 3 ? w.replace(/s$/, '') : w;
+function foodFind(text, n = 5) {
+  let q = String(text).toLowerCase().replace(/[^a-z0-9%/ ]+/g, ' ').replace(/\s+/g, ' ').trim(); if (!q) return [];
+  q = FOOD_ALIAS[q] || FOOD_ALIAS[fStem(q)] || q;
+  const qt = q.split(' ').filter(w => !/^(of|the|some|with|and|my|a|an)$/.test(w)).map(fStem); if (!qt.length) return [];
+  const pool = (S.core.meals || []).map(m => ({ name: m.name, meal: m }));
+  const seen = new Set();
+  for (const f of recentFoods()) { const per = f.perServing || { cal: f.cal / (f.qty || 1), p: f.p / (f.qty || 1), c: f.c / (f.qty || 1), f: f.f / (f.qty || 1) }; if (/^Logged in /.test(f.name)) continue; seen.add(f.name); pool.push({ name: f.name, serving: f.serving || '', cal: per.cal, p: per.p, c: per.c, f: per.f, mine: true }); }
+  for (const f of FOODS) if (!seen.has(f[0])) pool.push({ name: f[0], serving: f[1], cal: f[2], p: f[3], c: f[4], f: f[5] });
+  const out = [];
+  for (const it of pool) {
+    const nt = it.name.toLowerCase().replace(/[^a-z0-9% ]+/g, ' ').split(/\s+/).filter(Boolean).map(fStem);
+    if (!qt.every(w => nt.some(x => x.startsWith(w) || (x.length >= 4 && w.startsWith(x))))) continue;
+    out.push([qt.length / nt.length + (nt[0].startsWith(qt[0]) ? 0.3 : 0) + (it.mine ? 0.1 : 0) + (it.meal ? 0.05 : 0), it]);
+  }
+  return out.sort((a, b) => b[0] - a[0]).slice(0, n).map(x => x[1]);
+}
+// "3 eggs and a banana", "2 scoops whey, 8 oz chicken breast"
+function foodPhrase(text) {
+  const parts = String(text).split(/\s*(?:,|\+|&|\band\b|\bwith\b)\s*/i).map(s => s.trim()).filter(Boolean); if (!parts.length || parts.length > 6) return null;
+  const unitOf = u => u.replace(/^ounces?$/, 'oz').replace(/^grams?$/, 'g').replace(/^tablespoons?$/, 'tbsp').replace(/s$/, ''), out = [];
+  for (const p of parts) {
+    const m = /^(?:(\d+ ?\/ ?\d+|\d*\.?\d+|a|an|one|two|three|four|five|six|seven|eight|nine|ten|half|couple)(?: x)? )?(?:(?:of )?(oz|ounces?|g|grams?|cups?|scoops?|slices?|tbsp|tablespoons?|cans?|pieces?|bowls?|glass(?:es)?|servings?) (?:of )?)?(.+)$/i.exec(p);
+    if (!m) return null;
+    let qty = m[1] ? qtyOf(m[1].toLowerCase()) : 1; const f = foodFind(m[3], 1)[0];
+    if (!f || f.meal || qty === null || !(qty > 0) || qty > 60) return null;
+    const sv = /^([\d.]+|½|¼|¾) ?([a-z]+)/i.exec(f.serving || ''), svN = sv ? ({ '½': 0.5, '¼': 0.25, '¾': 0.75 }[sv[1]] || +sv[1]) : 0;
+    if (m[2] && svN && unitOf(m[2].toLowerCase()) === unitOf(sv[2].toLowerCase())) qty = qty / svN; // "8 oz chicken" against a "4 oz" serving is two servings
+    out.push({ f, qty: Math.round(qty * 100) / 100 });
+  }
+  return out;
+}
+function sleepSpan(text) {
+  const t = String(text).trim(); let m = /^(.+?) ?(?:to|until|till|-|–) ?(.+)$/.exec(t);
+  if (m) {
+    let bed = parseClock(m[1]); const wake = parseClock(m[2]); if (bed === null || wake === null) return null;
+    if (!/[ap]/i.test(m[1]) && bed >= 6 * 60 && bed < 12 * 60) bed += 720; // "11 to 7" means 11 at night
+    const min = ((wake - bed) % 1440 + 1440) % 1440; return min >= 60 && min <= 960 ? { bed: hhmm(bed), wake: hhmm(wake), min } : null;
+  }
+  m = /^(\d{1,2})(?:\.(\d+))? ?(?:h|hr|hrs|hours?)?(?: ?(\d{1,2}) ?(?:m|min|mins|minutes)?)?$/.exec(t) || /^(\d{1,2}):(\d{2})()$/.exec(t);
+  if (!m) return null;
+  const min = /:/.test(t) ? +m[1] * 60 + +m[2] : Math.round((+m[1] + (m[2] ? +('0.' + m[2]) : 0)) * 60 + (+m[3] || 0)); if (min < 60 || min > 960) return null;
+  const wake = timeToMin(S.core.sleepPlan.wake || '07:00'); return { bed: hhmm(wake - min), wake: hhmm(wake), min };
+}
+const ACT_WORDS = { ran: 'Run', run: 'Run', jog: 'Run', jogged: 'Run', walk: 'Walk', walked: 'Walk', bike: 'Bike', biked: 'Bike', cycled: 'Bike', swam: 'Swim', swim: 'Swim', hike: 'Hike', hiked: 'Hike', hoop: 'Basketball', hooped: 'Basketball', basketball: 'Basketball',
+  stretch: 'Stretch', stretched: 'Stretch', yoga: 'Stretch', sports: 'Sports', soccer: 'Sports', football: 'Sports', tennis: 'Sports' };
+const go = (name, data) => () => ACT[name]({ dataset: data || {} });
+const goMind = tab => () => { S.view = 'mind'; S.mindTab = tab; lastView = null; render(); window.scrollTo(0, 0); };
+// [what it's called, other words people type, icon, color, what it does]
+const CMDS = [
+  ['Start a workout', 'lift train gym resume', 'train', 'var(--body)', go('quickWorkout')], ['Log a meal', 'food eat breakfast lunch dinner snack', 'fuel', 'var(--fuel)', go('addFood')],
+  ['Scan a barcode or label', 'camera product yuka', 'camera', 'var(--fuel)', go('scan')], ['Check in', 'readiness energy sore mood feel', 'heart', 'var(--body)', go('checkIn')],
+  ['Log weight', 'weigh scale body', 'scale', 'var(--fg3)', go('logWeight')], ['Log sleep', 'slept night bed', 'moon', 'var(--sleep)', go('logSleep')], ['Sleep mode', 'bedtime night sky sounds alarm', 'moon', '#5e5ce6', go('sleepMode')],
+  ['Focus timer', 'pomodoro deep work study', 'target', 'var(--red)', goMind('focus')], ['Breathe', 'calm box breathing meditate', 'wind', 'var(--sleep)', goMind('breathe')], ['Journal', 'write gratitude diary', 'book', 'var(--gold)', goMind('journal')],
+  ['Brain games', 'memory math reaction play', 'brain', 'var(--mind)', goMind('brain')], ['Shot tracker', 'hoops basketball shooting court', 'ball', 'var(--warn)', go('hoops')],
+  ['Player card', 'overall ovr rating attributes rank tier', 'card', 'var(--gold)', () => Card.open()], ['Scouting report', 'scout strengths weaknesses', 'spark', 'var(--red)', () => Card.open(true)],
+  ['Autopilot coach', 'ai chat ask claude plan', 'spark', 'var(--red)', go('coach')], ['Week recap', 'story summary 7 days', 'recap', 'var(--red)', go('recap', { v: '7' })], ['Month recap', 'story summary 30 days', 'recap', 'var(--sleep)', go('recap', { v: '30' })],
+  ['Weekly review', 'reflect review insights', 'chart', 'var(--mind)', go('weekly')], ['New goal', 'target long term', 'flag', 'var(--red)', go('goalNew')], ['Challenges', '75 hard soft challenge', 'flag', '#ff9f0a', go('chalOpen')],
+  ['Quit tracker', 'stop quit vape urge sober', 'shield', 'var(--fuel)', go('quitNew')], ['Interval timer', 'hiit tabata emom rounds', 'timer', 'var(--red)', go('intervals')], ['Plate math', 'barbell plates load', 'plates', '#0a84ff', go('plates')],
+  ['One-rep max', '1rm calculator max estimate', 'calc', '#ff9f0a', go('orm')], ['Build a workout with Autopilot', 'generate ai routine', 'spark', 'var(--body)', go('genWorkout')], ['Edit habits', 'habit routine', 'check', 'var(--fg3)', go('editHabits')],
+  ['Edit goals', 'calories macros protein targets', 'target', 'var(--fg3)', go('editGoals')], ['Training plan', 'split program schedule', 'train', 'var(--fg3)', go('editPlan')], ['Sleep schedule', 'wake bedtime plan', 'moon', 'var(--fg3)', go('editSleepPlan')],
+  ['Personal setup', 'profile recalc onboarding', 'spark', 'var(--red)', go('openSetup')], ['Connections', 'apple health spotify calendar drive chatgpt', 'heart', '#ff375f', go('connections')], ['Widgets', 'home lock screen', 'widget', 'var(--mind)', go('widgets')],
+  ['Drive mode', 'carplay car audio brief', 'car', 'var(--fuel)', go('drive')], ['TV mode', 'roku big screen', 'tv', 'var(--sleep)', go('tv')], ['Export backup', 'save download data json', 'download', 'var(--fg3)', go('exportData')],
+  ['Import backup', 'restore upload data', 'refresh', 'var(--fg3)', go('importData')], ['Keyboard shortcuts', 'keys help', 'list', 'var(--fg3)', go('shortcuts')],
+  ['Go to Today', 'home', 'today', 'var(--fg3)', go('tab', { v: 'today' })], ['Go to Train', 'workouts records', 'train', 'var(--fg3)', go('tab', { v: 'train' })], ['Go to Fuel', 'nutrition food diary', 'fuel', 'var(--fg3)', go('tab', { v: 'fuel' })],
+  ['Go to Mind', 'focus sleep', 'mind', 'var(--fg3)', go('tab', { v: 'mind' })], ['Go to You', 'profile settings progress badges', 'you', 'var(--fg3)', go('tab', { v: 'you' })]
+];
+const CMD_TRY = ['3 eggs and toast', 'slept 7.5', 'ran 30', 'water 2', 'weight 172', 'focus 25', 'task call mom tomorrow', 'plates'];
+function cmdHome() {
+  const d = D(), g = S.core.goals, out = [], add = (icn, color, t, sub, run) => out.push({ icn, color, t, sub, go: run });
+  add('drop', 'var(--mind)', 'Add a glass of water', `${d.water || 0} of ${g.water} today`, () => { ACT.water({ dataset: {} }); toast(`Water ${D().water} of ${g.water}`); });
+  add('fuel', 'var(--fuel)', 'Log a meal', `${fmtN(foodTot(d).cal)} of ${fmtN(g.cal)} kcal · ${r0(foodTot(d).p)} g protein`, go('addFood'));
+  add('train', 'var(--body)', S.core.active ? 'Resume workout' : 'Start a workout', S.core.active ? S.core.active.name : (nextPlanned() ? `Up next: ${nextPlanned().name}` : 'Pick a template'), go('quickWorkout'));
+  add('target', 'var(--red)', 'Start a 25-minute focus block', `${r0(focusMin(d))} of ${g.focus} min today`, () => cmdParse('focus 25')[0].go());
+  if (!d.sleep) add('moon', 'var(--sleep)', 'Log last night’s sleep', 'Not logged yet', go('logSleep'));
+  if (!(d.check && d.check.energy)) add('heart', 'var(--body)', 'Check in', 'Energy, soreness and mood', go('checkIn'));
+  add('card', 'var(--gold)', 'Player card', `Overall ${PL.attrs().ovr} · ${PL.attrs().tier[1]}`, () => Card.open());
+  return out;
+}
+function cmdParse(raw) {
+  const q = String(raw).trim(); if (!q) return cmdHome();
+  const s = q.toLowerCase().replace(/(\d)([a-z])/g, '$1 $2').replace(/\s+/g, ' '), out = [], g = S.core.goals, k = TODAY();
+  const add = (icn, color, t, sub, run) => out.push({ icn, color, t, sub, go: run });
+  let m;
+  if ((m = /^(?:drank |drink |had )?(?:(\d+|a|one|two|three|four|five|six) )?(?:glass(?:es)? |cups? )?(?:of )?water(?: (\d+))?$/.exec(s))) {
+    const n = clamp(+(m[2] || qtyOf(m[1] || '1')) || 1, 1, 12);
+    add('drop', 'var(--mind)', `Add ${n} glass${n === 1 ? '' : 'es'} of water`, `${D().water || 0} of ${g.water} today`, () => { mut(k, d => { d.water = (d.water || 0) + n; }); toast(`Water ${D().water} of ${g.water}`); });
+  }
+  if ((m = /^(?:weight|weigh|weighed|bw|i weigh) ?(\d{2,3}(?:\.\d+)?) ?(lb|lbs|kg|kgs|pounds)?$/.exec(s) || /^(\d{2,3}(?:\.\d+)?) ?(lb|lbs|kg|kgs|pounds)$/.exec(s))) {
+    const given = m[2] ? (/kg/.test(m[2]) ? 'kg' : 'lb') : wu(), v = +m[1] * (given === wu() ? 1 : given === 'kg' ? 2.2046 : 1 / 2.2046);
+    if (v > 40 && v < 800) add('scale', 'var(--fg3)', `Log weight: ${r1(v)} ${wu()}`, latestWeight() ? `Last: ${r1(latestWeight())} ${wu()}` : 'First weigh-in', () => { mut(k, d => { d.weight = r1(v); }); toast(`Weight ${r1(v)} ${wu()} logged`); });
+  }
+  if ((m = /^(?:i )?(?:slept|sleep) (.+)$/.exec(s))) {
+    const sp = sleepSpan(m[1]);
+    if (sp) add('moon', 'var(--sleep)', `Log ${fmtHM(sp.min)} of sleep`, `${minToClock(timeToMin(sp.bed))} to ${minToClock(timeToMin(sp.wake))}`, () => { mut(k, d => { d.sleep = { bed: sp.bed, wake: sp.wake, q: (d.sleep && d.sleep.q) || 3, min: sp.min }; }); toast(`${fmtHM(sp.min)} of sleep logged`); });
+  }
+  if ((m = /^(focus|focused|deep work|study|studied|worked)(?: for)? (\d{1,3})(?: ?(?:m|min|mins|minutes))?$/.exec(s))) {
+    const n = clamp(+m[2], 1, 300), past = /ed$/.test(m[1]);
+    const start = ['target', 'var(--red)', `Start a ${n}-minute focus block`, 'Opens the focus timer and starts it', () => { Focus.st.len = n; Focus.st.left = n * 60; Focus.persist(); S.view = 'mind'; S.mindTab = 'focus'; lastView = null; render(); Focus.start(); }];
+    const log = ['check', 'var(--mind)', `Log ${n} minutes of focus`, 'Already did it', () => { mut(k, d => d.focus.push({ min: n, label: '', t: Date.now() })); toast(`${n} minutes of focus logged`); }];
+    for (const x of past ? [log, start] : [start, log]) add(...x);
+  }
+  m = /^([a-z]+)(?: for)? (\d{1,3})(?: ?(?:m|min|mins|minutes))?$/.exec(s); let aType = m && ACT_WORDS[m[1]], aMin = m && +m[2];
+  if (!aType && (m = /^(\d{1,3}) ?(?:m|min|mins|minutes)? (?:of )?([a-z]+)$/.exec(s)) && ACT_WORDS[m[2]]) { aType = ACT_WORDS[m[2]]; aMin = +m[1]; }
+  if (aType && aMin >= 1 && aMin <= 600) add((ACTIVITIES.find(a => a[0] === aType) || [0, 'bolt'])[1], 'var(--warn)', `Log ${aType}: ${aMin} min`, `${r0(moveMin(D()))} of ${g.move} active min today`, () => { mut(k, d => d.acts.push({ type: aType, min: aMin, t: Date.now() })); toast(`${aType} · ${aMin} min logged`); });
+  if ((m = /^mood (great|good|ok|okay|fine|low|bad|rough|[1-5])$/.exec(s))) {
+    const v = +m[1] || { great: 5, good: 4, ok: 3, okay: 3, fine: 3, low: 2, bad: 2, rough: 1 }[m[1]];
+    add('heart', 'var(--body)', `Set mood: ${['', 'rough', 'low', 'okay', 'good', 'great'][v]}`, 'Feeds readiness and insights', () => { mut(k, d => { d.mood = v; }); toast('Mood logged'); });
+  }
+  if ((m = /^(?:task|todo|to do|add task|remind me to|remember to)[: ]+(.+)$/i.exec(q))) {
+    let title = m[1].trim(), due = k; if (/\btomorrow$/i.test(title)) { due = addDays(k, 1); title = title.replace(/\s*\btomorrow$/i, ''); } else title = title.replace(/\s*\btoday$/i, '');
+    if (title) add('list', 'var(--fg3)', `Add task: ${title}`, due === k ? 'Due today' : 'Due tomorrow', () => { mutCore(c => c.tasks.unshift({ id: uid(), title: title.slice(0, 140), due, done: false, created: k })); toast('Task added'); });
+  }
+  const hq = s.replace(/^(?:done|did|finished|check off|check) /, '');
+  if (hq.length >= 3) for (const h of habitsFor(k)) if (h.name.toLowerCase().includes(hq)) { const on = !!D().habits[h.id]; add(h.icon, colorOf(h.color), `${on ? 'Uncheck' : 'Check off'}: ${h.name}`, on ? 'Done today' : 'Habit', () => { const el = $(`#main [data-act="habit"][data-id="${h.id}"]`); if (el) ACT.habit(el); else mut(k, d => { if (on) delete d.habits[h.id]; else d.habits[h.id] = true; }); toast(`${h.name} ${on ? 'unchecked' : 'done'}`); }); }
+  const fp = /\bwater\b/.test(s) && out.length ? null : foodPhrase(s);
+  if (fp) {
+    const cal = sum(fp, x => x.f.cal * x.qty), p = sum(fp, x => x.f.p * x.qty), meal = mealNow();
+    add('fuel', 'var(--fuel)', `Log ${fp.map(x => `${qtyText(x.qty)} × ${x.f.name}`).join(', ')}`, `${fmtN(cal)} kcal · ${r0(p)} g protein · ${meal}`, () => { for (const x of fp) addFoodItem({ name: x.f.name, serving: x.f.serving, cal: x.f.cal, p: x.f.p, c: x.f.c, f: x.f.f, qty: x.qty }, meal, true); toast(`${fmtN(cal)} kcal · ${r0(p)} g protein logged`); });
+  }
+  if ((!/\d/.test(s) && !(/\bwater\b/.test(s) && out.length)) || fp) for (const f of foodFind(fp && fp.length === 1 ? fp[0].f.name.split(',')[0] : s, 4)) {
+    if (fp && fp.length === 1 && f.name === fp[0].f.name) continue;
+    if (f.meal) add('fuel', 'var(--fuel)', `Log saved meal: ${f.name}`, `${f.meal.items.length} items · ${fmtN(sum(f.meal.items, i => i.cal))} kcal`, () => { const meal = mealNow(); mut(k, d => { for (const it of f.meal.items) d.food.push(Object.assign({}, it, { id: uid(), meal, t: Date.now() })); }); toast(`${f.name} logged`); });
+    else if (!fp || fp.length === 1) add('fuel', 'var(--fuel)', `Log ${f.name}`, `${f.serving} · ${fmtN(f.cal)} kcal · ${r0(f.p)} g protein`, () => addFoodItem({ name: f.name, serving: f.serving, cal: f.cal, p: f.p, c: f.c, f: f.f, qty: 1 }, mealNow()));
+  }
+  const logged = out.length, ql = q.toLowerCase().replace(/\s+/g, ' '), qt = ql.split(' ').filter(Boolean), hits = [];
+  for (const c of CMDS) {
+    const label = c[0].toLowerCase(), lw = label.split(/[ -]/), words = lw.concat(c[1].split(' '));
+    if (qt.every(w => words.some(x => x.startsWith(w) || (x.length >= 4 && w.startsWith(x))))) hits.push([(lw.includes(ql) ? 4 : 0) + (label.startsWith(ql) ? 2 : 0) + (label.includes(ql) ? 1 : 0), c]);
+  }
+  for (const [, c] of hits.sort((a, b) => b[0] - a[0]).slice(0, 6)) add(c[2], c[3], c[0], '', c[4]);
+  if (!logged && q.length >= 3) add('list', 'var(--fg3)', `Add task: ${q}`, 'Due today', () => { mutCore(c => c.tasks.unshift({ id: uid(), title: q.slice(0, 140), due: k, done: false, created: k })); toast('Task added'); });
+  if (S.sample && q.length >= 3) {
+    const ask = { icn: 'spark', color: 'var(--red)', t: `Ask Autopilot: ${q}`, sub: 'It can log meals, workouts and tasks for you', go: () => { ACT.coach(); const i = $('#chatIn'); if (i) { i.value = q; ACT.chatSend($('.composer')); } } };
+    if (!logged && (/\?$/.test(q) || /^(what|how|why|should|can|is|are|do|does|when|which|give|build|make|plan)\b/i.test(q))) out.unshift(ask); else out.push(ask); // a question goes to the coach first
+  }
+  return out;
+}
+const Cmd = {
+  sel: 0, items: [],
+  el() {
+    let e = $('#cmd'); if (e) return e;
+    e = document.createElement('div'); e.id = 'cmd'; e.className = 'cmd'; e.hidden = true;
+    e.innerHTML = `<div class="cmd-scrim" data-act="cmdClose"></div><div class="cmd-panel"><label class="cmd-in">${ic('bolt', 19)}<input id="cmdIn" type="text" placeholder="Log anything, or go anywhere" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" aria-label="Command" aria-controls="cmdList"><button class="cmd-x" type="button" data-act="cmdClose" aria-label="Close">${ic('x', 16)}</button></label><div class="cmd-list" id="cmdList" role="listbox" aria-label="Results"></div></div>`;
+    document.body.appendChild(e);
+    const inp = $('#cmdIn', e);
+    inp.addEventListener('input', () => { this.sel = 0; this.paint(); });
+    inp.addEventListener('keydown', ev => {
+      if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') { ev.preventDefault(); const n = this.items.length; if (n) { this.sel = (this.sel + (ev.key === 'ArrowDown' ? 1 : n - 1)) % n; this.paint(true); } }
+      else if (ev.key === 'Enter') { ev.preventDefault(); this.run(this.sel); }
+      else if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); this.close(); }
+    });
+    return e;
+  },
+  isOpen() { const e = $('#cmd'); return !!e && !e.hidden; },
+  open(text = '') {
+    const e = this.el(), inp = $('#cmdIn'); if (!e.hidden && !e.classList.contains('out')) { inp.focus(); return; }
+    inp.value = text; this.sel = 0; e.hidden = false; e.classList.remove('out'); this.paint();
+    Modal.open(e, { label: 'Command bar', focus: inp });
+  },
+  close(now) {
+    const e = $('#cmd'); if (!e || e.hidden) return;
+    if (now) { e.hidden = true; e.classList.remove('out'); Modal.close(e); return; }
+    e.classList.add('out'); setTimeout(() => { if (!e.classList.contains('out')) return; e.hidden = true; e.classList.remove('out'); Modal.close(e); }, 180);
+  },
+  paint(keepList) {
+    const inp = $('#cmdIn'), list = $('#cmdList'); if (!inp || !list) return;
+    if (!keepList) this.items = cmdParse(inp.value);
+    this.sel = clamp(this.sel, 0, Math.max(0, this.items.length - 1));
+    list.innerHTML = (this.items.length ? this.items.map((it, i) => `<button class="cmd-it" role="option" aria-selected="${i === this.sel}" data-act="cmdRun" data-i="${i}"><span class="badge-ic" style="background:${it.color}">${ic(it.icn, 16)}</span><span class="grow"><span class="t">${esc(it.t)}</span>${it.sub ? `<span class="s">${esc(it.sub)}</span>` : ''}</span><span class="end">${ic('enter', 15)}</span></button>`).join('')
+      : `<div class="empty">Nothing matches that yet.</div>`) + (inp.value.trim() ? '' : `<div class="cmd-try"><span class="cap">Try typing</span><div class="chips" style="flex-wrap:wrap;overflow:visible">${CMD_TRY.map(t => `<button class="chip" data-act="cmdTry">${esc(t)}</button>`).join('')}</div></div>`);
+    const cur = list.querySelector('[aria-selected="true"]'); if (cur && keepList) cur.scrollIntoView({ block: 'nearest' });
+  },
+  run(i) { const it = this.items[i]; if (!it) return; this.close(true); try { it.go(); } catch (e) { toast('That didn’t work. Try it from the tab instead.'); } }
+};
+ACT.cmd = () => Cmd.open();
+ACT.cmdClose = () => Cmd.close();
+ACT.cmdRun = el => Cmd.run(+el.dataset.i);
+ACT.cmdTry = el => { const inp = $('#cmdIn'); inp.value = el.textContent; Cmd.sel = 0; Cmd.paint(); inp.focus(); };
+const cmdPill = () => `<div class="cmd-row"><button class="cmd-pill" data-act="cmd">${ic('bolt', 17)}<span class="grow">Log anything: “3 eggs”, “ran 30”</span><kbd class="kbd kbd-hint">/</kbd></button>${ovrChip()}</div>`;
+KEYS.splice(1, 0, ['/', 'Command bar: log or go anywhere'], ['P', 'Open your player card']);
+document.addEventListener('keydown', e => {
+  if (e.defaultPrevented || e.isComposing || e.repeat) return;
+  const k = e.key.toLowerCase(), mod = e.metaKey || e.ctrlKey, top = Modal.active();
+  if (mod && k === 'k' && !e.altKey && !e.shiftKey) { if (top && top !== $('#cmd')) return; e.preventDefault(); if (Cmd.isOpen()) Cmd.close(); else Cmd.open(); return; }
+  if (mod || e.altKey || top) return;
+  const a = document.activeElement; if (a && (/INPUT|TEXTAREA|SELECT/.test(a.tagName) || a.isContentEditable)) return;
+  if (e.key === '/') { e.preventDefault(); Cmd.open(); } else if (k === 'p') { e.preventDefault(); Card.open(); }
+});
+
+// ---------- Live core: the charge card glows with the four rings, brighter as the day fills up ----------
+// One small WebGL canvas, drawn at a fraction of screen resolution and 30 frames a second. It stops when the card
+// is off screen, the tab is hidden or something is open on top, and stays still under reduced motion.
+const isLight = () => { const t = document.documentElement.dataset.theme; return t ? t === 'light' : matchMedia('(prefers-color-scheme: light)').matches; };
+const Core = {
+  on: lsGet('fx') !== 'off', cv: null, gl: null, raf: 0, last: 0, t: Math.random() * 40, seen: true, w: [0, 0, 0, 0], c: 0, tw: [0, 0, 0, 0], tc: 0, dead: false,
+  FRAG: `precision mediump float;
+uniform vec2 R; uniform float T, C, L; uniform vec4 W; uniform vec3 K0, K1, K2, K3;
+float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float n(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f); return mix(mix(h(i), h(i + vec2(1., 0.)), f.x), mix(h(i + vec2(0., 1.)), h(i + vec2(1., 1.)), f.x), f.y); }
+float fbm(vec2 p){ float a = .5, s = 0.; for (int i = 0; i < 4; i++) { s += a * n(p); p = p * 2.02 + vec2(3.1, 1.7); a *= .5; } return s; }
+float blob(vec2 p, vec2 c, float r){ float d = distance(p, c) / r; return exp(-d * d * 2.2); }
+void main(){
+  vec2 uv = gl_FragCoord.xy / R; float ar = R.x / R.y; vec2 p = vec2(uv.x * ar, uv.y);
+  float t = T * (.05 + .06 * C);
+  vec2 q = vec2(fbm(p * 1.25 + vec2(t, -t * .7)), fbm(p * 1.25 + vec2(-t * .8, t) + 4.7)) - .5;
+  float f = fbm(p * 1.7 + q * 2.4 + t * .4);
+  float b0 = blob(p, vec2(ar * .80, .80) + q * .55, .50 + .30 * W.x) * (.10 + .90 * W.x);
+  float b1 = blob(p, vec2(ar * .56, .46) + q.yx * .55, .46 + .30 * W.y) * (.10 + .90 * W.y);
+  float b2 = blob(p, vec2(ar * .16, .86) - q * .50, .46 + .30 * W.z) * (.10 + .90 * W.z);
+  float b3 = blob(p, vec2(ar * .98, .34) - q.yx * .50, .44 + .30 * W.w) * (.10 + .90 * W.w);
+  float s = b0 + b1 + b2 + b3;
+  vec3 col = (K0 * b0 + K1 * b1 + K2 * b2 + K3 * b3) / max(s, .35);
+  float a = s * (.30 + 1.1 * f) * (.20 + .50 * C);
+  a *= smoothstep(.02, .50, uv.y) * mix(1., .62, L);
+  a = clamp(a, 0., .78);
+  gl_FragColor = vec4(col * a, a);
+}`,
+  init() {
+    if (this.dead) return false;
+    try {
+      const cv = document.createElement('canvas'); cv.id = 'core'; cv.setAttribute('aria-hidden', 'true');
+      const gl = cv.getContext('webgl', { alpha: true, premultipliedAlpha: true, antialias: false, depth: false, stencil: false, powerPreference: 'low-power' }); if (!gl) throw 0;
+      const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw 0; return s; };
+      const pr = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, 'attribute vec2 a; void main(){ gl_Position = vec4(a, 0., 1.); }')); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, this.FRAG)); gl.linkProgram(pr);
+      if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) throw 0;
+      gl.useProgram(pr); gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer()); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+      const loc = gl.getAttribLocation(pr, 'a'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+      this.u = {}; for (const n of ['R', 'T', 'C', 'L', 'W', 'K0', 'K1', 'K2', 'K3']) this.u[n] = gl.getUniformLocation(pr, n);
+      cv.addEventListener('webglcontextlost', e => { e.preventDefault(); this.stop(); this.dead = true; cv.remove(); });
+      this.cv = cv; this.gl = gl;
+      if ('IntersectionObserver' in window) new IntersectionObserver(es => { this.seen = es[es.length - 1].isIntersecting; if (this.seen) this.start(); }).observe(cv);
+      return true;
+    } catch (e) { this.dead = true; return false; }
+  },
+  rgb(v) { const m = /^#?([0-9a-f]{6})$/i.exec(cssColor(v)); if (!m) return [1, 1, 1]; const n = parseInt(m[1], 16); return [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255]; },
+  // after every render the canvas moves into the fresh hero card; the GL context goes with it
+  attach() {
+    const hero = S.view === 'today' ? $('#main .card.hero') : null;
+    if (!this.on || !hero || (!this.cv && !this.init())) { this.stop(); if (this.cv && !hero) this.cv.remove(); return; }
+    if (this.cv.parentNode !== hero) hero.prepend(this.cv);
+    const r = rings(TODAY()); this.tw = [r.body, r.fuel, r.mind, r.sleep]; this.tc = charge(TODAY()) / 100;
+    const w = Math.max(2, Math.round(hero.clientWidth * 0.5)), h = Math.max(2, Math.round(hero.clientHeight * 0.5));
+    if (this.cv.width !== w || this.cv.height !== h) { this.cv.width = w; this.cv.height = h; this.gl.viewport(0, 0, w, h); }
+    const gl = this.gl, k = ['var(--body)', 'var(--fuel)', 'var(--mind)', 'var(--sleep)'].map(c => this.rgb(c));
+    k.forEach((c, i) => gl.uniform3f(this.u['K' + i], c[0], c[1], c[2])); gl.uniform1f(this.u.L, isLight() ? 1 : 0); gl.uniform2f(this.u.R, w, h);
+    if (RM()) { this.w = this.tw.slice(); this.c = this.tc; this.draw(); this.cv.classList.add('on'); return; }
+    this.start();
+  },
+  draw() { const gl = this.gl, u = this.u; gl.uniform1f(u.T, this.t); gl.uniform1f(u.C, this.c); gl.uniform4f(u.W, this.w[0], this.w[1], this.w[2], this.w[3]); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT); gl.drawArrays(gl.TRIANGLES, 0, 3); },
+  start() { if (this.raf || !this.on || !this.cv || !this.cv.isConnected || RM()) return; this.raf = requestAnimationFrame(t => this.frame(t)); },
+  stop() { cancelAnimationFrame(this.raf); this.raf = 0; },
+  frame(now) {
+    this.raf = 0;
+    if (!this.cv.isConnected || document.hidden || !this.seen) return; // attach() or the observer restarts it
+    if (now - this.last >= 32) {
+      const dt = Math.min(0.1, (now - this.last) / 1000) || 0.033; this.last = now;
+      if (document.body.style.overflow !== 'hidden') { // nothing open on top
+        this.t += dt; for (let i = 0; i < 4; i++) this.w[i] += (this.tw[i] - this.w[i]) * 0.06; this.c += (this.tc - this.c) * 0.06;
+        this.draw(); if (!this.cv.classList.contains('on')) this.cv.classList.add('on');
+      }
+    }
+    this.raf = requestAnimationFrame(t => this.frame(t));
+  }
+};
+document.addEventListener('visibilitychange', () => { if (!document.hidden) Core.start(); });
+ACT.fxSet = el => { const v = el.dataset.v === 'off' ? 'off' : 'on'; lsSet('fx', v); Core.on = v === 'on'; if (!Core.on && Core.cv) { Core.stop(); Core.cv.remove(); } render(); toast(Core.on ? 'Live visuals on' : 'Live visuals off'); };
+
+// ---------- Autopilot runs on Fable 5.2 unless you pick something lighter ----------
+// The page names the model; if this account can't use it, the request falls back to the tier next to it without an error.
+const AI = {
+  MODES: [['fable', 'Fable 5.2'], ['auto', 'Balanced'], ['fast', 'Fast']], applied: '',
+  mode() { const m = lsGet('aiMode'); return ['fable', 'auto', 'fast'].includes(m) ? m : 'fable'; },
+  label: id => id === 'claude-fable-5-2' ? 'Fable 5.2' : '',
+  // what the coach sheet shows: the model asked for, or what answered if that one wasn't available
+  pill() { const want = this.MODES.find(x => x[0] === this.mode())[1]; return this.mode() !== 'fable' || !this.asked ? want : (this.label(this.applied) || 'Best available'); },
+  opts(o) {
+    const x = Object.assign({}, o || {}), m = this.mode();
+    if (m === 'fable') { x.model = 'claude-fable-5-2'; x.modelTier = 'complex'; if (!x.effort) x.effort = 'low'; }
+    else if (m === 'fast') { x.modelTier = 'quick'; delete x.effort; }
+    return x;
+  },
+  wrap(base) {
+    if (!base) return base;
+    const f = (input, o) => base(input, AI.opts(o)).then(r => { AI.applied = (r && r.modelApplied) || ''; AI.asked = true; const p = $('#aiModel'); if (p) p.textContent = AI.pill(); return r; });
+    f.json = (input, o) => base.json(input, AI.opts(o));
+    f.limits = () => base.limits();
+    return f;
+  }
+};
+ACT.aiMode = el => { lsSet('aiMode', el.dataset.v); AI.asked = false; render(); toast({ fable: 'Autopilot will ask for Fable 5.2', auto: 'Autopilot on the balanced model', fast: 'Autopilot on the fastest model' }[AI.mode()]); };
+// the coach and the planner know the ratings too
+const v8Context = extraContext;
+extraContext = function () { const A = PL.attrs(); return v8Context().concat(A.has ? [`Player rating: overall ${A.ovr} (${A.tier[1]}, ${PL.arch(A)}). ${A.list.map(a => `${a.name} ${a.rating}`).join(', ')}. Scale 40 to 99, from the last ${A.span} days.`, `Today's quests: ${questState().map(q => `${q.title} (${q.ok ? 'done' : 'open'})`).join('; ')}.`] : []); };
+// widgets, CarPlay and native shells see the rating and the quests
+const v8Snap = snapshot;
+snapshot = function () { const o = v8Snap(), A = PL.attrs(); o.player = { overall: A.ovr, tier: A.tier[1], archetype: PL.arch(A), attributes: Object.fromEntries(A.list.map(a => [a.id, a.rating])) }; o.quests = questState().map(q => ({ title: q.title, done: q.ok, xp: q.xp })); return o; };
+
+// ---------- Where it all shows up ----------
+const v8Render = render;
+render = function () { PL.clear(); v8Render(); Core.attach(); questCheck(); ovrCheck(); };
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && Cmd.isOpen() && Modal.active() === $('#cmd')) { e.preventDefault(); Cmd.close(); } });
+addEventListener('resize', () => { if (S.ready && S.view === 'today') Core.attach(); });
 // ================= TIMERS =================
 // Every countdown and stopwatch in the app is computed from saved start and end times, so none of them drift or
 // stall when the phone locks. This file keeps the screens that show clock time on the minute, and brings running
