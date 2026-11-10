@@ -1015,6 +1015,7 @@ body:has(#sheetWrap.open) .toast { top: calc(12px + env(safe-area-inset-top, 0px
 .card.hero > :not(#core) { position: relative; z-index: 1; }
 #core { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; opacity: 0; transition: opacity 1.4s ease; }
 #core.on { opacity: 1; }
+.hero .num-xl.full { font-size: 74px; }
 
 /* Hexagon */
 .radar { display: block; overflow: visible; flex: none; }
@@ -1085,6 +1086,8 @@ body:has(#sheetWrap.open) .toast { top: calc(12px + env(safe-area-inset-top, 0px
   --bg: #000; --bg2: #0b0b0d; --card: #141416; --card2: #1f1f22; --chip: #232327; --card3: #2a2a2e; --line: rgba(255,255,255,.08); --line2: rgba(255,255,255,.14); --fg: #f5f5f7; --fg2: #a1a1a6; --fg3: #96969f;
   --red: #e82127; --body: #ff375f; --fuel: #30d158; --mind: #40c8ff; --sleep: #7d7aff; --gold: #ffd60a; --good: #30d158; --warn: #ff9f0a; --crit: #ff453a; --on-fg: #000; --control-edge: rgba(245,245,247,.08); }
 .pcard[hidden] { display: none; }
+.pcard, .cmd-list { scrollbar-width: none; }
+.pcard::-webkit-scrollbar, .cmd-list::-webkit-scrollbar { display: none; }
 .pcard.out { animation: v8Out .24s ease both; }
 .pcard:focus { outline: none; }
 .pk-wrap { position: relative; max-width: 560px; margin: 0 auto; padding: calc(8px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) calc(40px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
@@ -1093,6 +1096,7 @@ body:has(#sheetWrap.open) .toast { top: calc(12px + env(safe-area-inset-top, 0px
 .pk-card { --mx: 50; --my: 40; --rx: 0deg; --ry: 0deg; --tk: var(--tc); position: relative; width: min(330px, 86vw); aspect-ratio: 5 / 7.2; border-radius: 26px; overflow: hidden; transform: rotateX(var(--rx)) rotateY(var(--ry));
   background: linear-gradient(155deg, color-mix(in srgb, var(--tc) 30%, #101012) 0%, #0c0c0e 40%, color-mix(in srgb, var(--tc2) 46%, #08080a) 100%);
   box-shadow: 0 30px 70px rgba(0,0,0,.6), 0 0 70px color-mix(in srgb, var(--tc) 16%, transparent), inset 0 0 0 1.5px color-mix(in srgb, var(--tc) 55%, transparent); }
+.pk-card.flat { transform: none; }
 .pk-in { position: absolute; inset: 0; z-index: 1; padding: 20px 20px 16px; display: flex; flex-direction: column; }
 .pk-head { display: flex; justify-content: space-between; align-items: flex-start; }
 .pk-ovr b { display: block; font: 700 64px/.86 var(--font-display); letter-spacing: -.05em; font-variant-numeric: tabular-nums; }
@@ -1148,7 +1152,7 @@ body:has(#sheetWrap.open) .toast { top: calc(12px + env(safe-area-inset-top, 0px
 .pk-heat i { border-radius: 2.5px; }
 
 /* Rank up */
-.rank { position: fixed; inset: 0; z-index: 97; display: grid; place-items: center; overflow: hidden; background: rgba(0,0,0,.88); color: #fff; opacity: 0; pointer-events: none; cursor: pointer; transition: opacity .3s ease; -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+.rank { position: fixed; inset: 0; z-index: 94; display: grid; place-items: center; overflow: hidden; background: rgba(0,0,0,.88); color: #fff; opacity: 0; pointer-events: none; cursor: pointer; transition: opacity .3s ease; -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
 .rank[hidden] { display: none; }
 .rank.show { opacity: 1; pointer-events: auto; }
 .rk-rays { position: absolute; left: 50%; top: 44%; width: 170vmax; height: 170vmax; transform: translate(-50%, -50%); opacity: .75; animation: rkSpin 26s linear infinite;
@@ -1893,7 +1897,7 @@ VIEWS.today = () => {
   h += `<section class="card hero">
     <div class="between"><span class="cap">Daily charge</span><span class="hgap" style="gap:8px">${st ? `<span class="streak">${ic('flame', 15, 1.8)} ${st}-day streak</span>` : `<span class="tiny">Reach 50% to start a streak</span>`}${S.core.freezes ? `<span class="pill" style="color:var(--mind)" title="Streak freezes">${ic('freeze', 12)} ${S.core.freezes}</span>` : ''}</span></div>
     <div class="hero-main">
-      <div class="hero-num"><span class="num-xl">${cnt(ch, 'charge')}</span><span class="pct">%</span></div>
+      <div class="hero-num"><span class="num-xl${ch >= 100 ? ' full' : ''}">${cnt(ch, 'charge')}</span><span class="pct">%</span></div>
       ${ringsSVG([{ v: r.body, color: 'var(--body)' }, { v: r.fuel, color: 'var(--fuel)' }, { v: r.mind, color: 'var(--mind)' }, { v: r.sleep, color: 'var(--sleep)' }], 136, 10.5, 3.2, 'today')}
     </div>
     ${battery(ch)}
@@ -5104,6 +5108,7 @@ Times are the person's local time. 24-hour "HH:MM".
 - Rings, charge, readiness: rings(), charge(), readiness(). Health fields live in day.health.
 - Live connectors through Claude: LIVE (the list), Conn (status, Connect everything, Spotify, Calendar, Drive). Add a connector by adding its name to LIVE and to the page's mcp manifest, then a small block in Conn.
 - Goals, 30/75-day challenges, quit counters, the recap story and the interval timer: the "V7: GROW" section. snapshot() includes goals, challenge and quit.
+- Overall rating, the six attributes, the player card, daily quests, the command bar and the live core: the "V8: PLAYER" section. snapshot() includes player (overall, tier, archetype, attributes) and quests. Autopilot's model is set in AI.opts().
 - Timers: every countdown and stopwatch is computed from saved start and end times, so they stay exact when the phone locks. The "TIMERS" section repaints clock screens on the minute and resumes rest and interval timers after a reload.
 
 ## 6. Plug-in snippets for the iPhone app
@@ -6681,7 +6686,7 @@ const Card = {
     return `<div class="pk-wrap">
       <div class="ov-bar"><button class="icon-btn" data-act="cardClose" aria-label="Close">${ic('x', 18)}</button><span class="h3">Player card</span><button class="icon-btn" data-act="cardSave" aria-label="Save card as an image">${ic('download', 18)}</button></div>
       <div class="pk-stage" id="pkStage">${this.face(A)}</div>
-      <p class="tiny" style="text-align:center;margin:14px 0 0">Rated from your last ${A.span} days. Drag the card to catch the light.</p>
+      <p class="tiny" style="text-align:center;margin:14px 0 0">Rated from your last ${A.span} days. ${matchMedia('(pointer: fine)').matches ? 'Move over the card to tilt it.' : 'Touch the card to tilt it.'}</p>
       ${sec('Attributes', `<span class="tiny">change over 7 days</span>`)}
       <div class="card flush pk-list">${A.list.map(a => { const u = PL.upgrade(a), d = PL.delta(a.id);
         return `<details class="pk-attr" ${a.id === low.id ? 'open' : ''}><summary><span class="ab" style="color:${a.color}">${a.ab}</span><span class="grow"><span class="between"><span class="t">${a.name}</span><span class="hgap" style="gap:8px;flex-wrap:nowrap">${ovrDelta(d)}<b class="num-s">${a.rating}</b></span></span><span class="gbar"><i data-w="${((a.rating - 40) / 59 * 100).toFixed(1)}" style="width:0%;background:${a.color}"></i></span></span></summary>
@@ -6692,18 +6697,26 @@ const Card = {
       ${sec('Every day · 26 weeks', `<span class="tiny">brighter = higher charge</span>`)}<div class="card"><div class="heat pk-heat" role="img" aria-label="Daily charge, last 26 weeks">${cells.map(k => { const c = PL.ch(k); return `<i title="${fmtDate(k)}: ${c}%" style="${c ? `background:color-mix(in srgb, var(--red) ${15 + c * 0.85}%, var(--card2))` : ''}"></i>`; }).join('')}</div></div>
       <p class="tiny" style="text-align:center;margin:26px 0 0"><span class="wordmark" style="font-size:10px;color:var(--fg3)">IMP<em>4</em>EVR</span></p></div>`;
   },
-  // the card drifts on its own until a finger or the pointer takes over
+  // At rest the card lies flat, so its type stays sharp, and only the light drifts across it.
+  // Under a finger or the pointer it tilts toward the touch, then settles back.
   sway() {
     cancelAnimationFrame(this.raf); const stage = $('#pkStage'); if (!stage) return;
-    let held = 0, tx = 50, ty = 40, x = 50, y = 40; const t0 = performance.now();
-    const set = () => { const c = $('#pkCard'); if (!c) return; c.style.setProperty('--mx', x.toFixed(1)); c.style.setProperty('--my', y.toFixed(1)); c.style.setProperty('--ry', ((x - 50) / 50 * 13).toFixed(2) + 'deg'); c.style.setProperty('--rx', ((50 - y) / 50 * 10).toFixed(2) + 'deg'); };
+    let held = -1e9, tx = 50, ty = 40, x = 50, y = 40, k = 0; const t0 = performance.now();
+    const set = () => {
+      const c = $('#pkCard'); if (!c) return;
+      c.style.setProperty('--mx', x.toFixed(1)); c.style.setProperty('--my', y.toFixed(1));
+      c.style.setProperty('--ry', ((x - 50) / 50 * 14 * k).toFixed(2) + 'deg'); c.style.setProperty('--rx', ((50 - y) / 50 * 11 * k).toFixed(2) + 'deg');
+      c.classList.toggle('flat', k < 0.01);
+    };
     const move = e => { const r = stage.getBoundingClientRect(); tx = clamp((e.clientX - r.left) / r.width * 100, 0, 100); ty = clamp((e.clientY - r.top) / r.height * 100, 0, 100); held = performance.now(); };
     stage.onpointermove = move; stage.onpointerdown = move;
     if (RM()) { set(); return; }
     const step = t => {
       if (!this.isOpen()) return;
-      if (t - held > 1600) { const s = (t - t0) / 1000; tx = 50 + Math.sin(s * 0.7) * 34; ty = 42 + Math.cos(s * 0.53) * 26; }
-      x += (tx - x) * 0.09; y += (ty - y) * 0.09; set(); this.raf = requestAnimationFrame(step);
+      const idle = t - held > 1400;
+      if (idle) { const s = (t - t0) / 1000; tx = 50 + Math.sin(s * 0.7) * 36; ty = 42 + Math.cos(s * 0.53) * 28; }
+      x += (tx - x) * 0.09; y += (ty - y) * 0.09; k += ((idle ? 0 : 1) - k) * 0.08; if (k < 0.004) k = 0;
+      set(); this.raf = requestAnimationFrame(step);
     };
     this.raf = requestAnimationFrame(step);
   }
@@ -6764,14 +6777,14 @@ ACT.cardSave = async () => {
   glow(160, 120, 900, t[2], 0.34); glow(W - 80, H - 60, 900, t[3], 0.5);
   x.strokeStyle = t[2]; x.globalAlpha = 0.55; x.lineWidth = 4; x.beginPath(); if (x.roundRect) x.roundRect(30, 30, W - 60, H - 60, 56); else x.rect(30, 30, W - 60, H - 60); x.stroke(); x.globalAlpha = 1;
   x.fillStyle = '#fff'; x.font = F(700, 230); x.fillText(String(A.ovr), 86, 300); x.font = F(600, 38); x.fillStyle = t[2]; x.fillText('OVR  ·  ' + t[1].toUpperCase(), 96, 362);
-  x.font = F(600, 30); x.fillStyle = '#f5f5f7'; x.fillText('I M P', W - 330, 130); x.fillStyle = '#e82127'; x.fillText('4', W - 232, 130); x.fillStyle = '#f5f5f7'; x.fillText('E V R', W - 200, 130);
+  x.font = F(600, 30); let wx = W - 86; for (const [txt, c] of [['E V R', '#f5f5f7'], ['4 ', '#e82127'], ['I M P ', '#f5f5f7']]) { wx -= x.measureText(txt).width; x.fillStyle = c; x.fillText(txt, wx, 130); }
   // hexagon
   const cx = W / 2, cy = 690, R = 250, pt = (i, f) => { const a = -Math.PI / 2 + i * Math.PI / 3; return [cx + Math.cos(a) * R * f, cy + Math.sin(a) * R * f]; }, path = f => { x.beginPath(); A.list.forEach((_, i) => { const [px, py] = pt(i, typeof f === 'function' ? f(i) : f); i ? x.lineTo(px, py) : x.moveTo(px, py); }); x.closePath(); };
   x.strokeStyle = 'rgba(255,255,255,.14)'; x.lineWidth = 2; for (const f of [1, 0.66, 0.33]) { path(f); x.stroke(); }
   const val = i => 0.14 + 0.86 * clamp((A.list[i].rating - 40) / 59, 0, 1);
   path(val); x.fillStyle = t[2]; x.globalAlpha = 0.28; x.fill(); x.globalAlpha = 1; x.strokeStyle = t[2]; x.lineWidth = 5; x.stroke();
   A.list.forEach((a, i) => { const [px, py] = pt(i, val(i)); x.fillStyle = col(a.color); x.beginPath(); x.arc(px, py, 10, 0, 6.283); x.fill(); const [lx, ly] = pt(i, 1.17); x.font = F(600, 30); x.fillStyle = '#a1a1a6'; x.textAlign = 'center'; x.fillText(a.ab, lx, ly + 10); });
-  x.textAlign = 'left'; x.font = F(700, 84); x.fillStyle = '#fff'; x.fillText((S.core.name || 'You').slice(0, 18), 86, 1085); x.font = F(500, 38); x.fillStyle = '#a1a1a6'; x.fillText(`${PL.arch(A)}  ·  Level ${levelOf(totalXP()).lv}`, 88, 1142);
+  x.textAlign = 'left'; x.font = F(700, 84); x.fillStyle = '#fff'; x.fillText((S.core.name || 'You').slice(0, 18).toUpperCase(), 86, 1085); x.font = F(500, 38); x.fillStyle = '#a1a1a6'; x.fillText(`${PL.arch(A)}  ·  Level ${levelOf(totalXP()).lv}`, 88, 1142);
   A.list.forEach((a, i) => { const gx = 86 + (i % 3) * 312, gy = 1262 + Math.floor(i / 3) * 104; x.font = F(700, 64); x.fillStyle = '#fff'; x.fillText(String(a.rating), gx, gy); const w = x.measureText(String(a.rating)).width; x.font = F(600, 30); x.fillStyle = col(a.color); x.fillText(a.ab, gx + w + 14, gy - 4); });
   const blob = await new Promise(res => cv.toBlob(res, 'image/png'));
   try { await S.downloads.save({ filename: `imp4evr-card-${TODAY()}.png`, data: blob }); toast('Card saved'); } catch (e) { if (e && e.code !== 'declined') toast('Couldn’t save it here'); }
@@ -6989,7 +7002,7 @@ function cmdParse(raw) {
     if (title) add('list', 'var(--fg3)', `Add task: ${title}`, due === k ? 'Due today' : 'Due tomorrow', () => { mutCore(c => c.tasks.unshift({ id: uid(), title: title.slice(0, 140), due, done: false, created: k })); toast('Task added'); });
   }
   const hq = s.replace(/^(?:done|did|finished|check off|check) /, '');
-  if (hq.length >= 3) for (const h of habitsFor(k)) if (h.name.toLowerCase().includes(hq)) { const on = !!D().habits[h.id]; add(h.icon, colorOf(h.color), `${on ? 'Uncheck' : 'Check off'}: ${h.name}`, on ? 'Done today' : 'Habit', () => { const el = $(`#main [data-act="habit"][data-id="${h.id}"]`); if (el) ACT.habit(el); else mut(k, d => { if (on) delete d.habits[h.id]; else d.habits[h.id] = true; }); toast(`${h.name} ${on ? 'unchecked' : 'done'}`); }); }
+  if (hq.length >= 3) for (const h of habitsFor(k)) if (h.name.toLowerCase().includes(hq)) { const on = !!D().habits[h.id]; add(h.icon, colorOf(h.color), `${on ? 'Uncheck' : 'Check off'}: ${h.name}`, on ? 'Done today' : 'Habit', () => { const el = $(`#main [data-act="habit"][data-id="${h.id}"]`); if (el) ACT.habit(el); else mut(k, d => { if (on) { delete d.habits[h.id]; Store.tomb.add(`h:${k}:${h.id}`); } else d.habits[h.id] = true; }); toast(`${h.name} ${on ? 'unchecked' : 'done'}`); }); }
   const fp = /\bwater\b/.test(s) && out.length ? null : foodPhrase(s);
   if (fp) {
     const cal = sum(fp, x => x.f.cal * x.qty), p = sum(fp, x => x.f.p * x.qty), meal = mealNow();
@@ -7087,10 +7100,11 @@ void main(){
   float b2 = blob(p, vec2(ar * .16, .86) - q * .50, .46 + .30 * W.z) * (.10 + .90 * W.z);
   float b3 = blob(p, vec2(ar * .98, .34) - q.yx * .50, .44 + .30 * W.w) * (.10 + .90 * W.w);
   float s = b0 + b1 + b2 + b3;
-  vec3 col = (K0 * b0 + K1 * b1 + K2 * b2 + K3 * b3) / max(s, .35);
-  float a = s * (.30 + 1.1 * f) * (.20 + .50 * C);
-  a *= smoothstep(.02, .50, uv.y) * mix(1., .62, L);
-  a = clamp(a, 0., .78);
+  vec4 d = vec4(b0, b1, b2, b3); d = d * d * d;                       // the nearest ring's color wins, so the four don't average to grey
+  vec3 col = (K0 * d.x + K1 * d.y + K2 * d.z + K3 * d.w) / max(d.x + d.y + d.z + d.w, 1e-4);
+  float a = min(s, 1.15) * (.34 + 1.0 * f) * (.20 + .46 * C);
+  a *= smoothstep(.04, .52, uv.y) * mix(1., .50, L);
+  a = clamp(a, 0., mix(.70, .40, L));
   gl_FragColor = vec4(col * a, a);
 }`,
   init() {
@@ -7176,7 +7190,11 @@ snapshot = function () { const o = v8Snap(), A = PL.attrs(); o.player = { overal
 // ---------- Where it all shows up ----------
 const v8Render = render;
 render = function () { PL.clear(); v8Render(); Core.attach(); questCheck(); ovrCheck(); };
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && Cmd.isOpen() && Modal.active() === $('#cmd')) { e.preventDefault(); Cmd.close(); } });
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  const r = $('#rank'); if (r && !r.hidden) { e.preventDefault(); ACT.rankClose(); return; }
+  if (Cmd.isOpen() && Modal.active() === $('#cmd')) { e.preventDefault(); Cmd.close(); }
+});
 addEventListener('resize', () => { if (S.ready && S.view === 'today') Core.attach(); });
 // ================= TIMERS =================
 // Every countdown and stopwatch in the app is computed from saved start and end times, so none of them drift or
