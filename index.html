@@ -1364,6 +1364,35 @@ input, select, textarea { border-radius: 12px; }
   .lt, .ph .lt { font-size: 40px; }
 }
 @media (max-width: 359px) { .hero-main .num-xl { font-size: 76px !important; } .hero-num .num-xl.full { font-size: 68px !important; } }
+
+/* ---------- 8.1 motion: one set of curves, quick exits, and an opening that lands in one move ---------- */
+:root { --ease-out: cubic-bezier(.2, .8, .2, 1); --ease-in: cubic-bezier(.4, 0, 1, 1); --spring: cubic-bezier(.3, 1.35, .45, 1); interpolate-size: allow-keywords; }
+/* opening: the wordmark settles on the page's own ground, then the screen and the dock arrive together */
+.splash { background: var(--bg); animation: splashOut .45s var(--ease-out) .72s forwards; }
+.splash .wordmark { color: var(--fg); font-size: 22px; animation: splashMark 1.15s var(--ease-out) both; }
+@keyframes splashMark { 0% { opacity: 0; transform: scale(.9); } 40% { opacity: 1; transform: none; } 100% { opacity: 1; transform: scale(1.05); } }
+.boot .tabbar { animation: dockIn .6s var(--ease-out) .74s both; }
+@keyframes dockIn { from { opacity: 0; transform: translateY(26px); } }
+/* sheets: spring up, leave faster than they came, and never show a gap when the spring overshoots */
+.sheet::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 64px; background: inherit; }
+.sheet-wrap:not(.open) .sheet { transition: transform .27s var(--ease-in); }
+.sheet-wrap:not(.open) .scrim { transition: opacity .22s ease; }
+/* controls answer the finger, and the pointer on a laptop */
+.tabbar button { transition: color .25s ease; }
+.seg button { transition: background .2s ease, color .2s ease, box-shadow .2s ease; }
+.chip:active, .seg button:active, .ovr-chip:active, .cmd-it:active { transform: scale(.96); }
+.cmd-it, .wday, .quest, .pc-ovr, .ovr-chip, .cmd-pill { transition: transform .14s ease, background .18s ease; }
+.icon-btn:active { transform: scale(.92); }
+@media (hover: hover) and (pointer: fine) {
+  button.li:hover, .cmd-it:hover { background: color-mix(in srgb, var(--fg) 4.5%, transparent); }
+  .tile:hover, .wday:hover { transform: translateY(-2px); }
+  .btn:hover, .icon-btn:hover { filter: brightness(1.1); }
+  button.card:hover { box-shadow: inset 0 0 0 1px var(--line2); }
+}
+/* attribute rows on the player card open and close instead of snapping */
+.pk-attr::details-content { height: 0; overflow: clip; transition: height .32s var(--ease-out), content-visibility .32s allow-discrete; }
+.pk-attr[open]::details-content { height: auto; }
+@media (prefers-reduced-motion: reduce) { .boot .tabbar, .splash .wordmark { animation: none; } }
 </style>
 </head>
 <body>
@@ -7401,6 +7430,15 @@ document.addEventListener('keydown', e => {
   if (Cmd.isOpen() && Modal.active() === $('#cmd')) { e.preventDefault(); Cmd.close(); }
 });
 addEventListener('resize', () => { if (S.ready && S.view === 'today') Core.attach(); });
+
+// ---------- 8.1 motion: the first screen rises as the splash lifts, not hidden underneath it ----------
+document.documentElement.classList.add('boot');
+const v81Boot = boot;
+boot = function () {
+  v81Boot();
+  setTimeout(() => { const m = $('#main'); if (m && !RM() && !Modal.active()) { m.classList.remove('view-in'); void m.offsetWidth; m.classList.add('view-in'); } }, 700);
+  setTimeout(() => document.documentElement.classList.remove('boot'), 2000);
+};
 // ================= TIMERS =================
 // Every countdown and stopwatch in the app is computed from saved start and end times, so none of them drift or
 // stall when the phone locks. This file keeps the screens that show clock time on the minute, and brings running
