@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Wound Ballistics Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="src/style.css">
+</head>
+<body>
+<!--BODY-->
+<div id="app">
+  <canvas id="view" aria-label="3D test chamber"></canvas>
+  <div id="cross" aria-hidden="true"></div>
+  <div id="hud">
+    <section id="subject" class="panel" aria-live="off">
+      <button id="subjHead" class="phead" type="button" aria-expanded="true">
+        <span>Subject</span><span class="dim">M · 1.78 m · 77 kg</span>
+      </button>
+      <div id="status" class="status s0">ALIVE</div>
+      <canvas id="ecg" width="300" height="46" aria-hidden="true"></canvas>
+      <div class="vitals">
+        <div><label>HR</label><b id="vHr">72</b><i>bpm</i></div>
+        <div><label>BP</label><b id="vBp">120/80</b><i>mmHg</i></div>
+        <div><label>SpO₂</label><b id="vSp">98</b><i>%</i></div>
+        <div><label>RR</label><b id="vRr">14</b><i>/min</i></div>
+      </div>
+      <div class="blood">
+        <div class="row"><label>Blood volume</label><span id="vBv">5.40 L</span></div>
+        <div class="bar"><div id="bvBar"></div><span class="tick" style="left:60%"></span></div>
+        <div class="row"><label>Lost</label><span id="vLost">0 mL (0%)</span></div>
+        <div class="row"><label>External / internal</label><span id="vSplit">0 / 0 mL</span></div>
+        <div class="row"><label>Bleeding rate</label><span id="vRate">0 mL/min</span></div>
+        <div class="row"><label>Haemorrhage</label><span id="vClass">—</span></div>
+      </div>
+      <div id="more">
+        <div class="row"><label>Consciousness</label><span id="vAvpu">Alert</span></div>
+        <div class="row"><label>Posture</label><span id="vPost">Standing</span></div>
+        <div class="row"><label>Since first hit</label><span id="vTime">—</span></div>
+        <div class="row" id="causeRow" hidden><label>Cause of death</label><span id="vCause"></span></div>
+        <div class="ihead">Injuries <span id="iCount" class="dim">none</span></div>
+        <ul id="inj"></ul>
+      </div>
+    </section>
+    <section id="weapon" class="panel">
+      <div class="phead"><span>Weapon</span><span class="dim" id="wKey"></span></div>
+      <div id="wName" class="wname"></div>
+      <div id="wLoad" class="dim"></div>
+      <div class="row"><label>Muzzle velocity</label><span id="wVel"></span></div>
+      <div class="row"><label>Muzzle energy</label><span id="wEn"></span></div>
+      <div class="row"><label>Range to subject</label><span id="wRange"></span></div>
+    </section>
+    <section id="report" class="panel" hidden>
+      <div class="phead"><span>Last shot</span><span class="dim" id="rTag"></span></div>
+      <div id="rBody"></div>
+    </section>
+    <div id="stick" hidden><div id="knob"></div></div>
+    <nav id="bar">
+      <div id="guns" role="group" aria-label="Weapons"></div>
+      <div id="tools">
+        <button id="bXray" type="button" aria-pressed="false">X-ray</button>
+        <button id="bTime" type="button">Time ×1</button>
+        <button id="bSound" type="button" aria-pressed="true">Sound</button>
+        <button id="bHelp" type="button">Help</button>
+        <button id="bReset" type="button" class="warn">Reset</button>
+      </div>
+    </nav>
+  </div>
+  <div id="intro">
+    <div class="card">
+      <p class="eyebrow">v0.1 · terminal ballistics &amp; trauma physiology</p>
+      <h1>Wound Ballistics Lab</h1>
+      <p>A test subject stands in the chamber. Every round is traced millimetre by millimetre through skin, bone, organs and vessels, and the body responds in real time: bleeding, blood pressure, breathing, consciousness.</p>
+      <ul class="keys">
+        <li><b>Mouse</b> aim · <b>click</b> fire · <b>right-drag</b> or <b>arrows</b> look · <b>WASD</b> move</li>
+        <li><b>Touch</b> tap to fire where you tap · drag to look · stick to move</li>
+        <li><b>1–0</b> weapon · <b>X</b> X-ray anatomy · <b>T</b> time speed · <b>R</b> new subject</li>
+      </ul>
+      <p class="dim small">Simulated graphic injury. Educational model, not medical guidance. No treatment is modelled, so outcomes are untreated outcomes.</p>
+      <button id="bStart" type="button">Enter test chamber</button>
+    </div>
+  </div>
+</div>
+<!--/BODY-->
+<script src="vendor/three.min.js"></script>
+<script src="src/anatomy.js"></script>
+<script src="src/ballistics.js"></script>
+<script src="src/weapons.js"></script>
+<script src="src/body.js"></script>
+<script src="src/physiology.js"></script>
+<script src="src/npc.js"></script>
+<script src="src/world.js"></script>
+<script src="src/ui.js"></script>
+<script src="src/main.js"></script>
+</body>
+</html>
