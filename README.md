@@ -1,4 +1,4 @@
-# Port-Marlowe — Wound Ballistics Lab (v0.1)
+# Port-Marlowe — Wound Ballistics Lab (v0.2)
 
 A browser-based 3D simulator of gunshot wounds. A test subject stands in a chamber; every
 round is traced millimetre by millimetre through skin, bone, organs and vessels, and the
@@ -36,15 +36,20 @@ body then responds in real time (bleeding, blood pressure, breathing, consciousn
   clotting, external vs internal loss, ATLS haemorrhage classes, compensatory tachycardia,
   tamponade, pneumothorax / haemothorax / tension, airway, spinal cord level effects,
   neurogenic shock, brain perfusion and oxygen reserve, cardiac arrest, brain death.
-- **Behaviour** (`src/npc.js`): bullets do not throw the body. The subject flinches, guards
-  the wound, goes down voluntarily or collapses when legs, cord, blood pressure or the
-  brain fail.
+- **Physics** (`src/physics.js`, cannon.js): the subject is a 17-segment rigid-body ragdoll
+  with real segment masses and anatomical joint limits. Muscle tone is a joint torque scaled
+  by the nervous system: unconscious = limp, cord injury = no tone below the level, a
+  fractured limb cannot brace. Projectiles transfer their actual momentum (small next to a
+  77 kg body). Spent cases are rigid bodies.
+- **Behaviour** (`src/npc.js`): the subject flinches and guards the wound while it can stand
+  (standing balance is animated); once the legs, cord, blood pressure or brain fail, or it
+  chooses to go down, physics takes over the fall.
 - **Blood** (`src/world.js`): entry/exit wounds, forward and back spatter, drips, arterial
   spurting, and floor pools whose area is computed from the volume actually lost.
 
 Untreated outcomes only. This is an educational model, not medical guidance.
 
-## Ideas for v0.2
+## Ideas for v0.3
 
-Physics ragdoll, clothing and body armour, slow-motion bullet camera, first-aid
+Physics-driven standing balance, limb-vs-torso collision for arms, clothing and body armour, slow-motion bullet camera, first-aid
 (tourniquet, chest seal, pressure), more calibres and ranges, subject variation.

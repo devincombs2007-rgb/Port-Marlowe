@@ -10,6 +10,7 @@
   camera.rotation.order = 'YXZ'; scene.add(camera);
 
   const world = G.buildWorld(scene), body = G.buildBody(scene), gun = G.buildGun(camera), audio = G.Audio();
+  const rag = G.buildPhysics(scene, body, audio);
   let phys, npc;
   const sampler = { sample: body.sample, cavity: body.cavity, maxDist: 20 };
   const TIMES = [1, 4, 15, 60];
@@ -23,9 +24,9 @@
   function toggleXray() { body.setXray(!body.xray); ui.setXray(body.xray); }
   function cycleTime() { state.ti = (state.ti + 1) % TIMES.length; ui.setTime(TIMES[state.ti]); }
   function reset() {
-    body.clearWounds(); world.clear();
+    body.clearWounds(); world.clear(); rag.stop(); rag.clear();
     phys = G.Physiology(G.ANATOMY.bloodVolume);
-    npc = G.NPC(body, phys, { thud: () => audio.thud() });
+    npc = G.NPC(body, phys, rag, {});
     npc.update(0.001); ui.report(null); G.state = { phys, npc, body, world, state };
   }
   reset(); setWeapon(1); ui.setTime(1);
@@ -104,6 +105,9 @@
     camera.updateMatrixWorld(); body.updateMatrices();
     aimDir(dir);
     gun.fire(w.recoil); audio.shot(w); state.kick += 0.012 + w.recoil * 0.012;
+    // eject the spent case: up and to the right of the weapon
+    gun.g.getWorldPosition(tmp); tmp2.set(1.6 + Math.random() * 0.8, 1.4 + Math.random() * 0.6, 0.3 * (Math.random() - 0.5)).applyQuaternion(camera.quaternion);
+    rag.casing(tmp, tmp2, w.cls);
     const n = w.pellets || 1, results = [];
     for (let i = 0; i < n; i++) {
       const s = w.spread * (n > 1 ? 1 : 0.6);
@@ -137,7 +141,12 @@
     }
     res.notes = res.hitBody ? phys.applyShot(res, surfs) : [];
     res.where = res.marks[0] && res.marks[0].seg ? body.locate(res.marks[0].seg, res.marks[0].p) : null;
-    if (res.hitBody) npc.onHit(res, res.marks[0]);
+    if (res.hitBody) {
+      npc.onHit(res, res.marks[0]);
+      // momentum the projectile gave up inside the body: m * (v_in - v_out). Small next to a 77 kg body.
+      const en = res.marks.find((m) => m.type === 'entry');
+      if (en && en.seg) { const dp = w.bullet.m * (w.bullet.v - res.vExit); npc.impulse(en.seg, en.p, { x: d0.x * dp, y: d0.y * dp, z: d0.z * dp }); }
+    }
     if (!res.stopped && !res.noPen) {
       const from = res.hitBody ? res.endPoint : camera.position, dd = res.hitBody ? res.endDir : d0;
       // start the wall ray from the exit point, not from where the march gave up
@@ -231,5 +240,5 @@
     renderer.render(scene, camera);
   }
   requestAnimationFrame(frame);
-  G.debug = { fire, state, setWeapon, toggleXray, camera, get phys() { return phys; }, get npc() { return npc; }, body, world };
+  G.debug = { rag, fire, state, setWeapon, toggleXray, camera, get phys() { return phys; }, get npc() { return npc; }, body, world };
 })();

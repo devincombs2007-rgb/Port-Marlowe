@@ -194,7 +194,7 @@
     body.inner = []; body.decoMeshes = []; body.skinMeshes = [];
     for (const s of body.list) {
       const b = box[s.name];
-      b.getCenter(s.bc); s.br = b.getSize(new V3()).length() / 2 + 0.03;
+      b.getCenter(s.bc); s.bbox = b; s.br = b.getSize(new V3()).length() / 2 + 0.03;
       const mk = (parts, mat, order) => {
         if (!parts.length) return null;
         const m = new THREE.Mesh(merge(parts), mat); m.renderOrder = order; s.g.add(m); return m;

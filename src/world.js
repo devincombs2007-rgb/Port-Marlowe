@@ -196,7 +196,8 @@
     };
     A.impact = () => { if (ctx && !A.muted) { burst(0.07, 700, 160, 0.35, 'lowpass'); } };
     A.wall = () => { if (ctx && !A.muted) burst(0.05, 5200, 1800, 0.12, 'bandpass', 2); };
-    A.thud = () => { if (ctx && !A.muted) { tone(0.22, 85, 34, 0.9); burst(0.16, 420, 90, 0.4, 'lowpass'); } };
+    A.thud = (vol) => { vol = vol == null ? 1 : vol; if (ctx && !A.muted) { tone(0.22, 85, 34, 0.9 * vol); burst(0.16, 420, 90, 0.4 * vol, 'lowpass'); } };
+    A.tink = (dull) => { if (ctx && !A.muted) { if (dull) burst(0.05, 900, 300, 0.12, 'lowpass'); else tone(0.07, 5200 + Math.random() * 1800, 3600, 0.05); } };
     return A;
   };
 })();

@@ -10,6 +10,7 @@ const out = [
   '<title>Wound Ballistics Lab</title>', '<meta name="claude:viewport-fit-sides" content="cover">', font,
   '<style>\n' + rd('src/style.css') + '</style>', body,
   '<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>',
+  '<script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>',
   '<script>\n' + scripts.join('\n') + '\n</script>', '',
 ].join('\n');
 fs.mkdirSync(path.join(root, 'dist'), { recursive: true });
