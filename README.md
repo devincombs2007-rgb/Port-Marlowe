@@ -4,6 +4,10 @@ IMP4EVR is a single-file app for training, nutrition, focus, sleep, habits and g
 
 Open `index.html` in a browser to use it. Data stays on the device. Inside a Claude artifact it also syncs to your Claude account and Autopilot (the built-in coach) becomes available.
 
+## The 8.1 look
+
+Version 8.1 restyles the whole app: a condensed scoreboard typeface for every headline and big number (embedded, so it works offline), flat panels with hairline edges, a floating tab dock, a slanted segment meter on the charge card, and saved images set in the same type. Light and dark themes both follow it.
+
 ## What's in version 8
 
 - **Player card.** An overall rating from 40 to 99, built from six attributes (Strength, Engine, Fuel, Focus, Recovery, Discipline) over your last 28 days. It has tiers from Rookie to Legend, an archetype, a card you can tilt and save as an image, and a rank-up screen when you reach a new tier.
