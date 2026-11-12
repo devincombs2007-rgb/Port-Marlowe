@@ -29,21 +29,32 @@
   G.buildPhysics = function (scene, body, audio) {
     const world = new C.World();
     world.gravity.set(0, -9.81, 0); world.solver.iterations = 28; world.allowSleep = true;
-    world.defaultContactMaterial.friction = 0.75; world.defaultContactMaterial.restitution = 0.08;
+    world.defaultContactMaterial.restitution = 0.08;
     const R = G.ROOM, GROUND = 1, BODY = 2, SMALL = 4, CHEST = 8, LEGL = 16, LEGR = 32;
     // self-collision only between parts that never overlap at rest: chest/head vs legs, and leg vs leg
     const filter = (n) => (n === 'thorax' || n === 'head' ? [CHEST, GROUND | LEGL | LEGR] : /^(thigh|shin|foot)L/.test(n) ? [LEGL, GROUND | CHEST | LEGR] : /^(thigh|shin|foot)R/.test(n) ? [LEGR, GROUND | CHEST | LEGL] : [BODY, GROUND]);
-    const plane = (pos, axis, ang) => { const b = new C.Body({ mass: 0, shape: new C.Plane() }); b.position.set(...pos); if (axis) b.quaternion.setFromAxisAngle(axis, ang); b.collisionFilterGroup = GROUND; b.collisionFilterMask = -1; world.addBody(b); };
+    // Friction is calibrated empirically: sliding the whole body across the floor and measuring its
+    // deceleration shows this solver grips ~200x harder than the nominal coefficient, so 0.003 here
+    // behaves like a real coefficient of ~0.6 (about 6 m/s^2). Feet get their own, grippier contact while standing.
+    world.defaultContactMaterial.friction = 0.003;
+    const groundMat = new C.Material('ground'), footMat = new C.Material('foot');
+    const footCM = new C.ContactMaterial(groundMat, footMat, { friction: 0.02, restitution: 0.05 });
+    world.addContactMaterial(footCM);
+    const plane = (pos, axis, ang) => { const b = new C.Body({ mass: 0, shape: new C.Plane(), material: groundMat }); b.position.set(...pos); if (axis) b.quaternion.setFromAxisAngle(axis, ang); b.collisionFilterGroup = GROUND; b.collisionFilterMask = -1; world.addBody(b); };
     plane([0, 0, 0], XA, -Math.PI / 2);
     plane([0, 0, R.z0], null); plane([0, 0, R.z1], UP, Math.PI);
     plane([R.x0, 0, 0], UP, Math.PI / 2); plane([R.x1, 0, 0], UP, -Math.PI / 2);
 
-    const P = { world, active: false, parts: {}, joints: [], lastThud: 0, t: 0 };
+    const P = { world, active: false, parts: {}, joints: [], lastThud: 0, t: 0, grabbed: null };
+    // standing controller: s = leg support 0..1, bal = balance quality 0..1, y0 = pelvis height to hold, push = extra force (N)
+    P.ctl = { s: 0, bal: 1, y0: 0.94, yRest: 0.94, push: new V3() };
+    const MTOT = 77, GRAV = 9.81;
     // ---- ragdoll bodies
     for (const s of body.list) {
       const size = s.bbox.getSize(new V3()), c = s.bbox.getCenter(new V3());
       const he = new C.Vec3(Math.max(0.014, size.x * 0.46), Math.max(0.014, size.y * 0.47), Math.max(0.014, size.z * 0.46));
       const b = new C.Body({ mass: MASS[s.name.replace(/[LR]$/, '')], shape: new C.Box(he), linearDamping: 0.04, angularDamping: 0.3 });
+      if (s.name.startsWith('foot')) b.material = footMat;
       [b.collisionFilterGroup, b.collisionFilterMask] = filter(s.name); b.sleepSpeedLimit = 0.12; b.sleepTimeLimit = 1.2;
       const part = { seg: s, b, off: s.origin.clone().sub(c), center: c, tone: 0, target: new Q(), I: 0 };
       b.updateMassProperties(); part.I = Math.min(b.inertia.x, b.inertia.y, b.inertia.z);
@@ -53,6 +64,9 @@
       });
       P.parts[s.name] = part; s.part = part;
     }
+    P.ctl.yRest = P.ctl.y0 = P.parts.pelvis.center.y;
+    // at rest the trunk sits slightly behind the middle of the feet; balance holds that, not zero
+    const offZ = (P.parts.pelvis.center.z + P.parts.thorax.center.z) / 2 - (P.parts.footL.center.z + P.parts.footR.center.z) / 2, fw = new C.Vec3(), FWD = new C.Vec3(0, 0, 1);
     for (const s of body.list) {
       if (!s.parent) continue;
       const a = P.parts[s.parent], b = P.parts[s.name], j = JOINT(s.name);
@@ -82,7 +96,7 @@
     };
     P.stop = () => {
       if (!P.active) return;
-      P.active = false;
+      P.active = false; P.grabbed = null; P.ctl.s = 0; P.ctl.push.set(0, 0, 0);
       for (const j of P.joints) for (const c of j.cons) world.removeConstraint(c);
       for (const k in P.parts) world.remove(P.parts[k].b);
       for (const s of body.list) { s.g.position.copy(s.rest); s.g.quaternion.set(0, 0, 0, 1); }
@@ -113,11 +127,50 @@
         B.torque.x += tx; B.torque.y += ty; B.torque.z += tz; A.torque.x -= tx; A.torque.y -= ty; A.torque.z -= tz;
       }
     }
+    // Standing is a force balance, not an animation: the legs push the pelvis up and the feet
+    // down by the same amount, and a limited corrective force keeps the trunk over the feet.
+    // Push harder than the legs can correct and the subject goes over.
+    const up = new C.Vec3(), ax = new C.Vec3();
+    function balance() {
+      const c = P.ctl; footCM.friction = c.s > 0.01 ? 0.1 : 0.003;
+      if (c.s <= 0.01) return;
+      const pel = P.parts.pelvis.b, tho = P.parts.thorax.b, fl = P.parts.footL.b, fr = P.parts.footR.b;
+      let Fy = MTOT * GRAV * 0.8 + 7000 * (c.y0 - pel.position.y) - 1500 * pel.velocity.y;
+      Fy = Math.max(0, Math.min(1.5 * MTOT * GRAV, Fy)) * Math.min(1, c.s);
+      pel.quaternion.vmult(FWD, fw);
+      const mx = (fl.position.x + fr.position.x) / 2 + fw.x * offZ, mz = (fl.position.z + fr.position.z) / 2 + fw.z * offZ;
+      const cx = (pel.position.x + tho.position.x) / 2, cz = (pel.position.z + tho.position.z) / 2;
+      let Fx = 2600 * (mx - cx) - 520 * (pel.velocity.x + tho.velocity.x) / 2, Fz = 2600 * (mz - cz) - 520 * (pel.velocity.z + tho.velocity.z) / 2;
+      const cap = 0.24 * MTOT * GRAV * c.s * c.bal, m = Math.hypot(Fx, Fz);
+      if (m > cap) { Fx *= cap / m; Fz *= cap / m; }
+      Fx += c.push.x; Fz += c.push.z;
+      pel.force.y += Fy; pel.force.x += Fx / 2; pel.force.z += Fz / 2; tho.force.x += Fx / 2; tho.force.z += Fz / 2;
+      for (const f of [fl, fr]) { f.force.y -= Fy / 2; f.force.x -= Fx / 2; f.force.z -= Fz / 2; }
+      // trunk muscles hold the spine upright (N·m per rad of lean, and damping), sized against the weight above each joint
+      for (const n in TRUNK) {
+        const b = P.parts[n].b, [K, D] = TRUNK[n], g = c.s * c.bal;
+        b.quaternion.vmult(UP, up); up.cross(UP, ax);
+        b.torque.x += K * g * ax.x - D * c.s * b.angularVelocity.x; b.torque.y -= D * 0.5 * c.s * b.angularVelocity.y; b.torque.z += K * g * ax.z - D * c.s * b.angularVelocity.z;
+      }
+    }
+    const TRUNK = { pelvis: [260, 7], abdomen: [200, 5], thorax: [320, 14], head: [22, 0.7] };
+    // grab tool: a damped spring between a point on a segment and the cursor
+    const gp = new C.Vec3(), gr = new C.Vec3(), gv = new C.Vec3(), gf = new C.Vec3();
+    P.grab = (seg, pt) => { const b = seg.part.b; const l = new C.Vec3(); b.pointToLocalFrame(new C.Vec3(pt.x, pt.y, pt.z), l); P.grabbed = { b, l, target: new V3(pt.x, pt.y, pt.z) }; };
+    P.release = () => { P.grabbed = null; };
+    function grabForce() {
+      const g = P.grabbed; if (!g) return;
+      const b = g.b; b.wakeUp();
+      b.pointToWorldFrame(g.l, gp); gp.vsub(b.position, gr); b.angularVelocity.cross(gr, gv); gv.vadd(b.velocity, gv);
+      gf.set(2200 * (g.target.x - gp.x) - 160 * gv.x, 2200 * (g.target.y - gp.y) - 160 * gv.y, 2200 * (g.target.z - gp.z) - 160 * gv.z);
+      const m = gf.norm(); if (m > 1100) gf.scale(1100 / m, gf);
+      b.applyForce(gf, gr);
+    }
     let acc = 0;
     const H = 1 / 120;
     P.step = (dt) => {
       P.t += dt; acc = Math.min(acc + dt, 0.1);
-      while (acc >= H) { if (P.active) muscles(); world.step(H); acc -= H; }
+      while (acc >= H) { if (P.active) { muscles(); balance(); grabForce(); } world.step(H); acc -= H; }
       syncCasings();
     };
     // ---- write physics transforms back to the render / hit-test skeleton

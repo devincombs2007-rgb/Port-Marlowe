@@ -14,19 +14,33 @@
   let phys, npc;
   const sampler = { sample: body.sample, cavity: body.cavity, maxDist: 20 };
   const TIMES = [1, 4, 15, 60];
-  const state = { yaw: 0, pitch: -0.06, pos: new V3(0, 1.62, 3.0), ax: 0, ay: 0, wi: 1, lastShot: -9, ti: 0, started: false, keys: {}, stick: [0, 0], kick: 0, narrow: false };
+  const state = { yaw: 0, pitch: -0.06, pos: new V3(0, 1.62, 3.0), ax: 0, ay: 0, wi: 1, lastShot: -9, ti: 0, started: false, keys: {}, stick: [0, 0], kick: 0, narrow: false, slow: false, grab: false, grabT: 0 };
 
   const ui = G.UI({
     weapon: (i) => setWeapon(i), xray: () => toggleXray(), time: () => cycleTime(), reset: () => reset(),
+    grab: () => toggleGrab(), slow: () => toggleSlow(),
     sound: () => { audio.muted = !audio.muted; ui.setSound(!audio.muted); }, start: () => { state.started = true; audio.init(); },
   });
   function setWeapon(i) { state.wi = i; const w = G.WEAPONS[i]; gun.set(w.cls); ui.setWeapon(w, i); }
   function toggleXray() { body.setXray(!body.xray); ui.setXray(body.xray); }
+  function toggleGrab() { state.grab = !state.grab; rag.release(); ui.setGrab(state.grab); }
+  function toggleSlow() { state.slow = !state.slow; ui.setSlow(state.slow); }
+  // grab tool: find the first body point under the cursor and attach a spring to it
+  const gs = { inBody: false, seg: null, prim: null, sdf: 0 }, gpt = new V3(), gdir = new V3();
+  function tryGrab() {
+    camera.updateMatrixWorld(); body.updateMatrices(); aimDir(gdir);
+    for (let t = 0.3; t < 12; t += 0.012) {
+      gpt.copy(camera.position).addScaledVector(gdir, t); body.sample(gpt, 0, gs);
+      if (gs.inBody) { rag.grab(gs.seg, gpt); state.grabT = t; return true; }
+    }
+    return false;
+  }
+  function moveGrab() { if (rag.grabbed) { aimDir(gdir); rag.grabbed.target.copy(camera.position).addScaledVector(gdir, state.grabT); } }
   function cycleTime() { state.ti = (state.ti + 1) % TIMES.length; ui.setTime(TIMES[state.ti]); }
   function reset() {
     body.clearWounds(); world.clear(); rag.stop(); rag.clear();
     phys = G.Physiology(G.ANATOMY.bloodVolume);
-    npc = G.NPC(body, phys, rag, {});
+    npc = G.NPC(body, phys, rag, { threat: () => state.pos });
     npc.update(0.001); ui.report(null); G.state = { phys, npc, body, world, state };
   }
   reset(); setWeapon(1); ui.setTime(1);
@@ -47,8 +61,11 @@
     const r = canvas.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
     if (e.pointerType === 'mouse') {
       state.ax = x; state.ay = y; state.moved = true;
-      if (e.button === 0) fire(); else look = true;
-    } else if (touch.id == null) { Object.assign(touch, { id: e.pointerId, x, y, sx: x, sy: y, t: performance.now(), drag: false }); }
+      if (e.button === 0) { if (state.grab) tryGrab(); else fire(); } else look = true;
+    } else if (touch.id == null) {
+      Object.assign(touch, { id: e.pointerId, x, y, sx: x, sy: y, t: performance.now(), drag: false, grab: false });
+      if (state.grab) { state.ax = x; state.ay = y; state.moved = true; touch.grab = tryGrab(); }
+    }
   });
   canvas.addEventListener('pointermove', (e) => {
     const r = canvas.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
@@ -57,14 +74,16 @@
       state.ax = x; state.ay = y; state.moved = true;
     } else if (e.pointerId === touch.id) {
       if (!touch.drag && Math.hypot(x - touch.sx, y - touch.sy) > 9) touch.drag = true;
-      if (touch.drag) { state.yaw += (x - touch.x) * 0.0042; state.pitch += (y - touch.y) * 0.0042; }
+      if (touch.grab) { state.ax = x; state.ay = y; }
+      else if (touch.drag) { state.yaw += (x - touch.x) * 0.0042; state.pitch += (y - touch.y) * 0.0042; }
       touch.x = x; touch.y = y;
     }
   });
   const up = (e) => {
-    if (e.pointerType === 'mouse') { if (e.button !== 0) look = false; return; }
+    if (e.pointerType === 'mouse') { if (e.button !== 0) look = false; else rag.release(); return; }
     if (e.pointerId !== touch.id) return;
-    if (!touch.drag && performance.now() - touch.t < 400 && e.type === 'pointerup') { state.ax = touch.x; state.ay = touch.y; state.moved = true; fire(); }
+    rag.release();
+    if (!state.grab && !touch.drag && performance.now() - touch.t < 400 && e.type === 'pointerup') { state.ax = touch.x; state.ay = touch.y; state.moved = true; fire(); }
     touch.id = null;
   };
   canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
@@ -73,7 +92,7 @@
     const k = e.key.toLowerCase(); state.keys[k] = true;
     const wi = G.WEAPONS.findIndex((w) => w.key === k);
     if (wi >= 0) setWeapon(wi);
-    else if (k === 'x') toggleXray(); else if (k === 't') cycleTime(); else if (k === 'r') reset(); else if (k === ' ') { fire(); e.preventDefault(); }
+    else if (k === 'x') toggleXray(); else if (k === 't') cycleTime(); else if (k === 'r') reset(); else if (k === 'g') toggleGrab(); else if (k === 'f') toggleSlow(); else if (k === ' ') { fire(); e.preventDefault(); }
     if (k.startsWith('arrow')) e.preventDefault();
   });
   window.addEventListener('keyup', (e) => { state.keys[e.key.toLowerCase()] = false; });
@@ -98,7 +117,7 @@
     return out.copy(ndc).sub(camera.position).normalize();
   }
   function fire() {
-    if (!state.started) return;
+    if (!state.started || state.grab) return;
     const now = performance.now() / 1000, w = G.WEAPONS[state.wi];
     if (now - state.lastShot < 60 / w.rpm) return;
     state.lastShot = now;
@@ -142,7 +161,7 @@
     res.notes = res.hitBody ? phys.applyShot(res, surfs) : [];
     res.where = res.marks[0] && res.marks[0].seg ? body.locate(res.marks[0].seg, res.marks[0].p) : null;
     if (res.hitBody) {
-      npc.onHit(res, res.marks[0]);
+      npc.onHit(res, res.marks[0], d0);
       // momentum the projectile gave up inside the body: m * (v_in - v_out). Small next to a 77 kg body.
       const en = res.marks.find((m) => m.type === 'entry');
       if (en && en.seg) { const dp = w.bullet.m * (w.bullet.v - res.vExit); npc.impulse(en.seg, en.p, { x: d0.x * dp, y: d0.y * dp, z: d0.z * dp }); }
@@ -178,7 +197,7 @@
   }
 
   // ---------- blood leaving the body: stains, drips, pools sized from real volume
-  const wp = new V3(), wn = new V3(), vel = new V3();
+  const wp = new V3(), wn = new V3(), vel = new V3(), smear = new V3(), upY = new V3(0, 1, 0);
   function bleed(dt, visual) {
     const ws = body.wounds; if (!ws.length) return;
     for (const s of ws) s.rate = 0;
@@ -192,6 +211,12 @@
       const ml = (s.rate * dt) / 60; s.ext += ml; body.growStain(s, s.ext);
       body.woundWorld(s, wp);
       if (!s.pool || (s.pool.x - wp.x) ** 2 + (s.pool.z - wp.z) ** 2 > Math.max(0.3, s.pool.r) ** 2) s.pool = world.poolAt(wp.x, wp.z);
+      // a bleeding wound dragged along the floor leaves a smear instead of a pool
+      if (wp.y < 0.16 && s.ext > 3) {
+        if (!s.sm) s.sm = wp.clone();
+        const dx = wp.x - s.sm.x, dz = wp.z - s.sm.z, dd = Math.hypot(dx, dz);
+        if (dd > 0.045) { smear.set(wp.x, 0, wp.z); world.addStain(smear, upY, 0.022 + Math.min(0.03, s.rate / 6000), 1.9, Math.atan2(-dz, dx) + Math.PI / 2); s.sm.copy(wp); }
+      }
       world.addToPool(s.pool, ml);
       if (!visual) continue;
       s.acc += dt * Math.min(28, 0.4 + s.rate / 14);
@@ -226,19 +251,20 @@
     state.kick = Math.max(0, state.kick - dt * 0.12 * (1 + state.kick * 40));
     camera.position.copy(state.pos); camera.rotation.set(state.pitch + state.kick, state.yaw, 0); camera.updateMatrixWorld();
     // simulation time
-    const scale = TIMES[state.ti];
+    const scale = TIMES[state.ti], slow = state.slow ? 0.2 : 1;
+    moveGrab();
     if (state.started) {
-      let simDt = dt * scale; const sub = Math.ceil(simDt / 0.2);
+      let simDt = dt * scale * slow; const sub = Math.ceil(simDt / 0.2);
       for (let i = 0; i < sub; i++) { phys.step(simDt / sub); bleed(simDt / sub, i === sub - 1); }
-      npc.update(dt * Math.min(scale, 3));
+      npc.update(dt * Math.min(scale, 3) * slow);
     } else npc.update(dt);
-    world.update(dt);
+    world.update(dt * slow);
     aimDir(camDir); q.copy(camera.quaternion).invert(); camDir.applyQuaternion(q);
     gun.update(dt, camDir, state.narrow);
-    ui.cross(state.ax, state.ay); ui.ecg(phys, dt * Math.min(scale, 2));
+    ui.cross(state.ax, state.ay); ui.ecg(phys, dt * Math.min(scale, 2) * slow);
     uiT += dt; if (uiT > 0.15) { uiT = 0; ui.update(phys, npc); ui.setRange(Math.hypot(state.pos.x - npc.pos.x, state.pos.z - npc.pos.z)); }
     renderer.render(scene, camera);
   }
   requestAnimationFrame(frame);
-  G.debug = { rag, fire, state, setWeapon, toggleXray, camera, get phys() { return phys; }, get npc() { return npc; }, body, world };
+  G.debug = { rag, toggleGrab, toggleSlow, fire, state, setWeapon, toggleXray, camera, get phys() { return phys; }, get npc() { return npc; }, body, world };
 })();

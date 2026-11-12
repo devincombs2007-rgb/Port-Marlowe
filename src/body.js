@@ -277,21 +277,29 @@
     const woundGeo = new THREE.CircleGeometry(1, 14);
     const woundMat = new THREE.MeshBasicMaterial({ color: 0x1a0203, polygonOffset: true, polygonOffsetFactor: -4, depthWrite: false });
     const stainMat = new THREE.MeshStandardMaterial({ color: 0x6e0a0c, roughness: 0.25, transparent: true, opacity: 0.88, polygonOffset: true, polygonOffsetFactor: -3, depthWrite: false });
+    const down = new V3(), bx = new V3(), by = new V3(), bm = new THREE.Matrix4();
     body.addWound = (mark, normal) => {
       const seg = mark.seg || body.segs.thorax, g = new THREE.Group();
       const q = new THREE.Quaternion().setFromRotationMatrix(seg.g.matrixWorld).invert();
       const n = new V3(normal.x, normal.y, normal.z).applyQuaternion(q).normalize();
       g.position.set(mark.p.x, mark.p.y, mark.p.z).applyMatrix4(seg.inv).addScaledVector(n, 0.0025);
-      g.quaternion.setFromUnitVectors(new V3(0, 0, 1), n);
+      // orient the decal so its -Y runs downhill along the skin: blood tracks down from the wound
+      down.set(0, -1, 0).applyQuaternion(q); down.addScaledVector(n, -down.dot(n));
+      const run = down.length() > 0.3;
+      if (run) { by.copy(down).normalize().negate(); bx.crossVectors(by, n); g.quaternion.setFromRotationMatrix(bm.makeBasis(bx, by, n)); }
+      else g.quaternion.setFromUnitVectors(new V3(0, 0, 1), n);
       const hole = new THREE.Mesh(woundGeo, woundMat), stain = new THREE.Mesh(woundGeo, stainMat);
       hole.scale.setScalar(mark.r * (mark.type === 'exit' ? 1.1 : 0.9)); hole.position.z = 0.0008; hole.renderOrder = 5;
       stain.scale.set(mark.r * 1.9, mark.r * 1.9, 1); stain.renderOrder = 4;
       g.add(stain, hole); seg.g.add(g);
-      const w = { g, stain, seg, mark, n, ext: 0, base: mark.r * 1.9, track: null };
+      const w = { g, stain, seg, mark, n, ext: 0, base: mark.r * 1.9, track: null, run };
       body.wounds.push(w);
       return w;
     };
-    body.growStain = (w, ml) => { const r = Math.min(0.075, w.base + Math.sqrt(ml) * 0.0035); w.stain.scale.set(r * 0.85, r * 1.25, 1); };
+    body.growStain = (w, ml) => {
+      const r = Math.min(0.045, w.base + Math.sqrt(ml) * 0.0022), L = w.run ? Math.min(0.13, Math.sqrt(ml) * 0.012) : 0;
+      w.stain.scale.set(r * (L ? 0.8 : 1), r + L / 2, 1); w.stain.position.y = -L / 2;
+    };
     const trackMat = new THREE.LineBasicMaterial({ color: 0xfff27a, depthTest: false, transparent: true, opacity: 0.9 });
     body.addTrack = (w, pts) => {
       if (pts.length < 2) return;

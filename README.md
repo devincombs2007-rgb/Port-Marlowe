@@ -1,4 +1,4 @@
-# Port-Marlowe — Wound Ballistics Lab (v0.2)
+# Port-Marlowe — Wound Ballistics Lab (v0.3)
 
 A browser-based 3D simulator of gunshot wounds. A test subject stands in a chamber; every
 round is traced millimetre by millimetre through skin, bone, organs and vessels, and the
@@ -19,6 +19,8 @@ body then responds in real time (bleeding, blood pressure, breathing, consciousn
 | X | X-ray view (skeleton, organs, vessels, wound tracks) |
 | T | time speed ×1 / ×4 / ×15 / ×60 |
 | R | new subject |
+| G | grab tool: drag the body by any part |
+| F | slow motion |
 
 ## What is modelled
 
@@ -36,20 +38,24 @@ body then responds in real time (bleeding, blood pressure, breathing, consciousn
   clotting, external vs internal loss, ATLS haemorrhage classes, compensatory tachycardia,
   tamponade, pneumothorax / haemothorax / tension, airway, spinal cord level effects,
   neurogenic shock, brain perfusion and oxygen reserve, cardiac arrest, brain death.
-- **Physics** (`src/physics.js`, cannon.js): the subject is a 17-segment rigid-body ragdoll
-  with real segment masses and anatomical joint limits. Muscle tone is a joint torque scaled
-  by the nervous system: unconscious = limp, cord injury = no tone below the level, a
-  fractured limb cannot brace. Projectiles transfer their actual momentum (small next to a
-  77 kg body). Spent cases are rigid bodies.
-- **Behaviour** (`src/npc.js`): the subject flinches and guards the wound while it can stand
-  (standing balance is animated); once the legs, cord, blood pressure or brain fail, or it
-  chooses to go down, physics takes over the fall.
+- **Physics** (`src/physics.js`, cannon.js): the subject is always a 17-segment rigid-body
+  ragdoll with real segment masses and anatomical joint limits. Standing is a force balance:
+  the legs push the pelvis up and the feet down, and a limited corrective force keeps the
+  trunk over the feet, so a hard enough shove or pull tips it over. Muscle tone is a joint
+  torque scaled by the nervous system: unconscious = limp, cord injury = no tone below the
+  level, a fractured limb cannot brace. Projectiles transfer their actual momentum. Spent
+  cases are rigid bodies. Floor friction is calibrated against measured sliding deceleration.
+- **Behaviour** (`src/npc.js`): the "nervous system". It sets leg support, balance quality
+  and muscle tone from the physiology; staggering, losing balance, falling and dragging away
+  from the shooter along the floor all come out of the physics.
+- **Sandbox tools**: grab tool (G) to drag the body by any part with a spring, slow motion (F).
 - **Blood** (`src/world.js`): entry/exit wounds, forward and back spatter, drips, arterial
-  spurting, and floor pools whose area is computed from the volume actually lost.
+  spurting, blood tracking downhill from each wound, drag smears on the floor, and pools
+  whose area is computed from the volume actually lost.
 
 Untreated outcomes only. This is an educational model, not medical guidance.
 
-## Ideas for v0.3
+## Ideas for v0.4
 
-Physics-driven standing balance, limb-vs-torso collision for arms, clothing and body armour, slow-motion bullet camera, first-aid
-(tourniquet, chest seal, pressure), more calibres and ranges, subject variation.
+Several subjects and a spawn menu, props (cover, armour plates, clothing), arm-vs-torso
+collision, stepping to recover balance, first-aid tools, slow-motion bullet camera.

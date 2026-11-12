@@ -14,6 +14,8 @@
     });
     $('bXray').addEventListener('click', () => handlers.xray());
     $('bTime').addEventListener('click', () => handlers.time());
+    $('bGrab').addEventListener('click', () => handlers.grab());
+    $('bSlow').addEventListener('click', () => handlers.slow());
     $('bSound').addEventListener('click', () => handlers.sound());
     $('bReset').addEventListener('click', () => handlers.reset());
     $('bHelp').addEventListener('click', () => { $('intro').hidden = false; });
@@ -27,6 +29,8 @@
       $('wVel').textContent = w.bullet.v + ' m/s'; $('wEn').textContent = Math.round(w.energy) + ' J';
     };
     U.setXray = (on) => $('bXray').setAttribute('aria-pressed', String(on));
+    U.setGrab = (on) => { $('bGrab').setAttribute('aria-pressed', String(on)); $('cross').classList.toggle('grab', on); };
+    U.setSlow = (on) => $('bSlow').setAttribute('aria-pressed', String(on));
     U.setTime = (x) => { $('bTime').textContent = 'Time ×' + x; };
     U.setSound = (on) => $('bSound').setAttribute('aria-pressed', String(on));
     U.setRange = (m) => { $('wRange').textContent = m.toFixed(1) + ' m'; };
@@ -53,7 +57,7 @@
       $('vSplit').textContent = Math.round(P.lostExt) + ' / ' + Math.round(P.lostInt) + ' mL';
       $('vRate').textContent = P.bleedRate < 1 ? '0 mL/min' : P.bleedRate < 20 ? P.bleedRate.toFixed(1) + ' mL/min' : Math.round(P.bleedRate) + ' mL/min';
       $('vClass').textContent = P.hemClass(); $('vAvpu').textContent = P.avpu();
-      let post = N.posture === 'stand' ? (N.pose === 'guard' ? 'Standing — guarding wound' : 'Standing') : N.posture === 'falling' ? 'Collapsing' : P.conscious ? 'Down — conscious' : 'Down — motionless';
+      let post = N.posture === 'stand' ? (N.stagger > 0.3 ? 'Staggering' : N.pose === 'guard' ? 'Standing — guarding wound' : 'Standing') : N.posture === 'falling' ? 'Collapsing' : N.crawling ? 'Down — dragging away' : P.conscious ? 'Down — conscious' : 'Down — motionless';
       if (P.armsPara) post += ' · quadriplegic'; else if (P.legsPara) post += ' · paraplegic';
       $('vPost').textContent = post;
       $('vTime').textContent = P.tFirst == null ? '—' : fmtT(P.t - P.tFirst);
