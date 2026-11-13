@@ -1,4 +1,4 @@
-# Port-Marlowe — Wound Ballistics Lab (v0.5)
+# Port-Marlowe — Wound Ballistics Lab (v0.6)
 
 A browser-based 3D simulator of gunshot wounds. A test subject stands in a chamber; every
 round is traced millimetre by millimetre through skin, bone, organs and vessels, and the
@@ -39,12 +39,15 @@ body then responds in real time (bleeding, blood pressure, breathing, consciousn
   tamponade, pneumothorax / haemothorax / tension, airway, spinal cord level effects,
   neurogenic shock, brain perfusion and oxygen reserve, cardiac arrest, brain death.
 - **Physics** (`src/physics.js`, cannon.js): the subject is always a 17-segment rigid-body
-  ragdoll with real segment masses and anatomical joint limits. Standing is a force balance:
-  the legs push the pelvis up and the feet down, and a limited corrective force keeps the
-  trunk over the feet, so a hard enough shove or pull tips it over. Muscle tone is a joint
-  torque scaled by the nervous system: unconscious = limp, cord injury = no tone below the
-  level, a fractured limb cannot brace. Projectiles transfer their actual momentum. Spent
-  cases are rigid bodies. Floor friction is calibrated against measured sliding deceleration.
+  ragdoll with real segment masses and anatomical joint limits. Limbs are capsules and the head a
+  sphere, so they roll and settle like limbs; trunk, hands and feet are boxes. Joints have passive
+  damping, the resistance tissue gives even with no muscle tone. Standing is a force balance on the
+  legs plus capture-point stepping: when a push or a hit carries the centre of mass outside the feet,
+  the lagging foot swings to where the body is heading, so the subject stumbles and catches itself,
+  then steps its feet back to a normal stance. A hit makes the struck part go slack and jerk away
+  from the shot; a leg hit buckles the knee. A head striking the floor can concuss (unconscious for
+  tens of seconds to minutes) or fracture the skull. Muscle tone is set by the nervous system:
+  unconscious = limp, cord injury = no tone below the level, a fractured limb cannot brace.
 - **Behaviour** (`src/npc.js`): the "nervous system". It sets leg support, balance quality
   and muscle tone from the physiology; staggering, losing balance, falling and dragging away
   from the shooter along the floor all come out of the physics.

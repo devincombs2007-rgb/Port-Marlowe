@@ -10,7 +10,7 @@
   camera.rotation.order = 'YXZ'; scene.add(camera);
 
   const world = G.buildWorld(scene), body = G.buildBody(scene), gun = G.buildGun(camera), audio = G.Audio();
-  const rag = G.buildPhysics(scene, body, audio);
+  const rag = G.buildPhysics(scene, body, audio, { headImpact: (v) => phys && phys.headImpact(v) });
   let phys, npc;
   const sampler = { sample: body.sample, cavity: body.cavity, maxDist: 20 };
   const TIMES = [1, 4, 15, 60];
@@ -286,7 +286,7 @@
     if (!G.debug.manual) step(dt);
   }
   // one full simulation + render step (also driven directly by the test harness for frame-exact capture)
-  function step(dt) {
+  function step(dt, noRender) {
     // movement
     const k = state.keys, sp = 2.2 * dt;
     let mx = (k.d ? 1 : 0) - (k.a ? 1 : 0) + state.stick[0], mz = (k.s ? 1 : 0) - (k.w ? 1 : 0) + state.stick[1];
@@ -319,7 +319,7 @@
     gun.update(dt, camDir, state.narrow);
     ui.cross(state.ax, state.ay); ui.ecg(phys, dt * Math.min(scale, 2) * slow);
     uiT += dt; if (uiT > 0.15) { uiT = 0; ui.update(phys, npc); ui.setRange(Math.hypot(state.pos.x - npc.pos.x, state.pos.z - npc.pos.z)); }
-    renderer.render(scene, camera);
+    if (!noRender) renderer.render(scene, camera);
   }
   requestAnimationFrame(frame);
   G.debug = { gun, scene, tick: step, manual: false, audio, rag, toggleGrab, toggleSlow, fire, state, setWeapon, toggleXray, camera, get phys() { return phys; }, get npc() { return npc; }, body, world };

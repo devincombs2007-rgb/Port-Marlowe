@@ -23,7 +23,7 @@
     const names = body.list.map((s) => s.name).filter((n) => n !== 'pelvis');
     const cur = {};
     for (const k of names) cur[k] = (POSES.stand[k] || [0, 0, 0]).slice();
-    const N = { posture: 'stand', pose: 'stand', pos: new THREE.Vector3(), decideT: -1, wantDown: false, clock: 0, breath: 0, ragT: 0, stillT: 0, stagger: 0, stagDir: [0, 0], crawling: false, downT: 0,
+    const N = { flinchT: 0, dip: 0, posture: 'stand', pose: 'stand', pos: new THREE.Vector3(), decideT: -1, wantDown: false, clock: 0, breath: 0, ragT: 0, stillT: 0, stagger: 0, stagDir: [0, 0], crawling: false, downT: 0,
       lowering: 0, giveT: 0, clutchT: 0, clutching: { L: null, R: null }, gasp: 0, cough: 0, coughAt: 4 + Math.random() * 6, groanAt: 3 + Math.random() * 5, lastBreath: 0, motor: 'normal' };
     const ctl = rag.ctl, ev = (t, d) => hooks.event && hooks.event(t, d);
     rag.start(); ctl.s = 1; ctl.bal = 1; ctl.y0 = ctl.yRest;
@@ -37,6 +37,15 @@
     };
     N.impulse = (seg, pt, imp) => rag.impulse(seg, pt, imp);
     N.onHit = (res, mark, dir) => {
+      // the reflex jolt of the struck part happens whether or not the person is conscious
+      const en = res.marks.find((m) => m.type === 'entry');
+      if (en && en.seg) {
+        const str = Math.min(1, (res.Edep || 0) / 1500);
+        rag.hitReact(en.seg, en.p, dir, str);
+        // a hit to the leg buckles that knee for a moment: the body dips and has to catch itself
+        if (/^(thigh|shin)/.test(en.seg.name)) { N.dip = Math.max(N.dip, 0.7 + str); rag.parts[en.seg.name].slack = Math.max(rag.parts[en.seg.name].slack, 0.45); }
+        N.flinchT = 0.45; // hunch: shoulders up, trunk and head forward, arms in
+      }
       if (!phys.alive() || !phys.conscious) return;
       ev('grunt', Math.min(1, 0.4 + phys.pain));
       // startle / stagger: a reflex step driven by the legs, in roughly the direction of fire
@@ -105,7 +114,8 @@
             }
           } else if (P.pain > 0.15) N.pose = 'guard';
           ctl.s = 1; ctl.bal = Math.max(0.15, 1 - dizzy * 1.3);
-          ctl.y0 = ctl.yRest * (N.pose === 'guard' ? 0.965 : 1) - dizzy * 0.05;
+          N.dip = Math.max(0, N.dip - dt * 1.6);
+          ctl.y0 = ctl.yRest * (N.pose === 'guard' ? 0.965 : 1) - dizzy * 0.05 - 0.15 * Math.min(1, N.dip);
           // going down on purpose: the legs lower the body under control, then let go close to the floor
           if (N.lowering > 0) {
             N.lowering += dt / 1.5; const e = Math.min(1, N.lowering); ctl.y0 = ctl.yRest * (1 - 0.52 * e * e * (3 - 2 * e)); ctl.bal *= 1 - 0.5 * e;
@@ -114,7 +124,8 @@
           N.stagger = Math.max(0, N.stagger - dt * 3.2);
           const sw = 6 + dizzy * 150, st = N.stagger * N.stagger * 230;
           ctl.push.set(Math.sin(c * 0.9) * sw + Math.sin(c * 2.3 + 1) * sw * 0.4 + N.stagDir[0] * st, 0, Math.sin(c * 0.7 + 2) * sw + N.stagDir[1] * st);
-          target = N.lowering > 0 ? POSES.brace : POSES[N.pose];
+          N.flinchT = Math.max(0, N.flinchT - dt);
+          target = N.lowering > 0 ? POSES.brace : N.flinchT > 0 ? POSES.guard : POSES[N.pose];
         }
       }
       if (N.posture !== 'stand') {
@@ -143,7 +154,7 @@
       else { N.clutchT = 0.5; chooseClutch(P, aware && !N.crawling && body.wounds.length > 0); }
       // ---- muscle tone and joint targets
       const base = limp ? 0 : Math.max(0.25, Math.min(1, P.brainE)) * (1 - 0.3 * Math.min(1, Math.max(0, (60 - P.map) / 40)));
-      const writhe = N.posture === 'down' && aware ? 0.05 + 0.2 * P.pain : 0, k = Math.min(1, dt * (rigid || clonic ? 14 : 5));
+      const writhe = N.posture === 'down' && aware ? 0.05 + 0.2 * P.pain : 0, k = Math.min(1, dt * (rigid || clonic || N.flinchT > 0.3 ? 14 : 5));
       if (rigid) target = POSES[M];
       // clonic phase: rhythmic whole-body jerks that slow and fade
       let jerk = 0;

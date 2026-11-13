@@ -26,7 +26,24 @@
     }
   };
 
-  G.buildPhysics = function (scene, body, audio) {
+  // Collision shapes that behave like the body part: limbs are capsules (a cylinder with rounded ends) so
+  // they roll and come to rest on their side; the head is a sphere; trunk segments stay boxes because the
+  // back and chest really are flat-ish; hands and feet are boxes so a foot stands on its sole.
+  const Z2Y = new C.Quaternion(); Z2Y.setFromAxisAngle(new C.Vec3(1, 0, 0), Math.PI / 2);
+  function addShapes(b, name, he) {
+    const base = name.replace(/[LR]$/, '');
+    if (base === 'head') { b.addShape(new C.Sphere(Math.min(he.x, he.y, he.z) * 1.02)); return; }
+    if (/^(uarm|farm|thigh|shin|neck)$/.test(base)) {
+      const r = Math.max(0.012, Math.min(he.x, he.z) * 0.95), half = Math.max(0.005, he.y - r);
+      b.addShape(new C.Cylinder(r, r, half * 2, 10), new C.Vec3(0, 0, 0), Z2Y);
+      b.addShape(new C.Sphere(r), new C.Vec3(0, half, 0)); b.addShape(new C.Sphere(r), new C.Vec3(0, -half, 0));
+      return;
+    }
+    b.addShape(new C.Box(he));
+  }
+
+  G.buildPhysics = function (scene, body, audio, hooks) {
+    hooks = hooks || {};
     const world = new C.World();
     world.gravity.set(0, -9.81, 0); world.solver.iterations = 28; world.allowSleep = true;
     world.defaultContactMaterial.restitution = 0.08;
@@ -54,7 +71,7 @@
     plane([0, 0, R.z0], null); plane([0, 0, R.z1], UP, Math.PI);
     plane([R.x0, 0, 0], UP, Math.PI / 2); plane([R.x1, 0, 0], UP, -Math.PI / 2);
 
-    const P = { world, active: false, parts: {}, joints: [], locks: [], rigid: false, lastThud: 0, t: 0, grabbed: null };
+    const P = { stepping: null, stepCool: 0, steps: 0, world, active: false, parts: {}, joints: [], locks: [], rigid: false, lastThud: 0, t: 0, grabbed: null };
     // standing controller: s = leg support 0..1, bal = balance quality 0..1, y0 = pelvis height to hold, push = extra force (N)
     P.ctl = { s: 0, bal: 1, y0: 0.94, yRest: 0.94, push: new V3() };
     const MTOT = 77, GRAV = 9.81;
@@ -62,14 +79,17 @@
     for (const s of body.list) {
       const size = s.bbox.getSize(new V3()), c = s.bbox.getCenter(new V3());
       const he = new C.Vec3(Math.max(0.014, size.x * 0.46), Math.max(0.014, size.y * 0.47), Math.max(0.014, size.z * 0.46));
-      const b = new C.Body({ mass: MASS[s.name.replace(/[LR]$/, '')], shape: new C.Box(he), linearDamping: 0.04, angularDamping: 0.3 });
+      const b = new C.Body({ mass: MASS[s.name.replace(/[LR]$/, '')], linearDamping: 0.04, angularDamping: 0.3 });
+      addShapes(b, s.name, he);
       if (s.name.startsWith('foot')) b.material = footMat;
       [b.collisionFilterGroup, b.collisionFilterMask] = filter(s.name); b.sleepSpeedLimit = 0.12; b.sleepTimeLimit = 1.2;
-      const part = { seg: s, b, off: s.origin.clone().sub(c), center: c, tone: 0, target: new Q(), I: 0 };
+      const part = { seg: s, b, off: s.origin.clone().sub(c), center: c, tone: 0, target: new Q(), I: 0, slack: 0, leg: /^(thigh|shin|foot)/.test(s.name) ? s.name.slice(-1) : null };
       b.updateMassProperties(); part.I = Math.min(b.inertia.x, b.inertia.y, b.inertia.z);
       b.addEventListener('collide', (e) => {
         const v = Math.abs(e.contact.getImpactVelocityAlongNormal());
         if (v > 1.1 && b.mass > 3 && P.t - P.lastThud > 0.25) { P.lastThud = P.t; audio.thud(Math.min(1, v / 4)); }
+        // the head striking the floor: blunt injury scaled by impact speed
+        if (s.name === 'head' && v > 2.2 && hooks.headImpact) hooks.headImpact(v);
       });
       P.parts[s.name] = part; s.part = part;
     }
@@ -89,7 +109,7 @@
       if (lock) { lock.collideConnected = false; P.locks.push(lock); }
       // gains from the reduced inertia of the pair, so the explicit PD torque stays stable at 120 Hz
       const Ir = (a.I * b.I) / (a.I + b.I);
-      P.joints.push({ a, b, cons, k: 290 * Ir * j.gain, d: 34 * Ir * j.gain, pd: 6 * Ir });
+      P.joints.push({ a, b, cons, k: 290 * Ir * j.gain, d: 34 * Ir * j.gain, pd: 22 * Ir });
     }
 
     const q1 = new Q(), q2 = new Q(), q3 = new Q(), v1 = new V3(), v2 = new V3();
@@ -110,7 +130,7 @@
     P.stop = () => {
       if (!P.active) return;
       P.setRigid(false);
-      P.active = false; P.grabbed = null; P.clutch.L = P.clutch.R = null; P.ctl.s = 0; P.ctl.push.set(0, 0, 0);
+      P.active = false; P.stepping = null; P.grabbed = null; P.clutch.L = P.clutch.R = null; P.ctl.s = 0; P.ctl.push.set(0, 0, 0);
       for (const j of P.joints) for (const c of j.cons) world.removeConstraint(c);
       for (const k in P.parts) world.remove(P.parts[k].b);
       for (const s of body.list) { s.g.position.copy(s.rest); s.g.quaternion.set(0, 0, 0, 1); }
@@ -121,11 +141,25 @@
       const b = seg.part.b; b.wakeUp();
       b.applyImpulse(new C.Vec3(imp.x, imp.y, imp.z), new C.Vec3(pt.x - b.position.x, pt.y - b.position.y, pt.z - b.position.z));
     };
+    // reflex on being hit: the struck segment (and the one below it) goes slack for a moment and is
+    // jerked away from the shot. Strength 0..1 from the energy deposited.
+    const rv = new C.Vec3(), dv = new C.Vec3(), wv = new C.Vec3();
+    P.hitReact = (seg, pt, dir, strength) => {
+      const part = seg.part, b = part.b; b.wakeUp();
+      part.slack = Math.max(part.slack, 0.12 + 0.3 * strength);
+      for (const k in P.parts) if (P.parts[k].seg.parent === seg.name) P.parts[k].slack = Math.max(P.parts[k].slack, 0.1 + 0.2 * strength);
+      rv.set(pt.x - b.position.x, pt.y - b.position.y, pt.z - b.position.z); dv.set(dir.x, dir.y, dir.z);
+      rv.cross(dv, wv); const wm = wv.norm();
+      if (wm > 1e-4) { const k = (2.5 + 7 * strength) / wm * (b.mass > 8 ? 0.8 : 1); b.angularVelocity.x += wv.x * k; b.angularVelocity.y += wv.y * k; b.angularVelocity.z += wv.z * k; }
+    };
     P.push = (name, vx, vy, vz) => { const b = P.parts[name].b; b.velocity.x += vx; b.velocity.y += vy; b.velocity.z += vz; };
     const tw = new C.Vec3();
     function muscles() {
       for (const j of P.joints) {
-        const A = j.a.b, B = j.b.b, tone = j.b.tone;
+        const A = j.a.b, B = j.b.b;
+        let tone = j.b.tone;
+        if (P.stepping && j.b.leg === P.stepping.side) tone *= 0.25; // the swinging leg is carried by the hip, not held stiff
+        if (j.b.slack > 0) { tone *= 0.2; j.b.slack -= H; }
         let tx = 0, ty = 0, tz = 0;
         if (tone > 0.001) {
           A.wakeUp(); B.wakeUp();
@@ -159,7 +193,48 @@
       if (m > cap) { Fx *= cap / m; Fz *= cap / m; }
       Fx += c.push.x; Fz += c.push.z;
       pel.force.y += Fy; pel.force.x += Fx / 2; pel.force.z += Fz / 2; tho.force.x += Fx / 2; tho.force.z += Fz / 2;
-      for (const f of [fl, fr]) { f.force.y -= Fy / 2; f.force.x -= Fx / 2; f.force.z -= Fz / 2; }
+      // ---- stepping: if the capture point (centre of mass + velocity x sqrt(h/g)) leaves the feet, take a step
+      const vx = (pel.velocity.x + tho.velocity.x) / 2, vz = (pel.velocity.z + tho.velocity.z) / 2;
+      const capx = cx + vx * 0.31, capz = cz + vz * 0.31, ex = capx - mx, ez = capz - mz, em = Math.hypot(ex, ez);
+      P.stepCool -= H;
+      if (!P.stepping && c.s > 0.6 && c.canStep !== false && em > 0.075 && P.stepCool <= 0) {
+        const ux = ex / em, uz = ez / em;
+        // the foot that is furthest behind the direction of fall makes the step
+        const dl = (fl.position.x - mx) * ux + (fl.position.z - mz) * uz, dr = (fr.position.x - mx) * ux + (fr.position.z - mz) * uz;
+        const side = dl < dr ? 'L' : 'R', foot = side === 'L' ? fl : fr;
+        pel.quaternion.vmult(LEFT, lv); const sg = side === 'L' ? 1 : -1;
+        let tx = capx + ux * 0.04 + lv.x * 0.095 * sg, tz = capz + uz * 0.04 + lv.z * 0.095 * sg;
+        const sx = tx - foot.position.x, sz = tz - foot.position.z, sl = Math.hypot(sx, sz), maxL = 0.5;
+        if (sl > maxL) { tx = foot.position.x + sx / sl * maxL; tz = foot.position.z + sz / sl * maxL; }
+        P.stepping = { side, foot, t: 0, dur: 0.24 + Math.min(0.12, sl * 0.25), fx: foot.position.x, fz: foot.position.z, fy: foot.position.y, tx, tz };
+        P.steps++;
+      }
+      // once steady again, bring the feet back to a normal stance with a small step
+      if (!P.stepping && c.s > 0.6 && c.canStep !== false && P.stepCool <= 0 && em < 0.04 && Math.hypot(vx, vz) < 0.12) {
+        pel.quaternion.vmult(LEFT, lv); pel.quaternion.vmult(FWD, fw);
+        const ddx = fl.position.x - fr.position.x, ddz = fl.position.z - fr.position.z;
+        const fore = Math.abs(ddx * fw.x + ddz * fw.z), wide = ddx * lv.x + ddz * lv.z;
+        P.tidyT = fore > 0.13 || wide < 0.12 || wide > 0.34 ? (P.tidyT || 0) + H : 0;
+        if (P.tidyT > 0.5) {
+          // move the foot that is further from under the body to sit beside the other one
+          const dL = Math.hypot(fl.position.x - cx, fl.position.z - cz), dR = Math.hypot(fr.position.x - cx, fr.position.z - cz);
+          const foot = dL > dR ? fl : fr, other = foot === fl ? fr : fl, sg = foot === fl ? 1 : -1;
+          const tx = other.position.x + lv.x * 0.2 * sg, tz = other.position.z + lv.z * 0.2 * sg;
+          P.stepping = { side: foot === fl ? 'L' : 'R', foot, t: 0, dur: 0.38, fx: foot.position.x, fz: foot.position.z, fy: foot.position.y, tx, tz }; P.tidyT = 0;
+        }
+      }
+      const st = P.stepping;
+      if (st) {
+        st.t += H; const u = Math.min(1, st.t / st.dur), e = u * u * (3 - 2 * u);
+        const dx = st.fx + (st.tx - st.fx) * e, dz = st.fz + (st.tz - st.fz) * e, dy = st.fy + 0.075 * Math.sin(Math.PI * u);
+        const f = st.foot;
+        sf.set(1900 * (dx - f.position.x) - 70 * f.velocity.x, 1900 * (dy - f.position.y) - 70 * f.velocity.y + 120, 1900 * (dz - f.position.z) - 70 * f.velocity.z);
+        const m2 = sf.norm(); if (m2 > 450) sf.scale(450 / m2, sf);
+        f.force.vadd(sf, f.force); pel.force.vsub(sf, pel.force); // the hip muscles swing the leg: internal force
+        const stance = f === fl ? fr : fl;
+        stance.force.y -= Fy; stance.force.x -= Fx; stance.force.z -= Fz;
+        if (u >= 1) { P.stepping = null; P.stepCool = 0.1; }
+      } else for (const f of [fl, fr]) { f.force.y -= Fy / 2; f.force.x -= Fx / 2; f.force.z -= Fz / 2; }
       // trunk muscles hold the spine upright (N·m per rad of lean, and damping), sized against the weight above each joint
       for (const n in TRUNKK) {
         const b = P.parts[n].b, [K, D] = TRUNKK[n], g = c.s * c.bal;
@@ -167,6 +242,7 @@
         b.torque.x += K * g * ax.x - D * c.s * b.angularVelocity.x; b.torque.y -= D * 0.5 * c.s * b.angularVelocity.y; b.torque.z += K * g * ax.z - D * c.s * b.angularVelocity.z;
       }
     }
+    const LEFT = new C.Vec3(1, 0, 0), lv = new C.Vec3(), sf = new C.Vec3();
     const TRUNKK = { pelvis: [260, 7], abdomen: [200, 5], thorax: [320, 14], head: [22, 0.7] };
     // wound clutching: the arm muscles pull a hand onto a wound. Modelled as an internal spring
     // (equal and opposite on the hand and on the wounded segment), so it adds no net force to the body.

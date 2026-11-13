@@ -250,6 +250,7 @@
       const d = clamp((S.map - (S.upright ? 30 : 18)) / 40, 0, 1) * (S.spo2 / 97);
       if (d < 0.55) S.brainE = Math.max(0, S.brainE - ((0.55 - d) / 0.55 / 13) * dt); else S.brainE = Math.min(1, S.brainE + 0.04 * dt);
       if (d < 0.15) S.anoxic += dt; else S.anoxic = Math.max(0, S.anoxic - dt * 0.5);
+      if (S.koUntil && S.t > S.koUntil && !S.brainInjury) { S.koUntil = 0; S.koForced = false; }
       const was = S.conscious;
       S.conscious = !S.koForced && !S.brainDestroyed && S.brainE > (was ? 0.3 : 0.55);
       // convulsive syncope: brief myoclonic jerks as the cortex loses perfusion
@@ -262,6 +263,20 @@
       }
     };
 
+    // blunt head strike (a fall onto the floor): speed of the head at impact, m/s.
+    // Above ~3 m/s concussion becomes likely; above ~5.5 m/s skull fracture and brain contusion.
+    S.headImpact = (v) => {
+      if (S.dead || v < 2.2) return;
+      if (v > 5.5) {
+        inj('skullfx', 'Skull fractured in the fall', 2); S.brainInjury += (v - 5.5) * 25;
+        wound('Scalp laceration (fall)', 40, { ext: 1, clot: 600 });
+        if (S.icpTimer < 0) S.icpTimer = 900 - Math.min(700, (v - 5.5) * 300);
+      }
+      if (v > 3 && Math.random() < Math.min(0.9, (v - 3) / 3)) {
+        if (!S.koForced && S.conscious) inj('concuss', 'Knocked out: head struck the floor', 1);
+        S.koForced = true; S.koUntil = S.t + 20 + Math.random() * 90; // concussion: out for tens of seconds to minutes
+      } else inj('headbump', 'Head struck the floor', 0);
+    };
     S.mainBleed = () => { let m = null; for (const w of S.wounds) if (!m || w.lost > m.lost) m = w; return m ? m.label.toLowerCase() : 'multiple wounds'; };
     S.frac = () => (S.total - S.bv) / S.total;
     S.hemClass = () => { const f = S.frac(); return f < 0.005 ? '—' : f < 0.15 ? 'Class I' : f < 0.3 ? 'Class II' : f < 0.4 ? 'Class III' : 'Class IV'; };
