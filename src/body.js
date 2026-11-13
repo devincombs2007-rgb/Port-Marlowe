@@ -48,7 +48,7 @@
   }
 
   function loftGeo(Lf, origin) {
-    const N = 22, R = Lf.rings, pos = [], col = [], idx = [], e = 2 / Lf.n, c = new THREE.Color();
+    const R = Lf.rings, N = Math.max(...R.map((r) => r[3])) > 0.1 ? 40 : 22, pos = [], col = [], idx = [], e = 2 / Lf.n, c = new THREE.Color();
     const put = (a, u, v, colr) => {
       if (Lf.axis === 'y') pos.push(u - origin.x, a - origin.y, v - origin.z); else pos.push(u - origin.x, v - origin.y, a - origin.z);
       col.push(colr.r, colr.g, colr.b);
@@ -153,7 +153,7 @@
       b.expandByPoint(new V3(x - pad, y - pad, z - pad)); b.expandByPoint(new V3(x + pad, y + pad, z + pad));
     };
     for (const L0 of A.lofts) {
-      const s = body.segs[L0.seg], Lf = Object.assign({}, L0, { rings: densify(L0.rings, 4) });
+      const s = body.segs[L0.seg], Lf = Object.assign({}, L0, { rings: densify(L0.rings, 5) });
       s.lofts.push(Lf); s.sp.push({ geo: loftGeo(Lf, s.origin), color: Lf.color });
       const R = Lf.rings;
       R.forEach((r, i) => {
@@ -161,7 +161,7 @@
         for (const [u, v] of pts) {
           const P = Lf.axis === 'y' ? [u, r[0], v] : [u, v, r[0]];
           grow(L0.seg, P[0], P[1], P[2], 0);
-          if (i % 4 === 0 || i === R.length - 1) body.contacts.push({ seg: s, p: new V3(...P).sub(s.origin) });
+          if (i % 5 === 0 || i === R.length - 1) body.contacts.push({ seg: s, p: new V3(...P).sub(s.origin) });
         }
       });
     }
@@ -199,7 +199,7 @@
         if (!parts.length) return null;
         const m = new THREE.Mesh(merge(parts), mat); m.renderOrder = order; s.g.add(m); return m;
       };
-      const sk = mk(s.sp, body.skinMat, 3); sk.castShadow = true; sk.receiveShadow = true; body.skinMeshes.push(sk);
+      const sk = mk(s.sp, body.skinMat, 3); s.skin = sk; s.skin0 = { pos: sk.geometry.attributes.position.array.slice(), col: sk.geometry.attributes.color.array.slice() }; sk.castShadow = true; sk.receiveShadow = true; body.skinMeshes.push(sk);
       const de = mk(s.dp, body.decoMat, 0); if (de) { de.castShadow = true; body.decoMeshes.push(de); }
       for (const m of [mk(s.ip, body.innerMat, 0), mk(s.ap, body.alphaMat, 1)]) if (m) { m.visible = false; body.inner.push(m); }
       delete s.sp; delete s.ip; delete s.ap; delete s.dp;
@@ -274,11 +274,30 @@
     };
 
     // ---- surface wounds (decals that ride with their body segment)
-    const woundGeo = new THREE.CircleGeometry(1, 14);
-    const woundMat = new THREE.MeshBasicMaterial({ color: 0x1a0203, polygonOffset: true, polygonOffsetFactor: -4, depthWrite: false });
-    const stainMat = new THREE.MeshStandardMaterial({ color: 0x6e0a0c, roughness: 0.25, transparent: true, opacity: 0.88, polygonOffset: true, polygonOffsetFactor: -3, depthWrite: false });
+    const woundGeo = new THREE.CircleGeometry(1, 20);
+    // wound textures drawn procedurally: entry (punched-out hole, abrasion collar, bruise), exit (ragged,
+    // stellate, everted edges), powder stippling and soot for close and contact range
+    const tex = (draw) => { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'); x.translate(64, 64); draw(x); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t; };
+    const dmat = (map, f) => new THREE.MeshBasicMaterial({ map, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: f });
+    const entryMat = dmat(tex((x) => {
+      let g = x.createRadialGradient(0, 0, 18, 0, 0, 62); g.addColorStop(0, 'rgba(70,20,55,0.55)'); g.addColorStop(0.5, 'rgba(90,30,60,0.25)'); g.addColorStop(1, 'rgba(90,30,60,0)');
+      x.fillStyle = g; x.beginPath(); x.arc(0, 0, 62, 0, 7); x.fill();
+      x.fillStyle = '#5a1a12'; x.beginPath(); x.arc(0, 0, 27, 0, 7); x.fill(); // abrasion collar
+      x.fillStyle = '#2a0606'; x.beginPath(); x.arc(0, 0, 22, 0, 7); x.fill();
+      x.fillStyle = '#060101'; x.beginPath(); x.arc(0, 0, 19, 0, 7); x.fill();
+    }), -5);
+    const exitMats = [0, 1, 2].map((k) => dmat(tex((x) => {
+      const n = 5 + k, pts = [];
+      for (let i = 0; i < n * 2; i++) { const a = (i / (n * 2)) * 6.283 + k, r = (i % 2 ? 22 : 44 + Math.random() * 16) * (0.8 + Math.random() * 0.4); pts.push([Math.cos(a) * r, Math.sin(a) * r]); }
+      const path = (sc) => { x.beginPath(); pts.forEach((p, i) => (i ? x.lineTo(p[0] * sc, p[1] * sc) : x.moveTo(p[0] * sc, p[1] * sc))); x.closePath(); };
+      x.fillStyle = 'rgba(120,14,16,0.9)'; path(1.05); x.fill(); x.fillStyle = '#4a0507'; path(0.9); x.fill(); x.fillStyle = '#1c0203'; path(0.62); x.fill();
+      x.fillStyle = '#070101'; x.beginPath(); x.arc(0, 0, 15, 0, 7); x.fill();
+    }), -5));
+    const stippleMat = dmat(tex((x) => { for (let i = 0; i < 520; i++) { const a = Math.random() * 6.283, r = 12 + Math.pow(Math.random(), 0.7) * 50; x.fillStyle = 'rgba(40,22,16,' + (0.85 - r / 80) + ')'; x.beginPath(); x.arc(Math.cos(a) * r, Math.sin(a) * r, 0.6 + Math.random() * 0.9, 0, 7); x.fill(); } }), -4);
+    const sootMat = dmat(tex((x) => { const g = x.createRadialGradient(0, 0, 4, 0, 0, 60); g.addColorStop(0, 'rgba(8,8,8,0.85)'); g.addColorStop(0.6, 'rgba(15,14,13,0.4)'); g.addColorStop(1, 'rgba(20,18,16,0)'); x.fillStyle = g; x.beginPath(); x.arc(0, 0, 60, 0, 7); x.fill(); }), -4);
+    const stainMat = new THREE.MeshStandardMaterial({ color: 0x560709, roughness: 0.25, transparent: true, opacity: 0.88, polygonOffset: true, polygonOffsetFactor: -3, depthWrite: false });
     const down = new V3(), bx = new V3(), by = new V3(), bm = new THREE.Matrix4();
-    body.addWound = (mark, normal) => {
+    body.addWound = (mark, normal, range) => {
       const seg = mark.seg || body.segs.thorax, g = new THREE.Group();
       const q = new THREE.Quaternion().setFromRotationMatrix(seg.g.matrixWorld).invert();
       const n = new V3(normal.x, normal.y, normal.z).applyQuaternion(q).normalize();
@@ -288,13 +307,40 @@
       const run = down.length() > 0.3;
       if (run) { by.copy(down).normalize().negate(); bx.crossVectors(by, n); g.quaternion.setFromRotationMatrix(bm.makeBasis(bx, by, n)); }
       else g.quaternion.setFromUnitVectors(new V3(0, 0, 1), n);
-      const hole = new THREE.Mesh(woundGeo, woundMat), stain = new THREE.Mesh(woundGeo, stainMat);
-      hole.scale.setScalar(mark.r * (mark.type === 'exit' ? 1.1 : 0.9)); hole.position.z = 0.0008; hole.renderOrder = 5;
+      const exit = mark.type === 'exit';
+      const hole = new THREE.Mesh(woundGeo, exit ? exitMats[Math.floor(Math.random() * 3)] : entryMat), stain = new THREE.Mesh(woundGeo, stainMat);
+      // entry holes are about bullet diameter; the texture's hole is ~1/3 of its radius
+      hole.scale.setScalar(exit ? mark.r * 2.0 : mark.r * 3.1); hole.rotation.z = Math.random() * 6.3; hole.position.z = 0.0008; hole.renderOrder = 6;
+      if (!exit && range != null && range < 0.75) {
+        // unburnt powder tattoos the skin out to roughly 60-75 cm; soot only within a hand's width
+        const st = new THREE.Mesh(woundGeo, stippleMat); st.scale.setScalar(0.022 + range * 0.075); st.position.z = 0.0022; st.renderOrder = 5; st.material.opacity = 1; g.add(st);
+        if (range < 0.16) { const so = new THREE.Mesh(woundGeo, sootMat); so.scale.setScalar(0.02 + range * 0.14); so.position.z = 0.0024; so.renderOrder = 5; g.add(so); }
+      }
       stain.scale.set(mark.r * 1.9, mark.r * 1.9, 1); stain.renderOrder = 4;
       g.add(stain, hole); seg.g.add(g);
       const w = { g, stain, seg, mark, n, ext: 0, base: mark.r * 1.9, track: null, run };
       body.wounds.push(w);
       return w;
+    };
+    // gouge a crater into the skin mesh: vertices inside the radius sink along the wound normal and turn to
+    // exposed tissue. Used for exit wounds and for any wound where the temporary cavity bursts the surface.
+    const cA = new THREE.Color(0x3a0507), cRim = new THREE.Color(0x8a1a1c);
+    body.crater = (w, radius, depth) => {
+      const geo = w.seg.skin.geometry, pos = geo.attributes.position, nor = geo.attributes.normal, col = geo.attributes.color, p = w.g.position, n = w.n;
+      let hit = 0;
+      for (let i = 0; i < pos.count; i++) {
+        const dx = pos.getX(i) - p.x, dy = pos.getY(i) - p.y, dz = pos.getZ(i) - p.z, d2 = dx * dx + dy * dy + dz * dz;
+        if (d2 > radius * radius * 1.7) continue;
+        if (nor.getX(i) * n.x + nor.getY(i) * n.y + nor.getZ(i) * n.z < 0.1) continue; // far side of a thin limb
+        const u = Math.sqrt(d2) / radius, f = u < 1 ? (1 - u * u) * (1 - u * u) : 0, jag = 0.75 + 0.5 * Math.abs(Math.sin(i * 12.9898) * 43758.5453 % 1);
+        if (f > 0) pos.setXYZ(i, pos.getX(i) - n.x * depth * f * jag, pos.getY(i) - n.y * depth * f * jag, pos.getZ(i) - n.z * depth * f * jag);
+        const t = u < 1 ? Math.min(1, 0.35 + f * 1.4) : Math.max(0, 1 - (u - 1) / 0.3) * 0.45, c = u < 0.8 ? cA : cRim;
+        col.setXYZ(i, col.getX(i) + (c.r - col.getX(i)) * t, col.getY(i) + (c.g - col.getY(i)) * t, col.getZ(i) + (c.b - col.getZ(i)) * t);
+        hit++;
+      }
+      if (!hit) return;
+      pos.needsUpdate = col.needsUpdate = true; geo.computeVertexNormals(); w.seg.dirty = true;
+      w.g.position.addScaledVector(n, -depth * 0.8); w.crater = radius;
     };
     body.growStain = (w, ml) => {
       const r = Math.min(0.045, w.base + Math.sqrt(ml) * 0.0022), L = w.run ? Math.min(0.13, Math.sqrt(ml) * 0.012) : 0;
@@ -310,7 +356,8 @@
     };
     body.woundWorld = (w, out) => out.copy(w.g.position).applyMatrix4(w.seg.g.matrixWorld);
     body.woundNormal = (w, out) => out.copy(w.n).transformDirection(w.seg.g.matrixWorld);
-    body.clearWounds = () => { for (const w of body.wounds) { w.seg.g.remove(w.g); if (w.track) w.seg.g.remove(w.track); } body.wounds.length = 0; };
+    body.clearWounds = () => {
+      for (const sg of body.list) if (sg.dirty) { const g = sg.skin.geometry; g.attributes.position.array.set(sg.skin0.pos); g.attributes.color.array.set(sg.skin0.col); g.attributes.position.needsUpdate = g.attributes.color.needsUpdate = true; g.computeVertexNormals(); sg.dirty = false; } for (const w of body.wounds) { w.seg.g.remove(w.g); if (w.track) w.seg.g.remove(w.track); } body.wounds.length = 0; };
     body.updateMatrices();
     return body;
   };

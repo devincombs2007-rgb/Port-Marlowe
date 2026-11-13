@@ -18,7 +18,7 @@
   }
 
   G.buildWorld = function (scene) {
-    const W = { stains: [], pools: [], holes: [] };
+    const W = { stains: [], holes: [] };
     const w = ROOM.x1 - ROOM.x0, h = ROOM.y1, d = ROOM.z1 - ROOM.z0, cz = (ROOM.z0 + ROOM.z1) / 2;
     const floorT = gridTex('#9aa3a6', 'rgba(40,52,58,0.55)', 2, 512); floorT.repeat.set(w / 1, d / 1);
     const wallT = gridTex('#c9d0d1', 'rgba(60,76,84,0.5)', 2, 512);
@@ -65,69 +65,187 @@
     const holeMat = new THREE.MeshBasicMaterial({ color: 0x15181a, polygonOffset: true, polygonOffsetFactor: -2 });
     const bloodMat = new THREE.MeshStandardMaterial({ color: 0x7a0a0c, roughness: 0.18, metalness: 0.05, transparent: true, opacity: 0.92, polygonOffset: true, polygonOffsetFactor: -3, depthWrite: false });
     const place = (m, p, n, lift) => { m.position.copy(p).addScaledVector(n, lift); m.quaternion.setFromUnitVectors(zAxis, n); scene.add(m); return m; };
-    W.addHole = (p, n, r) => { const m = place(new THREE.Mesh(circ, holeMat), p, n, 0.003); m.scale.setScalar(r); W.holes.push(m); if (W.holes.length > 150) scene.remove(W.holes.shift()); };
+    const spallGeo = (() => {
+      const g = new THREE.CircleGeometry(1, 28), p = g.attributes.position;
+      for (let i = 1; i < p.count; i++) { const a = Math.atan2(p.getY(i), p.getX(i)), k = 1 + 0.16 * Math.sin(a * 3 + 1) + 0.12 * Math.sin(a * 5 + 2) + 0.08 * Math.sin(a * 9); p.setXY(i, Math.cos(a) * k, Math.sin(a) * k); }
+      return g;
+    })();
+    const chipMat = new THREE.MeshStandardMaterial({ color: 0xe9ecec, roughness: 1, polygonOffset: true, polygonOffsetFactor: -1 });
+    // a strike on tile: a pale spalled crater a few bullet diameters wide around a dark hole
+    W.addHole = (p, n, r, energy) => {
+      const sp = place(new THREE.Mesh(spallGeo, chipMat), p, n, 0.002); sp.rotateZ(Math.random() * 6); sp.scale.setScalar(r * (1.8 + Math.min(3.5, (energy || 100) / 500)));
+      const m = place(new THREE.Mesh(circ, holeMat), p, n, 0.003); m.scale.setScalar(r);
+      W.holes.push(sp, m); while (W.holes.length > 240) scene.remove(W.holes.shift());
+    };
     W.addStain = (p, n, r, stretch, ang) => {
       const m = place(new THREE.Mesh(circ, bloodMat), p, n, 0.0015 + Math.random() * 0.001);
       m.rotateZ(ang || 0); m.scale.set(r, r * (stretch || 1), 1); m.renderOrder = 2; W.stains.push(m);
       if (W.stains.length > 700) scene.remove(W.stains.shift());
     };
-    // pools: radius follows volume. Blood on a smooth sealed floor spreads to ~2.5 mm deep.
-    const poolGeo = (() => {
-      const g = new THREE.CircleGeometry(1, 40), p = g.attributes.position;
-      for (let i = 1; i < p.count; i++) { const a = Math.atan2(p.getY(i), p.getX(i)), k = 1 + 0.1 * Math.sin(a * 3 + 1) + 0.07 * Math.sin(a * 5 + 2) + 0.05 * Math.sin(a * 9); p.setXY(i, Math.cos(a) * k, Math.sin(a) * k); }
-      return g;
-    })();
-    W.poolAt = (x, z) => {
-      for (const p of W.pools) if ((p.x - x) ** 2 + (p.z - z) ** 2 < Math.max(0.3, p.r * 0.8) ** 2) return p;
-      const m = new THREE.Mesh(poolGeo, bloodMat); m.rotation.x = -Math.PI / 2; m.rotation.z = Math.random() * 6.3;
-      m.position.set(x, 0.0035 + W.pools.length * 0.0002, z); m.scale.setScalar(0.001); m.renderOrder = 3; scene.add(m);
-      const p = { m, x, z, ml: 0, r: 0 }; W.pools.push(p); return p;
+    // ================= BLOOD AS A LIQUID =================
+    // The floor carries a 2.5 cm grid of blood volume. A cell holds a film up to ~2.2 mm deep (what surface
+    // tension supports on a sealed floor); anything above that flows to lower neighbours. The floor is not
+    // perfectly flat: it has shallow undulations and recessed grout lines, so pools creep, finger and follow
+    // the joints instead of growing as circles. Every drop that lands adds its own volume to the cell it hits.
+    const GX = 320, GZ = 376, CW = w / GX, CD = d / GZ, MLMM = (CW * CD * 1e4) / 10; /* mL per mm depth in one cell */
+    const vol = new Float32Array(GX * GZ), dv = new Float32Array(GX * GZ), flr = new Float32Array(GX * GZ), age = new Float32Array(GX * GZ);
+    for (let j = 0; j < GZ; j++) for (let i = 0; i < GX; i++) {
+      const x = ROOM.x0 + (i + 0.5) * CW, z = ROOM.z1 - (j + 0.5) * CD;
+      let hgt = 0.28 * Math.sin(x * 2.1 + 1) * Math.cos(z * 1.7) + 0.18 * Math.sin(x * 5.3 + z * 4.1) + 0.1 * Math.sin(x * 13 - z * 11);
+      const gx = Math.abs(((x % 0.5) + 0.5) % 0.5), gz = Math.abs(((z % 0.5) + 0.5) % 0.5);
+      if (gx < CW * 0.6 || gz < CW * 0.6) hgt -= 0.7; // grout line
+      flr[j * GX + i] = hgt;
+    }
+    const HC = 2.2, px = new Uint8Array(GX * GZ * 4);
+    const btex = new THREE.DataTexture(px, GX, GZ, THREE.RGBAFormat); btex.magFilter = btex.minFilter = THREE.LinearFilter; btex.encoding = THREE.sRGBEncoding; btex.needsUpdate = true;
+    const bmesh = new THREE.Mesh(new THREE.PlaneGeometry(w, d), new THREE.MeshStandardMaterial({ map: btex, transparent: true, roughness: 0.1, metalness: 0.05, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }));
+    bmesh.rotation.x = -Math.PI / 2; bmesh.position.set(0, 0.0022, cz); bmesh.renderOrder = 2; scene.add(bmesh);
+    const bb = { i0: GX, i1: -1, j0: GZ, j1: -1 };
+    let texDirty = false; W.bloodOnFloor = 0;
+    const cellOf = (x, z) => { const i = Math.floor((x - ROOM.x0) / CW), j = Math.floor((ROOM.z1 - z) / CD); return i < 2 || j < 2 || i >= GX - 2 || j >= GZ - 2 ? -1 : j * GX + i; };
+    const grow = (i, j) => { if (i < bb.i0) bb.i0 = i; if (i > bb.i1) bb.i1 = i; if (j < bb.j0) bb.j0 = j; if (j > bb.j1) bb.j1 = j; };
+    W.addBlood = (x, z, ml) => {
+      const c = cellOf(x, z); if (c < 0 || !(ml > 0)) return;
+      vol[c] += ml; W.bloodOnFloor += ml; const i = c % GX, j = (c / GX) | 0; grow(i - 1, j - 1); grow(i + 1, j + 1); texDirty = true;
     };
-    W.addToPool = (p, ml) => { p.ml += ml; p.r = Math.sqrt((p.ml * 1e-6) / 0.0025 / Math.PI); p.m.scale.set(p.r, p.r, 1); };
+    W.depthAt = (x, z) => { const c = cellOf(x, z); return c < 0 ? 0 : vol[c] / MLMM; };
+    // a body part dragged through blood pushes most of it along and leaves a thin film behind
+    W.smear = (x, z, dx, dz, rad) => {
+      const n = Math.ceil(rad / CW), m = Math.hypot(dx, dz) || 1, sx = Math.round((dx / m) * 1.6), sz = -Math.round((dz / m) * 1.6);
+      const c0 = cellOf(x, z); if (c0 < 0) return;
+      const i0 = c0 % GX, j0 = (c0 / GX) | 0;
+      for (let j = j0 - n; j <= j0 + n; j++) for (let i = i0 - n; i <= i0 + n; i++) {
+        if (i < 3 || j < 3 || i >= GX - 3 || j >= GZ - 3 || (i - i0) ** 2 + (j - j0) ** 2 > n * n) continue;
+        const c = j * GX + i, v = vol[c]; if (v < 0.03) continue;
+        const film = Math.min(v, 0.12 * MLMM), mv = (v - film) * 0.6 + film * 0.35;
+        vol[c] -= mv; vol[(j + sz) * GX + i + sx] += mv; grow(i - 2, j - 2); grow(i + 2, j + 2); texDirty = true;
+      }
+    };
+    const nb = [0, 0, 0, 0], df = [0, 0, 0, 0];
+    function flow() {
+      if (bb.i1 < 0) return;
+      const i0 = Math.max(1, bb.i0), i1 = Math.min(GX - 2, bb.i1), j0 = Math.max(1, bb.j0), j1 = Math.min(GZ - 2, bb.j1);
+      let moved = false;
+      for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+        const c = j * GX + i, v = vol[c]; if (v <= 0) continue;
+        const h = v / MLMM, cap = HC - flr[c] * 0.6; if (h <= cap) continue;
+        const L = flr[c] + h, ex = (h - cap) * MLMM;
+        nb[0] = c - 1; nb[1] = c + 1; nb[2] = c - GX; nb[3] = c + GX; let sum = 0;
+        for (let k = 0; k < 4; k++) { const q = nb[k], dl = L - (flr[q] + vol[q] / MLMM); df[k] = dl > 0 ? dl : 0; sum += df[k]; }
+        if (sum <= 0) continue;
+        const out = Math.min(ex, sum * MLMM * 0.22) * 0.5;
+        for (let k = 0; k < 4; k++) if (df[k] > 0) dv[nb[k]] += (out * df[k]) / sum;
+        dv[c] -= out; moved = true;
+      }
+      if (!moved) return;
+      for (let j = j0 - 1; j <= j1 + 1; j++) for (let i = i0 - 1; i <= i1 + 1; i++) { const c = j * GX + i; if (dv[c] !== 0) { vol[c] += dv[c]; dv[c] = 0; if (vol[c] > 0.001) grow(i, j); } }
+      texDirty = true;
+    }
+    function paint(dtAge) {
+      const i0 = Math.max(0, bb.i0 - 1), i1 = Math.min(GX - 1, bb.i1 + 1), j0 = Math.max(0, bb.j0 - 1), j1 = Math.min(GZ - 1, bb.j1 + 1);
+      for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+        const c = j * GX + i, h = vol[c] / MLMM, o = c * 4;
+        if (h <= 0.002) { px[o + 3] = 0; continue; }
+        age[c] += dtAge;
+        // fresh thin blood is bright; deep pools read dark; thin films dry toward brown within minutes
+        const t = Math.min(1, h / 1.6), dry = Math.min(1, age[c] / (90 + h * 400)) * (1 - t * 0.7);
+        px[o] = 150 - 70 * t - 55 * dry; px[o + 1] = 10 - 5 * t + 8 * dry; px[o + 2] = 12 - 6 * t + 2 * dry; px[o + 3] = Math.min(238, 255 * Math.min(1, h / 0.28) * 0.93);
+      }
+      btex.needsUpdate = true; texDirty = false;
+    }
 
-    // ---- droplets
-    const NP = 900, pos = new Float32Array(NP * 3).fill(-50), parts = [];
-    for (let i = 0; i < NP; i++) parts.push({ on: false, v: new V3(), p: new V3(), stain: 0 });
+    // ================= PARTICLES =================
+    // blood drops: each carries a volume (mL). Gravity + air drag; on landing the volume joins the floor liquid.
+    const NP = 1600, pos = new Float32Array(NP * 3).fill(-50), parts = [];
+    for (let i = 0; i < NP; i++) parts.push({ on: false, v: new V3(), p: new V3(), stain: 0, ml: 0 });
     const pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    const points = new THREE.Points(pg, new THREE.PointsMaterial({ color: 0x8c0c0e, size: 0.014, sizeAttenuation: true })); points.frustumCulled = false; scene.add(points);
+    const points = new THREE.Points(pg, new THREE.PointsMaterial({ color: 0x8c0c0e, size: 0.013, sizeAttenuation: true })); points.frustumCulled = false; scene.add(points);
     let pi = 0;
-    W.drop = (p, v, stain) => { const d = parts[pi]; pi = (pi + 1) % NP; d.on = true; d.p.copy(p); d.v.copy(v); d.stain = stain || 0; };
-    W.burst = (p, dir, n, speed, cone, stain) => {
+    W.drop = (p, v, stain, ml) => { const dr = parts[pi]; pi = (pi + 1) % NP; if (dr.on && dr.ml) W.addBlood(dr.p.x, dr.p.z, dr.ml); dr.on = true; dr.p.copy(p); dr.v.copy(v); dr.stain = stain || 0; dr.ml = ml || 0; };
+    W.burst = (p, dir, n, speed, cone, stain, ml) => {
       const v = new V3();
       for (let i = 0; i < n; i++) {
         v.set(dir.x + (Math.random() - 0.5) * cone, dir.y + (Math.random() - 0.5) * cone, dir.z + (Math.random() - 0.5) * cone).normalize().multiplyScalar(speed * (0.25 + Math.random() * 0.9));
-        W.drop(p, v, stain * (0.4 + Math.random()));
+        W.drop(p, v, stain * (0.4 + Math.random()), (ml || 0) / n);
       }
     };
+    // tissue, bone and brain fragments thrown out by high-energy exits; dust and chips from wall strikes
+    const NC = 260, cpos = new Float32Array(NC * 3).fill(-50), ccol = new Float32Array(NC * 3), chunks = [];
+    for (let i = 0; i < NC; i++) chunks.push({ on: false, v: new V3(), p: new V3(), life: 0, kind: 0 });
+    const cg = new THREE.BufferGeometry(); cg.setAttribute('position', new THREE.BufferAttribute(cpos, 3)); cg.setAttribute('color', new THREE.BufferAttribute(ccol, 3));
+    const cpts = new THREE.Points(cg, new THREE.PointsMaterial({ size: 0.022, sizeAttenuation: true, vertexColors: true })); cpts.frustumCulled = false; scene.add(cpts);
+    const KIND = { tissue: [0.52, 0.12, 0.12], bone: [0.9, 0.86, 0.75], brain: [0.8, 0.55, 0.55], dust: [0.72, 0.74, 0.74], chip: [0.82, 0.84, 0.84] };
+    const kmat = {}; for (const k in KIND) kmat[k] = new THREE.MeshStandardMaterial({ color: new THREE.Color(...KIND[k]), roughness: 0.6, polygonOffset: true, polygonOffsetFactor: -3 });
+    let ci = 0;
+    W.chunk = (p, v, kind) => { const k = ci; ci = (ci + 1) % NC; const ch = chunks[k]; ch.on = true; ch.p.copy(p); ch.v.copy(v); ch.kind = kind; ch.life = kind === 'dust' ? 0.5 + Math.random() * 0.7 : 9; const col = KIND[kind]; ccol[k * 3] = col[0]; ccol[k * 3 + 1] = col[1]; ccol[k * 3 + 2] = col[2]; cg.attributes.color.needsUpdate = true; };
+    W.chunks = (p, dir, n, speed, cone, kind) => { const v = new V3(); for (let i = 0; i < n; i++) { v.set(dir.x + (Math.random() - 0.5) * cone, dir.y + (Math.random() - 0.5) * cone, dir.z + (Math.random() - 0.5) * cone).normalize().multiplyScalar(speed * (0.2 + Math.random())); W.chunk(p, v, kind); } };
+    W.debris = [];
+    // blood that hits a wall with enough volume runs down it
+    W.drips = [];
     const up = new V3(0, 1, 0), nn = new V3();
+    const wallHit = (pt) => (pt.y <= 0 ? up : pt.z <= ROOM.z0 ? nn.set(0, 0, 1) : pt.x <= ROOM.x0 ? nn.set(1, 0, 0) : pt.x >= ROOM.x1 ? nn.set(-1, 0, 0) : pt.z >= ROOM.z1 ? nn.set(0, 0, -1) : null);
+    const clampIn = (pt) => { pt.y = Math.max(0, pt.y); pt.x = Math.max(ROOM.x0, Math.min(ROOM.x1, pt.x)); pt.z = Math.max(ROOM.z0, Math.min(ROOM.z1, pt.z)); };
+    let flowAcc = 0, paintAcc = 0;
+    W.landed = 0; // drops that reached the floor this frame (for drip sounds)
     W.update = (dt) => {
+      W.landed = 0;
       for (let i = 0; i < NP; i++) {
-        const d = parts[i];
-        if (!d.on) continue;
-        d.v.y -= 9.81 * dt; d.v.multiplyScalar(1 - 0.6 * dt); d.p.addScaledVector(d.v, dt);
-        let hit = null;
-        if (d.p.y <= 0) { d.p.y = 0; hit = up; }
-        else if (d.p.z <= ROOM.z0) { d.p.z = ROOM.z0; hit = nn.set(0, 0, 1); }
-        else if (d.p.x <= ROOM.x0) { d.p.x = ROOM.x0; hit = nn.set(1, 0, 0); }
-        else if (d.p.x >= ROOM.x1) { d.p.x = ROOM.x1; hit = nn.set(-1, 0, 0); }
-        else if (d.p.z >= ROOM.z1) { d.p.z = ROOM.z1; hit = nn.set(0, 0, -1); }
+        const dr = parts[i];
+        if (!dr.on) continue;
+        dr.v.y -= 9.81 * dt; dr.v.multiplyScalar(1 - 0.6 * dt); dr.p.addScaledVector(dr.v, dt);
+        const hit = wallHit(dr.p);
         if (hit) {
-          d.on = false;
-          if (d.stain > 0) {
-            // oblique impacts leave elongated stains
-            const sp = d.v.length(), vn = Math.abs(d.v.dot(hit)) / (sp || 1), st = Math.min(4, 1 / Math.max(0.25, vn));
-            const ang = hit === up ? Math.atan2(-d.v.z, d.v.x) + Math.PI / 2 : Math.atan2(d.v.y, hit.z ? d.v.x * hit.z : -d.v.z * hit.x) + Math.PI / 2;
-            W.addStain(d.p, hit, d.stain, st, ang);
+          dr.on = false; clampIn(dr.p);
+          const sp = dr.v.length(), vn = Math.abs(dr.v.dot(hit)) / (sp || 1);
+          if (hit === up) {
+            W.addBlood(dr.p.x, dr.p.z, dr.ml); W.landed++;
+            // fast or oblique drops leave elongated spatter; slow drips just join the liquid
+            if (dr.stain > 0 && (sp > 2.2 || vn < 0.8)) W.addStain(dr.p, hit, dr.stain, Math.min(4, 1 / Math.max(0.25, vn)), Math.atan2(-dr.v.z, dr.v.x) + Math.PI / 2);
+          } else {
+            const r = Math.max(dr.stain, Math.min(0.03, 0.004 + Math.sqrt(dr.ml) * 0.012));
+            W.addStain(dr.p, hit, r, Math.min(4, 1 / Math.max(0.25, vn)), Math.atan2(dr.v.y, hit.z ? dr.v.x * hit.z : -dr.v.z * hit.x) + Math.PI / 2);
+            if (dr.ml > 0.25 && W.drips.length < 60) {
+              const m = new THREE.Mesh(circ, bloodMat); m.position.copy(dr.p).addScaledVector(hit, 0.002); m.quaternion.setFromUnitVectors(zAxis, hit); m.scale.set(0.004, 0.004, 1); m.renderOrder = 2; scene.add(m);
+              W.drips.push({ m, top: dr.p.y, len: 0, max: Math.min(dr.p.y, 0.04 + dr.ml * 0.16), ml: dr.ml, w: 0.003 + Math.min(0.004, dr.ml * 0.002) });
+            }
           }
           pos[i * 3 + 1] = -50;
-        } else { pos[i * 3] = d.p.x; pos[i * 3 + 1] = d.p.y; pos[i * 3 + 2] = d.p.z; }
+        } else { pos[i * 3] = dr.p.x; pos[i * 3 + 1] = dr.p.y; pos[i * 3 + 2] = dr.p.z; }
       }
       pg.attributes.position.needsUpdate = true;
+      for (const dp of W.drips) {
+        if (dp.len >= dp.max) continue;
+        dp.len = Math.min(dp.max, dp.len + dt * (0.03 + dp.ml * 0.05)); dp.m.scale.set(dp.w, dp.len / 2 + dp.w, 1); dp.m.position.y = dp.top - dp.len / 2;
+        if (dp.len >= dp.max && dp.top - dp.len < 0.02) W.addBlood(dp.m.position.x, dp.m.position.z, dp.ml * 0.5);
+      }
+      for (let i = 0; i < NC; i++) {
+        const ch = chunks[i];
+        if (!ch.on) continue;
+        const dust = ch.kind === 'dust';
+        ch.v.y -= (dust ? 1.5 : 9.81) * dt; ch.v.multiplyScalar(1 - (dust ? 4 : 0.8) * dt); ch.p.addScaledVector(ch.v, dt); ch.life -= dt;
+        const hit = wallHit(ch.p);
+        if (hit || ch.life <= 0) {
+          ch.on = false; cpos[i * 3 + 1] = -50;
+          if (hit && !dust) {
+            clampIn(ch.p);
+            const m = new THREE.Mesh(circ, kmat[ch.kind]); m.position.copy(ch.p).addScaledVector(hit, 0.003); m.quaternion.setFromUnitVectors(zAxis, hit); m.rotateZ(Math.random() * 6); m.scale.set(0.004 + Math.random() * 0.007, 0.003 + Math.random() * 0.005, 1); scene.add(m);
+            W.debris.push(m); if (W.debris.length > 220) scene.remove(W.debris.shift());
+            if (ch.kind !== 'chip' && hit === up) W.addBlood(ch.p.x, ch.p.z, 0.25);
+          }
+        } else { cpos[i * 3] = ch.p.x; cpos[i * 3 + 1] = ch.p.y; cpos[i * 3 + 2] = ch.p.z; }
+      }
+      cg.attributes.position.needsUpdate = true;
+      flowAcc += dt; let n = 0;
+      while (flowAcc > 1 / 40 && n++ < 3) { flowAcc -= 1 / 40; flow(); }
+      if (flowAcc > 0.2) flowAcc = 0;
+      paintAcc += dt; if (paintAcc > 0.07 && (texDirty || bb.i1 >= 0)) { paint(paintAcc); paintAcc = 0; }
     };
     W.clear = () => {
-      for (const a of [W.stains, W.holes]) { for (const m of a) scene.remove(m); a.length = 0; }
-      for (const p of W.pools) scene.remove(p.m); W.pools.length = 0;
+      for (const a of [W.stains, W.holes, W.debris]) { for (const m of a) scene.remove(m); a.length = 0; }
+      for (const dp of W.drips) scene.remove(dp.m); W.drips.length = 0;
+      vol.fill(0); dv.fill(0); age.fill(0); px.fill(0); btex.needsUpdate = true; bb.i0 = GX; bb.i1 = -1; bb.j0 = GZ; bb.j1 = -1; W.bloodOnFloor = 0;
       for (let i = 0; i < NP; i++) { parts[i].on = false; pos[i * 3 + 1] = -50; }
+      for (let i = 0; i < NC; i++) { chunks[i].on = false; cpos[i * 3 + 1] = -50; }
     };
     return W;
   };
@@ -164,40 +282,4 @@
     return S;
   };
 
-  // ---- audio (synthesized; starts on first user gesture)
-  G.Audio = function () {
-    let ctx = null, noise = null;
-    const A = { muted: false };
-    A.init = () => {
-      if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
-      try {
-        ctx = new (window.AudioContext || window.webkitAudioContext)();
-        noise = ctx.createBuffer(1, ctx.sampleRate * 1.5, ctx.sampleRate);
-        const ch = noise.getChannelData(0); for (let i = 0; i < ch.length; i++) ch[i] = Math.random() * 2 - 1;
-      } catch (e) { ctx = null; }
-    };
-    const burst = (dur, f0, f1, gain, type, q) => {
-      const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain(), t = ctx.currentTime;
-      s.buffer = noise; f.type = type || 'lowpass'; f.Q.value = q || 0.7; f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + dur);
-      g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
-      s.connect(f); f.connect(g); g.connect(ctx.destination); s.start(t, Math.random() * 0.4); s.stop(t + dur + 0.02);
-    };
-    const tone = (dur, f0, f1, gain) => {
-      const o = ctx.createOscillator(), g = ctx.createGain(), t = ctx.currentTime;
-      o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur); g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
-      o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + dur + 0.02);
-    };
-    A.shot = (w) => {
-      if (!ctx || A.muted) return;
-      const L = w.loud, big = w.cls === 'rifle' || w.cls === 'shotgun';
-      burst(0.09, 9000, 1200, 0.9 * L, 'lowpass'); burst(big ? 0.55 : 0.32, big ? 2600 : 3400, 180, 0.55 * L, 'lowpass');
-      tone(big ? 0.22 : 0.14, w.cls === 'shotgun' ? 110 : big ? 150 : 190, 38, 0.8 * L);
-      burst(1.1, 900, 120, 0.12 * L, 'lowpass'); // room tail
-    };
-    A.impact = () => { if (ctx && !A.muted) { burst(0.07, 700, 160, 0.35, 'lowpass'); } };
-    A.wall = () => { if (ctx && !A.muted) burst(0.05, 5200, 1800, 0.12, 'bandpass', 2); };
-    A.thud = (vol) => { vol = vol == null ? 1 : vol; if (ctx && !A.muted) { tone(0.22, 85, 34, 0.9 * vol); burst(0.16, 420, 90, 0.4 * vol, 'lowpass'); } };
-    A.tink = (dull) => { if (ctx && !A.muted) { if (dull) burst(0.05, 900, 300, 0.12, 'lowpass'); else tone(0.07, 5200 + Math.random() * 1800, 3600, 0.05); } };
-    return A;
-  };
 })();

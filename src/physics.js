@@ -30,9 +30,18 @@
     const world = new C.World();
     world.gravity.set(0, -9.81, 0); world.solver.iterations = 28; world.allowSleep = true;
     world.defaultContactMaterial.restitution = 0.08;
-    const R = G.ROOM, GROUND = 1, BODY = 2, SMALL = 4, CHEST = 8, LEGL = 16, LEGR = 32;
-    // self-collision only between parts that never overlap at rest: chest/head vs legs, and leg vs leg
-    const filter = (n) => (n === 'thorax' || n === 'head' ? [CHEST, GROUND | LEGL | LEGR] : /^(thigh|shin|foot)L/.test(n) ? [LEGL, GROUND | CHEST | LEGR] : /^(thigh|shin|foot)R/.test(n) ? [LEGR, GROUND | CHEST | LEGL] : [BODY, GROUND]);
+    const R = G.ROOM, GROUND = 1, BODY = 2, SMALL = 4, CHEST = 8, LEGL = 16, LEGR = 32, TRUNK = 64, ARML = 128, ARMR = 256;
+    // self-collision between parts that do not overlap at rest: chest/head, pelvis/abdomen, each leg, each forearm+hand.
+    // Adjacent segments (and the upper arms, which sit against the chest) are held apart by their joint limits instead.
+    const filter = (n) => {
+      if (n === 'thorax' || n === 'head') return [CHEST, GROUND | LEGL | LEGR | ARML | ARMR];
+      if (n === 'pelvis' || n === 'abdomen') return [TRUNK, GROUND | ARML | ARMR];
+      if (/^(thigh|shin|foot)L/.test(n)) return [LEGL, GROUND | CHEST | LEGR | ARML | ARMR];
+      if (/^(thigh|shin|foot)R/.test(n)) return [LEGR, GROUND | CHEST | LEGL | ARML | ARMR];
+      if (/^(farm|hand)L/.test(n)) return [ARML, GROUND | CHEST | TRUNK | LEGL | LEGR | ARMR];
+      if (/^(farm|hand)R/.test(n)) return [ARMR, GROUND | CHEST | TRUNK | LEGL | LEGR | ARML];
+      return [BODY, GROUND];
+    };
     // Friction is calibrated empirically: sliding the whole body across the floor and measuring its
     // deceleration shows this solver grips ~200x harder than the nominal coefficient, so 0.003 here
     // behaves like a real coefficient of ~0.6 (about 6 m/s^2). Feet get their own, grippier contact while standing.
@@ -96,7 +105,7 @@
     };
     P.stop = () => {
       if (!P.active) return;
-      P.active = false; P.grabbed = null; P.ctl.s = 0; P.ctl.push.set(0, 0, 0);
+      P.active = false; P.grabbed = null; P.clutch.L = P.clutch.R = null; P.ctl.s = 0; P.ctl.push.set(0, 0, 0);
       for (const j of P.joints) for (const c of j.cons) world.removeConstraint(c);
       for (const k in P.parts) world.remove(P.parts[k].b);
       for (const s of body.list) { s.g.position.copy(s.rest); s.g.quaternion.set(0, 0, 0, 1); }
@@ -147,13 +156,32 @@
       pel.force.y += Fy; pel.force.x += Fx / 2; pel.force.z += Fz / 2; tho.force.x += Fx / 2; tho.force.z += Fz / 2;
       for (const f of [fl, fr]) { f.force.y -= Fy / 2; f.force.x -= Fx / 2; f.force.z -= Fz / 2; }
       // trunk muscles hold the spine upright (N·m per rad of lean, and damping), sized against the weight above each joint
-      for (const n in TRUNK) {
-        const b = P.parts[n].b, [K, D] = TRUNK[n], g = c.s * c.bal;
+      for (const n in TRUNKK) {
+        const b = P.parts[n].b, [K, D] = TRUNKK[n], g = c.s * c.bal;
         b.quaternion.vmult(UP, up); up.cross(UP, ax);
         b.torque.x += K * g * ax.x - D * c.s * b.angularVelocity.x; b.torque.y -= D * 0.5 * c.s * b.angularVelocity.y; b.torque.z += K * g * ax.z - D * c.s * b.angularVelocity.z;
       }
     }
-    const TRUNK = { pelvis: [260, 7], abdomen: [200, 5], thorax: [320, 14], head: [22, 0.7] };
+    const TRUNKK = { pelvis: [260, 7], abdomen: [200, 5], thorax: [320, 14], head: [22, 0.7] };
+    // wound clutching: the arm muscles pull a hand onto a wound. Modelled as an internal spring
+    // (equal and opposite on the hand and on the wounded segment), so it adds no net force to the body.
+    P.clutch = { L: null, R: null };
+    P.setClutch = (side, seg, wpt) => {
+      if (!seg) { P.clutch[side] = null; return; }
+      const b = seg.part.b, l = new C.Vec3(); b.pointToLocalFrame(new C.Vec3(wpt.x, wpt.y, wpt.z), l);
+      P.clutch[side] = { b, l, seg };
+    };
+    const cp = new C.Vec3(), cr = new C.Vec3(), cv = new C.Vec3(), cf = new C.Vec3(), cn = new C.Vec3();
+    function clutchForce() {
+      for (const sd of ['L', 'R']) {
+        const c = P.clutch[sd]; if (!c) continue;
+        const h = P.parts['hand' + sd].b, b = c.b; h.wakeUp(); b.wakeUp();
+        b.pointToWorldFrame(c.l, cp); cp.vsub(b.position, cr); b.angularVelocity.cross(cr, cv); cv.vadd(b.velocity, cv);
+        cf.set(900 * (cp.x - h.position.x) - 40 * (h.velocity.x - cv.x), 900 * (cp.y - h.position.y) - 40 * (h.velocity.y - cv.y), 900 * (cp.z - h.position.z) - 40 * (h.velocity.z - cv.z));
+        const m = cf.norm(); if (m > 170) cf.scale(170 / m, cf);
+        h.force.vadd(cf, h.force); cf.negate(cn); b.applyForce(cn, cr);
+      }
+    }
     // grab tool: a damped spring between a point on a segment and the cursor
     const gp = new C.Vec3(), gr = new C.Vec3(), gv = new C.Vec3(), gf = new C.Vec3();
     P.grab = (seg, pt) => { const b = seg.part.b; const l = new C.Vec3(); b.pointToLocalFrame(new C.Vec3(pt.x, pt.y, pt.z), l); P.grabbed = { b, l, target: new V3(pt.x, pt.y, pt.z) }; };
@@ -170,7 +198,7 @@
     const H = 1 / 120;
     P.step = (dt) => {
       P.t += dt; acc = Math.min(acc + dt, 0.1);
-      while (acc >= H) { if (P.active) { muscles(); balance(); grabForce(); } world.step(H); acc -= H; }
+      while (acc >= H) { if (P.active) { muscles(); balance(); clutchForce(); grabForce(); } world.step(H); acc -= H; }
       syncCasings();
     };
     // ---- write physics transforms back to the render / hit-test skeleton

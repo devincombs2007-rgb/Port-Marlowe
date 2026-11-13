@@ -36,11 +36,23 @@
     return false;
   }
   function moveGrab() { if (rag.grabbed) { aimDir(gdir); rag.grabbed.target.copy(camera.position).addScaledVector(gdir, state.grabT); } }
+  // the subject's own sounds and what comes with them
+  const mouth = new V3(), mdir = new V3();
+  function npcEvent(type, v) {
+    if (type === 'grunt') audio.grunt(v); else if (type === 'groan') audio.groan(v); else if (type === 'gasp') audio.gasp();
+    else if (type === 'cough') {
+      audio.cough();
+      // blood in the airway comes up with the cough
+      const h = body.segs.head; mouth.set(0, 1.605 - h.origin.y, 0.095 - h.origin.z).applyMatrix4(h.g.matrixWorld); mdir.set(0, -0.15, 1).transformDirection(h.g.matrixWorld);
+      const ml = 1 + Math.random() * 3; world.burst(mouth, mdir, 7, 1.8, 0.7, 0.003, ml); phys.bv -= ml; phys.lostExt += ml;
+    }
+  }
+  const pending = []; let simClock = 0;
   function cycleTime() { state.ti = (state.ti + 1) % TIMES.length; ui.setTime(TIMES[state.ti]); }
   function reset() {
     body.clearWounds(); world.clear(); rag.stop(); rag.clear();
     phys = G.Physiology(G.ANATOMY.bloodVolume);
-    npc = G.NPC(body, phys, rag, { threat: () => state.pos });
+    npc = G.NPC(body, phys, rag, { threat: () => state.pos, event: npcEvent }); pending.length = 0;
     npc.update(0.001); ui.report(null); G.state = { phys, npc, body, world, state };
   }
   reset(); setWeapon(1); ui.setTime(1);
@@ -127,32 +139,59 @@
     // eject the spent case: up and to the right of the weapon
     gun.g.getWorldPosition(tmp); tmp2.set(1.6 + Math.random() * 0.8, 1.4 + Math.random() * 0.6, 0.3 * (Math.random() - 0.5)).applyQuaternion(camera.quaternion);
     rag.casing(tmp, tmp2, w.cls);
-    const n = w.pellets || 1, results = [];
+    const n = w.pellets || 1, results = [], origin = camera.position.clone();
     for (let i = 0; i < n; i++) {
       const s = w.spread * (n > 1 ? 1 : 0.6);
       tmp.set(dir.x + gauss() * s, dir.y + gauss() * s, dir.z + gauss() * s).normalize();
-      const res = G.simulate(w.bullet, camera.position, tmp, sampler);
-      results.push(res); processShot(res, w, tmp);
+      const res = G.simulate(w.bullet, origin, tmp, sampler);
+      res.d0 = tmp.clone(); results.push(res);
     }
-    if (results.some((r) => r.hitBody)) audio.impact();
-    ui.report(buildReport(results, w));
+    // the bullet takes time to arrive: muzzle-to-target distance over muzzle velocity (a few ms; visible in slow motion)
+    const first = results.find((r) => r.hitBody), dist = first ? origin.distanceTo(first.marks[0].p) : 4;
+    pending.push({ t: simClock + dist / w.bullet.v, run: () => {
+      for (const res of results) processShot(res, w, res.d0, origin);
+      const hits = results.filter((r) => r.hitBody);
+      if (hits.length) audio.impact(hits.some((r) => r.order.some((p) => p.kind === 'bone')), hits.reduce((a, r) => a + r.Edep, 0));
+      ui.report(buildReport(results, w));
+    } });
   }
   const gauss = () => (Math.random() + Math.random() + Math.random() - 1.5) * 0.82;
 
-  function processShot(res, w, d0) {
+  function processShot(res, w, d0, origin) {
     const surfs = [];
     let first = null;
+    const head = res.order.some((p) => p.kind === 'cerebrum' || p.kind === 'cerebellum' || p.kind === 'brainstem'), bone = res.order.some((p) => p.kind === 'bone');
+    const tr = res.track, t0 = tr[0], t1 = tr[tr.length - 1];
+    const entries = res.marks.filter((m) => m.type === 'entry'), exits = res.marks.filter((m) => m.type === 'exit');
     for (const m of res.marks) {
       if (!m.seg) continue;
       const exit = m.type === 'exit', md = m.dir || d0;
-      const sw = body.addWound(m, exit ? md : { x: -md.x, y: -md.y, z: -md.z });
-      sw.rate = 0; sw.acc = 0; sw.pool = null; surfs.push(sw); if (!first) first = sw;
       tmp2.set(m.p.x, m.p.y, m.p.z);
+      const range = origin.distanceTo(tmp2);
+      const sw = body.addWound(m, exit ? md : { x: -md.x, y: -md.y, z: -md.z }, exit ? null : range);
+      sw.rate = 0; sw.acc = 0; sw.buf = 0; surfs.push(sw); if (!first) first = sw;
       if (exit) {
+        const e = 0.5 * w.bullet.m * m.v * m.v, last = m === exits[exits.length - 1] && t1;
+        // the exit: skin tears outward. Where the temporary cavity reaches the surface it blows a crater.
+        let cr = last ? Math.min(0.075, t1.rpc * 1.5 + Math.max(0, t1.rtc - 0.02) * 0.6) : m.r * 1.3;
+        if (head && last) cr = Math.min(0.085, cr * 1.5 + 0.006); // the skull contains the pressure until it bursts
+        if (cr > 0.016) body.crater(sw, cr, cr * 0.5);
         // forward spatter: fine, fast, proportional to what the bullet still carries
-        const e = 0.5 * w.bullet.m * m.v * m.v;
-        world.burst(tmp2, md, Math.round(Math.min(70, 8 + e / 25)), 2.5 + Math.min(7, m.v / 90), 0.55, 0.004 + Math.min(0.006, e / 2e5));
-      } else if (m.type === 'entry') world.burst(tmp2, { x: -md.x, y: -md.y + 0.2, z: -md.z }, 3 + Math.round(Math.random() * 4), 1.6, 1.1, 0.003);
+        const ml = Math.min(45, 1.5 + e / 40 + (last ? t1.rtc * 250 : 0));
+        world.burst(tmp2, md, Math.round(Math.min(90, 10 + e / 20)), 2.5 + Math.min(8, m.v / 80), 0.55, 0.004 + Math.min(0.006, e / 2e5), ml);
+        phys.bv -= ml; phys.lostExt += ml;
+        if (last) {
+          const nT = Math.round(Math.min(26, Math.max(0, (cr * 100 - 1.6) * 5)));
+          if (nT) world.chunks(tmp2, md, nT, 2 + m.v / 120, 0.7, head ? 'brain' : 'tissue');
+          if (bone && nT) world.chunks(tmp2, md, Math.ceil(nT / 3), 2 + m.v / 150, 0.8, 'bone');
+        }
+      } else if (m.type === 'entry') {
+        // back spatter is small; a high-energy impact at the surface also bursts the entry
+        const first0 = m === entries[0] && t0;
+        if (first0 && t0.rtc > 0.045) body.crater(sw, Math.min(0.05, t0.rtc * 0.45), t0.rtc * 0.2);
+        world.burst(tmp2, { x: -md.x, y: -md.y + 0.2, z: -md.z }, 3 + Math.round(Math.random() * 4), 1.6, 1.1, 0.003, 0.4);
+        if (range < 0.5) world.chunks(tmp2, { x: -md.x, y: -md.y, z: -md.z }, 5, 1.2, 1.4, 'dust'); // powder smoke
+      }
     }
     if (first) {
       const pts = [res.marks[0].p, ...res.track]; if (res.stopped) pts.push(res.endPoint);
@@ -160,18 +199,21 @@
     }
     res.notes = res.hitBody ? phys.applyShot(res, surfs) : [];
     res.where = res.marks[0] && res.marks[0].seg ? body.locate(res.marks[0].seg, res.marks[0].p) : null;
+    res.range = entries[0] ? origin.distanceTo(tmp2.set(entries[0].p.x, entries[0].p.y, entries[0].p.z)) : null;
     if (res.hitBody) {
       npc.onHit(res, res.marks[0], d0);
       // momentum the projectile gave up inside the body: m * (v_in - v_out). Small next to a 77 kg body.
-      const en = res.marks.find((m) => m.type === 'entry');
+      const en = entries[0];
       if (en && en.seg) { const dp = w.bullet.m * (w.bullet.v - res.vExit); npc.impulse(en.seg, en.p, { x: d0.x * dp, y: d0.y * dp, z: d0.z * dp }); }
     }
     if (!res.stopped && !res.noPen) {
-      const from = res.hitBody ? res.endPoint : camera.position, dd = res.hitBody ? res.endDir : d0;
-      // start the wall ray from the exit point, not from where the march gave up
-      const ex = res.marks.filter((m) => m.type === 'exit').pop();
-      const hit = world.rayRoom(ex ? ex.p : from, ex ? ex.dir : dd);
-      if (hit) { world.addHole(hit.p, hit.n, Math.max(0.006, w.bullet.d * 0.9)); audio.wall(); }
+      const ex = exits[exits.length - 1];
+      const hit = world.rayRoom(ex ? ex.p : origin, ex ? ex.dir : d0), en = res.hitBody ? res.Eexit : res.E0;
+      if (hit) {
+        // what is left of the bullet hits the tile: spall, dust, chips
+        world.addHole(hit.p, hit.n, Math.max(0.006, w.bullet.d * 0.9), en); audio.wall(en);
+        world.chunks(hit.p, hit.n, Math.round(Math.min(16, 4 + en / 150)), 1.6, 1.3, 'dust'); world.chunks(hit.p, hit.n, Math.round(Math.min(8, 1 + en / 400)), 2.4, 1.2, 'chip');
+      }
     }
   }
 
@@ -180,7 +222,8 @@
     if (!hits.length) return { tag: 'miss', lines: [{ html: 'No contact with the subject.', cls: 'dim' }] };
     const r = hits[0], multi = results.length > 1;
     if (multi) lines.push({ html: hits.length + ' of ' + results.length + ' pellets struck the subject' });
-    lines.push({ html: 'Entry: <b>' + r.where + '</b>', cls: 'path' });
+    const rg = r.range == null ? '' : r.range < 0.16 ? ' · near-contact (soot, powder burn)' : r.range < 0.75 ? ' · close range (powder stippling)' : '';
+    lines.push({ html: 'Entry: <b>' + r.where + '</b>' + rg, cls: 'path' });
     const names = [];
     for (const h of hits) for (const n of h.notes) { const s = n.replace(/ \(posterior arch\)/, ''); if (!names.includes(s)) names.push(s); }
     lines.push({ html: names.length ? 'Track: ' + names.map((n) => '<b>' + n + '</b>').join(' → ') : 'Track: skin and muscle only', cls: 'path' });
@@ -196,8 +239,9 @@
     return { tag: w.name, lines };
   }
 
-  // ---------- blood leaving the body: stains, drips, pools sized from real volume
-  const wp = new V3(), wn = new V3(), vel = new V3(), smear = new V3(), upY = new V3(0, 1, 0);
+  // ---------- blood leaving the body. It exits each wound as drops that carry real volume; where they land
+  // the floor liquid takes over. A wound lying against the floor seeps straight into it.
+  const wp = new V3(), wn = new V3(), vel = new V3();
   function bleed(dt, visual) {
     const ws = body.wounds; if (!ws.length) return;
     for (const s of ws) s.rate = 0;
@@ -208,25 +252,28 @@
     const beat = Math.sin(phys.t * (phys.hr / 60) * Math.PI * 2) > 0.5 ? 1 : 0.15;
     for (const s of ws) {
       if (s.rate <= 0) continue;
-      const ml = (s.rate * dt) / 60; s.ext += ml; body.growStain(s, s.ext);
+      const ml = (s.rate * dt) / 60; s.ext += ml; s.buf += ml; body.growStain(s, s.ext);
       body.woundWorld(s, wp);
-      if (!s.pool || (s.pool.x - wp.x) ** 2 + (s.pool.z - wp.z) ** 2 > Math.max(0.3, s.pool.r) ** 2) s.pool = world.poolAt(wp.x, wp.z);
-      // a bleeding wound dragged along the floor leaves a smear instead of a pool
-      if (wp.y < 0.16 && s.ext > 3) {
-        if (!s.sm) s.sm = wp.clone();
-        const dx = wp.x - s.sm.x, dz = wp.z - s.sm.z, dd = Math.hypot(dx, dz);
-        if (dd > 0.045) { smear.set(wp.x, 0, wp.z); world.addStain(smear, upY, 0.022 + Math.min(0.03, s.rate / 6000), 1.9, Math.atan2(-dz, dx) + Math.PI / 2); s.sm.copy(wp); }
-      }
-      world.addToPool(s.pool, ml);
-      if (!visual) continue;
-      s.acc += dt * Math.min(28, 0.4 + s.rate / 14);
-      body.woundNormal(s, wn);
-      while (s.acc > 1) {
-        s.acc -= 1;
+      if (wp.y < 0.09 || !visual) { world.addBlood(wp.x, wp.z, s.buf); s.buf = 0; continue; }
+      // drip count follows flow, capped; each drop carries its share of the buffered volume
+      s.acc += dt * Math.min(40, 0.5 + s.rate / 10);
+      const n = Math.min(6, Math.floor(s.acc)); if (!n) continue;
+      s.acc -= n; body.woundNormal(s, wn);
+      const each = s.buf / n; s.buf = 0;
+      for (let i = 0; i < n; i++) {
+        // arterial wounds spurt with each heartbeat, scaled by blood pressure; venous and tissue bleeding just runs off
         const art = s.rate > 140 ? (0.5 + 1.9 * beat) * (phys.map / 93) : 0.12;
         vel.set(wn.x * art + (Math.random() - 0.5) * 0.25, wn.y * art + 0.1 * art, wn.z * art + (Math.random() - 0.5) * 0.25);
-        world.drop(wp, vel, art > 0.8 && Math.random() < 0.25 ? 0.006 : 0);
+        world.drop(wp, vel, art > 0.8 && Math.random() < 0.3 ? 0.006 : 0, each);
       }
+    }
+  }
+  // body parts sliding across the floor push the blood around
+  function smearBody() {
+    for (const k in rag.parts) {
+      const b = rag.parts[k].b; if (b.position.y > 0.16) continue;
+      const sp = Math.hypot(b.velocity.x, b.velocity.z); if (sp < 0.06) continue;
+      if (world.depthAt(b.position.x, b.position.z) > 0.05) world.smear(b.position.x, b.position.z, b.velocity.x, b.velocity.z, k === 'thorax' || k === 'pelvis' || k === 'abdomen' ? 0.13 : 0.06);
     }
   }
 
@@ -253,12 +300,17 @@
     // simulation time
     const scale = TIMES[state.ti], slow = state.slow ? 0.2 : 1;
     moveGrab();
+    if (state.started) { simClock += dt * slow; while (pending.length && pending[0].t <= simClock) pending.shift().run(); }
     if (state.started) {
       let simDt = dt * scale * slow; const sub = Math.ceil(simDt / 0.2);
       for (let i = 0; i < sub; i++) { phys.step(simDt / sub); bleed(simDt / sub, i === sub - 1); }
       npc.update(dt * Math.min(scale, 3) * slow);
     } else npc.update(dt);
-    world.update(dt * slow);
+    world.update(dt * slow); smearBody();
+    audio.dist = Math.hypot(state.pos.x - npc.pos.x, state.pos.z - npc.pos.z);
+    const effort = !phys.conscious ? (phys.rr > 1 ? 0.35 : 0) : Math.min(1.6, 0.15 + Math.max(0, phys.rr - 14) / 14 + phys.pain * 0.6);
+    audio.breath(npc.breath, phys.rr, phys.agonal ? 0 : effort, phys.hemoptysis);
+    if (world.landed && Math.random() < 0.25) audio.drip();
     aimDir(camDir); q.copy(camera.quaternion).invert(); camDir.applyQuaternion(q);
     gun.update(dt, camDir, state.narrow);
     ui.cross(state.ax, state.ay); ui.ecg(phys, dt * Math.min(scale, 2) * slow);

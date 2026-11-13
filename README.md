@@ -1,4 +1,4 @@
-# Port-Marlowe — Wound Ballistics Lab (v0.3)
+# Port-Marlowe — Wound Ballistics Lab (v0.4)
 
 A browser-based 3D simulator of gunshot wounds. A test subject stands in a chamber; every
 round is traced millimetre by millimetre through skin, bone, organs and vessels, and the
@@ -49,13 +49,38 @@ body then responds in real time (bleeding, blood pressure, breathing, consciousn
   and muscle tone from the physiology; staggering, losing balance, falling and dragging away
   from the shooter along the floor all come out of the physics.
 - **Sandbox tools**: grab tool (G) to drag the body by any part with a spring, slow motion (F).
-- **Blood** (`src/world.js`): entry/exit wounds, forward and back spatter, drips, arterial
-  spurting, blood tracking downhill from each wound, drag smears on the floor, and pools
-  whose area is computed from the volume actually lost.
+- **Neurology** (`src/physiology.js`, `src/npc.js`): what the body does after a head wound
+  depends on what is left. Brainstem destroyed: instant flaccid collapse. Hemispheres destroyed
+  with the lower brainstem intact: rigid extensor (decerebrate) posturing and agonal gasping
+  before the brainstem fails. Smaller wounds: tonic stiffening, often clonic jerking, then
+  coma or continued consciousness. Also convulsive syncope, vasovagal fainting with recovery,
+  and the orthostatic effect (a body that faints upright can come round lying flat).
+- **Voluntary reactions**: a conscious subject puts a hand on the most serious wound it can
+  reach (neck, chest, belly, thigh), coughs up blood after lung or airway hits, groans, and
+  drags itself away from the shooter.
+- **Wounds** (`src/body.js`): entry wounds are bullet-sized with an abrasion collar and
+  bruising; exits are ragged and stellate. Powder stippling appears under ~75 cm and soot at
+  near-contact. Where the temporary cavity reaches the surface the skin mesh is cratered and
+  tissue, bone or brain fragments are thrown out.
+- **Blood as a liquid** (`src/world.js`): every drop carries a volume. The floor is a 2.5 cm
+  grid that holds a ~2 mm film and lets the excess flow downhill over a slightly uneven floor
+  with recessed grout lines, so pools creep and finger. Bodies sliding through it smear it.
+  Blood on walls runs down. Thin films dry toward brown.
+- **Sound** (`src/audio.js`): fully synthesized. Each weapon has its own layered profile
+  (blast, thump, supersonic crack, action cycling) in a tiled-room reverb, plus impacts, bone
+  cracks, casings, body falls, dripping, breathing, grunts, coughs, groans and agonal gasps.
 
 Untreated outcomes only. This is an educational model, not medical guidance.
 
-## Ideas for v0.4
+## Known limits
 
-Several subjects and a spawn menu, props (cover, armour plates, clothing), arm-vs-torso
-collision, stepping to recover balance, first-aid tools, slow-motion bullet camera.
+- Gun sounds are synthesized, not recordings. The download hosts tried for freely licensed
+  recordings were unavailable from the build environment.
+- The subject is still the procedural mannequin, not a scanned or sculpted human model. Swapping
+  one in means re-fitting the internal anatomy and hit testing to that mesh.
+- The physiology numbers are plausible textbook-style estimates, not validated medical data.
+
+## Ideas for v0.5
+
+A real human mesh with skinning, recorded audio, several subjects and a spawn menu, props
+(cover, armour plates, clothing), stepping to recover balance, first-aid tools.
