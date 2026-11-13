@@ -152,9 +152,10 @@
       const b = box[seg] || (box[seg] = new THREE.Box3());
       b.expandByPoint(new V3(x - pad, y - pad, z - pad)); b.expandByPoint(new V3(x + pad, y + pad, z + pad));
     };
-    for (const L0 of A.lofts) {
-      const s = body.segs[L0.seg], Lf = Object.assign({}, L0, { rings: densify(L0.rings, 5) });
-      s.lofts.push(Lf); s.sp.push({ geo: loftGeo(Lf, s.origin), color: Lf.color });
+    const H = G.HUMAN || null; // sculpted character mesh; when present the lofts are only its fitted hit volumes
+    for (const L0 of H ? H.lofts : A.lofts) {
+      const s = body.segs[L0.seg], Lf = Object.assign({}, L0, { rings: H ? L0.rings : densify(L0.rings, 5) });
+      s.lofts.push(Lf); if (!H) s.sp.push({ geo: loftGeo(Lf, s.origin), color: Lf.color });
       const R = Lf.rings;
       R.forEach((r, i) => {
         const pts = [[r[1] + r[3], r[2]], [r[1] - r[3], r[2]], [r[1], r[2] + r[4]], [r[1], r[2] - r[4]]];
@@ -165,12 +166,12 @@
         }
       });
     }
-    for (const k of A.skins) {
+    for (const k of H ? [] : A.skins) {
       const s = body.segs[k.seg];
       s.skins.push({ type: 'ell', c: k.c, r: k.r }); s.sp.push({ geo: ellGeo(k.c, k.r, null, s.origin), color: k.color });
       grow(k.seg, k.c[0], k.c[1], k.c[2], Math.max(...k.r));
     }
-    for (const d of A.deco) { const s = body.segs[d.seg]; s.dp.push({ geo: ellGeo(d.c, d.r, null, s.origin), color: d.color }); }
+    for (const d of H ? [] : A.deco) { const s = body.segs[d.seg]; s.dp.push({ geo: ellGeo(d.c, d.r, null, s.origin), color: d.color }); }
     for (const pr of A.prims) {
       const s = body.segs[pr.seg];
       pr.prio = T[pr.tissue].prio; pr.frag = T[pr.tissue].frag; pr.segObj = s;
@@ -199,10 +200,60 @@
         if (!parts.length) return null;
         const m = new THREE.Mesh(merge(parts), mat); m.renderOrder = order; s.g.add(m); return m;
       };
-      const sk = mk(s.sp, body.skinMat, 3); s.skin = sk; s.skin0 = { pos: sk.geometry.attributes.position.array.slice(), col: sk.geometry.attributes.color.array.slice() }; sk.castShadow = true; sk.receiveShadow = true; body.skinMeshes.push(sk);
+      if (s.sp.length) { const sk = mk(s.sp, body.skinMat, 3); s.skin = sk; s.skin0 = { pos: sk.geometry.attributes.position.array.slice(), col: sk.geometry.attributes.color.array.slice() }; sk.castShadow = true; sk.receiveShadow = true; body.skinMeshes.push(sk); }
       const de = mk(s.dp, body.decoMat, 0); if (de) { de.castShadow = true; body.decoMeshes.push(de); }
       for (const m of [mk(s.ip, body.innerMat, 0), mk(s.ap, body.alphaMat, 1)]) if (m) { m.visible = false; body.inner.push(m); }
       delete s.sp; delete s.ip; delete s.ap; delete s.dp;
+    }
+
+    if (H) {
+      const dec = (b64, T) => { const bin = atob(b64), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return new T(u.buffer); };
+      const p16 = dec(H.pos, Int16Array), n = H.nv, pos = new Float32Array(n * 3), col = new Float32Array(n * 3), si = dec(H.si, Uint8Array), sw = dec(H.sw, Uint8Array);
+      for (let i = 0; i < n * 3; i++) pos[i] = p16[i] / 10000;
+      const map = H.order.map((nm) => body.list.findIndex((sg) => sg.name === nm)), sI = new Uint16Array(n * 4), sW = new Float32Array(n * 4);
+      for (let i = 0; i < n * 4; i++) { sI[i] = map[si[i]]; sW[i] = sw[i] / 255; }
+      const skin = new THREE.Color(0xc99878), cloth = new THREE.Color(0x262b33), hair = new THREE.Color(0x2c2018), c = new THREE.Color();
+      for (let i = 0; i < n; i++) {
+        const x = pos[i * 3], y = pos[i * 3 + 1], z = pos[i * 3 + 2], dom = H.order[si[i * 4]];
+        c.copy(skin);
+        // slight natural variation: redder at joints and extremities, paler on the trunk
+        const v = 0.035 * Math.sin(x * 40 + y * 31) * Math.sin(z * 37 + y * 17); c.r += v; c.g += v * 0.8; c.b += v * 0.7;
+        if (!/^(uarm|farm|hand)/.test(dom) && y > 0.74 && y < 1.03) c.lerp(cloth, Math.min(1, Math.min(y - 0.74, 1.03 - y) / 0.008)); // shorts
+        if (dom === 'head') { const line = 1.712 + 0.42 * Math.max(-0.05, z) - 0.9 * Math.max(0, Math.abs(x) - 0.045); if (y > line) c.lerp(hair, Math.min(0.9, (y - line) / 0.01)); } // cropped hair
+        col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+      geo.setAttribute('skinIndex', new THREE.BufferAttribute(sI, 4)); geo.setAttribute('skinWeight', new THREE.BufferAttribute(sW, 4));
+      geo.setIndex(new THREE.BufferAttribute(dec(H.idx, Uint16Array), 1)); geo.computeVertexNormals();
+      body.skinMat.skinning = true; body.skinMat.roughness = 0.58;
+      const mesh = new THREE.SkinnedMesh(geo, body.skinMat); mesh.frustumCulled = false; mesh.castShadow = true; mesh.receiveShadow = true; mesh.renderOrder = 3;
+      scene.add(mesh);
+      mesh.bind(new THREE.Skeleton(body.list.map((sg) => sg.g), body.list.map((sg) => new THREE.Matrix4().makeTranslation(-sg.origin.x, -sg.origin.y, -sg.origin.z))), new THREE.Matrix4());
+      body.human = mesh; body.skinMeshes.push(mesh); body.skin0 = { pos: pos.slice(), col: col.slice() };
+      // eyes
+      const hd = body.segs.head, white = new THREE.MeshStandardMaterial({ color: 0xece8e0, roughness: 0.25 }), iris = new THREE.MeshStandardMaterial({ color: 0x3a2a1c, roughness: 0.2 }), pupil = new THREE.MeshBasicMaterial({ color: 0x050505 });
+      for (const e of H.eyes) {
+        const g = new THREE.Group(); g.position.set(e.c[0] - hd.origin.x, e.c[1] - hd.origin.y, e.c[2] - hd.origin.z - 0.04);
+        const ball = new THREE.Mesh(new THREE.SphereGeometry(e.r, 16, 12), white), ir = new THREE.Mesh(new THREE.SphereGeometry(e.r * 0.52, 12, 10), iris), pu = new THREE.Mesh(new THREE.SphereGeometry(e.r * 0.26, 10, 8), pupil);
+        ir.position.z = e.r * 0.62; ir.scale.z = 0.5; pu.position.z = e.r * 0.86; pu.scale.z = 0.4; g.add(ball, ir, pu); hd.g.add(g); body.decoMeshes.push(g);
+      }
+      // nearest point of the real skin along a wound's normal (rest pose), so decals sit on the mesh, not the hit volume
+      const ia = geo.index.array, e1 = new V3(), e2 = new V3(), pv = new V3(), tv = new V3(), qv = new V3(), a = new V3(), o = new V3(), d = new V3();
+      body.snap = (seg, local, nrm) => {
+        o.copy(local).add(seg.origin).addScaledVector(nrm, 0.07); d.copy(nrm).negate();
+        let best = 0.16;
+        for (let t = 0; t < ia.length; t += 3) {
+          a.fromArray(pos, ia[t] * 3);
+          if (Math.abs(a.x - o.x) > 0.2 || Math.abs(a.y - o.y) > 0.2 || Math.abs(a.z - o.z) > 0.2) continue;
+          e1.fromArray(pos, ia[t + 1] * 3).sub(a); e2.fromArray(pos, ia[t + 2] * 3).sub(a);
+          pv.crossVectors(d, e2); const det = e1.dot(pv); if (Math.abs(det) < 1e-10) continue;
+          const inv = 1 / det; tv.subVectors(o, a); const u = tv.dot(pv) * inv; if (u < 0 || u > 1) continue;
+          qv.crossVectors(tv, e1); const w = d.dot(qv) * inv; if (w < 0 || u + w > 1) continue;
+          const tt = e2.dot(qv) * inv; if (tt > 0 && tt < best) best = tt;
+        }
+        return best < 0.16 ? local.copy(o).addScaledVector(d, best).sub(seg.origin) : null;
+      };
     }
 
     body.setXray = (on) => {
@@ -302,6 +353,7 @@
       const q = new THREE.Quaternion().setFromRotationMatrix(seg.g.matrixWorld).invert();
       const n = new V3(normal.x, normal.y, normal.z).applyQuaternion(q).normalize();
       g.position.set(mark.p.x, mark.p.y, mark.p.z).applyMatrix4(seg.inv).addScaledVector(n, 0.0025);
+      if (body.snap) { g.position.addScaledVector(n, -0.0025); if (body.snap(seg, g.position, n)) g.position.addScaledVector(n, 0.003); else g.position.addScaledVector(n, 0.0025); }
       // orient the decal so its -Y runs downhill along the skin: blood tracks down from the wound
       down.set(0, -1, 0).applyQuaternion(q); down.addScaledVector(n, -down.dot(n));
       const run = down.length() > 0.3;
@@ -326,7 +378,8 @@
     // exposed tissue. Used for exit wounds and for any wound where the temporary cavity bursts the surface.
     const cA = new THREE.Color(0x3a0507), cRim = new THREE.Color(0x8a1a1c);
     body.crater = (w, radius, depth) => {
-      const geo = w.seg.skin.geometry, pos = geo.attributes.position, nor = geo.attributes.normal, col = geo.attributes.color, p = w.g.position, n = w.n;
+      const hm = body.human, geo = (hm || w.seg.skin).geometry, pos = geo.attributes.position, nor = geo.attributes.normal, col = geo.attributes.color, n = w.n;
+      const p = hm ? w.g.position.clone().add(w.seg.origin) : w.g.position; // the skinned mesh lives in rest-pose coordinates
       let hit = 0;
       for (let i = 0; i < pos.count; i++) {
         const dx = pos.getX(i) - p.x, dy = pos.getY(i) - p.y, dz = pos.getZ(i) - p.z, d2 = dx * dx + dy * dy + dz * dz;
@@ -339,7 +392,7 @@
         hit++;
       }
       if (!hit) return;
-      pos.needsUpdate = col.needsUpdate = true; geo.computeVertexNormals(); w.seg.dirty = true;
+      pos.needsUpdate = col.needsUpdate = true; geo.computeVertexNormals(); w.seg.dirty = true; body.dirty = true;
       w.g.position.addScaledVector(n, -depth * 0.8); w.crater = radius;
     };
     body.growStain = (w, ml) => {
@@ -357,7 +410,8 @@
     body.woundWorld = (w, out) => out.copy(w.g.position).applyMatrix4(w.seg.g.matrixWorld);
     body.woundNormal = (w, out) => out.copy(w.n).transformDirection(w.seg.g.matrixWorld);
     body.clearWounds = () => {
-      for (const sg of body.list) if (sg.dirty) { const g = sg.skin.geometry; g.attributes.position.array.set(sg.skin0.pos); g.attributes.color.array.set(sg.skin0.col); g.attributes.position.needsUpdate = g.attributes.color.needsUpdate = true; g.computeVertexNormals(); sg.dirty = false; } for (const w of body.wounds) { w.seg.g.remove(w.g); if (w.track) w.seg.g.remove(w.track); } body.wounds.length = 0; };
+      if (body.human && body.dirty) { const g = body.human.geometry; g.attributes.position.array.set(body.skin0.pos); g.attributes.color.array.set(body.skin0.col); g.attributes.position.needsUpdate = g.attributes.color.needsUpdate = true; g.computeVertexNormals(); body.dirty = false; }
+      for (const sg of body.list) if (sg.dirty && sg.skin) { const g = sg.skin.geometry; g.attributes.position.array.set(sg.skin0.pos); g.attributes.color.array.set(sg.skin0.col); g.attributes.position.needsUpdate = g.attributes.color.needsUpdate = true; g.computeVertexNormals(); sg.dirty = false; } for (const w of body.wounds) { w.seg.g.remove(w.g); if (w.track) w.seg.g.remove(w.track); } body.wounds.length = 0; };
     body.updateMatrices();
     return body;
   };
