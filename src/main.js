@@ -318,5 +318,5 @@
     renderer.render(scene, camera);
   }
   requestAnimationFrame(frame);
-  G.debug = { rag, toggleGrab, toggleSlow, fire, state, setWeapon, toggleXray, camera, get phys() { return phys; }, get npc() { return npc; }, body, world };
+  G.debug = { audio, rag, toggleGrab, toggleSlow, fire, state, setWeapon, toggleXray, camera, get phys() { return phys; }, get npc() { return npc; }, body, world };
 })();

@@ -66,21 +66,24 @@ body then responds in real time (bleeding, blood pressure, breathing, consciousn
   grid that holds a ~2 mm film and lets the excess flow downhill over a slightly uneven floor
   with recessed grout lines, so pools creep and finger. Bodies sliding through it smear it.
   Blood on walls runs down. Thin films dry toward brown.
-- **Sound** (`src/audio.js`): fully synthesized. Each weapon has its own layered profile
-  (blast, thump, supersonic crack, action cycling) in a tiled-room reverb, plus impacts, bone
-  cracks, casings, body falls, dripping, breathing, grunts, coughs, groans and agonal gasps.
+- **Sound** (`src/audio.js`, `src/sounds.js`): gunshots and the pump / bolt cycling are real
+  recordings from the public-domain Free Firearm Sound Effects Library (Still North Media,
+  CC0), one per weapon type, played into a tiled-room reverb. Sources are listed in
+  `assets/sounds/README.md`. Impacts, bone cracks, casings, body falls, dripping, breathing,
+  coughs and agonal gasps are synthesized.
 
 Untreated outcomes only. This is an educational model, not medical guidance.
 
 ## Known limits
 
-- Gun sounds are synthesized, not recordings. The download hosts tried for freely licensed
-  recordings were unavailable from the build environment.
+- The .357 Magnum uses a .38 Special revolver recording and the .308 uses a .30-06 bolt action,
+  the closest matches in the library. Non-gun sounds are still synthesized; the subject has no
+  recorded voice.
 - The subject is still the procedural mannequin, not a scanned or sculpted human model. Swapping
   one in means re-fitting the internal anatomy and hit testing to that mesh.
 - The physiology numbers are plausible textbook-style estimates, not validated medical data.
 
 ## Ideas for v0.5
 
-A real human mesh with skinning, recorded audio, several subjects and a spawn menu, props
+A real human mesh with skinning, recorded impact and voice audio, several subjects and a spawn menu, props
 (cover, armour plates, clothing), stepping to recover balance, first-aid tools.

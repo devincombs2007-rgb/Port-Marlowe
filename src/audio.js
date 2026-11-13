@@ -1,7 +1,7 @@
-// Audio. Everything is synthesized in the browser (no recordings): each weapon has its own
-// layered profile (muzzle blast, low-end thump, supersonic crack for rifle rounds, the action
-// cycling afterwards), played into a concrete-room reverb. Plus impacts, casings, body falls,
-// dripping, and the subject's own sounds: grunts, breathing, coughing, agonal gasps, groans.
+// Audio. Gunshots and the pump / bolt cycling are real recordings (src/sounds.js, public domain),
+// played into a concrete-room reverb because the originals were recorded outdoors. If a recording
+// fails to decode, a synthesized shot is used instead. Impacts, casings, body falls, dripping and
+// the subject's own sounds (grunts, breathing, coughing, agonal gasps, groans) are synthesized.
 (function () {
   const G = (window.GSW = window.GSW || {});
   // blast: [duration s, lowpass start Hz, lowpass end Hz, gain], thump: [f0, f1, dur, gain], crack gain, tail gain
@@ -15,7 +15,13 @@
     '.308 Win hunting rifle': { blast: [0.18, 7500, 600, 1.15], thump: [130, 32, 0.24, 1.15], crack: 1.0, tail: 0.55, action: 'bolt' },
     '12 ga shotgun': { blast: [0.2, 4200, 380, 1.15], thump: [105, 28, 0.28, 1.3], crack: 0.15, tail: 0.55, action: 'pump' },
   };
+  // weapon -> [recording, gain, action recording, action gain, action delay s]
+  const REC = {
+    '.22 LR pistol': ['22', 0.5], '9×19 mm pistol': ['9mm', 0.85], '.45 ACP pistol': ['45', 0.95], '.357 Magnum revolver': ['rev', 1.0],
+    '5.56×45 mm rifle': ['ar15', 1.0], '7.62×39 mm rifle': ['ak', 1.0], '.308 Win hunting rifle': ['bolt', 1.0, 'boltcycle', 0.5, 0.55], '12 ga shotgun': ['sg', 1.0, 'pump', 0.5, 0.4],
+  };
   G.Audio = function () {
+    const bufs = {};
     let ctx = null, noise = null, master = null, wet = null, dry = null, breathG = null, breathF = null, gurgG = null;
     const A = { muted: false, dist: 3 };
     A.init = () => {
@@ -39,6 +45,15 @@
         // continuous breath and airway-gurgle beds, modulated every frame
         const mk = (type, f, q) => { const s = ctx.createBufferSource(); s.buffer = noise; s.loop = true; const fl = ctx.createBiquadFilter(); fl.type = type; fl.frequency.value = f; fl.Q.value = q; const g = ctx.createGain(); g.gain.value = 0; s.connect(fl); fl.connect(g); g.connect(dry); s.start(); return [g, fl]; };
         [breathG, breathF] = mk('bandpass', 900, 0.8); [gurgG] = mk('bandpass', 260, 3);
+        // decode the embedded recordings
+        for (const k in G.SOUNDS || {}) {
+          try {
+            const bin = atob(G.SOUNDS[k].split(',')[1]), u8 = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+            const pr = ctx.decodeAudioData(u8.buffer, (b) => { bufs[k] = b; }, () => {});
+            if (pr && pr.catch) pr.catch(() => {});
+          } catch (e) { /* fall back to synthesis for this one */ }
+        }
       } catch (e) { ctx = null; }
     };
     const ok = () => ctx && !A.muted;
@@ -55,8 +70,20 @@
       o.connect(g); g.connect(dry); o.start(t); o.stop(t + dur + 0.03);
     };
     const click = (at, f, gain) => burst(0.018, f, f * 0.8, gain, 'bandpass', 4, at);
+    const play = (k, gain, at, rate) => {
+      const s = ctx.createBufferSource(), g = ctx.createGain(); s.buffer = bufs[k]; s.playbackRate.value = rate || 1; g.gain.value = gain;
+      s.connect(g); g.connect(dry); s.start(ctx.currentTime + (at || 0));
+    };
+    A.loaded = () => Object.keys(bufs);
     A.shot = (w) => {
       if (!ok()) return;
+      const r = REC[w.name];
+      if (r && bufs[r[0]]) {
+        // tiny pitch variation so repeated shots are not identical
+        play(r[0], r[1] * 1.25, 0, 0.97 + Math.random() * 0.06);
+        if (r[2] && bufs[r[2]]) play(r[2], r[3], r[4], 1);
+        return;
+      }
       const p = PROFILE[w.name] || PROFILE['9×19 mm pistol'], [bd, f0, f1, bg] = p.blast, [t0, t1, td, tg] = p.thump;
       burst(0.012, 14000, 6000, bg * 0.9, 'highpass', 0.5);            // initial pressure spike
       burst(bd, f0, f1, bg);                                           // muzzle blast body
@@ -95,8 +122,10 @@
       s.connect(nf); nf.connect(ng); ng.connect(dry); s.start(t, Math.random()); s.stop(t + dur + 0.03);
     };
     const UH = [[620, 5, 1], [1150, 6, 0.5], [2500, 6, 0.15]], AH = [[760, 5, 1], [1250, 6, 0.6], [2600, 6, 0.2]], OH = [[480, 5, 1], [880, 6, 0.45], [2400, 6, 0.1]];
-    A.grunt = (pain) => { if (ok()) voice(0.16 + 0.2 * pain, 150 + 60 * pain, 95, 0.5 + 0.4 * pain, pain > 0.6 ? AH : UH, 0.06 + Math.random() * 0.05, pain > 0.5); };
-    A.groan = (pain) => { if (ok()) voice(0.7 + Math.random() * 0.8, 120 + 40 * pain, 88, 0.3 + 0.3 * pain, OH, 0, true); };
+    // synthetic voice is off by default: it does not hold up next to the recorded gunshots
+    A.voice = false;
+    A.grunt = (pain) => { if (ok() && A.voice) voice(0.16 + 0.2 * pain, 150 + 60 * pain, 95, 0.5 + 0.4 * pain, pain > 0.6 ? AH : UH, 0.06 + Math.random() * 0.05, pain > 0.5); };
+    A.groan = (pain) => { if (ok() && A.voice) voice(0.7 + Math.random() * 0.8, 120 + 40 * pain, 88, 0.3 + 0.3 * pain, OH, 0, true); };
     A.cough = () => { if (!ok()) return; const k = 1 / (1 + A.dist * 0.35); for (const at of [0, 0.19]) { burst(0.11, 2600, 500, 0.5 * k, 'bandpass', 1.1, at); tone(0.09, 240, 110, 0.2 * k, at, 'sawtooth'); } burst(0.2, 500, 180, 0.12 * k, 'bandpass', 4, 0.05); };
     // agonal gasp: a slow, snoring inhalation
     A.gasp = () => { if (!ok()) return; const k = 1 / (1 + A.dist * 0.35); burst(0.55, 500, 1500, 0.4 * k, 'bandpass', 2.2); tone(0.45, 70, 95, 0.12 * k, 0.03, 'sawtooth'); };
