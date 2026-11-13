@@ -1,4 +1,4 @@
-# Port-Marlowe — Wound Ballistics Lab (v0.4)
+# Port-Marlowe — Wound Ballistics Lab (v0.5)
 
 A browser-based 3D simulator of gunshot wounds. A test subject stands in a chamber; every
 round is traced millimetre by millimetre through skin, bone, organs and vessels, and the
@@ -74,16 +74,32 @@ body then responds in real time (bleeding, blood pressure, breathing, consciousn
 
 Untreated outcomes only. This is an educational model, not medical guidance.
 
+## Assets and credits (all CC0 / public domain)
+
+- **Character**: MakeHuman base mesh, skeleton weights and morph targets
+  (github.com/makehumancommunity/makehuman, assets CC0). `tools/build_human.py` re-poses it onto
+  the simulator skeleton, maps its 163 bones to the 17 ragdoll segments, and fits the hit
+  volumes to the skin. Output: `src/human.js`.
+- **Audio**: see `assets/sounds/README.md` (Still North Media firearm library, OpenGameArt
+  packs by qubodup, haeldb, badre-eddine and rubberduck, Kenney Impact Sounds).
+- **Weapons**: modelled in code (`src/world.js`) from side-profile outlines.
+
+## Testing
+
+`G.debug.tick(dt)` steps the whole simulation deterministically. The physics was reviewed from
+frame-by-frame contact sheets of each scenario (knockout, conscious descent, rigid posturing,
+close-range and rifle wounds), not only from end-state numbers.
+
 ## Known limits
 
 - The .357 Magnum uses a .38 Special revolver recording and the .308 uses a .30-06 bolt action,
-  the closest matches in the library. Non-gun sounds are still synthesized; the subject has no
-  recorded voice.
-- The subject is still the procedural mannequin, not a scanned or sculpted human model. Swapping
-  one in means re-fitting the internal anatomy and hit testing to that mesh.
+  the closest matches in the library. Breathing, coughing and agonal gasps are still synthesized.
+- The character has no skin texture (flat vertex colour), no hair mesh, and one body type.
+- Weapon models are simple profiled shapes, not scanned or sculpted assets.
+- The subject cannot step to recover balance or get back up.
 - The physiology numbers are plausible textbook-style estimates, not validated medical data.
 
-## Ideas for v0.5
+## Ideas for v0.6
 
-A real human mesh with skinning, recorded impact and voice audio, several subjects and a spawn menu, props
+Skin texture and hair, sculpted weapon assets, several subjects and a spawn menu, props
 (cover, armour plates, clothing), stepping to recover balance, first-aid tools.

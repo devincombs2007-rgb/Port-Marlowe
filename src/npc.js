@@ -171,6 +171,7 @@
         if ((n === 'neck' || n === 'head') && N.gasp > 0) { tone = Math.max(tone, 0.7); x -= 0.3 * N.gasp; }
         part.tone = tone; part.target.setFromEuler(eul.set(x, y, z));
       }
+      rag.setRigid(rigid);
       rag.step(dt); rag.sync();
       N.pos.set(pel.position.x, 0, pel.position.z);
     };

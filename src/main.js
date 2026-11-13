@@ -21,7 +21,7 @@
     grab: () => toggleGrab(), slow: () => toggleSlow(),
     sound: () => { audio.muted = !audio.muted; ui.setSound(!audio.muted); }, start: () => { state.started = true; audio.init(); },
   });
-  function setWeapon(i) { state.wi = i; const w = G.WEAPONS[i]; gun.set(w.cls); ui.setWeapon(w, i); }
+  function setWeapon(i) { state.wi = i; const w = G.WEAPONS[i]; gun.set(w.cls, w.model); ui.setWeapon(w, i); }
   function toggleXray() { body.setXray(!body.xray); ui.setXray(body.xray); }
   function toggleGrab() { state.grab = !state.grab; rag.release(); ui.setGrab(state.grab); }
   function toggleSlow() { state.slow = !state.slow; ui.setSlow(state.slow); }
@@ -322,5 +322,5 @@
     renderer.render(scene, camera);
   }
   requestAnimationFrame(frame);
-  G.debug = { tick: step, manual: false, audio, rag, toggleGrab, toggleSlow, fire, state, setWeapon, toggleXray, camera, get phys() { return phys; }, get npc() { return npc; }, body, world };
+  G.debug = { gun, scene, tick: step, manual: false, audio, rag, toggleGrab, toggleSlow, fire, state, setWeapon, toggleXray, camera, get phys() { return phys; }, get npc() { return npc; }, body, world };
 })();

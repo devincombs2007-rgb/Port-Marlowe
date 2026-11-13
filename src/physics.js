@@ -54,7 +54,7 @@
     plane([0, 0, R.z0], null); plane([0, 0, R.z1], UP, Math.PI);
     plane([R.x0, 0, 0], UP, Math.PI / 2); plane([R.x1, 0, 0], UP, -Math.PI / 2);
 
-    const P = { world, active: false, parts: {}, joints: [], lastThud: 0, t: 0, grabbed: null };
+    const P = { world, active: false, parts: {}, joints: [], locks: [], rigid: false, lastThud: 0, t: 0, grabbed: null };
     // standing controller: s = leg support 0..1, bal = balance quality 0..1, y0 = pelvis height to hold, push = extra force (N)
     P.ctl = { s: 0, bal: 1, y0: 0.94, yRest: 0.94, push: new V3() };
     const MTOT = 77, GRAV = 9.81;
@@ -84,6 +84,9 @@
       const cons = [new C.ConeTwistConstraint(a.b, b.b, { pivotA: pA, pivotB: pB, axisA: j.aA, axisB: j.aB, angle: j.cone, twistAngle: j.twist })];
       if (j.hinge) cons.push(new C.HingeConstraint(a.b, b.b, { pivotA: pA, pivotB: pB, axisA: XA, axisB: XA }));
       for (const c of cons) c.collideConnected = false;
+      // rigid posturing: an extra tight cone around the straight (rest) direction, switched on only while the brainstem holds the body in extension
+      const lock = /^(hand|foot)/.test(s.name) ? null : new C.ConeTwistConstraint(a.b, b.b, { pivotA: pA, pivotB: pB, axisA: j.aB, axisB: j.aB, angle: /^uarm/.test(s.name) ? 0.3 : 0.12, twistAngle: 0.25 });
+      if (lock) { lock.collideConnected = false; P.locks.push(lock); }
       // gains from the reduced inertia of the pair, so the explicit PD torque stays stable at 120 Hz
       const Ir = (a.I * b.I) / (a.I + b.I);
       P.joints.push({ a, b, cons, k: 290 * Ir * j.gain, d: 34 * Ir * j.gain, pd: 6 * Ir });
@@ -103,8 +106,10 @@
       }
       for (const j of P.joints) for (const c of j.cons) world.addConstraint(c);
     };
+    P.setRigid = (on) => { if (on === P.rigid || !P.active) return; P.rigid = on; for (const c of P.locks) on ? world.addConstraint(c) : world.removeConstraint(c); for (const k in P.parts) P.parts[k].b.wakeUp(); };
     P.stop = () => {
       if (!P.active) return;
+      P.setRigid(false);
       P.active = false; P.grabbed = null; P.clutch.L = P.clutch.R = null; P.ctl.s = 0; P.ctl.push.set(0, 0, 0);
       for (const j of P.joints) for (const c of j.cons) world.removeConstraint(c);
       for (const k in P.parts) world.remove(P.parts[k].b);
