@@ -283,6 +283,10 @@
   function frame(now) {
     requestAnimationFrame(frame);
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    if (!G.debug.manual) step(dt);
+  }
+  // one full simulation + render step (also driven directly by the test harness for frame-exact capture)
+  function step(dt) {
     // movement
     const k = state.keys, sp = 2.2 * dt;
     let mx = (k.d ? 1 : 0) - (k.a ? 1 : 0) + state.stick[0], mz = (k.s ? 1 : 0) - (k.w ? 1 : 0) + state.stick[1];
@@ -318,5 +322,5 @@
     renderer.render(scene, camera);
   }
   requestAnimationFrame(frame);
-  G.debug = { audio, rag, toggleGrab, toggleSlow, fire, state, setWeapon, toggleXray, camera, get phys() { return phys; }, get npc() { return npc; }, body, world };
+  G.debug = { tick: step, manual: false, audio, rag, toggleGrab, toggleSlow, fire, state, setWeapon, toggleXray, camera, get phys() { return phys; }, get npc() { return npc; }, body, world };
 })();

@@ -141,7 +141,7 @@
     // Push harder than the legs can correct and the subject goes over.
     const up = new C.Vec3(), ax = new C.Vec3();
     function balance() {
-      const c = P.ctl; footCM.friction = c.s > 0.01 ? 0.1 : 0.003;
+      const c = P.ctl; footCM.friction = c.s > 0.01 ? 0.1 : 0.012;
       if (c.s <= 0.01) return;
       const pel = P.parts.pelvis.b, tho = P.parts.thorax.b, fl = P.parts.footL.b, fr = P.parts.footR.b;
       let Fy = MTOT * GRAV * 0.8 + 7000 * (c.y0 - pel.position.y) - 1500 * pel.velocity.y;

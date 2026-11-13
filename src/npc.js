@@ -24,12 +24,12 @@
     const cur = {};
     for (const k of names) cur[k] = (POSES.stand[k] || [0, 0, 0]).slice();
     const N = { posture: 'stand', pose: 'stand', pos: new THREE.Vector3(), decideT: -1, wantDown: false, clock: 0, breath: 0, ragT: 0, stillT: 0, stagger: 0, stagDir: [0, 0], crawling: false, downT: 0,
-      clutchT: 0, clutching: { L: null, R: null }, gasp: 0, cough: 0, coughAt: 4 + Math.random() * 6, groanAt: 3 + Math.random() * 5, lastBreath: 0, motor: 'normal' };
+      lowering: 0, giveT: 0, clutchT: 0, clutching: { L: null, R: null }, gasp: 0, cough: 0, coughAt: 4 + Math.random() * 6, groanAt: 3 + Math.random() * 5, lastBreath: 0, motor: 'normal' };
     const ctl = rag.ctl, ev = (t, d) => hooks.event && hooks.event(t, d);
     rag.start(); ctl.s = 1; ctl.bal = 1; ctl.y0 = ctl.yRest;
     const collapse = (rigid) => {
       if (N.posture !== 'stand') return;
-      N.posture = 'falling'; N.ragT = 0; ctl.s = 0; ctl.push.set(0, 0, 0);
+      N.posture = 'falling'; N.ragT = 0; ctl.s = 0; ctl.push.set(0, 0, 0); N.giveT = 1.4; N.lowering = 0;
       const a = Math.random() * 6.283, v = 0.25 + Math.random() * 0.3;
       rag.push('thorax', Math.cos(a) * v, 0, Math.sin(a) * v);
       // limp legs fold at the knee; a rigid (posturing) body goes over like a felled tree
@@ -94,22 +94,27 @@
         tho.quaternion.vmult(UP, upv);
         if (rigid || clonic) collapse(rigid);
         else if (limp || legsOut || P.brainE < 0.55 || P.map < 48) collapse();
-        else if (pel.position.y < ctl.yRest * 0.74 || upv.y < 0.55) collapse(); // past the tipping point
+        else if ((pel.position.y < ctl.yRest * 0.74 && !N.lowering) || upv.y < 0.55) collapse(); // past the tipping point
         else {
           if (N.decideT >= 0) {
             N.decideT -= dt;
             if (N.decideT < 0) {
               N.decideT = -1;
-              if (N.wantDown) collapse();
+              if (N.wantDown) N.lowering = 0.001;
               else { if (P.pain > 0.15) N.pose = 'guard'; if (P.pain > 0.6) { N.decideT = 2 + Math.random() * 4; N.wantDown = true; } }
             }
           } else if (P.pain > 0.15) N.pose = 'guard';
           ctl.s = 1; ctl.bal = Math.max(0.15, 1 - dizzy * 1.3);
           ctl.y0 = ctl.yRest * (N.pose === 'guard' ? 0.965 : 1) - dizzy * 0.05;
+          // going down on purpose: the legs lower the body under control, then let go close to the floor
+          if (N.lowering > 0) {
+            N.lowering += dt / 1.5; const e = Math.min(1, N.lowering); ctl.y0 = ctl.yRest * (1 - 0.52 * e * e * (3 - 2 * e)); ctl.bal *= 1 - 0.5 * e;
+            if (N.lowering >= 1 || pel.position.y < ctl.yRest * 0.56) collapse();
+          }
           N.stagger = Math.max(0, N.stagger - dt * 3.2);
           const sw = 6 + dizzy * 150, st = N.stagger * N.stagger * 230;
           ctl.push.set(Math.sin(c * 0.9) * sw + Math.sin(c * 2.3 + 1) * sw * 0.4 + N.stagDir[0] * st, 0, Math.sin(c * 0.7 + 2) * sw + N.stagDir[1] * st);
-          target = POSES[N.pose];
+          target = N.lowering > 0 ? POSES.brace : POSES[N.pose];
         }
       }
       if (N.posture !== 'stand') {
@@ -143,9 +148,12 @@
       // clonic phase: rhythmic whole-body jerks that slow and fade
       let jerk = 0;
       if (clonic) { const f = 3.2 + Math.min(2.5, P.motor.t * 0.25); jerk = Math.sin(c * f * 6.283) > 0 ? 1 : 0; target = jerk ? POSES.jerk : POSES.tonic; }
+      N.giveT = Math.max(0, N.giveT - dt);
+      const giving = N.posture === 'falling' && (N.giveT > 0 || pel.position.y > 0.5);
       for (const n of names) {
         const part = rag.parts[n], side = n.slice(-1), isLeg = /^(thigh|shin|foot)/.test(n), isArm = /^(uarm|farm|hand)/.test(n);
         let tone = rigid ? 1.5 : clonic ? 1.25 : base;
+        if (giving && !rigid) tone *= isLeg ? 0.06 : isArm ? 1 : 0.35;
         if (isLeg) tone *= P.legsPara ? 0 : P.legBroken[side] ? 0.15 : P.pelvisBroken ? 0.4 : 1;
         if (isArm) tone *= P.armsPara ? 0 : P.armBroken[side] ? 0.2 : 1;
         const a = target[n] || [0, 0, 0], q = cur[n];
