@@ -16,3 +16,22 @@ Each was trimmed to a single near-microphone shot, faded, and encoded as MP3.
 | sg.mp3 | Prepared SFX/Nova/O_21P.wav | Benelli Nova pump, 12 gauge | 12 ga shotgun (buckshot and slug) |
 | pump.mp3 | Master Tracks/Nova/O_6.wav | Benelli Nova, full pump cycle | shotgun action after each shot |
 | boltcycle.mp3 | Master Tracks/Tikka/W_16.wav | Tikka T3, full bolt cycle | bolt-action rifle after each shot |
+
+# Impacts, foley and voice
+
+All CC0 1.0 (public domain). Trimmed, peak-normalised, mono MP3.
+
+| Clips | Source pack | Author | Used for |
+|---|---|---|---|
+| grunt_1..5 | "15 vocal male strain/hurt/pain/jump sounds" (opengameart.org) | qubodup | reaction when hit |
+| groan_1..3 | "Male Grunt/Yelling sounds" (opengameart.org) | haeldb | pain while down |
+| groan_4..5 | "Hurt / Death sound effect for character" (opengameart.org) | badre-eddine | pain while down |
+| flesh_1..3 | "8 wet squish, slurp impacts" (opengameart.org) | qubodup | bullet into the body |
+| drip_1..3 | "40 water / splash / slime SFX" (opengameart.org) | rubberduck | blood hitting the floor |
+| fall_1..4, thump_1..2 | Impact Sounds (kenney.nl) | Kenney | body and limbs hitting the floor, bone strike |
+| casing_1..3 | Impact Sounds (kenney.nl) | Kenney | spent cases on tile |
+| wall_1..3 | Impact Sounds (kenney.nl) | Kenney | bullet striking the wall |
+
+OpenGameArt packs were fetched from the mirror github.com/novincode/atomcut-library; Kenney's from
+github.com/Boyquotes/kenney-impact-sounds-for-godot. Breathing, coughing and agonal gasps have no
+recording and are still synthesized.

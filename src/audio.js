@@ -75,6 +75,9 @@
       s.connect(g); g.connect(dry); s.start(ctx.currentTime + (at || 0));
     };
     A.loaded = () => Object.keys(bufs);
+    // play a random take from a recorded group (e.g. 'fall' -> fall_1..4); returns false if none decoded
+    const one = (group, gain, rate, at) => { const ks = Object.keys(bufs).filter((k) => k.startsWith(group + '_')); if (!ks.length) return false; play(ks[Math.floor(Math.random() * ks.length)], gain, at || 0, (rate || 1) * (0.94 + Math.random() * 0.12)); return true; };
+    const near = () => 1 / (1 + A.dist * 0.3);
     A.shot = (w) => {
       if (!ok()) return;
       const r = REC[w.name];
@@ -101,13 +104,14 @@
     A.impact = (bone, energy) => {
       if (!ok()) return;
       const e = Math.min(1, 0.35 + (energy || 300) / 2500);
+      if (one('flesh', 0.9 * e * near())) { if (bone) one('thump', 0.7 * e * near(), 1.25, 0.005); return; }
       burst(0.06, 900, 180, 0.4 * e, 'lowpass', 1); tone(0.09, 120, 60, 0.35 * e); burst(0.05, 2400, 900, 0.12 * e, 'bandpass', 1.5, 0.004);
       if (bone) { click(0.003, 1900, 0.3 * e); click(0.011, 1300, 0.22 * e); burst(0.05, 3000, 700, 0.14 * e, 'bandpass', 2, 0.006); }
     };
-    A.wall = (energy) => { if (!ok()) return; const e = Math.min(1, 0.3 + (energy || 200) / 1500); burst(0.04, 6000, 1800, 0.3 * e, 'bandpass', 1.4); tone(0.05, 420, 160, 0.2 * e); for (let i = 0; i < 4; i++) click(0.05 + Math.random() * 0.35, 3500 + Math.random() * 3000, 0.03 * e); };
-    A.thud = (vol) => { vol = vol == null ? 1 : vol; if (ok()) { tone(0.22, 85, 34, 0.9 * vol); burst(0.16, 420, 90, 0.4 * vol, 'lowpass'); } };
-    A.tink = (dull) => { if (!ok()) return; if (dull) burst(0.05, 900, 300, 0.12, 'lowpass'); else { const f = 5200 + Math.random() * 1800; tone(0.07, f, f * 0.7, 0.05); tone(0.05, f * 1.52, f, 0.025); } };
-    A.drip = () => { if (ok()) tone(0.035, 900 + Math.random() * 700, 300, 0.02); };
+    A.wall = (energy) => { if (!ok()) return; if (one('wall', 0.55 * Math.min(1, 0.4 + (energy || 200) / 1200), 1.15)) return; const e = Math.min(1, 0.3 + (energy || 200) / 1500); burst(0.04, 6000, 1800, 0.3 * e, 'bandpass', 1.4); tone(0.05, 420, 160, 0.2 * e); for (let i = 0; i < 4; i++) click(0.05 + Math.random() * 0.35, 3500 + Math.random() * 3000, 0.03 * e); };
+    A.thud = (vol) => { vol = vol == null ? 1 : vol; if (ok() && one(vol > 0.45 ? 'fall' : 'thump', (0.5 + vol * 0.7) * near(), 0.85)) return; if (ok()) { tone(0.22, 85, 34, 0.9 * vol); burst(0.16, 420, 90, 0.4 * vol, 'lowpass'); } };
+    A.tink = (dull) => { if (!ok()) return; if (one('casing', dull ? 0.18 : 0.22, dull ? 0.7 : 1.7)) return; if (dull) burst(0.05, 900, 300, 0.12, 'lowpass'); else { const f = 5200 + Math.random() * 1800; tone(0.07, f, f * 0.7, 0.05); tone(0.05, f * 1.52, f, 0.025); } };
+    A.drip = () => { if (ok() && one('drip', 0.1 * near(), 1.5)) return; if (ok()) tone(0.035, 900 + Math.random() * 700, 300, 0.02); };
     // ---- the subject's voice: a glottal source (sawtooth) through two vowel formants
     const voice = (dur, f0, f1, gain, vowel, at, rough) => {
       const t = ctx.currentTime + (at || 0), o = ctx.createOscillator(), g = ctx.createGain(), mix = ctx.createGain();
@@ -124,8 +128,9 @@
     const UH = [[620, 5, 1], [1150, 6, 0.5], [2500, 6, 0.15]], AH = [[760, 5, 1], [1250, 6, 0.6], [2600, 6, 0.2]], OH = [[480, 5, 1], [880, 6, 0.45], [2400, 6, 0.1]];
     // synthetic voice is off by default: it does not hold up next to the recorded gunshots
     A.voice = false;
-    A.grunt = (pain) => { if (ok() && A.voice) voice(0.16 + 0.2 * pain, 150 + 60 * pain, 95, 0.5 + 0.4 * pain, pain > 0.6 ? AH : UH, 0.06 + Math.random() * 0.05, pain > 0.5); };
-    A.groan = (pain) => { if (ok() && A.voice) voice(0.7 + Math.random() * 0.8, 120 + 40 * pain, 88, 0.3 + 0.3 * pain, OH, 0, true); };
+    const said = { t: -9 };
+    A.grunt = (pain) => { if (ok() && ctx.currentTime - said.t > 0.5 && one('grunt', (0.5 + 0.4 * pain) * near(), 1, 0.08)) { said.t = ctx.currentTime; return; } if (ok() && A.voice) voice(0.16 + 0.2 * pain, 150 + 60 * pain, 95, 0.5 + 0.4 * pain, pain > 0.6 ? AH : UH, 0.06 + Math.random() * 0.05, pain > 0.5); };
+    A.groan = (pain) => { if (ok() && ctx.currentTime - said.t > 1.5 && one('groan', (0.4 + 0.35 * pain) * near(), 0.95)) { said.t = ctx.currentTime; return; } if (ok() && A.voice) voice(0.7 + Math.random() * 0.8, 120 + 40 * pain, 88, 0.3 + 0.3 * pain, OH, 0, true); };
     A.cough = () => { if (!ok()) return; const k = 1 / (1 + A.dist * 0.35); for (const at of [0, 0.19]) { burst(0.11, 2600, 500, 0.5 * k, 'bandpass', 1.1, at); tone(0.09, 240, 110, 0.2 * k, at, 'sawtooth'); } burst(0.2, 500, 180, 0.12 * k, 'bandpass', 4, 0.05); };
     // agonal gasp: a slow, snoring inhalation
     A.gasp = () => { if (!ok()) return; const k = 1 / (1 + A.dist * 0.35); burst(0.55, 500, 1500, 0.4 * k, 'bandpass', 2.2); tone(0.45, 70, 95, 0.12 * k, 0.03, 'sawtooth'); };
