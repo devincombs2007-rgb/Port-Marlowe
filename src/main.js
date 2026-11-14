@@ -12,7 +12,7 @@
   camera.rotation.order = 'YXZ'; scene.add(camera);
 
   const world = G.buildWorld(scene), body = G.buildBody(scene), gun = G.buildGun(camera), audio = G.Audio();
-  const rag = G.buildPhysics(scene, body, audio, { headImpact: (v) => phys && npc && npc.posture === 'falling' && phys.headImpact(v) }); // only a real fall, not movement on the floor
+  const rag = G.buildPhysics(scene, body, audio, { headImpact: (v) => phys && npc && npc.posture === 'falling' && phys.headImpact(v), footstep: (k) => { audio.dist = Math.hypot(state.pos.x - npc.pos.x, state.pos.z - npc.pos.z); audio.step(k); } }); // only a real fall, not movement on the floor
   let phys, npc;
   const sampler = { sample: body.sample, cavity: body.cavity, maxDist: 20 };
   const TIMES = [1, 4, 15, 60];
@@ -138,6 +138,8 @@
     camera.updateMatrixWorld(); body.updateMatrices();
     aimDir(dir);
     gun.fire(w.recoil); audio.shot(w); state.kick += 0.012 + w.recoil * 0.012;
+    // a puff of powder smoke at the muzzle, drifting up; more from rifles and shotguns
+    { const m = gun.models[gun.model]; if (m) { tmp.set(0, m.userData.fy || 0.03, (m.userData.muzzle || -0.2) - 0.02); m.localToWorld(tmp); world.smoke(tmp, dir, Math.round(2 + w.recoil * 2), Math.min(1.4, 0.5 + w.recoil * 0.5)); } }
     // eject the spent case: up and to the right of the weapon
     gun.g.getWorldPosition(tmp); tmp2.set(1.6 + Math.random() * 0.8, 1.4 + Math.random() * 0.6, 0.3 * (Math.random() - 0.5)).applyQuaternion(camera.quaternion);
     rag.casing(tmp, tmp2, w.cls);
@@ -211,12 +213,29 @@
     if (!res.stopped && !res.noPen) {
       const ex = exits[exits.length - 1];
       const hit = world.rayRoom(ex ? ex.p : origin, ex ? ex.dir : d0), en = res.hitBody ? res.Eexit : res.E0;
-      if (hit) {
-        // what is left of the bullet hits the tile: spall, dust, chips
-        world.addHole(hit.p, hit.n, Math.max(0.006, w.bullet.d * 0.9), en); audio.wall(en);
-        world.chunks(hit.p, hit.n, Math.round(Math.min(16, 4 + en / 150)), 1.6, 1.3, 'dust'); world.chunks(hit.p, hit.n, Math.round(Math.min(8, 1 + en / 400)), 2.4, 1.2, 'chip');
-      }
+      if (hit) strike(hit, ex ? ex.dir : d0, en, w, 0);
     }
+  }
+
+  // what is left of a bullet meets the tile. At a grazing angle (under ~15 degrees to the surface) a bullet
+  // usually ricochets instead of digging in: it leaves flatter still, deformed, with a fraction of its energy.
+  const rd = new V3();
+  function strike(hit, dir, en, w, bounce) {
+    const sinA = Math.abs(dir.x * hit.n.x + dir.y * hit.n.y + dir.z * hit.n.z), graze = Math.asin(Math.min(1, sinA));
+    const pRic = graze < 0.26 ? 1 - graze / 0.26 : 0;
+    if (bounce < 2 && en > 40 && Math.random() < pRic) {
+      world.addHole(hit.p, hit.n, Math.max(0.004, w.bullet.d * 0.6), en * 0.3); // a shallow gouge, not a hole
+      world.chunks(hit.p, hit.n, 8, 3.5, 1.4, 'spark'); world.chunks(hit.p, hit.n, 5, 1.2, 1.2, 'dust');
+      rd.copy(dir).addScaledVector(hit.n, -2 * (dir.x * hit.n.x + dir.y * hit.n.y + dir.z * hit.n.z)); // mirror
+      rd.addScaledVector(hit.n, -0.5 * rd.dot(hit.n)).normalize(); // leaves flatter than it arrived
+      rd.x += (Math.random() - 0.5) * 0.15; rd.y += (Math.random() - 0.5) * 0.08; rd.z += (Math.random() - 0.5) * 0.15; rd.normalize();
+      audio.wall(en * 0.4); audio.ricochet();
+      const o = hit.p.clone().addScaledVector(hit.n, 0.01), next = world.rayRoom(o, rd);
+      if (next) strike(next, rd.clone(), en * (0.3 + Math.random() * 0.3), w, bounce + 1);
+      return;
+    }
+    world.addHole(hit.p, hit.n, Math.max(0.006, w.bullet.d * 0.9), en); audio.wall(en);
+    world.chunks(hit.p, hit.n, Math.round(Math.min(16, 4 + en / 150)), 1.6, 1.3, 'dust'); world.chunks(hit.p, hit.n, Math.round(Math.min(8, 1 + en / 400)), 2.4, 1.2, 'chip');
   }
 
   function buildReport(results, w) {
@@ -320,7 +339,12 @@
     aimDir(camDir); q.copy(camera.quaternion).invert(); camDir.applyQuaternion(q);
     gun.update(dt, camDir, state.narrow);
     ui.cross(state.ax, state.ay); ui.ecg(phys, dt * Math.min(scale, 2) * slow);
-    uiT += dt; if (uiT > 0.15) { uiT = 0; ui.update(phys, npc); ui.setRange(Math.hypot(state.pos.x - npc.pos.x, state.pos.z - npc.pos.z)); }
+    uiT += dt; if (uiT > 0.15) { uiT = 0;
+      // skin and pupils follow the physiology
+      body.setPerfusion(phys.frac(), phys.spo2, phys.dead || phys.stemDestroyed, phys.deadT || 0);
+      const brainGone = phys.dead || phys.stemDestroyed || phys.anoxic > 120;
+      body.setPupil(brainGone ? 0.62 : 0.32 + 0.12 * Math.min(1, phys.frac() / 0.3) + (phys.tFirst != null && phys.conscious ? 0.06 : 0));
+      ui.update(phys, npc); ui.setRange(Math.hypot(state.pos.x - npc.pos.x, state.pos.z - npc.pos.z)); }
     if (!noRender) renderer.render(scene, camera);
   }
   requestAnimationFrame(frame);

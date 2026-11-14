@@ -29,6 +29,7 @@ All CC0 1.0 (public domain). Trimmed, peak-normalised, mono MP3.
 | flesh_1..3 | "8 wet squish, slurp impacts" (opengameart.org) | qubodup | bullet into the body |
 | drip_1..3 | "40 water / splash / slime SFX" (opengameart.org) | rubberduck | blood hitting the floor |
 | fall_1..4, thump_1..2 | Impact Sounds (kenney.nl) | Kenney | body and limbs hitting the floor, bone strike |
+| step_1..5 | Impact Sounds (kenney.nl), footstep_concrete | Kenney | the subject's footsteps |
 | casing_1..3 | Impact Sounds (kenney.nl) | Kenney | spent cases on tile |
 | wall_1..3 | Impact Sounds (kenney.nl) | Kenney | bullet striking the wall |
 

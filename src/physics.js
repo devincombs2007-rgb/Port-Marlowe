@@ -280,7 +280,7 @@
         if (c.face != null) { f.quaternion.vmult(FWD, fw); let e = c.face - Math.atan2(fw.x, fw.z); e = Math.atan2(Math.sin(e), Math.cos(e)); f.torque.y += 6 * e - 0.4 * f.angularVelocity.y; }
         const stance = f === fl ? fr : fl;
         stance.force.y -= Fy; stance.force.x -= Fx; stance.force.z -= Fz;
-        if (u >= 1) { P.stepping = null; P.stepCool = 0.1; }
+        if (u >= 1) { if (hooks.footstep) hooks.footstep(Math.min(1, Math.hypot(vx, vz) / 0.8)); P.stepping = null; P.stepCool = 0.1; }
       } else for (const f of [fl, fr]) { f.force.y -= Fy / 2; f.force.x -= Fx / 2; f.force.z -= Fz / 2; }
       // turning toward a heading: yaw torque on pelvis and trunk; the planted feet resist it until a step frees one
       if (c.face != null) {

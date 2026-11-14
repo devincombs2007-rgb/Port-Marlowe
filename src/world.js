@@ -174,12 +174,23 @@
     for (let i = 0; i < NC; i++) chunks.push({ on: false, v: new V3(), p: new V3(), life: 0, kind: 0 });
     const cg = new THREE.BufferGeometry(); cg.setAttribute('position', new THREE.BufferAttribute(cpos, 3)); cg.setAttribute('color', new THREE.BufferAttribute(ccol, 3));
     const cpts = new THREE.Points(cg, new THREE.PointsMaterial({ size: 0.022, sizeAttenuation: true, vertexColors: true })); cpts.frustumCulled = false; scene.add(cpts);
-    const KIND = { tissue: [0.52, 0.12, 0.12], bone: [0.9, 0.86, 0.75], brain: [0.8, 0.55, 0.55], dust: [0.72, 0.74, 0.74], chip: [0.82, 0.84, 0.84] };
+    const KIND = { tissue: [0.52, 0.12, 0.12], bone: [0.9, 0.86, 0.75], brain: [0.8, 0.55, 0.55], dust: [0.72, 0.74, 0.74], chip: [0.82, 0.84, 0.84], smoke: [0.86, 0.86, 0.84], spark: [1.0, 0.82, 0.45] };
     const kmat = {}; for (const k in KIND) kmat[k] = new THREE.MeshStandardMaterial({ color: new THREE.Color(...KIND[k]), roughness: 0.6, polygonOffset: true, polygonOffsetFactor: -3 });
     let ci = 0;
-    W.chunk = (p, v, kind) => { const k = ci; ci = (ci + 1) % NC; const ch = chunks[k]; ch.on = true; ch.p.copy(p); ch.v.copy(v); ch.kind = kind; ch.life = kind === 'dust' ? 0.5 + Math.random() * 0.7 : 9; const col = KIND[kind]; ccol[k * 3] = col[0]; ccol[k * 3 + 1] = col[1]; ccol[k * 3 + 2] = col[2]; cg.attributes.color.needsUpdate = true; };
+    W.chunk = (p, v, kind) => { const k = ci; ci = (ci + 1) % NC; const ch = chunks[k]; ch.on = true; ch.p.copy(p); ch.v.copy(v); ch.kind = kind; ch.life = kind === 'smoke' ? 1.2 + Math.random() * 0.8 : kind === 'spark' ? 0.15 + Math.random() * 0.15 : kind === 'dust' ? 0.5 + Math.random() * 0.7 : 9; const col = KIND[kind]; ccol[k * 3] = col[0]; ccol[k * 3 + 1] = col[1]; ccol[k * 3 + 2] = col[2]; cg.attributes.color.needsUpdate = true; };
     W.chunks = (p, dir, n, speed, cone, kind) => { const v = new V3(); for (let i = 0; i < n; i++) { v.set(dir.x + (Math.random() - 0.5) * cone, dir.y + (Math.random() - 0.5) * cone, dir.z + (Math.random() - 0.5) * cone).normalize().multiplyScalar(speed * (0.2 + Math.random())); W.chunk(p, v, kind); } };
     W.debris = [];
+    // powder smoke: soft sprites that expand, drift up and thin out over a second or two
+    const puffTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'); const g = x.createRadialGradient(32, 32, 2, 32, 32, 32); g.addColorStop(0, 'rgba(165,165,160,0.8)'); g.addColorStop(0.5, 'rgba(160,160,155,0.38)'); g.addColorStop(1, 'rgba(155,155,150,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
+    const puffs = [];
+    W.smoke = (p, dir, n, k) => {
+      for (let i = 0; i < n; i++) {
+        const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: puffTex, transparent: true, depthWrite: false, opacity: 0.5 * k }));
+        sp.position.copy(p); scene.add(sp);
+        puffs.push({ sp, v: new V3(dir.x * (0.3 + Math.random() * 0.8) + (Math.random() - 0.5) * 0.25, dir.y * 0.5 + 0.05 + Math.random() * 0.1, dir.z * (0.3 + Math.random() * 0.8) + (Math.random() - 0.5) * 0.25), t: 0, life: 1.2 + Math.random() * 1.2, s0: 0.03 + 0.03 * k, s1: 0.22 + 0.25 * k, o: 0.7 * k });
+        if (puffs.length > 40) { const o = puffs.shift(); scene.remove(o.sp); }
+      }
+    };
     // blood that hits a wall with enough volume runs down it
     W.drips = [];
     const up = new V3(0, 1, 0), nn = new V3();
@@ -188,6 +199,12 @@
     let flowAcc = 0, paintAcc = 0;
     W.landed = 0; // drops that reached the floor this frame (for drip sounds)
     W.update = (dt) => {
+      for (let i = puffs.length - 1; i >= 0; i--) {
+        const f = puffs[i]; f.t += dt; const u = f.t / f.life;
+        if (u >= 1) { scene.remove(f.sp); puffs.splice(i, 1); continue; }
+        f.v.multiplyScalar(1 - 2.2 * dt); f.v.y += 0.12 * dt; f.sp.position.addScaledVector(f.v, dt);
+        const s = f.s0 + (f.s1 - f.s0) * Math.sqrt(u); f.sp.scale.set(s, s, 1); f.sp.material.opacity = f.o * (1 - u) * (1 - u);
+      }
       W.landed = 0;
       for (let i = 0; i < NP; i++) {
         const dr = parts[i];
@@ -221,8 +238,8 @@
       for (let i = 0; i < NC; i++) {
         const ch = chunks[i];
         if (!ch.on) continue;
-        const dust = ch.kind === 'dust';
-        ch.v.y -= (dust ? 1.5 : 9.81) * dt; ch.v.multiplyScalar(1 - (dust ? 4 : 0.8) * dt); ch.p.addScaledVector(ch.v, dt); ch.life -= dt;
+        const dust = ch.kind === 'dust' || ch.kind === 'smoke' || ch.kind === 'spark';
+        ch.v.y -= (ch.kind === 'smoke' ? -0.25 : ch.kind === 'spark' ? 6 : dust ? 1.5 : 9.81) * dt; ch.v.multiplyScalar(1 - (ch.kind === 'smoke' ? 2.5 : ch.kind === 'spark' ? 1 : dust ? 4 : 0.8) * dt); ch.p.addScaledVector(ch.v, dt); ch.life -= dt;
         const hit = wallHit(ch.p);
         if (hit || ch.life <= 0) {
           ch.on = false; cpos[i * 3 + 1] = -50;

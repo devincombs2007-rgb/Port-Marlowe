@@ -111,6 +111,17 @@
     A.wall = (energy) => { if (!ok()) return; if (one('wall', 0.55 * Math.min(1, 0.4 + (energy || 200) / 1200), 1.15)) return; const e = Math.min(1, 0.3 + (energy || 200) / 1500); burst(0.04, 6000, 1800, 0.3 * e, 'bandpass', 1.4); tone(0.05, 420, 160, 0.2 * e); for (let i = 0; i < 4; i++) click(0.05 + Math.random() * 0.35, 3500 + Math.random() * 3000, 0.03 * e); };
     A.thud = (vol) => { vol = vol == null ? 1 : vol; if (ok() && one(vol > 0.45 ? 'fall' : 'thump', (0.5 + vol * 0.7) * near(), 0.85)) return; if (ok()) { tone(0.22, 85, 34, 0.9 * vol); burst(0.16, 420, 90, 0.4 * vol, 'lowpass'); } };
     A.tink = (dull) => { if (!ok()) return; if (one('casing', dull ? 0.18 : 0.22, dull ? 0.7 : 1.7)) return; if (dull) burst(0.05, 900, 300, 0.12, 'lowpass'); else { const f = 5200 + Math.random() * 1800; tone(0.07, f, f * 0.7, 0.05); tone(0.05, f * 1.52, f, 0.025); } };
+    // footsteps: recorded steps on concrete, softer for a shuffling wounded step
+    A.step = (k) => { if (ok()) one('step', (0.25 + 0.35 * (k == null ? 1 : k)) * near(), 0.9 + Math.random() * 0.2); };
+    // a ricochet: the deformed bullet tumbling away makes a falling, wavering whine
+    A.ricochet = () => {
+      if (!ok()) return;
+      const t = ctx.currentTime, o = ctx.createOscillator(), g = ctx.createGain(), f0 = 2600 + Math.random() * 1600, dur = 0.35 + Math.random() * 0.25;
+      const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = 18 + Math.random() * 14; lg.gain.value = 140; lfo.connect(lg); lg.connect(o.frequency);
+      o.type = 'triangle'; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f0 * 0.45, t + dur);
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.12, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
+      o.connect(g); g.connect(dry); o.start(t); lfo.start(t); o.stop(t + dur + 0.05); lfo.stop(t + dur + 0.05);
+    };
     A.drip = () => { if (ok() && one('drip', 0.1 * near(), 1.5)) return; if (ok()) tone(0.035, 900 + Math.random() * 700, 300, 0.02); };
     // ---- the subject's voice: a glottal source (sawtooth) through two vowel formants
     const voice = (dur, f0, f1, gain, vowel, at, rough) => {

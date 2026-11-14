@@ -268,6 +268,7 @@
         for (let i = 0; i < 160; i++) { const a = Math.random() * 6.283, r0 = 18 + Math.random() * 10, r1 = 40 + Math.random() * 20; x.strokeStyle = 'rgba(' + (120 + Math.random() * 60) + ',' + (80 + Math.random() * 40) + ',40,0.35)'; x.lineWidth = 1; x.beginPath(); x.moveTo(Math.cos(a) * r0, Math.sin(a) * r0); x.lineTo(Math.cos(a) * r1, Math.sin(a) * r1); x.stroke(); }
         x.fillStyle = '#050403'; x.beginPath(); x.arc(0, 0, 20, 0, 7); x.fill();
         const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t; })();
+      body.pupils = []; const pupilMat = new THREE.MeshBasicMaterial({ color: 0x030303, polygonOffset: true, polygonOffsetFactor: -3 });
       const irisMat = new THREE.MeshStandardMaterial({ map: irisTex, roughness: 0.4, polygonOffset: true, polygonOffsetFactor: -2 });
       const corneaMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.02, metalness: 0, transparent: true, opacity: 0.12 });
       const hd = body.segs.head, white = new THREE.MeshStandardMaterial({ color: 0xe6e0d8, roughness: 0.3 }), iris = new THREE.MeshStandardMaterial({ color: 0x3a2a1c, roughness: 0.2 }), pupil = new THREE.MeshBasicMaterial({ color: 0x050505 });
@@ -277,7 +278,8 @@
         const ball = new THREE.Mesh(new THREE.SphereGeometry(e.r, 20, 14), white);
         const disc = new THREE.Mesh(new THREE.CircleGeometry(e.r * 0.5, 24), irisMat); disc.position.z = e.r * 0.94; disc.renderOrder = 2;
         const cornea = new THREE.Mesh(new THREE.SphereGeometry(e.r * 0.52, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), corneaMat); cornea.rotation.x = Math.PI / 2; cornea.position.z = e.r * 0.86; cornea.scale.y = 0.35;
-        g.add(ball, disc, cornea); hd.g.add(g); body.decoMeshes.push(g);
+        const pupil = new THREE.Mesh(new THREE.CircleGeometry(e.r * 0.16, 20), pupilMat); pupil.position.z = e.r * 0.945; pupil.renderOrder = 3; body.pupils.push(pupil);
+        g.add(ball, disc, pupil, cornea); hd.g.add(g); body.decoMeshes.push(g);
       }
       // nearest point of the real skin along a wound's normal (rest pose), so decals sit on the mesh, not the hit volume
       const ia = geo.index.array, e1 = new V3(), e2 = new V3(), pv = new V3(), tv = new V3(), qv = new V3(), a = new V3(), o = new V3(), d = new V3();
@@ -297,6 +299,16 @@
       };
     }
 
+    // pupil diameter as a fraction of the iris: ~0.32 normal in room light, wider with shock and adrenaline,
+    // fixed and fully dilated once the brainstem stops working
+    body.setPupil = (f) => { for (const p of body.pupils || []) p.scale.setScalar(Math.max(0.6, Math.min(2.6, f / 0.32))); };
+    // skin colour follows the circulation: pallor with blood loss, blue-grey with low oxygen, waxy grey after death
+    const tint = new THREE.Color();
+    body.setPerfusion = (lossFrac, spo2, dead, deadT) => {
+      const pale = Math.min(1, Math.max(0, (lossFrac - 0.12) / 0.3)), cy = Math.min(1, Math.max(0, (88 - spo2) / 30)), d = dead ? Math.min(1, 0.4 + deadT / 600) : 0;
+      tint.setRGB(1 - 0.16 * pale - 0.2 * cy - 0.14 * d, 1 - 0.12 * pale - 0.1 * cy - 0.13 * d, 1 - 0.06 * pale + 0.04 * cy - 0.08 * d);
+      body.skinMat.color.copy(tint);
+    };
     body.setXray = (on) => {
       body.xray = on;
       const m = body.skinMat;

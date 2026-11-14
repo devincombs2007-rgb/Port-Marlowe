@@ -1,4 +1,4 @@
-# Port-Marlowe — Wound Ballistics Lab (v1.0)
+# Port-Marlowe — Wound Ballistics Lab (v1.1)
 
 A browser-based 3D simulator of gunshot wounds. A test subject stands in a chamber; every
 round is traced millimetre by millimetre through skin, bone, organs and vessels, and the
@@ -79,10 +79,16 @@ body then responds in real time (bleeding, blood pressure, breathing, consciousn
   grid that holds a ~2 mm film and lets the excess flow downhill over a slightly uneven floor
   with recessed grout lines, so pools creep and finger. Bodies sliding through it smear it.
   Blood on walls runs down. Thin films dry toward brown.
+- **Circulation you can see**: skin pales as blood is lost, turns blue-grey as oxygen saturation
+  falls, and goes waxy grey after death. Pupils widen with shock and are fixed and dilated once the
+  brainstem has failed.
+- **Ricochets**: a bullet striking the floor or a wall at under ~15° usually skips off instead of
+  digging in, leaving a shallow gouge and sparks and carrying on flatter with a fraction of its
+  energy (up to two bounces, with a ricochet whine). Each shot leaves a puff of powder smoke.
 - **Sound** (`src/audio.js`, `src/sounds.js`): gunshots and the pump / bolt cycling are real
   recordings from the public-domain Free Firearm Sound Effects Library (Still North Media,
   CC0), one per weapon type, played into a tiled-room reverb. Sources are listed in
-  `assets/sounds/README.md`. Impacts, bone cracks, casings, body falls, dripping, breathing,
+  `assets/sounds/README.md`. Impacts, bone cracks, casings, body falls, footsteps, dripping, breathing,
   coughs and agonal gasps are synthesized.
 
 Untreated outcomes only. This is an educational model, not medical guidance.
