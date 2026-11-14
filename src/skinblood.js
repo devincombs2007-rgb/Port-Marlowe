@@ -52,6 +52,7 @@
     }
     let lastSkin = null;
     const domBone = () => lastSkin.b;
+    const chain = (b) => { const n = body.list[b].name; return /^(uarm|farm|hand)/.test(n) ? 'arm' + n.slice(-1) : /^(thigh|shin|foot)/.test(n) ? 'leg' + n.slice(-1) : 'trunk'; };
     const armRe = /^(uarm|farm|hand)/, fabric = (p, b) => p.y > 0.745 && p.y < 1.025 && !armRe.test(body.list[b].name);
 
     // gravity expressed in each bone's rest frame (the frame the mesh and the rivulets live in)
@@ -116,6 +117,9 @@
       if (v < 0 || nn.dot(L.n) < 0.2) { R.end = 'drip'; return false; } // ran over an edge
       R.dir.copy(dirv);
       const b = domBone(v);
+      // a trail cannot cross from one body part to another (an arm lying against the side, a thigh against the
+      // other): it drips there instead, or it would stretch through the air when they move apart
+      if (chain(b) !== chain(L.b)) { R.end = 'drip'; return false; }
       if (fabric(np, b)) { addPoint(R, np, nn, v, b); R.end = 'soak'; R.sk = { c: np.clone(), n: nn.clone(), ml: 0, soakR: 0, soak: null }; writePair(R, R.n - 1); return false; }
       addPoint(R, np, nn, v, b);
       return true;
@@ -152,7 +156,7 @@
         const cap = down > 0.45 ? 0.03 : 0.07 + 0.9 * Math.pow(Math.max(0, 1 - tilt / 0.55), 2) * Math.min(1, -down * 2 + 0.2);
         if (f > 0) { w.pool += f; w.fed = body.bt; }
         let over = Math.max(0, w.pool - cap); w.pool -= over;
-        if (w.pool > 0) {
+        if (w.pool > 0 && !w.burst) {
           const r = Math.min(0.04, w.base * 0.45 + Math.sqrt(w.pool) * (tilt > 0.4 ? 0.011 : 0.02)), sl = Math.min(1, tilt * 1.4);
           // on a slope the blood hangs as a bead under the hole; where the skin faces up it spreads round it
           w.stain.scale.set(r * (1 - 0.25 * sl), r * (1 + 0.2 * sl), 1);

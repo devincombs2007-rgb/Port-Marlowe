@@ -19,7 +19,7 @@
       case 'head': return { aA: UP, aB: UP, cone: 0.5, twist: 0.6, gain: 2 };
       case 'uarm': return { aA: n3(0.55 * s, -0.7, 0.4), aB: DOWN, cone: 1.35, twist: 0.9, gain: 2.5 };
       case 'farm': return { aA: n3(0, -0.3, 0.95), aB: DOWN, cone: 1.25, twist: 0.5, hinge: true, gain: 2 };
-      case 'hand': return { aA: DOWN, aB: DOWN, cone: 0.6, twist: 0.3, gain: 1 };
+      case 'hand': return { aA: DOWN, aB: DOWN, cone: 1.15, twist: 0.3, gain: 1 }; // the wrist bends about 65-75 degrees each way
       case 'thigh': return { aA: n3(0.12 * s, -0.64, 0.77), aB: DOWN, cone: 1.2, twist: 0.4, gain: 3 }; // hip: about 120 deg flexion, 20 deg extension
       case 'shin': return { aA: n3(0, -0.3, -0.95), aB: DOWN, cone: 1.25, twist: 0.2, hinge: true, gain: 2.5 };
       case 'foot': return { aA: DOWN, aB: DOWN, cone: 0.5, twist: 0.25, gain: 1 };
@@ -338,6 +338,7 @@
       const b = seg.part.b, l = new C.Vec3(); b.pointToLocalFrame(new C.Vec3(wpt.x, wpt.y, wpt.z), l);
       P.clutch[side] = { b, l, seg };
     };
+    const PALM = { L: new C.Vec3(-0.82, -0.13, -0.56), R: new C.Vec3(0.82, -0.13, -0.56) }, pw = new C.Vec3(), tq = new C.Vec3(); // at rest the palms face the thighs, turned a little back (from the hand mesh)
     const an = new C.Vec3(), cp = new C.Vec3(), cr = new C.Vec3(), cv = new C.Vec3(), cf = new C.Vec3(), cn = new C.Vec3();
     // the arm's pull on the hand comes back into the chest along the same line of action (applied at the hand's
     // position), so the pair carries no net torque either: an internal force cannot spin the body
@@ -361,14 +362,30 @@
         // arrives, so the arm swings round the front instead of jamming the hand into its own side
         if (c.nl) {
           b.quaternion.vmult(c.nl, an); const dist = Math.hypot(cp.x - h.position.x, cp.y - h.position.y, cp.z - h.position.z);
-          const off = Math.min(0.25, Math.max(0, dist - 0.1)); cp.x += an.x * off; cp.y += an.y * off; cp.z += an.z * off;
+          // (a wound facing the ceiling needs no detour: the hand simply comes down onto it)
+          const off = Math.min(0.15, Math.max(0, dist - 0.12)) * Math.max(0, 1 - Math.max(0, an.y) * 1.4); cp.x += an.x * off; cp.y += an.y * off; cp.z += an.z * off;
           if (c.seg.name === 'neck' || c.seg.name === 'head') cp.y -= 0.06; // the palm sits over the wound with the fingers up toward the jaw, not over the mouth
+        }
+        // both hands on one wound: the second hand presses on the back of the first, not on the skin beside it
+        const oc = P.clutch[sd === 'L' ? 'R' : 'L'];
+        if (oc && oc.b === b && oc.l.distanceTo(c.l) < 0.06 && c.nl) {
+          const oh = P.parts['hand' + (sd === 'L' ? 'R' : 'L')].b, dMe = Math.hypot(cp.x - h.position.x, cp.y - h.position.y, cp.z - h.position.z), dOther = Math.hypot(cp.x - oh.position.x, cp.y - oh.position.y, cp.z - oh.position.z);
+          if (dMe > dOther || (dMe === dOther && sd === 'L')) { b.quaternion.vmult(c.nl, an); cp.set(oh.position.x + an.x * 0.03, oh.position.y + an.y * 0.03, oh.position.z + an.z * 0.03); }
         }
         cf.set(900 * (cp.x - h.position.x) - 40 * (h.velocity.x - cv.x), 900 * (cp.y - h.position.y) - 40 * (h.velocity.y - cv.y), 900 * (cp.z - h.position.z) - 40 * (h.velocity.z - cv.z));
         const m = cf.norm(), cap = 170 * (P.grip == null ? 1 : P.grip); if (m > cap) cf.scale(cap / Math.max(m, 1e-6), cf);
         // the arm is anchored at the shoulder: its push-back goes into the chest, while the wounded part only feels the
         // hand pressing on it (a small inward force), so holding a neck wound does not drag the head down
         pushBack(h, tho);
+        // the palm turns flat onto the wound (wrist muscles: torque on the hand, reacted by the forearm)
+        if (c.nl && c.nl.norm() > 0) {
+          const fa = P.parts['farm' + sd].b, sg = sd === 'L' ? 1 : -1; b.quaternion.vmult(c.nl, an); h.quaternion.vmult(PALM[sd], pw);
+          const near = Math.max(0, 1 - Math.hypot(cp.x - h.position.x, cp.y - h.position.y, cp.z - h.position.z) / 0.3), K = 10 * near * (P.grip == null ? 1 : P.grip);
+          // want palm = -wound normal
+          tq.set(pw.y * -an.z - pw.z * -an.y, pw.z * -an.x - pw.x * -an.z, pw.x * -an.y - pw.y * -an.x);
+          tq.x = K * tq.x - 0.08 * (h.angularVelocity.x - fa.angularVelocity.x); tq.y = K * tq.y - 0.08 * (h.angularVelocity.y - fa.angularVelocity.y); tq.z = K * tq.z - 0.08 * (h.angularVelocity.z - fa.angularVelocity.z);
+          h.torque.vadd(tq, h.torque); fa.torque.vsub(tq, fa.torque); void sg;
+        }
         b.quaternion.vmult(c.nl || (c.nl = new C.Vec3(0, 0, 0)), cn); if (c.nl.norm() > 0) { cn.scale(-12 * (P.grip == null ? 1 : P.grip), cn); b.applyForce(cn, cr); h.force.vsub(cn, h.force); } // the wound pushes back on the palm
       }
     }
@@ -384,6 +401,38 @@
       const m = gf.norm(); if (m > 1100) gf.scale(1100 / m, gf);
       b.applyForce(gf, gr);
     }
+    // the arms cannot pass through the trunk. The forearm and hand skip the chest/belly collision boxes while
+    // holding a wound (the boxes are coarse), and the upper arm never had one, so a soft keep-out force does the
+    // job instead: any arm point inside the trunk is pushed out through the nearest side or the front (from the back
+    // half, out of the back), never through the body. The palm resting on the wound it holds is allowed.
+    const KEEP = ['thorax', 'abdomen', 'pelvis'], ARMS = ['uarmL', 'farmL', 'handL', 'uarmR', 'farmR', 'handR'];
+    const kp2 = new C.Vec3(), kl = new C.Vec3(), kd = new C.Vec3(), kw = new C.Vec3(), kf2 = new C.Vec3(), kr1 = new C.Vec3(), kr2 = new C.Vec3(), kt = new C.Vec3(), kv1 = new C.Vec3(), kv2 = new C.Vec3();
+    function keepOut() {
+      for (const an of ARMS) {
+        const ap = P.parts[an], a = ap.b, side = an.slice(-1), hand = an[0] === 'h', cl = P.clutch[side];
+        for (const e of hand ? [0] : an[0] === 'f' ? [0, 1] : [1]) {
+          // test points: the hand's centre; the middle and wrist of the forearm; the elbow
+          a.quaternion.vmult(DOWN, kd); kp2.set(a.position.x + kd.x * ap.half * e, a.position.y + kd.y * ap.half * e, a.position.z + kd.z * ap.half * e);
+          if (cl && an[0] !== 'u') { cl.b.pointToWorldFrame(cl.l, kt); const hp = P.parts['hand' + side].b.position; if (kt.distanceTo(hand ? kp2 : hp) < (hand ? 0.1 : 0.14)) continue; } // palm (and wrist) on the wound it holds
+          for (const tn of KEEP) {
+            const t = P.parts[tn].b, he = t.shapes[0].halfExtents; if (!he) continue;
+            t.pointToLocalFrame(kp2, kl);
+            const mx = he.x * 0.9, my = he.y * 0.95, mz = he.z * 0.88;
+            if (Math.abs(kl.x) >= mx || Math.abs(kl.y) >= my || Math.abs(kl.z) >= mz) continue;
+            let best = mx - Math.abs(kl.x); kd.set(kl.x >= 0 ? 1 : -1, 0, 0);
+            if (kl.z >= -mz * 0.2) { if (mz - kl.z < best) { best = mz - kl.z; kd.set(0, 0, 1); } } else if (mz + kl.z < best) { best = mz + kl.z; kd.set(0, 0, -1); }
+            t.quaternion.vmult(kd, kw);
+            // trapped between the trunk and the floor (a hand under the hip): out to the side, not into the floor
+            if (kw.y < -0.5 && kp2.y < 0.2) { kd.set(kl.x >= 0 ? 1 : -1, 0, 0); t.quaternion.vmult(kd, kw); best = mx - Math.abs(kl.x); }
+            kp2.vsub(a.position, kr1); kp2.vsub(t.position, kr2);
+            a.angularVelocity.cross(kr1, kv1); kv1.vadd(a.velocity, kv1); t.angularVelocity.cross(kr2, kv2); kv2.vadd(t.velocity, kv2);
+            const rel = (kv1.x - kv2.x) * kw.x + (kv1.y - kv2.y) * kw.y + (kv1.z - kv2.z) * kw.z;
+            const F = Math.max(0, Math.min(450, best * 4000 - rel * 60));
+            kf2.set(kw.x * F, kw.y * F, kw.z * F); a.wakeUp(); a.applyForce(kf2, kr1); kf2.negate(kf2); t.applyForce(kf2, kr2);
+          }
+        }
+      }
+    }
     // extra torques set by the behaviour layer each frame (a person on the floor rolling by pushing against it)
     P.ext = {};
     function extForce() { for (const n in P.ext) { const e = P.ext[n], b = P.parts[n] && P.parts[n].b; if (!b || !e) continue; b.wakeUp(); b.torque.x += e[0]; b.torque.y += e[1]; b.torque.z += e[2]; } }
@@ -391,7 +440,7 @@
     const H = 1 / 120;
     P.step = (dt) => {
       P.t += dt; acc = Math.min(acc + dt, 0.1);
-      while (acc >= H) { if (P.active) { muscles(); balance(); clutchForce(); grabForce(); extForce(); } world.step(H); acc -= H; }
+      while (acc >= H) { if (P.active) { muscles(); balance(); clutchForce(); grabForce(); extForce(); keepOut(); } world.step(H); acc -= H; }
       syncCasings();
     };
     // ---- write physics transforms back to the render / hit-test skeleton

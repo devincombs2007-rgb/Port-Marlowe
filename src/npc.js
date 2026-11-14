@@ -100,6 +100,13 @@
             if (!(w.noticeAt <= now)) continue;
             const n = w.seg.name;
             if (n.endsWith(sd) && /^(uarm|farm|hand)/.test(n)) continue; // cannot hold its own arm
+            // a hand cannot get to a wound in the middle of the back: only the front, the sides, and the flank on its own side
+            if (/^(neck|thorax|abdomen|pelvis|head)$/.test(n)) {
+              body.woundNormal(w, v3); body.segs.thorax.g.getWorldDirection(v2); // thorax +z (forward) in world
+              const lat = new THREE.Vector3(sd === 'L' ? 1 : -1, 0, 0).transformDirection(body.segs.thorax.g.matrixWorld);
+              const held = N.clutching[sd] === w; // hysteresis: a wound already held stays reachable a little longer
+              if (v3.dot(v2) < (held ? -0.55 : -0.25) && !(n !== 'neck' && n !== 'head' && v3.dot(lat) > (held ? 0.3 : 0.5))) continue;
+            }
             body.woundWorld(w, v2);
             // a hanging hand already reaches the upper thigh; a hand already on a wound keeps it (hysteresis)
             const d = v2.distanceTo(v1), lim = N.posture === 'down' ? 1.15 : 0.8; if (d > (N.clutching[sd] === w ? lim + 0.2 : lim)) continue; // on the floor he curls up to get a hand to a leg wound
@@ -110,8 +117,12 @@
             if (sc > bs) { bs = sc; best = w; }
           }
         }
+        // a hand that has just gone to a wound stays at least a second; one that has just let go waits before grabbing again
+        N.clutchSince = N.clutchSince || { L: -9, R: -9 };
+        if (best !== N.clutching[sd] && can && !P.armBroken[sd] && now - N.clutchSince[sd] < (N.clutching[sd] ? 1.4 : 0.8)) best = N.clutching[sd] && body.wounds.includes(N.clutching[sd]) ? N.clutching[sd] : null;
         pick[sd] = best;
         if (best !== N.clutching[sd]) {
+          N.clutchSince[sd] = now;
           N.clutching[sd] = best;
           if (best) { body.woundWorld(best, v2); body.woundNormal(best, v3); v2.addScaledVector(v3, 0.03); rag.setClutch(sd, best.seg, v2); const cl = rag.clutch[sd]; if (cl) { const ln = new CANNON.Vec3(v3.x, v3.y, v3.z); const qi = cl.b.quaternion.inverse(); cl.nl = qi.vmult(ln); } } else rag.setClutch(sd, null);
         }
@@ -358,7 +369,8 @@
           N.armSw[side] += (want - N.armSw[side]) * Math.min(1, dt * 7); x += N.armSw[side];
         }
         if (n.startsWith('farm') && N.retreating && !N.clutching[side]) x -= 0.35; // elbows a little bent while walking
-        if (isArm && N.clutching[side]) { tone *= 0.12; if (n.startsWith('farm')) x = -1.3; } // let the reaching force place the hand
+        // let the reaching force place the hand; the arm relaxes into the hold and takes its tone back gradually after
+        if (isArm) { N.armHold = N.armHold || { L: 0, R: 0 }; if (n.startsWith('uarm')) N.armHold[side] += ((N.clutching[side] ? 1 : 0) - N.armHold[side]) * Math.min(1, dt * (N.clutching[side] ? 6 : 2.2)); const hk = N.armHold[side]; tone *= 1 - 0.88 * hk; if (n.startsWith('farm')) x += (-1.3 - x) * hk; }
         if (n === 'thorax') {
           // breathing is involuntary: the chest keeps moving while the brainstem drives it
           if (alive && !rigid) { tone = Math.max(tone, 0.3); x += br * 5; }

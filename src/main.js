@@ -55,9 +55,10 @@
   const pending = []; let simClock = 0;
   const projectiles = G.Projectiles(scene);
   const viscera = G.Viscera(scene, body, rag);
+  const headFx = { rk: 0, rkMax: 0, at: 0 }; // raccoon-eye bruising: current and eventual depth
   function cycleTime() { state.ti = (state.ti + 1) % TIMES.length; ui.setTime(TIMES[state.ti]); }
   function reset() {
-    body.clearWounds(); world.clear(); rag.stop(); rag.clear(); projectiles.clear(); viscera.clear();
+    body.clearWounds(); world.clear(); rag.stop(); rag.clear(); projectiles.clear(); viscera.clear(); headFx.rk = headFx.rkMax = 0;
     // each new subject is a different person (the first one is always the same, for a consistent start)
     if (body.setLook) { const first = reset.n == null; reset.n = (reset.n || 0) + 1;
       const tints = [0xffffff, 0x8a6a50, 0x5a4030, 0xd0b090, 0x404040];
@@ -166,6 +167,7 @@
       const res = G.simulate(w.bullet, origin, tmp, sampler);
       res.d0 = tmp.clone(); results.push(res);
     }
+    G.debug.last = results;
     // the round itself, flying the computed track from the muzzle
     { const m = gun.models[gun.model]; tmp.set(0, m ? m.userData.fy || 0.03 : 0.03, m ? (m.userData.muzzle || -0.2) : -0.2); if (m) m.localToWorld(tmp); else tmp.copy(origin);
       for (const res of results) {
@@ -196,6 +198,7 @@
         }
       }
       if (hits.length) audio.impact(hits.some((r) => r.order.some((p) => p.kind === 'bone')), hits.reduce((a, r) => a + r.Edep, 0));
+      headTrauma(results);
       ui.report(buildReport(results, w));
     } });
   }
@@ -208,6 +211,70 @@
     if (cr < 0.02 || !/^(abdomen|pelvis)$/.test(sw.seg.name) || !res.order.some((p) => GUT.test(p.kind))) return;
     viscera.spawn(sw, cr); if (cr > 0.032) viscera.spawn(sw, cr);
     phys.addInjury('evisc', 'Evisceration: loops of bowel protruding through the wound', 2);
+  }
+  // ---- the head. What a bullet does to the skull, brain and eyes depends above all on how much energy it leaves
+  // there. A handgun round (300-700 J) makes a modest exit, often with a little brain in it. A rifle round or a slug
+  // (1000-3000 J) throws a temporary cavity of 6-9 cm through a brain shut inside a rigid skull: the skull bursts open.
+  // The pressure fractures the thin roofs of the orbits, so bruising spreads round both eyes over the following
+  // minutes ("raccoon eyes"), and a fractured skull base bleeds from the nose and ears. A track through the eye
+  // ruptures it; one passing close behind it drives it forward, and a powerful one can push it out of the socket.
+  let marks = null;
+  function headMarks() {
+    if (marks) return marks;
+    const g = body.human.geometry, P = g.attributes.position; let nose = null, earL = null, earR = null;
+    for (let i = 0; i < P.count; i++) {
+      const x = P.getX(i), y = P.getY(i), z = P.getZ(i);
+      if (Math.abs(x) < 0.006 && y > 1.59 && y < 1.66 && (!nose || z > nose.z)) nose = new V3(x, y, z);
+      if (y > 1.62 && y < 1.68 && z > -0.04 && z < 0.03) { if (!earL || x > earL.x) earL = new V3(x, y, z); if (!earR || x < earR.x) earR = new V3(x, y, z); }
+    }
+    return (marks = { nose, earL, earR });
+  }
+  const restToWorld = (v) => v.clone().sub(body.segs.head.origin).applyMatrix4(body.segs.head.g.matrixWorld);
+  function oozeAt(rest, nrm, rate, label) {
+    const hs = body.segs.head, p = restToWorld(rest), n = nrm.clone().transformDirection(hs.g.matrixWorld);
+    const sw = body.addWound({ seg: hs, p, r: 0.002, type: 'ooze' }, n, null); sw.rate = 0; sw.acc = 0; sw.buf = 0;
+    phys.addBleed(label, rate, sw);
+  }
+  const segD = (c, a, b) => { tmp.set(b.x - a.x, b.y - a.y, b.z - a.z); const L2 = tmp.lengthSq() || 1e-9; const t = Math.max(0, Math.min(1, ((c.x - a.x) * tmp.x + (c.y - a.y) * tmp.y + (c.z - a.z) * tmp.z) / L2)); return Math.hypot(a.x + tmp.x * t - c.x, a.y + tmp.y * t - c.y, a.z + tmp.z * t - c.z); };
+  function headTrauma(results) {
+    const viaHead = results.filter((r) => r.hitBody && r.marks.some((m) => m.seg && m.seg.name === 'head'));
+    if (!viaHead.length || !body.eyes) return;
+    const brain = viaHead.filter((r) => r.order.some((o) => /cereb|brain/.test(o.kind))), E = brain.reduce((a, r) => a + r.Edep, 0);
+    body.updateMatrices();
+    const ec = new V3();
+    for (const e of body.eyes) {
+      body.eyeWorld(e, ec); let dmin = 9;
+      for (const r of viaHead) { const t = r.track; for (let i = 0; i < t.length - 1; i++) dmin = Math.min(dmin, segD(ec, t[i], t[i + 1])); for (const m of r.marks) if (m.seg && m.seg.name === 'head') dmin = Math.min(dmin, ec.distanceTo(tmp2.set(m.p.x, m.p.y, m.p.z))); }
+      const side = e.side === 'L' ? 'Left' : 'Right';
+      if (dmin < e.r + 0.004) {
+        body.eyeRupture(e); phys.addInjury('globe' + e.side, side + ' eye: globe ruptured', 2);
+        oozeAt(e.c.clone().add(new V3(0, -e.r * 0.4, e.r)), new V3(0, -0.3, 1), 25, side + ' orbit');
+      } else if (dmin < 0.03) {
+        if (E > 1100 && Math.random() < 0.65) {
+          // pushed out of the socket: it hangs on the optic nerve
+          body.eyeOut(e); phys.addInjury('enuc' + e.side, side + ' eye forced out of the orbit', 2);
+          const hs = body.segs.head, sw = body.addWound({ seg: hs, p: restToWorld(e.c.clone().add(new V3(0, 0, e.r * 0.6))), r: 0.002, type: 'ooze' }, new V3(0, 0, 1).transformDirection(hs.g.matrixWorld), null);
+          sw.rate = 0; sw.acc = 0; sw.buf = 0; phys.addBleed(side + ' orbit', 30, sw); viscera.spawn(sw, 0, 'eye', { eye: e.g });
+        } else { body.eyeForward(e, 5 + Math.random() * 4); body.eyeBlood(e, 0.85); phys.addInjury('prop' + e.side, side + ' eye: orbit fractured, bleeding behind the eye pushes it forward', 1); }
+      } else if (E > 1500) { body.eyeForward(e, 2 + Math.random() * 3); body.eyeBlood(e, 0.6); } // the pressure wave of a bursting skull
+    }
+    if (!brain.length) return;
+    // fractured skull base: bruising round the eyes over minutes, blood from the nose and ears
+    if (E > 250) { headFx.rkMax = Math.max(headFx.rkMax, Math.min(1, 0.35 + E / 1800)); phys.addInjury('basefx', 'Skull base fractured', 1); }
+    const L = headMarks();
+    if (L.nose && (E > 600 || Math.random() < 0.35)) { oozeAt(L.nose.clone().add(new V3(0.006, -0.015, -0.01)), new V3(0, -0.6, 0.8), 8 + Math.min(25, E / 80), 'Nose'); if (E > 1200) oozeAt(L.nose.clone().add(new V3(-0.006, -0.015, -0.01)), new V3(0, -0.6, 0.8), 6 + E / 150, 'Nose'); }
+    if (E > 900 || Math.random() < 0.25) for (const [ear, nx] of [[L.earL, 1], [L.earR, -1]]) if (ear && (E > 1400 || Math.random() < 0.6)) oozeAt(ear, new V3(nx, 0, 0), 4 + E / 300, 'Ear');
+    // the exit (or the entry, if the round stayed inside)
+    const r0 = brain[0], ex = r0.marks.filter((m) => m.type === 'exit' && m.seg && m.seg.name === 'head').pop() || r0.marks.find((m) => m.type === 'entry' && m.seg && m.seg.name === 'head');
+    const sw = ex && body.wounds.find((bw) => bw.mark === ex); if (!sw) return;
+    if (E > 1000) {
+      const s = Math.min(1, (E - 900) / 2200), R = 0.04 + 0.045 * s;
+      body.burst(sw, R, 4 + Math.round(s * 3));
+      for (let k = 0; k < 1 + Math.round(2 * s); k++) viscera.spawn(sw, R, 'brain');
+      tmp2.set(ex.p.x, ex.p.y, ex.p.z); const dd = ex.dir || r0.d0;
+      world.chunks(tmp2, dd, Math.round(14 + 24 * s), 3 + 4 * s, 0.7, 'brain'); world.chunks(tmp2, dd, Math.round(5 + 10 * s), 3 + 3 * s, 0.8, 'bone');
+      phys.addInjury('burst', 'Skull burst open: massive destruction of the brain', 2);
+    } else if (ex.type === 'exit' && E > 250) viscera.spawn(sw, 0.012, 'brain'); // a little brain in a handgun exit
   }
   function processShot(res, w, d0, origin) {
     const surfs = [];
@@ -433,7 +500,9 @@
       for (let i = 0; i < sub; i++) { phys.step(simDt / sub); bleed(simDt / sub, i === sub - 1); }
       npc.update(dt * Math.min(scale, 3) * slow);
     } else npc.update(dt);
-    world.update(dt * slow); viscera.update(dt * slow); smearBody(); body.bloodTick && body.bloodTick(dt * slow, phys.hr > 20);
+    world.update(dt * slow); viscera.update(dt * slow); smearBody();
+    // raccoon eyes come up over ~7 minutes while blood still circulates
+    if (headFx.rkMax > headFx.rk && phys.hr > 20) { headFx.rk = Math.min(headFx.rkMax, headFx.rk + dt * slow * scale * headFx.rkMax / 420); headFx.at += dt; if (headFx.at > 0.25) { headFx.at = 0; body.periorbital(headFx.rk); } } body.bloodTick && body.bloodTick(dt * slow, phys.hr > 20);
     if (state.started) {
       const dx = vent.x - state.pos.x, dz = vent.y - state.pos.z;
       const distance = Math.hypot(dx, dz);

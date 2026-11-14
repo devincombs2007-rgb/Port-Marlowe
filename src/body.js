@@ -274,14 +274,18 @@
       const irisMat = new THREE.MeshStandardMaterial({ map: irisTex, roughness: 0.4, polygonOffset: true, polygonOffsetFactor: -2 });
       const corneaMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.02, metalness: 0, transparent: true, opacity: 0.12 });
       const hd = body.segs.head, white = new THREE.MeshStandardMaterial({ color: 0xe6e0d8, roughness: 0.3 }), iris = new THREE.MeshStandardMaterial({ color: 0x3a2a1c, roughness: 0.2 }), pupil = new THREE.MeshBasicMaterial({ color: 0x050505 });
+      body.eyes = [];
       for (const e of H.eyes) {
         const g = new THREE.Group(); g.position.set(e.c[0] - hd.origin.x, e.c[1] - hd.origin.y, e.c[2] - hd.origin.z - e.r * 0.15);
         // eyeball plus a painted iris disc (radial fibres, darker limbal ring, pupil) on its front surface
-        const ball = new THREE.Mesh(new THREE.SphereGeometry(e.r, 20, 14), white);
-        const disc = new THREE.Mesh(new THREE.CircleGeometry(e.r * 0.5, 24), irisMat); disc.position.z = e.r * 0.94; disc.renderOrder = 2;
+        const ball = new THREE.Mesh(new THREE.SphereGeometry(e.r, 20, 14), white.clone());
+        // iris and pupil are caps on the eyeball's own curve (a flat disc inside the sphere showed only as a ring up close)
+        const cap = (R, th) => { const g = new THREE.SphereGeometry(R, 28, 8, 0, Math.PI * 2, 0, th); g.rotateX(Math.PI / 2); const a = g.attributes.position, uv = g.attributes.uv, w = R * Math.sin(th); for (let i = 0; i < a.count; i++) uv.setXY(i, 0.5 + a.getX(i) / (2 * w), 0.5 + a.getY(i) / (2 * w)); return g; };
+        const disc = new THREE.Mesh(cap(e.r * 1.004, 0.52), irisMat.clone()); disc.renderOrder = 2;
         const cornea = new THREE.Mesh(new THREE.SphereGeometry(e.r * 0.52, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), corneaMat); cornea.rotation.x = Math.PI / 2; cornea.position.z = e.r * 0.86; cornea.scale.y = 0.35;
-        const pupil = new THREE.Mesh(new THREE.CircleGeometry(e.r * 0.16, 20), pupilMat); pupil.position.z = e.r * 0.945; pupil.renderOrder = 3; body.pupils.push(pupil);
+        const pupil = new THREE.Mesh(cap(e.r * 1.008, 0.16), pupilMat); pupil.renderOrder = 3; body.pupils.push(pupil);
         g.add(ball, disc, pupil, cornea); hd.g.add(g); body.decoMeshes.push(g);
+        body.eyes.push({ g, ball, disc, pupil, cornea, c: new V3(e.c[0], e.c[1], e.c[2]), r: e.r, p0: g.position.clone(), side: e.c[0] > 0 ? 'L' : 'R' });
       }
       // nearest point of the real skin along a wound's normal (rest pose), so decals sit on the mesh, not the hit volume
       const ia = geo.index.array, e1 = new V3(), e2 = new V3(), pv = new V3(), tv = new V3(), qv = new V3(), a = new V3(), o = new V3(), d = new V3();
@@ -307,7 +311,7 @@
 
     // pupil diameter as a fraction of the iris: ~0.32 normal in room light, wider with shock and adrenaline,
     // fixed and fully dilated once the brainstem stops working
-    body.setPupil = (f) => { for (const p of body.pupils || []) p.scale.setScalar(Math.max(0.6, Math.min(2.6, f / 0.32))); };
+    body.setPupil = (f) => { for (const p of body.pupils || []) { const k = Math.max(0.6, Math.min(2.6, f / 0.32)); p.scale.set(k, k, 1); } };
     // skin colour follows the circulation: pallor with blood loss, blue-grey with low oxygen, waxy grey after death
     const tint = new THREE.Color();
     body.setPerfusion = (lossFrac, spo2, dead, deadT) => {
@@ -476,10 +480,10 @@
       // entry holes are about bullet diameter (the texture's hole is ~0.3 of its radius); stretched by 1/cos at an angle
       if (exit) { hole.scale.setScalar(slit ? mark.r * 1.7 : mark.r * 2.0); hole.rotation.z = slit ? ang + (Math.random() - 0.5) * 1.2 : Math.random() * 6.3; }
       else { const e = Math.min(2.3, 1 / Math.max(0.43, cos)); hole.scale.set(mark.r * 1.9 * e, mark.r * 1.9, 1); hole.rotation.z = ang; }
-      hole.position.z = 0.0008; hole.renderOrder = 6;
+      hole.position.z = 0.0008; hole.renderOrder = 6; if (mark.type === 'ooze') hole.visible = false;
       let bruise = null;
-      if (!exit) { bruise = new THREE.Mesh(woundGeo, dmat(bruiseTex, -2, 0.6)); bruise.scale.setScalar(mark.r * 4.2 + 0.006); bruise.material.opacity = 0.0; bruise.position.z = 0.0004; bruise.renderOrder = 4; g.add(bruise); }
-      if (!exit && range != null && range < 0.75) {
+      if (!exit && mark.type !== 'ooze') { bruise = new THREE.Mesh(woundGeo, dmat(bruiseTex, -2, 0.6)); bruise.scale.setScalar(mark.r * 4.2 + 0.006); bruise.material.opacity = 0.0; bruise.position.z = 0.0004; bruise.renderOrder = 4; g.add(bruise); }
+      if (!exit && mark.type !== 'ooze' && range != null && range < 0.75) {
         // unburnt powder tattoos the skin out to roughly 60-75 cm (an oval pattern when the muzzle is at an angle); soot only within a hand's width
         const st = new THREE.Mesh(woundGeo, stippleMat); st.scale.set((0.022 + range * 0.075) / Math.max(0.5, cos), 0.022 + range * 0.075, 1); st.rotation.z = ang; st.position.z = 0.0022; st.renderOrder = 5; g.add(st);
         if (range < 0.16) { const so = new THREE.Mesh(woundGeo, sootMat); so.scale.set((0.02 + range * 0.14) / Math.max(0.5, cos), 0.02 + range * 0.14, 1); so.rotation.z = ang; so.position.z = 0.0024; so.renderOrder = 5; g.add(so); }
@@ -567,6 +571,62 @@
       else { w.soak = new THREE.SkinnedMesh(g, soakMat); w.soak.frustumCulled = false; w.soak.renderOrder = 4; w.soak.bind(hm.skeleton, hm.bindMatrix); hm.parent.add(w.soak); }
     }
     body.paintSoak = paintSoak;
+    // ---- eyes. A bullet through the globe ruptures it: it collapses, dark with blood. Passing close behind it, the
+    // bleeding in the orbit pushes it forward (proptosis) and floods the white with blood. A powerful round through
+    // the orbit can push it right out of the socket (then it is drawn by viscera.js, hanging by the optic nerve).
+    body.eyeWorld = (e, out) => out.copy(e.g.position).applyMatrix4(body.segs.head.g.matrixWorld);
+    body.eyeRupture = (e) => { if (e.state === 'out') return; e.state = 'ruptured'; e.ball.scale.set(0.9, 0.7, 0.45); e.ball.material.color.set(0x4a0c0c); e.ball.material.roughness = 0.25; e.disc.material.color.set(0x2a1010); e.disc.scale.setScalar(0.8); e.pupil.visible = false; e.cornea.visible = false; e.g.position.z = e.p0.z - e.r * 0.35; };
+    body.eyeBlood = (e, k) => { if (e.state === 'ruptured' || e.state === 'out') return; e.ball.material.color.setRGB(0.9 - 0.25 * k, 0.86 - 0.78 * k, 0.82 - 0.74 * k); }; // the white floods with blood (subconjunctival haemorrhage)
+    body.eyeForward = (e, mm) => { if (e.state === 'ruptured' || e.state === 'out') return; e.state = 'proptosed'; e.g.position.z = e.p0.z + Math.min(5, mm) / 1000; };
+    body.eyeOut = (e) => { e.state = 'out'; e.g.visible = false; };
+    body.resetEyes = () => { for (const e of body.eyes || []) { e.state = null; e.g.visible = true; e.g.position.copy(e.p0); e.ball.scale.set(1, 1, 1); e.ball.material.color.set(0xe6e0d8); e.ball.material.roughness = 0.3; e.disc.material.color.set(0xffffff); e.disc.scale.setScalar(1); e.pupil.visible = true; e.cornea.visible = true; } };
+    // bruising round both eyes from a fractured skull base ("raccoon eyes"): painted into the skin, deepening with k
+    let orb = null; const purple = new THREE.Color(0x3c1a30);
+    body.periorbital = (k) => {
+      const hm = body.human; if (!hm || !body.eyes) return;
+      const col = hm.geometry.attributes.color, pos = hm.geometry.attributes.position;
+      if (!orb) { orb = []; for (let i = 0; i < pos.count; i++) for (const e of body.eyes) { const dx = pos.getX(i) - e.c.x, dy = (pos.getY(i) - e.c.y) * (pos.getY(i) < e.c.y ? 0.8 : 1.6), dz = pos.getZ(i) - e.c.z, d = Math.sqrt(dx * dx + dy * dy + dz * dz); if (d < 0.03 && pos.getZ(i) > e.c.z - 0.02) { orb.push([i, Math.min(1, (0.03 - d) / 0.012), col.getX(i), col.getY(i), col.getZ(i)]); break; } } }
+      for (const [i, w, r, g, b] of orb) { const t = Math.min(1, k * w); col.setXYZ(i, r + (purple.r - r) * t, g + (purple.g - g) * t, b + (purple.b - b) * t); }
+      col.needsUpdate = true; body.dirty = true;
+    };
+    // ---- a skull burst open by a high-energy round: the temporary cavity in the closed skull blows the bone out.
+    // A large ragged defect with brain and blood inside and the edge of the skull showing; around it the scalp and
+    // bone fragments are pushed outward; scalp tears radiate from the defect.
+    const brainC = new THREE.Color(0x8a6a66), bloodC = new THREE.Color(0x2e0304), boneC = new THREE.Color(0xc9bba0), tearC = new THREE.Color(0x250203), darkC = new THREE.Color(0x120101);
+    body.burst = (w, R, tears) => {
+      const hm = body.human; if (!hm) return;
+      const geo = hm.geometry, pos = geo.attributes.position, col = geo.attributes.color, SIa = geo.attributes.skinIndex.array, SWa = geo.attributes.skinWeight.array, hi = body.list.indexOf(body.segs.head);
+      const p = w.g.position.clone().add(w.seg.origin), hc = new V3(0, 1.69, -0.005), rad = new V3(), q = new V3();
+      const rays = []; const t0 = new V3().subVectors(p, hc).normalize(), a1 = new V3(0, 1, 0).cross(t0).normalize(), a2 = new V3().crossVectors(t0, a1);
+      for (let k = 0; k < tears; k++) { const an = (k / tears) * 6.283 + Math.random() * 0.8; rays.push({ d: a1.clone().multiplyScalar(Math.cos(an)).addScaledVector(a2, Math.sin(an)), L: R * (0.8 + Math.random() * 1.2) }); }
+      for (let i = 0; i < pos.count; i++) {
+        let m = 0, bd = 0; for (let k = 0; k < 4; k++) if (SWa[i * 4 + k] > m) { m = SWa[i * 4 + k]; bd = SIa[i * 4 + k]; }
+        if (bd !== hi) continue;
+        q.set(pos.getX(i), pos.getY(i), pos.getZ(i)); const d = q.distanceTo(p); if (d > R * 2.4) continue;
+        rad.subVectors(q, hc).normalize(); const jag = 0.7 + 0.6 * Math.abs(Math.sin(i * 12.9898) * 43758.5453 % 1), c0 = new THREE.Color(col.getX(i), col.getY(i), col.getZ(i));
+        if (d < R * jag) {
+          const u = d / R; q.addScaledVector(rad, -R * 0.55 * (1 - u * u) * jag); // the open defect
+          c0.copy(u < 0.35 ? darkC : u < 0.8 ? (Math.random() < 0.5 ? brainC : bloodC) : boneC).lerp(bloodC, Math.random() * 0.5);
+        } else if (d < R * 1.8) {
+          const u = (d - R) / (R * 0.8); q.addScaledVector(rad, 0.016 * (1 - u) * jag * jag); // bone and scalp everted round the edge, in ragged pieces
+          c0.lerp(bloodC, 0.97 * (1 - u * 0.25));
+        } else {
+          // radiating scalp tears
+          for (const r of rays) { q.sub(p); const along = q.dot(r.d), off = Math.sqrt(Math.max(0, q.lengthSq() - along * along)); q.add(p); if (along > 0 && along < R + r.L && off < 0.004 * (1 - along / (R + r.L) * 0.5)) { q.addScaledVector(rad, -0.003); c0.lerp(tearC, 0.9); break; } }
+          if (d < R * 2.4) c0.lerp(bloodC, 0.6 * (1 - (d - R * 1.8) / (R * 0.6)));
+        }
+        pos.setXYZ(i, q.x, q.y, q.z); col.setXYZ(i, c0.r, c0.g, c0.b);
+      }
+      pos.needsUpdate = col.needsUpdate = true; geo.computeVertexNormals(); body.dirty = true; w.crater = R; w.burst = true;
+      // the geometry is the wound now: no flat decal or pool painted over it
+      for (const ch of w.g.children) ch.visible = false;
+      // the hair over the defect goes with the scalp (tucked inside the skull, out of sight)
+      for (const hm2 of body.hairs || []) {
+        const hp = hm2.geometry.attributes.position; if (!hm2.userData.pos0) hm2.userData.pos0 = hp.array.slice();
+        for (let i = 0; i < hp.count; i++) { q.set(hp.getX(i), hp.getY(i), hp.getZ(i)); if (q.distanceTo(p) < R * 1.2) hp.setXYZ(i, hc.x, hc.y, hc.z); }
+        hp.needsUpdate = true;
+      }
+    };
     body.growStain = (w, ml) => {
       if (w.cloth) {
         // cotton holds roughly 1 mL per 4-5 cm^2 before it drips: the patch spreads with the square root of the volume
@@ -591,6 +651,8 @@
     body.woundWorld = (w, out) => out.copy(w.g.position).applyMatrix4(w.seg.g.matrixWorld);
     body.woundNormal = (w, out) => out.copy(w.n).transformDirection(w.seg.g.matrixWorld);
     body.clearWounds = () => {
+      if (body.resetEyes) body.resetEyes();
+      for (const hm2 of body.hairs || []) if (hm2.userData.pos0) { hm2.geometry.attributes.position.array.set(hm2.userData.pos0); hm2.geometry.attributes.position.needsUpdate = true; }
       if (body.human && body.dirty) { const g = body.human.geometry; g.attributes.position.array.set(body.skin0.pos); g.attributes.color.array.set(body.skin0.col); g.attributes.position.needsUpdate = g.attributes.color.needsUpdate = true; g.computeVertexNormals(); body.dirty = false; }
       for (const sg of body.list) if (sg.dirty && sg.skin) { const g = sg.skin.geometry; g.attributes.position.array.set(sg.skin0.pos); g.attributes.color.array.set(sg.skin0.col); g.attributes.position.needsUpdate = g.attributes.color.needsUpdate = true; g.computeVertexNormals(); sg.dirty = false; } for (const w of body.wounds) { w.seg.g.remove(w.g); if (w.track) w.seg.g.remove(w.track); if (w.soak) { w.soak.parent.remove(w.soak); w.soak.geometry.dispose(); } } body.wounds.length = 0; if (body.clearBlood) body.clearBlood(); };
     body.updateMatrices();

@@ -294,6 +294,8 @@
       } else inj('headbump', 'Head struck the floor', 0);
     };
     S.addInjury = (key, text, sev) => inj(key, text, sev);
+    // an extra external bleed (nose, ears, an emptied eye socket), drawn from a surface point on the body
+    S.addBleed = (label, rate, surf) => wound(label, rate, { ext: 1, surf, venous: true, clot: 900 });
     S.mainBleed = () => { let m = null; for (const w of S.wounds) if (!m || w.lost > m.lost) m = w; return m ? m.label.toLowerCase() : 'multiple wounds'; };
     S.frac = () => (S.total - S.bv) / S.total;
     S.hemClass = () => { const f = S.frac(); return f < 0.005 ? '—' : f < 0.15 ? 'Class I' : f < 0.3 ? 'Class II' : f < 0.4 ? 'Class III' : 'Class IV'; };

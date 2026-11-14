@@ -1,4 +1,4 @@
-# Port-Marlowe — Wound Ballistics Lab (v1.8)
+# Port-Marlowe — Wound Ballistics Lab (v1.9)
 
 A browser-based 3D simulator of gunshot wounds. A test subject stands in a chamber; every
 round is traced millimetre by millimetre through skin, bone, organs and vessels, and the
@@ -7,6 +7,16 @@ body then responds in real time (bleeding, blood pressure, breathing, consciousn
 **Run it:** serve this folder with any static server (`python3 -m http.server`) and open
 `index.html`. No build step. `node tools/build.js` bundles a single-file page into `dist/`.
 
+**v1.9**: head wounds follow the energy left in the head. Handgun rounds (300-700 J) leave a modest exit, often
+with a little brain tissue in it. Rifle rounds and slugs (1000-3000 J) burst the skull open: a large ragged defect
+with brain and blood inside, torn scalp and bone pushed outward, radiating scalp tears, hair parted over the
+wound, brain tissue clinging to the edge and thrown across the room. A track through an eye ruptures it; one
+passing close behind it pushes it forward and floods the white with blood; a powerful round through the orbit can
+force it out, hanging by the optic nerve. A fractured skull base brings bruising up round both eyes over the next
+minutes ("raccoon eyes") and blood from the nose and ears. Arms: a hand no longer reaches through the body for a
+wound on the back, a soft keep-out stops arms passing through the trunk, the palm turns flat onto the wound, two
+hands on one wound stack, the hand no longer grabs and drops the wound every half second, and the eyes' irises
+render properly up close.
 **v1.8**: every sound is a recording (real breaths at the subject's breathing rate, snoring when unconscious,
 gurgling, crying, yelps, screams and moans; a recorded air-conditioner hum). A conscious, wounded person on the
 floor never lies still: he writhes, draws his knees up, rolls, curls up, lifts his head to look at the wound and
