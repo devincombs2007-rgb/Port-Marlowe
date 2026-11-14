@@ -23,10 +23,12 @@ All CC0 1.0 (public domain). Trimmed, peak-normalised, mono MP3.
 
 | Clips | Source pack | Author | Used for |
 |---|---|---|---|
-| grunt_1..5 | "15 vocal male strain/hurt/pain/jump sounds" (opengameart.org) | qubodup | reaction when hit |
+| grunt_1..5, yelp_1..15 | "15 vocal male strain/hurt/pain/jump sounds" (opengameart.org) | qubodup | the cry when hit |
+| scream_1..7, moan_1..12 | "Hurt / Death sound effect for character" (opengameart.org) | badre-eddine | screaming and moaning in pain |
+| scream_8..9 | "Male Grunt/Yelling sounds" (opengameart.org), yell1, yell10 | haeldb | screaming in pain |
 | groan_1..3 | "Male Grunt/Yelling sounds" (opengameart.org) | haeldb | pain while down |
 | groan_4..5 | "Hurt / Death sound effect for character" (opengameart.org) | badre-eddine | pain while down |
-| cough_1..3, gasp_1..2 | "80 CC0 creature SFX" (opengameart.org), cough-01..03, breath, breath-02 | rubberduck | coughing up blood, agonal gasps |
+| gasp_1..2 | "80 CC0 creature SFX" (opengameart.org), breath, breath-02 | rubberduck | agonal gasps |
 | flesh_1..3 | "8 wet squish, slurp impacts" (opengameart.org) | qubodup | bullet into the body |
 | drip_1..3 | "40 water / splash / slime SFX" (opengameart.org) | rubberduck | blood hitting the floor |
 | fall_1..4, thump_1..2 | Impact Sounds (kenney.nl) | Kenney | body and limbs hitting the floor, bone strike |
@@ -35,4 +37,21 @@ All CC0 1.0 (public domain). Trimmed, peak-normalised, mono MP3.
 | wall_1..3 | Impact Sounds (kenney.nl) | Kenney | bullet striking the wall |
 
 OpenGameArt packs were fetched from the mirror github.com/novincode/atomcut-library; Kenney's from
-github.com/Boyquotes/kenney-impact-sounds-for-godot. Coughs and agonal gasps are recordings; the continuous breathing bed is still synthesized.
+github.com/Boyquotes/kenney-impact-sounds-for-godot.
+
+# Breathing, crying, coughing, gurgling, room tone (Wikimedia Commons)
+
+| Clips | Source file | Author / licence | Used for |
+|---|---|---|---|
+| inhale_1..10, exhale_1..10 | File:Heavy breathing 2.ogg (denoised by spectral gating, cut into single breaths) | public domain | breathing, one inhale and exhale per breath at the subject's rate |
+| snore_1..8 | File:Snoring of old man.ogg | CC0 1.0 | snoring respiration when unconscious (slack airway) |
+| cry_1..3 | File:Male crying and weeping.ogg | CC BY 3.0, see the file page on commons.wikimedia.org | crying in pain |
+| cry_4..7 | File:Man Crying .ogg | CC BY 3.0, see the file page on commons.wikimedia.org | crying in pain |
+| cough_1..4 | File:Cough 1.ogg | public domain | coughing (blood in the airway) |
+| cough_5..6 | File:Cough 2.ogg | public domain | coughing |
+| cough_7 | File:Man coughing.ogg | public domain | coughing |
+| cough_8 | File:Short coughs.ogg | public domain | coughing |
+| gurgle_1..6 | File:Slimy gurgling and retc.ogg | public domain | blood in the airway |
+| vent | File:Air conditioner hum (Gravity Sound).wav (looped with a crossfade) | Gravity Sound, CC BY 4.0 | the room's air handling |
+
+Nothing in the game is synthesized. `node tools/build_sounds.js` embeds every clip here into src/sounds.js.

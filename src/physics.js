@@ -131,7 +131,7 @@
     P.stop = () => {
       if (!P.active) return;
       P.setRigid(false);
-      P.active = false; P.stepping = null; P.lost = null; P.stepWin = 0; P.grabbed = null; P.clutch.L = P.clutch.R = null; P.reach.L = P.reach.R = null; P.ctl.s = 0; P.ctl.push.set(0, 0, 0);
+      P.active = false; P.stepping = null; P.lost = null; P.stepWin = 0; P.grabbed = null; P.clutch.L = P.clutch.R = null; P.reach.L = P.reach.R = null; P.ext = {}; P.ctl.s = 0; P.ctl.push.set(0, 0, 0);
       for (const j of P.joints) for (const c of j.cons) world.removeConstraint(c);
       for (const k in P.parts) world.remove(P.parts[k].b);
       for (const s of body.list) { s.g.position.copy(s.rest); s.g.quaternion.set(0, 0, 0, 1); }
@@ -182,6 +182,24 @@
     const up = new C.Vec3(), ax = new C.Vec3();
     function balance() {
       const c = P.ctl; footCM.friction = c.s > 0.01 ? 0.1 : 0.003; // heels slide while the feet are drawn in; they grip once pushing up
+      if (c.knees > 0.01 && c.s <= 0.01) {
+        // lying on the back with the knees drawn up: the heels slide toward the buttocks and the hip flexors lift
+        // the knees. Internal force, reacted at the pelvis.
+        const pel = P.parts.pelvis.b; pel.quaternion.vmult(UP, up); pel.quaternion.vmult(LEFT, lv); pel.quaternion.vmult(FWD, fw);
+        const supine = fw.y > 0.3, prone = fw.y < -0.3; // face down: no knees up (that would just lift the hips)
+        const am = Math.hypot(up.x, up.z) || 1, ux = up.x / am, uz = up.z / am, lm = Math.hypot(lv.x, lv.z) || 1;
+        if (!prone) for (const [sd, sg] of [['L', 1], ['R', -1]]) {
+          const f = P.parts['foot' + sd].b, k = c.knees * (c.kneeSide ? (c.kneeSide === sg ? 1 : 0.35) : 1);
+          const tx = pel.position.x - ux * 0.4 + (lv.x / lm) * 0.14 * sg, tz = pel.position.z - uz * 0.4 + (lv.z / lm) * 0.14 * sg;
+          sf.set(420 * (tx - f.position.x) - 40 * f.velocity.x, 0, 420 * (tz - f.position.z) - 40 * f.velocity.z);
+          const m = sf.norm(), cap = 150 * k; if (m > cap) sf.scale(cap / m, sf);
+          f.wakeUp(); f.force.vadd(sf, f.force); pel.force.vsub(sf, pel.force);
+          const part = P.parts['thigh' + sd], th = part.b; th.wakeUp();
+          th.quaternion.vmult(DOWN, kv); const half = part.half || 0.2; kp.set(th.position.x + kv.x * half, th.position.y + kv.y * half, th.position.z + kv.z * half);
+          const lift = supine ? Math.min(120, Math.max(0, 0.42 - kp.y) * 600) * k : 0;
+          kf.set(0, lift, 0); kr.set(kp.x - th.position.x, kp.y - th.position.y, kp.z - th.position.z); th.applyForce(kf, kr); pel.force.y -= lift * 0.6; f.force.y -= lift * 0.4;
+        }
+      }
       if (c.draw > 0.01) {
         // drawing the feet in under the hips (getting up): the hip and thigh muscles pull each foot toward a
         // point just in front of the pelvis. Internal force: equal and opposite on the pelvis.
@@ -321,6 +339,10 @@
       P.clutch[side] = { b, l, seg };
     };
     const an = new C.Vec3(), cp = new C.Vec3(), cr = new C.Vec3(), cv = new C.Vec3(), cf = new C.Vec3(), cn = new C.Vec3();
+    // the arm's pull on the hand comes back into the chest along the same line of action (applied at the hand's
+    // position), so the pair carries no net torque either: an internal force cannot spin the body
+    const pr = new C.Vec3(), nf = new C.Vec3();
+    const pushBack = (h, tho) => { h.force.vadd(cf, h.force); cf.negate(nf); h.position.vsub(tho.position, pr); tho.applyForce(nf, pr); };
     function clutchForce() {
       const tho = P.parts.thorax.b;
       for (const sd of ['L', 'R']) {
@@ -330,7 +352,7 @@
           const h = P.parts['hand' + sd].b; h.wakeUp();
           cf.set(650 * (rp.x - h.position.x) - 30 * h.velocity.x, 650 * (rp.y - h.position.y) - 30 * h.velocity.y, 650 * (rp.z - h.position.z) - 30 * h.velocity.z);
           const m = cf.norm(); if (m > 130) cf.scale(130 / m, cf);
-          h.force.vadd(cf, h.force); tho.force.vsub(cf, tho.force); continue;
+          pushBack(h, tho); continue;
         }
         const c = P.clutch[sd]; if (!c) continue;
         const h = P.parts['hand' + sd].b, b = c.b; h.wakeUp(); b.wakeUp();
@@ -346,8 +368,8 @@
         const m = cf.norm(), cap = 170 * (P.grip == null ? 1 : P.grip); if (m > cap) cf.scale(cap / Math.max(m, 1e-6), cf);
         // the arm is anchored at the shoulder: its push-back goes into the chest, while the wounded part only feels the
         // hand pressing on it (a small inward force), so holding a neck wound does not drag the head down
-        h.force.vadd(cf, h.force); tho.force.vsub(cf, tho.force);
-        b.quaternion.vmult(c.nl || (c.nl = new C.Vec3(0, 0, 0)), cn); if (c.nl.norm() > 0) { cn.scale(-12 * (P.grip == null ? 1 : P.grip), cn); b.applyForce(cn, cr); }
+        pushBack(h, tho);
+        b.quaternion.vmult(c.nl || (c.nl = new C.Vec3(0, 0, 0)), cn); if (c.nl.norm() > 0) { cn.scale(-12 * (P.grip == null ? 1 : P.grip), cn); b.applyForce(cn, cr); h.force.vsub(cn, h.force); } // the wound pushes back on the palm
       }
     }
     // grab tool: a damped spring between a point on a segment and the cursor
@@ -362,11 +384,14 @@
       const m = gf.norm(); if (m > 1100) gf.scale(1100 / m, gf);
       b.applyForce(gf, gr);
     }
+    // extra torques set by the behaviour layer each frame (a person on the floor rolling by pushing against it)
+    P.ext = {};
+    function extForce() { for (const n in P.ext) { const e = P.ext[n], b = P.parts[n] && P.parts[n].b; if (!b || !e) continue; b.wakeUp(); b.torque.x += e[0]; b.torque.y += e[1]; b.torque.z += e[2]; } }
     let acc = 0;
     const H = 1 / 120;
     P.step = (dt) => {
       P.t += dt; acc = Math.min(acc + dt, 0.1);
-      while (acc >= H) { if (P.active) { muscles(); balance(); clutchForce(); grabForce(); } world.step(H); acc -= H; }
+      while (acc >= H) { if (P.active) { muscles(); balance(); clutchForce(); grabForce(); extForce(); } world.step(H); acc -= H; }
       syncCasings();
     };
     // ---- write physics transforms back to the render / hit-test skeleton

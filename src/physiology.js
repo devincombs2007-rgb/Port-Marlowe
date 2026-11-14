@@ -280,6 +280,8 @@
     // blunt head strike (a fall onto the floor): speed of the head at impact, m/s.
     // Concussion becomes likely above ~4 m/s; skull fracture is a risk only above ~6.5 m/s (a hard, untucked fall).
     S.headImpact = (v) => {
+      // someone conscious as they go down tucks the chin and gets the arms out: the head lands far softer
+      if (S.conscious && !S.brainDestroyed && S.motor.mode === 'normal') v *= 0.62;
       if (S.dead || v < 2.2) return;
       if (v > 6.5 && Math.random() < Math.min(0.8, (v - 6.5) / 2.5)) {
         inj('skullfx', 'Skull fractured in the fall', 2); S.brainInjury += (v - 6.5) * 25;
@@ -291,6 +293,7 @@
         S.koForced = true; S.koUntil = S.t + 20 + Math.random() * 90; // concussion: out for tens of seconds to minutes
       } else inj('headbump', 'Head struck the floor', 0);
     };
+    S.addInjury = (key, text, sev) => inj(key, text, sev);
     S.mainBleed = () => { let m = null; for (const w of S.wounds) if (!m || w.lost > m.lost) m = w; return m ? m.label.toLowerCase() : 'multiple wounds'; };
     S.frac = () => (S.total - S.bv) / S.total;
     S.hemClass = () => { const f = S.frac(); return f < 0.005 ? '—' : f < 0.15 ? 'Class I' : f < 0.3 ? 'Class II' : f < 0.4 ? 'Class III' : 'Class IV'; };

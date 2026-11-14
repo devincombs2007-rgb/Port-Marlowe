@@ -60,9 +60,10 @@
 
     // ---- rivulets: ribbons laid on the skin, skinned to the same skeleton so they bend with the body
     const MAX = 90, STEP = 0.004, COST = 0.02; // a running film takes about 0.005 mL per mm of trail (bead and wetting included)
-    const IDX = new Uint16Array((MAX - 1) * 6); for (let i = 0; i < MAX - 1; i++) { const v = i * 2; IDX.set([v, v + 1, v + 2, v + 1, v + 3, v + 2], i * 6); }
-    const FRESH = new THREE.Color(0x420406), DRY = new THREE.Color(0x220805);
-    const dryMat = (m, since) => { const k = Math.min(1, Math.max(0, (since - 15) / 260)); if (Math.abs(k - (m.userData.k || 0)) < 0.01) return; m.userData.k = k; m.color.copy(FRESH).lerp(DRY, k); m.roughness = 0.14 + 0.62 * k; };
+    // three vertices across (edge, crown, edge): a trail of blood has a rounded cross-section, not a flat stripe
+    const IDX = new Uint16Array((MAX - 1) * 12); for (let i = 0; i < MAX - 1; i++) { const v = i * 3; IDX.set([v, v + 1, v + 3, v + 1, v + 4, v + 3, v + 1, v + 2, v + 4, v + 2, v + 5, v + 4], i * 12); }
+    const FRESH = new THREE.Color(0x380305), DRY = new THREE.Color(0x220805);
+    const dryMat = (m, since) => { const k = Math.min(1, Math.max(0, (since - 15) / 260)); if (Math.abs(k - (m.userData.k || 0)) < 0.01) return; m.userData.k = k; m.color.copy(FRESH).lerp(DRY, k); m.roughness = 0.2 + 0.6 * k; if (m.clearcoat != null) m.clearcoat = 1 - k; };
     body.rivers = [];
     const dv = new V3(), side = new V3();
     function writePair(R, i) {
@@ -70,11 +71,13 @@
       dv.subVectors(next.p, prev.p); if (dv.lengthSq() < 1e-10) dv.copy(R.dir.lengthSq() ? R.dir : side.set(0, -1, 0));
       side.crossVectors(pt.n, dv).normalize();
       const head = i === R.n - 1 && R.n > 2 && R.end !== 'soak', hw = pt.wd * 0.5 * (head ? 1.7 : i === 0 ? 0.7 : 1), lift = 0.0011 + (head ? 0.0004 : 0);
-      const o = i * 6;
-      R.pos[o] = pt.p.x + side.x * hw + pt.n.x * lift; R.pos[o + 1] = pt.p.y + side.y * hw + pt.n.y * lift; R.pos[o + 2] = pt.p.z + side.z * hw + pt.n.z * lift;
-      R.pos[o + 3] = pt.p.x - side.x * hw + pt.n.x * lift; R.pos[o + 4] = pt.p.y - side.y * hw + pt.n.y * lift; R.pos[o + 5] = pt.p.z - side.z * hw + pt.n.z * lift;
-      for (let k = 0; k < 3; k++) { R.nrm[o + k] = R.nrm[o + 3 + k] = pt.n.getComponent(k); }
-      for (let k = 0; k < 4; k++) { R.si[i * 8 + k] = R.si[i * 8 + 4 + k] = pt.sk.i[k]; R.sw[i * 8 + k] = R.sw[i * 8 + 4 + k] = pt.sk.w[k]; }
+      const o = i * 9, crown = hw * (head ? 0.55 : 0.32); // surface tension holds the trail up in a low bead
+      for (let k = 0; k < 3; k++) {
+        const sn = side.getComponent(k), nn = pt.n.getComponent(k), pc = pt.p.getComponent(k);
+        R.pos[o + k] = pc + sn * hw + nn * lift; R.pos[o + 3 + k] = pc + nn * (lift + crown); R.pos[o + 6 + k] = pc - sn * hw + nn * lift;
+        R.nrm[o + k] = nn * 0.55 + sn * 0.83; R.nrm[o + 3 + k] = nn; R.nrm[o + 6 + k] = nn * 0.55 - sn * 0.83;
+      }
+      for (let k = 0; k < 4; k++) for (let q = 0; q < 3; q++) { R.si[i * 12 + q * 4 + k] = pt.sk.i[k]; R.sw[i * 12 + q * 4 + k] = pt.sk.w[k]; }
     }
     function addPoint(R, p, n, v, b) {
       const flow = (R.w.rate || 0) / 60, target = 0.0032 + 0.0034 * Math.min(1, flow / 0.6);
@@ -82,14 +85,14 @@
       R.pts.push({ p: p.clone(), n: n.clone(), v, b, sk: lastSkin, wd: R.wid }); R.n++;
       for (let i = Math.max(0, R.n - 3); i < R.n; i++) writePair(R, i);
       const at = R.g.attributes; at.position.needsUpdate = at.normal.needsUpdate = at.skinIndex.needsUpdate = at.skinWeight.needsUpdate = true;
-      R.g.setDrawRange(0, Math.max(0, R.n - 1) * 6);
+      R.g.setDrawRange(0, Math.max(0, R.n - 1) * 12);
     }
     function newRiver(w, p, n, v, b, tg) {
-      const g = new THREE.BufferGeometry(), pos = new Float32Array(MAX * 6), nrm = new Float32Array(MAX * 6), si = new Uint16Array(MAX * 8), sw = new Float32Array(MAX * 8);
+      const g = new THREE.BufferGeometry(), pos = new Float32Array(MAX * 9), nrm = new Float32Array(MAX * 9), si = new Uint16Array(MAX * 12), sw = new Float32Array(MAX * 12);
       g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.BufferAttribute(nrm, 3));
       g.setAttribute('skinIndex', new THREE.BufferAttribute(si, 4)); g.setAttribute('skinWeight', new THREE.BufferAttribute(sw, 4));
       g.setIndex(new THREE.BufferAttribute(IDX, 1)); g.setDrawRange(0, 0);
-      const mat = new THREE.MeshStandardMaterial({ color: FRESH, roughness: 0.14, metalness: 0, skinning: true, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 });
+      const mat = new THREE.MeshPhysicalMaterial({ color: FRESH, roughness: 0.2, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.05, skinning: true, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 });
       const mesh = new THREE.SkinnedMesh(g, mat); mesh.frustumCulled = false; mesh.renderOrder = 4; mesh.bind(hm.skeleton, hm.bindMatrix); hm.parent.add(mesh); mesh.visible = !body.xray;
       const R = { w, mesh, g, pos, nrm, si, sw, pts: [], n: 0, end: null, live: true, vol: 0, adv: 0, fed: body.bt, dir: new V3(), g0: tg.clone(), ph: Math.random() * 6.3, seed: Math.random() * 6.3, wid: 0.0032, sk: null };
       addPoint(R, p, n, v, b);
@@ -138,7 +141,7 @@
       for (const w of body.wounds) {
         const age = body.bt - w.t0;
         // contusion around the entry deepens over minutes, but only while blood still circulates
-        if (w.bruise && alive) w.bruise.material.opacity = Math.max(w.bruise.material.opacity, Math.min(0.6, 0.12 + (age / 600) * 0.48));
+        if (w.bruise && alive) w.bruise.material.opacity = Math.max(w.bruise.material.opacity, Math.min(0.55, (age / 600) * 0.55));
         if (w.cloth) continue;
         if (w.bi == null) w.bi = body.list.indexOf(w.seg);
         const f = w.feed; w.feed = 0;

@@ -59,7 +59,16 @@
     }
     const HC = 2.2, px = new Uint8Array(GX * GZ * 4);
     const btex = new THREE.DataTexture(px, GX, GZ, THREE.RGBAFormat); btex.magFilter = btex.minFilter = THREE.LinearFilter; btex.encoding = THREE.sRGBEncoding; btex.needsUpdate = true;
-    const bmesh = new THREE.Mesh(new THREE.PlaneGeometry(w, d), new THREE.MeshStandardMaterial({ map: btex, transparent: true, roughness: 0.1, metalness: 0.05, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }));
+    // the liquid's surface: a normal map from the depth field (so a pool's rim and every ripple catch the light) and a
+    // roughness map (fresh blood is glossy; a drying film goes dull). The coverage in the alpha channel is filtered
+    // between cells and then sharpened, so edges are crisp curves instead of 2.5 cm blocks.
+    const npx = new Uint8Array(GX * GZ * 4), rpx = new Uint8Array(GX * GZ * 4).fill(255);
+    for (let k = 0; k < GX * GZ; k++) { npx[k * 4] = 128; npx[k * 4 + 1] = 128; npx[k * 4 + 2] = 255; npx[k * 4 + 3] = 255; }
+    const ntex = new THREE.DataTexture(npx, GX, GZ, THREE.RGBAFormat), rtex = new THREE.DataTexture(rpx, GX, GZ, THREE.RGBAFormat);
+    for (const t of [ntex, rtex]) { t.magFilter = t.minFilter = THREE.LinearFilter; t.needsUpdate = true; }
+    const bmat = new THREE.MeshStandardMaterial({ map: btex, normalMap: ntex, normalScale: new THREE.Vector2(1.6, 1.6), roughnessMap: rtex, roughness: 1, metalness: 0.02, envMapIntensity: 1.4, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
+    bmat.onBeforeCompile = (sh) => { sh.fragmentShader = sh.fragmentShader.replace('#include <map_fragment>', '#include <map_fragment>\n  diffuseColor.a = smoothstep(0.1, 0.32, diffuseColor.a) * 0.97;'); };
+    const bmesh = new THREE.Mesh(new THREE.PlaneGeometry(w, d), bmat);
     bmesh.rotation.x = -Math.PI / 2; bmesh.position.set(0, 0.0022, cz); bmesh.renderOrder = 2; scene.add(bmesh);
     const bb = { i0: GX, i1: -1, j0: GZ, j1: -1 };
     let texDirty = false; W.bloodOnFloor = 0;
@@ -110,9 +119,18 @@
         age[c] += dtAge;
         // fresh thin blood is bright; deep pools read dark; thin films dry toward brown within minutes
         const t = Math.min(1, h / 1.6), dry = Math.min(1, age[c] / (90 + h * 400)) * (1 - t * 0.7);
-        px[o] = 150 - 70 * t - 55 * dry; px[o + 1] = 10 - 5 * t + 8 * dry; px[o + 2] = 12 - 6 * t + 2 * dry; px[o + 3] = Math.min(238, 255 * Math.min(1, h / 0.28) * 0.93);
+        px[o] = 128 - 72 * t - 50 * dry; px[o + 1] = 8 - 4 * t + 7 * dry; px[o + 2] = 10 - 5 * t + 2 * dry; px[o + 3] = Math.min(255, 255 * Math.min(1, h / 0.5));
+        rpx[o + 1] = 255 * Math.min(1, 0.05 + 0.75 * dry);
       }
-      btex.needsUpdate = true; texDirty = false;
+      // surface normals from the depth of the liquid (exaggerated a little: the rim of a 2 mm pool is a steep meniscus)
+      for (let j = Math.max(1, j0); j <= Math.min(GZ - 2, j1); j++) for (let i = Math.max(1, i0); i <= Math.min(GX - 2, i1); i++) {
+        const c = j * GX + i, o = c * 4;
+        const hx = (vol[c + 1] - vol[c - 1]) / MLMM, hz = (vol[c + GX] - vol[c - GX]) / MLMM;
+        // thin films and single drops lie flat; only a real pool has a rim worth catching the light
+        const k = 0.05 * Math.min(1, vol[c] / MLMM / 0.8); let nx = -hx * k, ny = -hz * k; const m = Math.hypot(nx, ny); if (m > 0.7) { nx *= 0.7 / m; ny *= 0.7 / m; }
+        npx[o] = 128 + nx * 127; npx[o + 1] = 128 + ny * 127; npx[o + 2] = 128 + 127 * Math.sqrt(Math.max(0, 1 - nx * nx - ny * ny));
+      }
+      btex.needsUpdate = ntex.needsUpdate = rtex.needsUpdate = true; texDirty = false;
     }
 
     // ================= PARTICLES =================
@@ -221,7 +239,7 @@
     W.clear = () => {
       for (const a of [W.stains, W.holes, W.debris]) { for (const m of a) scene.remove(m); a.length = 0; }
       for (const dp of W.drips) scene.remove(dp.m); W.drips.length = 0;
-      vol.fill(0); dv.fill(0); age.fill(0); px.fill(0); btex.needsUpdate = true; bb.i0 = GX; bb.i1 = -1; bb.j0 = GZ; bb.j1 = -1; W.bloodOnFloor = 0;
+      vol.fill(0); dv.fill(0); age.fill(0); px.fill(0); for (let k = 0; k < GX * GZ; k++) { npx[k * 4] = 128; npx[k * 4 + 1] = 128; npx[k * 4 + 2] = 255; } rpx.fill(255); btex.needsUpdate = ntex.needsUpdate = rtex.needsUpdate = true; bb.i0 = GX; bb.i1 = -1; bb.j0 = GZ; bb.j1 = -1; W.bloodOnFloor = 0;
       for (let i = 0; i < NP; i++) { parts[i].on = false; pos[i * 3 + 1] = -50; }
       for (let i = 0; i < NC; i++) { chunks[i].on = false; cpos[i * 3 + 1] = -50; }
     };

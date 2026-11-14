@@ -1,4 +1,4 @@
-# Port-Marlowe — Wound Ballistics Lab (v1.7)
+# Port-Marlowe — Wound Ballistics Lab (v1.8)
 
 A browser-based 3D simulator of gunshot wounds. A test subject stands in a chamber; every
 round is traced millimetre by millimetre through skin, bone, organs and vessels, and the
@@ -7,6 +7,15 @@ body then responds in real time (bleeding, blood pressure, breathing, consciousn
 **Run it:** serve this folder with any static server (`python3 -m http.server`) and open
 `index.html`. No build step. `node tools/build.js` bundles a single-file page into `dist/`.
 
+**v1.8**: every sound is a recording (real breaths at the subject's breathing rate, snoring when unconscious,
+gurgling, crying, yelps, screams and moans; a recorded air-conditioner hum). A conscious, wounded person on the
+floor never lies still: he writhes, draws his knees up, rolls, curls up, lifts his head to look at the wound and
+cries out, all fading with shock. The bullet is visible: it flies the real track from the muzzle (slow motion drops
+to bullet speed while it is in the air). A fresh entry is just a small dark hole that blood seeps out of; wounds,
+trails and floor pools are shaded as wet, three-dimensional surfaces. Close-range shotgun blasts blow a ragged hole,
+and a crater through the belly wall over torn bowel lets loops of intestine slide out. Fixed: the body slowly
+spinning on the floor (the arm forces carried a net torque) and leg wounds knocking people out on falls they would
+have broken with their arms.
 **v1.7** makes wounds look like real ones: blood runs down the skin in trails that follow the body,
 entry holes are oval with an off-centre abrasion collar when the bullet comes in at an angle, slow bullets
 leave slit-shaped exits, and bruising develops over minutes.

@@ -19,14 +19,14 @@
     jerk: { abdomen: [0.25, 0, 0], thorax: [0.2, 0, 0], uarmL: [-0.8, 0, 0.1], uarmR: [-0.8, 0, -0.1], farmL: [-1.2, 0, 0], farmR: [-1.2, 0, 0], thighL: [-0.5, 0, 0], thighR: [-0.5, 0, 0], shinL: [0.7, 0, 0], shinR: [0.7, 0, 0] },
   };
   const PRIO = { neck: 5, thorax: 4, abdomen: 4, head: 3, pelvis: 3, thighL: 2, thighR: 2 };
-  const eul = new THREE.Euler(), upv = new CANNON.Vec3(), UP = new CANNON.Vec3(0, 1, 0);
+  const eul = new THREE.Euler(), upv = new CANNON.Vec3(), UP = new CANNON.Vec3(0, 1, 0), LONG = new CANNON.Vec3(0, 1, 0), lax = new CANNON.Vec3();
   const v1 = new THREE.Vector3(), v2 = new THREE.Vector3(), v3 = new THREE.Vector3();
   G.NPC = function (body, phys, rag, hooks) {
     const names = body.list.map((s) => s.name).filter((n) => n !== 'pelvis');
     const cur = {};
     for (const k of names) cur[k] = (POSES.stand[k] || [0, 0, 0]).slice();
     const N = { lookT: 0, lookAt: null, armSw: { L: 0, R: 0 }, fleeT: 0, flees: false, retreatT: 0, riseT: 0, riseTries: 0, chose: false, flinchT: 0, dip: 0, posture: 'stand', pose: 'stand', pos: new THREE.Vector3(), decideT: -1, wantDown: false, clock: 0, breath: 0, ragT: 0, stillT: 0, stagger: 0, stagDir: [0, 0], crawling: false, downT: 0,
-      lowering: 0, giveT: 0, clutchT: 0, clutching: { L: null, R: null }, gasp: 0, cough: 0, coughAt: 4 + Math.random() * 6, groanAt: 3 + Math.random() * 5, lastBreath: 0, motor: 'normal' };
+      lowering: 0, giveT: 0, clutchT: 0, clutching: { L: null, R: null }, gasp: 0, cough: 0, coughAt: 4 + Math.random() * 6, groanAt: 3 + Math.random() * 5, voiceAt: 9, hitClock: -99, act: 'still', actT: 0, actDur: 1, actSeed: 0, actSide: 1, lastBreath: 0, motor: 'normal' };
     const ctl = rag.ctl, ev = (t, d) => hooks.event && hooks.event(t, d);
     rag.start(); ctl.s = 1; ctl.bal = 1; ctl.y0 = ctl.yRest; ctl.canStep = true; ctl.trunk = 0; ctl.draw = 0; ctl.lead = null; ctl.face = null; rag.lost = null; rag.stepWin = 0;
     const collapse = (rigid, tripped) => {
@@ -55,7 +55,11 @@
         N.flinchT = 0.45; // hunch: shoulders up, trunk and head forward, arms in
       }
       if (!phys.alive() || !phys.conscious) return;
-      ev('grunt', Math.min(1, 0.4 + phys.pain));
+      // the cry when hit: a yelp, or a scream when something breaks or the pain is already high
+      N.hitClock = N.clock;
+      const broke = phys.legBroken.L || phys.legBroken.R || phys.armBroken.L || phys.armBroken.R || phys.pelvisBroken;
+      ev(broke || phys.pain > 0.6 ? 'scream' : 'yelp', Math.min(1, 0.4 + phys.pain));
+      N.voiceAt = Math.min(N.voiceAt, 1.2 + Math.random() * 1.5);
       // startle / stagger: a reflex step driven by the legs, in roughly the direction of fire
       N.stagger = 1; const a = Math.atan2(dir.z, dir.x) + (Math.random() - 0.5) * 1.2; N.stagDir = [Math.cos(a), Math.sin(a)];
       N.clutchT = 0.15; // re-check wounds shortly; when each one is noticed is decided per wound
@@ -85,7 +89,7 @@
       for (const w of body.wounds) {
         if (w.noticeAt == null) w.noticeAt = now + noticeDelay(w, P);
         if (w.noticeAt > now && (w.rate || 0) > 150) w.noticeAt = now + 0.4; // you notice a wound that is pouring blood
-        if (!w.seen && w.noticeAt <= now) { w.seen = true; N.lookT = 1.4; N.lookAt = w; } // first realises: looks down at it
+        if (!w.seen && w.noticeAt <= now) { w.seen = true; N.lookT = 1.4; N.lookAt = w; if (severity(w) >= 6 && Math.random() < 0.6) N.voiceAt = Math.min(N.voiceAt, 0.3); } // first realises: looks down at it
       }
       const pick = {};
       for (const sd of ['L', 'R']) {
@@ -98,7 +102,7 @@
             if (n.endsWith(sd) && /^(uarm|farm|hand)/.test(n)) continue; // cannot hold its own arm
             body.woundWorld(w, v2);
             // a hanging hand already reaches the upper thigh; a hand already on a wound keeps it (hysteresis)
-            const d = v2.distanceTo(v1); if (d > (N.clutching[sd] === w ? 1.0 : 0.8)) continue;
+            const d = v2.distanceTo(v1), lim = N.posture === 'down' ? 1.15 : 0.8; if (d > (N.clutching[sd] === w ? lim + 0.2 : lim)) continue; // on the floor he curls up to get a hand to a leg wound
             const other = pick[sd === 'L' ? 'R' : 'L'], sev = severity(w);
             // both hands go to one wound when it is clearly the worst (a neck or chest wound pumping blood)
             const share = other === w ? (sev >= 8 ? -0.5 : -2.5) : 0;
@@ -139,7 +143,21 @@
       N.gasp = Math.max(0, N.gasp - dt * 1.8); N.cough = Math.max(0, N.cough - dt * 3.5);
       const br = alive && !P.agonal ? Math.sin(N.breath) * (0.012 + 0.012 * Math.min(1, P.rr / 30)) : 0;
       if (aware && P.hemoptysis && alive) { N.coughAt -= dt; if (N.coughAt <= 0) { N.coughAt = 3 + Math.random() * 9; N.cough = 1; ev('cough'); } }
-      if (aware && N.posture === 'down' && P.pain > 0.25) { N.groanAt -= dt; if (N.groanAt <= 0) { N.groanAt = 5 + Math.random() * 10; ev('groan', P.pain); } }
+      // ---- distress: pain plus the acute shock of having just been shot, fading over the next half minute.
+      // Blood loss takes the voice and the fight out of a person (quieter, weaker), but not the restlessness.
+      const hurt = body.wounds.length > 0 && P.lastHitT > -90;
+      const acute = Math.exp(-(c - N.hitClock) / 25), shock = Math.min(1, Math.max(0, (P.frac() - 0.15) / 0.25));
+      N.distress = aware && hurt ? Math.min(1, P.pain * 1.3 + 0.45 * acute) * (0.6 + 0.4 * Math.min(1, P.brainE)) : 0;
+      if (N.distress > 0.15 && N.posture !== 'stand' || (N.distress > 0.3 && N.posture === 'stand')) {
+        N.voiceAt -= dt;
+        if (N.voiceAt <= 0) {
+          const d = N.distress, r = Math.random();
+          N.voiceAt = 1.0 + 5.5 * (1 - d) * (0.6 + Math.random() * 0.8) + 2.5 * shock;
+          if (d > 0.6 && acute > 0.25 && r < 0.35 * (1 - shock)) ev('scream', d);
+          else if (r < 0.72) ev('moan', d);
+          else ev('cry', d);
+        }
+      }
       const pel = rag.parts.pelvis.b, tho = rag.parts.thorax.b;
       let target = POSES.curl;
       // ---- getting back up after a fall that did not disable: a shove, or coming round from a knockout
@@ -256,7 +274,38 @@
       else { N.clutchT = 0.5; chooseClutch(P, aware && !N.crawling && !N.protect && body.wounds.length > 0 && grip > ((N.clutching.L || N.clutching.R) ? 0.15 : 0.35)); } // once the hands have dropped they need real strength to come back
       // ---- muscle tone and joint targets
       const base = limp ? 0 : Math.max(0.25, Math.min(1, P.brainE)) * (1 - 0.3 * Math.min(1, Math.max(0, (60 - P.map) / 40)));
-      const writhe = N.posture === 'down' && aware ? 0.05 + 0.2 * P.pain : 0, k = Math.min(1, dt * (rigid || clonic || N.flinchT > 0.3 ? 14 : 5));
+      const k = Math.min(1, dt * (rigid || clonic || N.flinchT > 0.3 ? 14 : 5));
+      // ---- restless pain on the floor: a conscious, hurt person does not lie still. Every few seconds he does
+      // something different: writhes (knees drawn up and kicked out, hips twisting, back arching, head rolling),
+      // rolls onto his side and back, curls up and rocks, lifts his head and shoulders to look at the wound, or lies
+      // panting for a moment. Shock dulls all of it.
+      const restless = N.posture === 'down' && aware && N.distress > 0.12 && !N.crawling;
+      if (restless) {
+        N.actT += dt;
+        if (N.actT > N.actDur) {
+          const d = N.distress, wts = { writhe: 1.3 * d, roll: 0.7 * d * (1 - shock), curl: 0.8, lift: 0.6 * (1 - shock), still: 0.25 + 1.6 * shock + (holdingSerious ? 0.3 : 0) };
+          let tot = 0; for (const a in wts) tot += wts[a]; let r = Math.random() * tot;
+          for (const a in wts) { r -= wts[a]; if (r <= 0) { N.act = a; break; } }
+          N.actT = 0; N.actDur = 1.8 + Math.random() * 2.8; N.actSeed = Math.random() * 100; N.actSide = Math.random() < 0.5 ? -1 : 1;
+        }
+      } else { N.act = 'still'; N.actT = 0; N.actDur = 0.5; }
+      const vigor = restless ? Math.sin(Math.PI * Math.min(1, N.actT / N.actDur)) * (0.45 + 0.55 * N.distress) * (1 - 0.6 * shock) : 0;
+      const act = vigor > 0.01 ? N.act : 'still', sd0 = N.actSeed;
+      rag.ext = rag.ext || {}; rag.ext.thorax = rag.ext.pelvis = null;
+      if (act === 'roll' || act === 'curl') {
+        // rolling is done by pushing against the floor with a leg and shoulder: a torque about the body's long axis
+        tho.quaternion.vmult(LONG, lax);
+        const T = act === 'roll' ? 55 * N.actSide * vigor : 22 * Math.sin(c * 1.4 + sd0) * vigor;
+        rag.ext.thorax = [lax.x * T, lax.y * T, lax.z * T]; rag.ext.pelvis = [lax.x * T * 0.7, lax.y * T * 0.7, lax.z * T * 0.7];
+      }
+      if (N.posture === 'down') ctl.trunk = act === 'lift' ? 0.22 * vigor : 0;
+      // knees: drawn up while curled or lying hurt (typical for belly and leg pain), kicked in turn while writhing;
+      // a broken or paralysed leg stays where it is
+      if (N.posture === 'down') {
+        const want = !aware || !hurt ? 0 : act === 'curl' ? 1 : act === 'writhe' ? 0.5 + 0.5 * Math.sin(c * 2.3 + sd0) : act === 'lift' ? 0.8 : act === 'roll' ? 0.6 : 0.55 * (1 - shock);
+        ctl.knees = (ctl.knees || 0) + (want * (P.legsPara ? 0 : 1) - (ctl.knees || 0)) * Math.min(1, dt * 2);
+        ctl.kneeSide = act === 'writhe' ? (Math.sin(c * 2.3 + sd0) > 0 ? 1 : -1) : P.legBroken.L ? -1 : P.legBroken.R ? 1 : 0;
+      } else ctl.knees = 0;
       if (rigid) target = POSES[M];
       // clonic phase: rhythmic whole-body jerks that slow and fade
       let jerk = 0;
@@ -273,7 +322,34 @@
         const a = target[n] || [0, 0, 0], q = cur[n];
         for (let i = 0; i < 3; i++) q[i] += (a[i] - q[i]) * k;
         let x = q[0], y = q[1], z = q[2];
-        if (writhe && tone > 0) { const ph = c * (1.1 + (n.length % 3) * 0.4) + n.charCodeAt(0); x += Math.sin(ph) * writhe; z += Math.sin(ph * 0.7) * writhe * 0.4; }
+        if (vigor > 0.01 && tone > 0) {
+          const v = vigor, ph = side === 'L' ? 0 : 2.1, free = isArm && !N.clutching[side];
+          if (act === 'writhe') {
+            if (n.startsWith('thigh')) { x += (-0.6 + 0.6 * Math.sin(c * 2.3 + ph + sd0)) * v; z += 0.18 * Math.sin(c * 1.3 + ph) * v; }
+            else if (n.startsWith('shin')) x += (0.7 + 0.7 * Math.sin(c * 2.3 + ph + sd0 + 0.6)) * v;
+            else if (n === 'abdomen') { y += 0.35 * Math.sin(c * 1.1 + sd0) * v; x -= 0.18 * v; }
+            else if (n === 'thorax') x += 0.25 * Math.sin(c * 0.9 + sd0) * v;
+            else if (n === 'neck' || n === 'head') { y += 0.45 * Math.sin(c * 0.8 + sd0) * v; x -= 0.2 * v; }
+            else if (free && n.startsWith('uarm')) { x += 0.55 * Math.sin(c * 1.7 + sd0 + ph) * v; z += 0.3 * Math.sin(c * 1.1 + ph) * v * (side === 'L' ? -1 : 1); }
+            else if (free && n.startsWith('farm')) x -= 0.5 * (1 + Math.sin(c * 2.1 + ph)) * v;
+          } else if (act === 'curl') {
+            if (n.startsWith('thigh')) x -= 0.6 * v; else if (n.startsWith('shin')) x += 0.6 * v;
+            else if (n === 'abdomen' || n === 'thorax') x += 0.25 * v; else if (n === 'neck' || n === 'head') x += 0.25 * v;
+            else if (free && n.startsWith('uarm')) x -= 0.5 * v;
+          } else if (act === 'lift') {
+            if (n === 'neck') x += 0.55 * v; else if (n === 'head') x += 0.3 * v; else if (n === 'thorax' || n === 'abdomen') x += 0.35 * v;
+            else if (free && n.startsWith('uarm')) { x += 0.45 * v; } else if (n.startsWith('thigh')) x -= 0.4 * v; else if (n.startsWith('shin')) x += 0.6 * v;
+          } else if (act === 'roll') {
+            // the leg on the far side bends and pushes, the near arm reaches across
+            const far = (side === 'L') === (N.actSide > 0);
+            if (n.startsWith('thigh') && far) { x -= 0.7 * v; z += 0.3 * v * (side === 'L' ? -1 : 1); } else if (n.startsWith('shin') && far) x += 0.9 * v;
+            else if (free && n.startsWith('uarm') && !far) { x -= 0.9 * v; z += 0.5 * v * (side === 'L' ? 1 : -1); }
+            else if (n === 'neck' || n === 'head') y += 0.4 * N.actSide * v;
+          }
+          tone = Math.max(tone, 0.45 + 0.5 * v);
+        }
+        // conscious on the floor: limbs held, knees up, arms in; not splayed out like a body
+        if (N.posture === 'down' && aware && tone > 0 && !(isArm && N.clutching[side])) tone = Math.max(tone, 0.5 * (1 - 0.5 * shock));
         if (N.crawling && n.startsWith('uarm')) x = -1.6 + Math.sin(c * 2.4 + (side === 'L' ? 0 : Math.PI)) * 0.9;
         if (isArm && N.protect) { tone *= 0.25; }
         // walking: each arm swings forward as the opposite leg steps

@@ -42,7 +42,9 @@
   // the subject's own sounds and what comes with them
   const mouth = new V3(), mdir = new V3();
   function npcEvent(type, v) {
-    if (type === 'grunt') audio.grunt(v); else if (type === 'groan') audio.groan(v); else if (type === 'gasp') audio.gasp();
+    const weak = Math.min(1, Math.max(0, (phys.frac() - 0.15) / 0.25)); // shock: quieter, weaker voice
+    if (type === 'grunt') audio.grunt(v); else if (type === 'groan' || type === 'moan') audio.moan(v, weak); else if (type === 'gasp') audio.gasp();
+    else if (type === 'yelp') audio.yelp(v, weak); else if (type === 'scream') audio.scream(v, weak); else if (type === 'cry') audio.cry(v, weak);
     else if (type === 'cough') {
       audio.cough();
       // blood in the airway comes up with the cough
@@ -51,9 +53,11 @@
     }
   }
   const pending = []; let simClock = 0;
+  const projectiles = G.Projectiles(scene);
+  const viscera = G.Viscera(scene, body, rag);
   function cycleTime() { state.ti = (state.ti + 1) % TIMES.length; ui.setTime(TIMES[state.ti]); }
   function reset() {
-    body.clearWounds(); world.clear(); rag.stop(); rag.clear();
+    body.clearWounds(); world.clear(); rag.stop(); rag.clear(); projectiles.clear(); viscera.clear();
     // each new subject is a different person (the first one is always the same, for a consistent start)
     if (body.setLook) { const first = reset.n == null; reset.n = (reset.n || 0) + 1;
       const tints = [0xffffff, 0x8a6a50, 0x5a4030, 0xd0b090, 0x404040];
@@ -162,17 +166,49 @@
       const res = G.simulate(w.bullet, origin, tmp, sampler);
       res.d0 = tmp.clone(); results.push(res);
     }
+    // the round itself, flying the computed track from the muzzle
+    { const m = gun.models[gun.model]; tmp.set(0, m ? m.userData.fy || 0.03 : 0.03, m ? (m.userData.muzzle || -0.2) : -0.2); if (m) m.localToWorld(tmp); else tmp.copy(origin);
+      for (const res of results) {
+        const pts = [tmp.clone()], v = [], hide = []; let sp = w.bullet.v, inside = false;
+        for (const mk of res.marks) {
+          if (mk.type !== 'entry' && mk.type !== 'exit') continue;
+          pts.push(new V3(mk.p.x, mk.p.y, mk.p.z)); v.push(sp); hide.push(inside);
+          if (mk.type === 'entry') inside = true; else { inside = false; sp = mk.v || sp * 0.6; }
+        }
+        const tr = res.track, last = res.marks.filter((mk) => mk.type === 'exit').pop();
+        if (inside && tr.length) { const e = tr[tr.length - 1]; pts.push(new V3(e.x, e.y, e.z)); v.push(sp * 0.5); hide.push(true); } // stopped inside
+        else if (!res.stopped && !res.noPen) { const o = last ? new V3(last.p.x, last.p.y, last.p.z) : origin, dd = last ? new V3(last.dir.x, last.dir.y, last.dir.z) : res.d0, hit = world.rayRoom(o, dd); if (hit) { pts.push(hit.p.clone()); v.push(sp); hide.push(false); } }
+        projectiles.spawn(pts, v, hide, w.pellets > 1 ? 0.0084 : w.bullet.d, w.pellets > 1, simClock);
+      } }
     // the bullet takes time to arrive: muzzle-to-target distance over muzzle velocity (a few ms; visible in slow motion)
     const first = results.find((r) => r.hitBody), dist = first ? origin.distanceTo(first.marks[0].p) : 4;
     pending.push({ t: simClock + dist / w.bullet.v, run: () => {
       for (const res of results) processShot(res, w, res.d0, origin);
       const hits = results.filter((r) => r.hitBody);
+      if (w.pellets > 1 && hits.length > w.pellets * 0.6) {
+        // inside ~2 m the shot has barely spread: it strikes as one mass with the wad and blows a single ragged hole
+        const en = hits[0].marks.find((mk) => mk.type === 'entry'), sw = en && body.wounds.find((bw) => bw.mark === en);
+        const rg = en ? origin.distanceTo(tmp2.set(en.p.x, en.p.y, en.p.z)) : 9;
+        if (sw && rg < 2) {
+          const cr = 0.016 + 0.026 * Math.min(1, (2 - rg) / 1.6);
+          body.crater(sw, cr, cr * 0.7); world.chunks(tmp2, { x: -res0dir(hits[0]).x, y: -res0dir(hits[0]).y, z: -res0dir(hits[0]).z }, Math.round(cr * 300), 2.2, 0.7, 'tissue');
+          const gutHit = hits.find((r) => r.order.some((p) => GUT.test(p.kind))); if (gutHit) eviscerate(gutHit, sw, cr);
+        }
+      }
       if (hits.length) audio.impact(hits.some((r) => r.order.some((p) => p.kind === 'bone')), hits.reduce((a, r) => a + r.Edep, 0));
       ui.report(buildReport(results, w));
     } });
   }
+  const res0dir = (r) => r.d0;
   const gauss = () => (Math.random() + Math.random() + Math.random() - 1.5) * 0.82;
 
+  // a crater through the belly wall over a torn bowel: loops of intestine push out through it
+  const GUT = /^(bowel|stomach|colon)/;
+  function eviscerate(res, sw, cr) {
+    if (cr < 0.02 || !/^(abdomen|pelvis)$/.test(sw.seg.name) || !res.order.some((p) => GUT.test(p.kind))) return;
+    viscera.spawn(sw, cr); if (cr > 0.032) viscera.spawn(sw, cr);
+    phys.addInjury('evisc', 'Evisceration: loops of bowel protruding through the wound', 2);
+  }
   function processShot(res, w, d0, origin) {
     const surfs = [];
     let first = null;
@@ -191,7 +227,7 @@
         // the exit: skin tears outward. Where the temporary cavity reaches the surface it blows a crater.
         let cr = last ? Math.min(0.075, t1.rpc * 1.5 + Math.max(0, t1.rtc - 0.02) * 0.6) : m.r * 1.3;
         if (head && last) cr = Math.min(0.085, cr * 1.5 + 0.006); // the skull contains the pressure until it bursts
-        if (cr > 0.016) body.crater(sw, cr, cr * 0.5);
+        if (cr > 0.016) { body.crater(sw, cr, cr * 0.5); eviscerate(res, sw, cr); }
         // forward spatter: fine, fast, proportional to what the bullet still carries
         const ml = Math.min(45, 1.5 + e / 40 + (last ? t1.rtc * 250 : 0));
         world.burst(tmp2, md, Math.round(Math.min(90, 10 + e / 20)), 2.5 + Math.min(8, m.v / 80), 0.55, 0.004 + Math.min(0.006, e / 2e5), ml);
@@ -204,7 +240,7 @@
       } else if (m.type === 'entry') {
         // back spatter is small; a high-energy impact at the surface also bursts the entry
         const first0 = m === entries[0] && t0;
-        if (first0 && t0.rtc > 0.045) body.crater(sw, Math.min(0.05, t0.rtc * 0.45), t0.rtc * 0.2);
+        if (first0 && t0.rtc > 0.045) { const cr = Math.min(0.05, t0.rtc * 0.45); body.crater(sw, cr, t0.rtc * 0.2); eviscerate(res, sw, cr); }
         // back-spatter from an entry is a faint mist, visible mainly at close range or from high-energy rounds
         const bs = range < 1 || res.Edep > 1200 ? 2 + Math.round(Math.random() * 3) : Math.random() < 0.4 ? 1 : 0;
         if (bs) world.burst(tmp2, { x: -md.x, y: -md.y + 0.2, z: -md.z }, bs, 1.4, 1.1, 0.002, 0.1);
@@ -245,6 +281,7 @@
       rd.x += (Math.random() - 0.5) * 0.15; rd.y += (Math.random() - 0.5) * 0.08; rd.z += (Math.random() - 0.5) * 0.15; rd.normalize();
       audio.wall(en * 0.4); audio.ricochet();
       const o = hit.p.clone().addScaledVector(hit.n, 0.01), next = world.rayRoom(o, rd);
+      if (next) projectiles.spawn([o, next.p.clone()], [Math.sqrt(2 * en * 0.45 / w.bullet.m)], [false], w.bullet.d, false, simClock);
       if (next) strike(next, rd.clone(), en * (0.3 + Math.random() * 0.3), w, bounce + 1);
       return;
     }
@@ -386,15 +423,17 @@
     camera.position.y += eyeOffset;
     camera.rotation.set(state.pitch + state.kick, state.yaw, 0); camera.updateMatrixWorld();
     // simulation time
-    const scale = TIMES[state.ti], slow = state.slow ? 0.2 : 1;
+    // slow motion drops to bullet speed while a round is in the air, so it can be watched in flight
+    const scale = TIMES[state.ti], slow = state.slow ? (projectiles.active(simClock) ? 0.004 : 0.2) : 1;
     moveGrab();
     if (state.started) { simClock += dt * slow; while (pending.length && pending[0].t <= simClock) pending.shift().run(); }
+    projectiles.update(simClock, dt * slow);
     if (state.started) {
       let simDt = dt * scale * slow; const sub = Math.ceil(simDt / 0.2);
       for (let i = 0; i < sub; i++) { phys.step(simDt / sub); bleed(simDt / sub, i === sub - 1); }
       npc.update(dt * Math.min(scale, 3) * slow);
     } else npc.update(dt);
-    world.update(dt * slow); smearBody(); body.bloodTick && body.bloodTick(dt * slow, phys.hr > 20);
+    world.update(dt * slow); viscera.update(dt * slow); smearBody(); body.bloodTick && body.bloodTick(dt * slow, phys.hr > 20);
     if (state.started) {
       const dx = vent.x - state.pos.x, dz = vent.y - state.pos.z;
       const distance = Math.hypot(dx, dz);
@@ -402,7 +441,7 @@
     }
     audio.dist = Math.hypot(state.pos.x - npc.pos.x, state.pos.z - npc.pos.z);
     const effort = !phys.conscious ? (phys.rr > 1 ? 0.35 : 0) : Math.min(1.6, 0.15 + Math.max(0, phys.rr - 14) / 14 + phys.pain * 0.6);
-    audio.breath(npc.breath, phys.rr, phys.agonal ? 0 : effort, phys.hemoptysis);
+    audio.breath(npc.breath, phys.rr, effort, phys.hemoptysis, phys.dead ? 'none' : phys.agonal ? 'agonal' : !phys.conscious ? 'snore' : 'awake');
     if (world.landed && Math.random() < 0.25) audio.drip();
     aimDir(camDir); q.copy(camera.quaternion).invert(); camDir.applyQuaternion(q);
     gun.update(dt, camDir, state.narrow);
@@ -416,5 +455,5 @@
     if (!noRender) renderer.render(scene, camera);
   }
   requestAnimationFrame(frame);
-  G.debug = { gun, scene, tick: step, manual: false, audio, rag, toggleGrab, toggleSlow, fire, state, setWeapon, toggleXray, camera, get phys() { return phys; }, get npc() { return npc; }, body, world };
+  G.debug = { viscera, projectiles, gun, scene, tick: step, manual: false, audio, rag, toggleGrab, toggleSlow, fire, state, setWeapon, toggleXray, camera, get phys() { return phys; }, get npc() { return npc; }, body, world };
 })();
