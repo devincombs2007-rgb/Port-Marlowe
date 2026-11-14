@@ -1,4 +1,4 @@
-# Port-Marlowe — Wound Ballistics Lab (v2.1)
+# Port-Marlowe — Wound Ballistics Lab (v2.2)
 
 A browser-based 3D simulator of gunshot wounds. A test subject stands in a chamber; every
 round is traced millimetre by millimetre through skin, bone, organs and vessels, and the
@@ -7,6 +7,14 @@ body then responds in real time (bleeding, blood pressure, breathing, consciousn
 **Run it:** serve this folder with any static server (`python3 -m http.server`) and open
 `index.html`. No build step. `node tools/build.js` bundles a single-file page into `dist/`.
 
+**v2.2 — AI 1v1** (start screen button, or **O**): two armed fighters, random cover every round, first to three
+rounds. Each fighter is a full subject (same wounds, bleeding, physiology and ragdoll as the test subject): it aims
+with its arm, fires real rounds traced through the other body, strafes, takes cover when hurt (crouching behind low
+cover, leaning out from tall cover to shoot), flanks when it cannot see the enemy, pushes when it is winning and walks
+up to finish a downed enemy. Wounded, it keeps fighting while it physically can: from the floor, with the other hand if
+the gun arm is broken or gone, holding a wound with the free hand. Rounds end when a fighter dies, loses consciousness
+or can no longer fight. Watch through four security cameras or fly freely (**C**). Engine: every person in the room is
+now an independent subject (body, physics, physiology, behaviour).
 **v2.1**: an opening: black, then a bare bulb on a cord flickers on and swings, lighting the room; vision starts
 blurred and clears, and your hands bring the pistol up (the bulb stays as the room's main light). Hands hold every
 weapon (index finger on the trigger, support hand on a long gun's forend). Muzzle flash is a one-frame burst of hot gas

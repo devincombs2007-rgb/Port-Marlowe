@@ -101,3 +101,13 @@ button.phead { cursor: pointer; }
 #bMenu { position: absolute; right: 10px; bottom: 10px; width: 34px; height: 34px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.25); background: rgba(10,14,14,0.45); color: #e8eeec; font-size: 16px; pointer-events: auto; cursor: pointer; display: none; }
 body.min #hud .panel, body.min #bar { display: none !important; }
 body.min #mini, body.min #bMenu { display: block; }
+
+/* AI 1v1 */
+#bDuel { margin-left: 8px; }
+#duelHud { position: absolute; left: 50%; top: 10px; transform: translateX(-50%); text-align: center; font: 600 13px/1.35 'IBM Plex Mono', monospace; color: #eef2f0; text-shadow: 0 1px 3px rgba(0,0,0,0.9); pointer-events: none; z-index: 4; }
+#duelHud .banner { font: 700 18px/1.2 'Chakra Petch', sans-serif; letter-spacing: 0.08em; }
+#duelHud .score { font-size: 16px; margin: 2px 0 4px; }
+#duelHud .st { font-weight: 500; font-size: 12px; opacity: 0.9; }
+#duelHud .cam { margin-top: 4px; font-size: 11px; opacity: 0.7; }
+#duelHud .f0 { color: #ff6b6b; } #duelHud .f1 { color: #6ba8ff; }
+body.duel #mini, body.duel #cross { display: none !important; }

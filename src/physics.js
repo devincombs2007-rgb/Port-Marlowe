@@ -447,7 +447,7 @@
           // reaching for a point in the world (arms thrown out to break a fall): internal force between hand and chest
           const h = P.parts['hand' + sd].b; h.wakeUp();
           cf.set(650 * (rp.x - h.position.x) - 30 * h.velocity.x, 650 * (rp.y - h.position.y) - 30 * h.velocity.y, 650 * (rp.z - h.position.z) - 30 * h.velocity.z);
-          const m = cf.norm(); if (m > 130) cf.scale(130 / m, cf);
+          const m = cf.norm(); if (m > (P.reachCap || 130)) cf.scale((P.reachCap || 130) / m, cf);
           pushBack(h, tho); continue;
         }
         const c = P.clutch[sd]; if (!c) continue;

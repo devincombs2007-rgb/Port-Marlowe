@@ -12,12 +12,26 @@
   camera.rotation.order = 'YXZ'; scene.add(camera);
 
   const vent = G.buildChamber(scene, renderer);
-  const world = G.buildWorld(scene), body = G.buildBody(scene), gun = G.buildGun(camera), audio = G.Audio();
+  const world = G.buildWorld(scene), gun = G.buildGun(camera), audio = G.Audio();
+  let body = G.buildBody(scene);
   if (G.FPHands) gun.hands = G.FPHands(gun);
   const intro = G.Intro ? G.Intro({ scene, canvas, gun, room: G.ROOM }) : null;
-  const rag = G.buildPhysics(scene, body, audio, { headImpact: (v) => phys && npc && npc.posture === 'falling' && phys.headImpact(v), footstep: (k) => { audio.dist = Math.hypot(state.pos.x - npc.pos.x, state.pos.z - npc.pos.z); audio.step(k); } }); // only a real fall, not movement on the floor
-  let phys, npc;
-  const sampler = { sample: body.sample, cavity: body.cavity, maxDist: 20 };
+  // ---- subjects. Every person in the room has their own body, physics, physiology and behaviour; the code below
+  // works on "the current subject" (body, rag, phys, npc, ...), and use(S) switches which one that is.
+  const subjects = [];
+  function physicsFor(S) {
+    return G.buildPhysics(scene, S.body, audio, { headImpact: (v) => S.phys && S.npc && S.npc.posture === 'falling' && S.phys.headImpact(v), footstep: (k) => { if (S.npc) { audio.dist = Math.hypot(state.pos.x - S.npc.pos.x, state.pos.z - S.npc.pos.z); audio.step(k); } } }); // only a real fall, not movement on the floor
+  }
+  let rag, phys, npc, viscera, headFx, handBlood, sampler, current = null;
+  function use(S) { current = S; body = S.body; rag = S.rag; phys = S.phys; npc = S.npc; viscera = S.viscera; headFx = S.headFx; handBlood = S.handBlood; sampler = S.sampler; }
+  function makeSubject(b) {
+    const S = { body: b || G.buildBody(scene) }; S.rag = physicsFor(S);
+    S.sampler = { sample: S.body.sample, cavity: S.body.cavity, maxDist: 20 };
+    S.headFx = { rk: 0, rkMax: 0, at: 0 }; S.handBlood = { L: 0, R: 0, at: 0 };
+    subjects.push(S); return S;
+  }
+  const primary = makeSubject(body);
+  rag = primary.rag; sampler = primary.sampler; headFx = primary.headFx; handBlood = primary.handBlood;
   const TIMES = [1, 4, 15, 60];
   const state = { yaw: 0, pitch: -0.06, pos: new V3(0, 1.62, 3.0), ax: 0, ay: 0, wi: 1, lastShot: -9, ti: 0, started: false, keys: {}, stick: [0, 0], kick: 0, narrow: false, slow: false, grab: false, grabT: 0 };
 
@@ -54,23 +68,26 @@
       const ml = 1 + Math.random() * 3; world.burst(mouth, mdir, 7, 1.8, 0.7, 0.003, ml); phys.bv -= ml; phys.lostExt += ml;
     }
   }
-  const pending = []; let simClock = 0;
+  const pending = []; let simClock = 0; let duel = null;
   const projectiles = G.Projectiles(scene);
-  const viscera = G.Viscera(scene, body, rag);
-  const headFx = { rk: 0, rkMax: 0, at: 0 }; // raccoon-eye bruising: current and eventual depth
-  const handBlood = { L: 0, R: 0, at: 0 };
+  for (const S of subjects) S.viscera = G.Viscera(scene, S.body, S.rag);
+  viscera = primary.viscera; current = primary;
+  const newSubject = () => { const S = makeSubject(); S.viscera = G.Viscera(scene, S.body, S.rag); return S; };
   function cycleTime() { state.ti = (state.ti + 1) % TIMES.length; ui.setTime(TIMES[state.ti]); }
   function reset() {
+    if (current !== primary) use(primary);
     body.clearWounds(); world.clear(); rag.stop(); rag.clear(); projectiles.clear(); viscera.clear(); headFx.rk = headFx.rkMax = 0; headFx.mouth = false; handBlood.L = handBlood.R = 0;
     // each new subject is a different person (the first one is always the same, for a consistent start)
     if (body.setLook) { const first = reset.n == null; reset.n = (reset.n || 0) + 1;
       const tints = [0xffffff, 0x8a6a50, 0x5a4030, 0xd0b090, 0x404040];
       body.setLook(first ? 0 : Math.floor(Math.random() * body.looks), first ? 0 : Math.floor(Math.random() * 3), first ? 0xffffff : tints[Math.floor(Math.random() * tints.length)]); }
     phys = G.Physiology(G.ANATOMY.bloodVolume);
-    npc = G.NPC(body, phys, rag, { threat: () => state.threat || state.pos, event: npcEvent }); pending.length = 0;
+    npc = G.NPC(body, phys, rag, { threat: () => state.threat || state.pos, event: npcEvent }); pending.length = 0; primary.phys = phys; primary.npc = npc;
     npc.update(0.001); ui.report(null); G.state = { phys, npc, body, world, state };
   }
   reset(); setWeapon(1); ui.setTime(1);
+  duel = Duel();
+  document.getElementById('bDuel').addEventListener('click', () => { document.getElementById('intro').hidden = true; state.started = true; audio.init(); duel.start(); });
 
   // ---------- input
   function resize() {
@@ -117,6 +134,7 @@
   const toggleHud = () => document.body.classList.toggle('min');
   document.getElementById('bMenu').addEventListener('click', toggleHud);
   window.addEventListener('keydown', (e) => { if (e.key === 'Tab') { e.preventDefault(); toggleHud(); } });
+  window.addEventListener('keydown', (e) => { const k = e.key.toLowerCase(); if (k === 'o' && state.started) { duel.on ? duel.stop() : duel.start(); } else if (k === 'c' && duel && duel.on) duel.cycleCam(); });
   window.addEventListener('keydown', (e) => {
     if (e.repeat || e.metaKey || e.ctrlKey) return;
     const k = e.key.toLowerCase(); state.keys[k] = true;
@@ -154,7 +172,7 @@
     return out.copy(ndc).sub(camera.position).normalize();
   }
   function fire() {
-    if (!state.started || state.grab || (intro && intro.active())) return;
+    if (!state.started || state.grab || (intro && intro.active()) || (duel && duel.on)) return;
     const now = performance.now() / 1000, w = G.WEAPONS[state.wi];
     if (now - state.lastShot < 60 / w.rpm) return;
     state.lastShot = now;
@@ -546,6 +564,250 @@
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
     if (!G.debug.manual) step(dt);
   }
+  // ======================= AI 1v1 =======================
+  // Two armed people in the room, random cover each round, first to three. Each fighter is a full subject (same
+  // wounds, bleeding, physiology and ragdoll as the test subject) driven by a small mind: see the enemy or not, how hurt
+  // each side is, cover nearby. It aims with the arm, fires with real ballistics into the other body, keeps fighting
+  // while it physically can (from the floor too, holding a wound with the free hand), goes to cover when hurt,
+  // pushes when winning and finishes a downed enemy.
+  function Duel() {
+    const D = { on: false, fighters: [], score: [0, 0], round: 0, phase: 'idle', t: 0, props: [], cam: 1, clock: 0 };
+    const NAMES = ['RED', 'BLUE'], SHORTS = [0x7a2020, 0x203c7a];
+    const spawn = [new V3(0, 0, -1.6), new V3(0, 0, 6.1)];
+    const mats = { crate: new THREE.MeshStandardMaterial({ color: 0x6e5236, roughness: 0.85 }), concrete: new THREE.MeshStandardMaterial({ color: 0x8b8a84, roughness: 0.95 }), metal: new THREE.MeshStandardMaterial({ color: 0x4b545a, roughness: 0.5, metalness: 0.6 }) };
+    const TYPES = [{ k: 'crate', s: [0.9, 0.9, 0.9], m: 'crate', low: true }, { k: 'barrier', s: [1.7, 0.85, 0.4], m: 'concrete', low: true }, { k: 'pillar', s: [0.55, 2.6, 0.55], m: 'concrete', low: false }, { k: 'locker', s: [0.9, 1.9, 0.5], m: 'metal', low: false }, { k: 'stack', s: [1.0, 1.4, 1.0], m: 'crate', low: false }];
+    function clearProps() { for (const p of D.props) { scene.remove(p.mesh); for (const S of D.fighters) S.rag.world.remove(p.bodies[S.idx]); } D.props.length = 0; }
+    function addProp(T, x, z, rot) {
+      const sx = rot ? T.s[2] : T.s[0], sz = rot ? T.s[0] : T.s[2], sy = T.s[1];
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), mats[T.m]); mesh.position.set(x, sy / 2, z); mesh.castShadow = mesh.receiveShadow = true; scene.add(mesh);
+      if (T.m === 'crate') { const e = new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry), new THREE.LineBasicMaterial({ color: 0x2c2014 })); mesh.add(e); }
+      const box = new THREE.Box3(new V3(x - sx / 2, 0, z - sz / 2), new V3(x + sx / 2, sy, z + sz / 2));
+      const p = { T, mesh, box, low: T.low, h: sy, bodies: [] };
+      for (const S of D.fighters) { const b = new CANNON.Body({ mass: 0 }); b.addShape(new CANNON.Box(new CANNON.Vec3(sx / 2, sy / 2, sz / 2))); b.position.set(x, sy / 2, z); S.rag.world.addBody(b); p.bodies[S.idx] = b; }
+      D.props.push(p);
+    }
+    function layout() {
+      clearProps(); const n = 4 + Math.floor(Math.random() * 3);
+      for (let tries = 0; D.props.length < n && tries < 200; tries++) {
+        const T = TYPES[Math.floor(Math.random() * TYPES.length)], x = -3 + Math.random() * 6, z = -0.4 + Math.random() * 5.3, rot = Math.random() < 0.5;
+        const r = Math.max(T.s[0], T.s[2]) / 2 + 0.9;
+        if (D.props.some((p) => Math.hypot(p.mesh.position.x - x, p.mesh.position.z - z) < r + 0.6)) continue;
+        if (spawn.some((s) => Math.hypot(s.x - x, s.z - z) < r + 0.5)) continue;
+        addProp(T, x, z, rot);
+      }
+    }
+    // the nearest point along a ray where it enters a prop (Infinity if none)
+    const rayProps = (o, d, maxT) => { let best = maxT == null ? Infinity : maxT, hit = null; const r = new THREE.Ray(o, d), pt = new V3(); for (const p of D.props) if (r.intersectBox(p.box, pt)) { const t = pt.distanceTo(o); if (t < best) { best = t; hit = { p, at: pt.clone() }; } } return hit ? { t: best, ...hit } : null; };
+    const los = (a, b) => { const d = b.clone().sub(a), L = d.length(); d.divideScalar(L); return !rayProps(a, d, L - 0.05); };
+    const partPos = (S, n) => { const b = S.rag.parts[n].b.position; return new V3(b.x, b.y, b.z); };
+    const out = (S) => S.phys.dead || S.phys.brainDestroyed || !S.phys.conscious || (S.ai && S.ai.downT > 2.5 && S.npc.posture !== 'stand' && !S.ai.canFight);
+    const hurtOf = (S) => S.phys.pain * 0.6 + S.phys.frac() * 2.5 + (S.npc.posture !== 'stand' ? 0.5 : 0) + (S.phys.armBroken.R && S.phys.armBroken.L ? 1 : 0);
+    // a gun in each fighter's hand (a copy of the first-person models)
+    function giveGun(S, wi) {
+      if (S.gunModel) scene.remove(S.gunModel);
+      const w = G.WEAPONS[wi], src = gun.models[w.model] || gun.models.glock, m = src.clone(true); m.visible = true; m.traverse((o) => { o.visible = true; o.castShadow = true; }); scene.add(m);
+      S.gunModel = m; S.ai.wi = wi; S.ai.flash = new THREE.PointLight(0xffc878, 0, 7, 2); scene.add(S.ai.flash);
+    }
+    function setupFighter(S, i, wi) {
+      use(S); S.idx = i;
+      S.body.clearWounds(); S.rag.stop(); S.rag.clear(); S.viscera.clear(); S.headFx.rk = S.headFx.rkMax = 0; S.headFx.mouth = false; S.handBlood.L = S.handBlood.R = 0;
+      if (S.body.setLook) S.body.setLook(Math.floor(Math.random() * S.body.looks), Math.floor(Math.random() * 3), [0xffffff, 0x8a6a50, 0x5a4030, 0x404040][Math.floor(Math.random() * 4)]);
+      if (S.body.setShorts) S.body.setShorts(SHORTS[i]);
+      S.body.root.visible = true; S.body.root.position.copy(spawn[i]); S.body.root.rotation.set(0, i ? Math.PI : 0, 0);
+      S.phys = G.Physiology(G.ANATOMY.bloodVolume);
+      S.ai = { state: 'engage', t: 0, aimT: 0, fireT: 0.8 + Math.random() * 0.6, strafeT: 2 + Math.random() * 3, strafe: null, downT: 0, canFight: true, lastSeen: 0, goal: null, peekT: 0, crouch: 0, lean: 0, clock: 0 };
+      S.npc = G.NPC(S.body, S.phys, S.rag, { threat: () => partPos(D.fighters[1 - i], 'thorax'), event: npcEvent, fighter: true, ai: (N) => brain(S, N) });
+      giveGun(S, wi);
+    }
+    // ---- the mind
+    function brain(S, N) {
+      if (!S.ai) return null;
+      const E = D.fighters[1 - S.idx], ai = S.ai, P = S.phys, dt = Math.max(0, N.clock - (ai.clock || N.clock)); ai.clock = N.clock;
+      const me = partPos(S, 'thorax'), ep = partPos(E, 'thorax'), toE = ep.clone().sub(me); toE.y = 0; const dist = toE.length(); toE.normalize();
+      const face = Math.atan2(toE.x, toE.z);
+      if (D.phase !== 'fight') return { face };
+      const eye = partPos(S, 'head'), seeTarget = partPos(E, E.npc.posture === 'stand' ? 'thorax' : 'abdomen');
+      const vis = los(eye, seeTarget) || los(eye, partPos(E, 'head'));
+      if (vis) ai.lastSeen = 0; else ai.lastSeen += dt;
+      const myHurt = hurtOf(S), enHurt = hurtOf(E) + (out(E) ? 2 : 0), winning = enHurt - myHurt > 0.5, losing = myHurt - enHurt > 0.6;
+      ai.downT = N.posture === 'stand' ? 0 : ai.downT + dt;
+      // which hand holds the gun: the right, unless it is broken or gone
+      const gh = !P.armBroken.R && !S.rag.parts.handR.severed ? 'R' : !P.armBroken.L && !S.rag.parts.handL.severed ? 'L' : null;
+      ai.canFight = !!gh && P.conscious && !P.armsPara;
+      const sh = new V3(); S.body.segs['uarm' + (gh || 'R')].g.getWorldPosition(sh);
+      // where to aim: centre of mass; the head of an enemy who is down and close
+      ai.target = E.npc.posture !== 'stand' && dist < 2.2 ? partPos(E, 'head') : partPos(E, E.npc.posture === 'stand' ? 'thorax' : 'abdomen');
+      const aimDir = ai.target.clone().sub(sh).normalize(), aim = gh && vis ? sh.clone().addScaledVector(aimDir, 0.6) : null;
+      const intent = { face, aim, gunHand: gh || 'R', crouch: 0, lean: 0, move: null, run: false };
+      ai.t += dt;
+      if (N.posture === 'stand') {
+        // decide what to do
+        if (out(E) && !E.phys.dead && dist > 1.6) ai.state = 'finish';
+        else if (winning && enHurt > 1) ai.state = 'push';
+        else if ((myHurt > 0.45 || losing) && D.props.length && ai.state !== 'cover' && ai.t > 1.5) { ai.state = 'cover'; ai.goal = coverSpot(S, ep); ai.t = 0; }
+        else if (ai.lastSeen > 1.8 && ai.state !== 'flank' && ai.state !== 'cover') { ai.state = 'flank'; ai.goal = flankSpot(S, E); ai.t = 0; }
+        else if (vis && ai.state === 'flank') ai.state = 'engage';
+        const goTo = (g, run) => { if (!g) return false; const d = g.clone().sub(me); d.y = 0; if (d.length() < 0.35) return true; d.normalize(); intent.move = { x: d.x, z: d.z }; intent.run = run; if (!vis || run) intent.face = Math.atan2(d.x, d.z); return false; };
+        if (ai.state === 'engage') {
+          ai.strafeT -= dt;
+          if (ai.strafeT < 0) { ai.strafe = ai.strafe ? null : (Math.random() < 0.5 ? 1 : -1); ai.strafeT = ai.strafe ? 0.8 + Math.random() * 1.2 : 2 + Math.random() * 3; }
+          if (ai.strafe) intent.move = { x: -toE.z * ai.strafe, z: toE.x * ai.strafe };
+        } else if (ai.state === 'cover') {
+          const there = goTo(ai.goal, true);
+          if (there) {
+            // behind cover: crouch behind low cover, lean out from tall cover, and come up / out to shoot in bursts
+            ai.peekT -= dt; if (ai.peekT < 0) ai.peekT = ai.peeking ? 1.2 + Math.random() * 1.5 : 1.5 + Math.random() * 2;
+            if (ai.peekT < 0.05) ai.peeking = !ai.peeking;
+            const low = ai.goal.low;
+            if (!ai.peeking) { intent.crouch = low ? 1 : 0; intent.aim = null; } else { intent.crouch = low ? 0.2 : 0; intent.lean = low ? 0 : ai.goal.side; }
+            if (myHurt < 0.3 && ai.t > 8) ai.state = 'engage';
+          }
+        } else if (ai.state === 'flank') { if (goTo(ai.goal, false) || ai.t > 6) { ai.state = 'engage'; ai.t = 0; } }
+        else if (ai.state === 'push') { if (dist > 2.2) goTo(ep, true); }
+        else if (ai.state === 'finish') { if (dist > 1.4) goTo(ep, true); }
+      }
+      // shoot: settle the aim, then fire at the weapon's practical rate
+      ai.fireT -= dt;
+      if (intent.aim && N.aiming) { ai.aimT += dt; } else ai.aimT = 0;
+      ai.wantFire = !!intent.aim && ai.canFight && ai.aimT > 0.35 && ai.fireT <= 0 && !(out(E) && E.phys.dead);
+      ai.intent = intent;
+      return intent;
+    }
+    function coverSpot(S, ep) {
+      let best = null, bd = 1e9; const me = partPos(S, 'thorax');
+      for (const p of D.props) {
+        const c = p.mesh.position, away = new V3(c.x - ep.x, 0, c.z - ep.z).normalize(), r = Math.max(p.box.max.x - p.box.min.x, p.box.max.z - p.box.min.z) / 2 + 0.55;
+        const spot = new V3(c.x + away.x * r, 0, c.z + away.z * r), d = spot.distanceTo(new V3(me.x, 0, me.z));
+        if (d < bd && spot.x > ROOM.x0 + 0.5 && spot.x < ROOM.x1 - 0.5 && spot.z > ROOM.z0 + 0.5 && spot.z < ROOM.z1 - 0.5) { bd = d; best = spot; best.low = p.low; best.side = Math.random() < 0.5 ? -1 : 1; }
+      }
+      return best;
+    }
+    function flankSpot(S, E) {
+      const ep = partPos(E, 'head'), me = partPos(S, 'thorax'); let best = null, bd = 1e9;
+      for (let k = 0; k < 12; k++) { const a = (k / 12) * 6.283, r = 2.5 + Math.random() * 2.5, c = new V3(ep.x + Math.cos(a) * r, 1.5, ep.z + Math.sin(a) * r);
+        if (c.x < ROOM.x0 + 0.6 || c.x > ROOM.x1 - 0.6 || c.z < ROOM.z0 + 0.6 || c.z > ROOM.z1 - 0.6 || !los(c, ep)) continue;
+        const d = c.distanceTo(me); if (d < bd) { bd = d; best = c; } }
+      return best;
+    }
+    // ---- firing: the round leaves the fighter's muzzle and is traced through the other body
+    const mzl = new V3(), dd = new V3();
+    function aiFire(S) {
+      const E = D.fighters[1 - S.idx], ai = S.ai, w = G.WEAPONS[ai.wi], P = S.phys, m = S.gunModel;
+      ai.fireT = Math.max(60 / w.rpm, w.cls === 'pistol' ? 0.28 : 0.2) * (1 + Math.random() * 0.8) + (P.pain > 0.5 ? 0.2 : 0);
+      m.updateMatrixWorld(); mzl.set(0, m.userData.fy || 0.03, m.userData.muzzle || -0.2).applyMatrix4(m.matrixWorld);
+      // aim error: the weapon, the person (pain, blood loss, which hand, lying down, moving), and the range
+      const sig = 0.008 + w.spread * 0.5 + 0.03 * P.pain + 0.05 * P.frac() + (S.npc.gunHand === 'L' ? 0.015 : 0) + (S.npc.posture !== 'stand' ? 0.025 : 0) + (ai.intent && ai.intent.move ? 0.02 : 0);
+      audio.shot(w); world.smoke(mzl, dd.copy(ai.target).sub(mzl).normalize(), Math.round(2 + w.recoil * 2), 0.8);
+      ai.flash.position.copy(mzl); ai.flash.intensity = 3 + w.recoil * 1.5; ai.flashN = 1;
+      S.rag.impulse(S.body.segs['hand' + S.npc.gunHand], partPos(S, 'hand' + S.npc.gunHand), { x: -dd.x * w.recoil * 0.6, y: 0.4 * w.recoil, z: -dd.z * w.recoil * 0.6 }); // recoil kicks the hand
+      const n = w.pellets || 1, results = [], origin = mzl.clone();
+      for (let i = 0; i < n; i++) {
+        const d = ai.target.clone().sub(origin).normalize(), s = sig + (n > 1 ? w.spread : 0);
+        d.x += gauss() * s; d.y += gauss() * s; d.z += gauss() * s; d.normalize();
+        E.body.updateMatrices(); const res = G.simulate(w.bullet, origin, d, E.sampler); res.d0 = d;
+        const entry = res.marks.find((mk) => mk.type === 'entry'), tBody = res.hitBody && entry ? origin.distanceTo(tmp2.set(entry.p.x, entry.p.y, entry.p.z)) : Infinity;
+        const pr = rayProps(origin, d, tBody); if (pr) { res.blocked = pr; res.hitBody = false; }
+        results.push(res);
+        // the visible round
+        const pts = [origin.clone()], v = [], hide = []; let sp = w.bullet.v, inside = false;
+        if (res.blocked) { pts.push(res.blocked.at.clone()); v.push(sp); hide.push(false); }
+        else {
+          for (const mk of res.marks) { if (mk.type !== 'entry' && mk.type !== 'exit') continue; pts.push(new V3(mk.p.x, mk.p.y, mk.p.z)); v.push(sp); hide.push(inside); if (mk.type === 'entry') inside = true; else { inside = false; sp = mk.v || sp * 0.6; } }
+          if (!res.hitBody) { const h = world.rayRoom(origin, d); if (h) { pts.push(h.p.clone()); v.push(sp); hide.push(false); } }
+        }
+        projectiles.spawn(pts, v, hide, n > 1 ? 0.0084 : w.bullet.d, n > 1, simClock);
+      }
+      const first = results.find((r) => r.hitBody), firstBlock = results.find((r) => r.blocked), dist = first ? origin.distanceTo(tmp2.set(first.marks[0].p.x, first.marks[0].p.y, first.marks[0].p.z)) : firstBlock ? firstBlock.blocked.t : 5;
+      pending.push({ t: simClock + dist / w.bullet.v, run: () => {
+        const back = current; use(E);
+        for (const r of results) {
+          if (r.blocked) { const b = r.blocked; const nrm = new V3(); const c = b.p.mesh.position, hb = b.p.box, eps = 0.01; nrm.set(Math.abs(b.at.x - hb.min.x) < eps ? -1 : Math.abs(b.at.x - hb.max.x) < eps ? 1 : 0, Math.abs(b.at.y - hb.max.y) < eps ? 1 : 0, Math.abs(b.at.z - hb.min.z) < eps ? -1 : Math.abs(b.at.z - hb.max.z) < eps ? 1 : 0); if (nrm.lengthSq() === 0) nrm.set(0, 1, 0); void c;
+            world.addHole(b.at, nrm, Math.max(0.006, w.bullet.d * 0.9), 300); world.chunks(b.at, nrm, 6, 1.6, 1.2, b.p.T.m === 'crate' ? 'chip' : 'dust'); audio.wall(300); continue; }
+          if (r.hitBody) processShot(r, w, r.d0, origin); else { const h = world.rayRoom(origin, r.d0); if (h) strike(h, r.d0, r.E0 || 400, w, 0); }
+        }
+        const hits = results.filter((r) => r.hitBody);
+        if (hits.length) { dismember(results.filter((r) => !r.blocked), w, origin); headTrauma(hits); audio.impact(hits.some((r) => r.order.some((p) => p.kind === 'bone')), hits.reduce((a, r) => a + r.Edep, 0)); }
+        use(back);
+      } });
+    }
+    // ---- rounds
+    function startRound() {
+      D.round++; D.phase = 'ready'; D.t = 0; world.clear(); projectiles.clear(); pending.length = 0;
+      const wi = DUEL_W[Math.floor(Math.random() * DUEL_W.length)];
+      for (let i = 0; i < 2; i++) setupFighter(D.fighters[i], i, wi);
+      layout(); D.weaponName = G.WEAPONS[wi].name; use(D.fighters[0]);
+    }
+    const DUEL_W = [1, 2, 3, 4, 5, 6, 8];
+    D.start = () => {
+      if (D.fighters.length < 2) { D.fighters = [primary, subjects[1] || newSubject()]; }
+      D.on = true; D.score = [0, 0]; D.round = 0; D.cam = 1; state.threat = null; gun.raise = 0; ui.report(null);
+      document.body.classList.add('duel'); startRound(); hudEl.hidden = false;
+    };
+    D.stop = () => {
+      D.on = false; clearProps(); for (const S of D.fighters) { if (S.gunModel) { scene.remove(S.gunModel); S.gunModel = null; } if (S.ai && S.ai.flash) scene.remove(S.ai.flash); S.ai = null; if (S !== primary) { use(S); S.rag.stop(); S.body.clearWounds(); S.body.root.visible = false; } }
+      primary.body.root.position.set(0, 0, 0); primary.body.root.rotation.set(0, 0, 0); gun.raise = 1; document.body.classList.remove('duel'); hudEl.hidden = true; use(primary); reset();
+    };
+    // security cameras in the top corners (and the free view)
+    const CAMS = [null, new V3(-3.7, 2.9, -2.2), new V3(3.7, 2.9, -2.2), new V3(3.7, 2.9, 6.8), new V3(-3.7, 2.9, 6.8)];
+    const camBody = new THREE.Group(); for (const c of CAMS) if (c) { const g = new THREE.Group(); const hous = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.09, 0.22), new THREE.MeshStandardMaterial({ color: 0xd9d9d4, roughness: 0.5 })); const lens = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.03, 14), new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.1 })); lens.rotation.x = Math.PI / 2; lens.position.z = 0.12; const led = new THREE.Mesh(new THREE.SphereGeometry(0.008, 8, 6), new THREE.MeshBasicMaterial({ color: 0xff2020 })); led.position.set(0.04, 0.03, 0.11); hous.add(lens, led); g.add(hous); g.position.copy(c); g.lookAt(0, 1, 2.2); camBody.add(g); } scene.add(camBody);
+    D.cycleCam = () => { D.cam = (D.cam + 1) % CAMS.length; };
+    const hudEl = document.createElement('div'); hudEl.id = 'duelHud'; hudEl.hidden = true; document.getElementById('app').appendChild(hudEl);
+    D.update = (dt, rdt) => {
+      D.t += rdt; D.clock += dt;
+      const [A, B] = D.fighters;
+      // guns in hand: aimed along the arm toward the target, or carried in the hand; dropped when the hand lets go
+      for (const S of D.fighters) {
+        if (!S.ai || !S.gunModel) continue;
+        if (S.ai.flashN > 0) S.ai.flashN--; else S.ai.flash.intensity = 0;
+        const gh = S.npc.gunHand || 'R', hb = S.rag.parts['hand' + gh].b, hp = new V3(hb.position.x, hb.position.y, hb.position.z);
+        if (S.npc.aiming && S.ai.target) { const m4 = new THREE.Matrix4().lookAt(hp, S.ai.target, new V3(0, 1, 0)); S.gunModel.quaternion.setFromRotationMatrix(m4); S.gunModel.position.copy(hp).add(new V3(0, 0.035, 0).applyQuaternion(S.gunModel.quaternion)); }
+        else if (S.npc.posture === 'stand' && S.phys.conscious) {
+          // low ready: muzzle forward and down, carried in the hand
+          const tq = S.rag.parts.thorax.b.quaternion, fw = new V3(0, 0, 1).applyQuaternion(new THREE.Quaternion(tq.x, tq.y, tq.z, tq.w)); fw.y = 0; fw.normalize();
+          const m4 = new THREE.Matrix4().lookAt(hp, hp.clone().addScaledVector(fw, 1).add(new V3(0, -0.8, 0)), new V3(0, 1, 0)); S.gunModel.quaternion.setFromRotationMatrix(m4); S.gunModel.position.copy(hp);
+        } else { const q = new THREE.Quaternion(hb.quaternion.x, hb.quaternion.y, hb.quaternion.z, hb.quaternion.w); S.gunModel.quaternion.copy(q).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0))); S.gunModel.position.copy(hp); }
+        if (D.phase === 'fight' && S.ai.wantFire) aiFire(S);
+      }
+      if (D.phase === 'ready' && D.t > 2.5) { D.phase = 'fight'; D.t = 0; }
+      if (D.phase === 'fight') {
+        const oa = out(A), ob = out(B);
+        if (oa || ob || D.t > 150) { D.phase = 'over'; D.t = 0; D.winner = oa && ob ? -1 : oa ? 1 : ob ? 0 : -1; if (D.winner >= 0) D.score[D.winner]++; }
+      } else if (D.phase === 'over' && D.t > 5) {
+        if (D.score[0] >= 3 || D.score[1] >= 3) { D.phase = 'match'; D.t = 0; } else startRound();
+      } else if (D.phase === 'match' && D.t > 8) { D.score = [0, 0]; D.round = 0; startRound(); }
+      // camera: a security camera tracking the fight, or the free view
+      camBody.children.forEach((g, k) => { g.visible = k + 1 !== D.cam; }); // not the one we are looking through
+      if (D.cam > 0) { const c = CAMS[D.cam], mid = partPos(A, 'thorax').add(partPos(B, 'thorax')).multiplyScalar(0.5); camera.position.copy(c); camera.lookAt(mid); camera.updateMatrixWorld(); }
+      if (Math.floor(D.clock * 4) !== D.hudT) { D.hudT = Math.floor(D.clock * 4);
+        const st = (S, i) => '<span class="f' + i + '">' + NAMES[i] + '</span> ' + (S.phys.dead ? 'DEAD' : !S.phys.conscious ? 'DOWN' : S.npc.posture !== 'stand' ? 'WOUNDED, DOWN' : S.phys.frac() > 0.15 || S.phys.pain > 0.4 ? 'WOUNDED' : 'OK') + (S.ai ? ' · ' + S.ai.state : '');
+        const banner = D.phase === 'ready' ? 'ROUND ' + D.round + ' · ' + D.weaponName : D.phase === 'over' ? (D.winner >= 0 ? NAMES[D.winner] + ' WINS THE ROUND' : 'NO WINNER') : D.phase === 'match' ? NAMES[D.score[0] >= 3 ? 0 : 1] + ' WINS THE MATCH' : 'ROUND ' + D.round;
+        hudEl.innerHTML = '<div class="banner">' + banner + '</div><div class="score"><span class="f0">' + NAMES[0] + ' ' + D.score[0] + '</span> — <span class="f1">' + D.score[1] + ' ' + NAMES[1] + '</span></div><div class="st">' + st(A, 0) + '<br>' + st(B, 1) + '</div><div class="cam">' + (D.cam ? 'CAM ' + D.cam : 'FREE VIEW') + ' · C camera · O exit</div>';
+      }
+      use(A);
+    };
+    return D;
+  }
+  // one subject's physiology, behaviour, bleeding and the marks it leaves
+  function simSubject(S, dt, scale, slow) {
+    use(S);
+    if (state.started) {
+      let simDt = dt * scale * slow; const sub = Math.ceil(simDt / 0.2);
+      for (let i = 0; i < sub; i++) { phys.step(simDt / sub); bleed(simDt / sub, i === sub - 1); }
+      npc.update(dt * Math.min(scale, 3) * slow);
+    } else npc.update(dt);
+    viscera.update(dt * slow); smearBody();
+    // hands get bloody: pressing a bleeding wound coats the palm and fingers within seconds; touching a pool on the
+    // floor (crawling, pushing up) smears them too. It stays on (it dries, it does not go away).
+    for (const sd of ['L', 'R']) {
+      const cw = npc.clutching && npc.clutching[sd], h = rag.parts['hand' + sd] && rag.parts['hand' + sd].b;
+      let add = 0; if (cw && (cw.rate || 0) > 0) add += dt * slow * Math.min(0.5, 0.04 + cw.rate / 600);
+      if (h && h.position.y < 0.06 && world.depthAt(h.position.x, h.position.z) > 0.03) add += dt * slow * 0.4;
+      if (add > 0) handBlood[sd] = Math.min(1, handBlood[sd] + add);
+    }
+    handBlood.at += dt; if (handBlood.at > 0.3) { handBlood.at = 0; if (handBlood.L > 0) body.bloodyHand('L', handBlood.L); if (handBlood.R > 0) body.bloodyHand('R', handBlood.R); }
+    // raccoon eyes come up over ~7 minutes while blood still circulates
+    if (headFx.rkMax > headFx.rk && phys.hr > 20) { headFx.rk = Math.min(headFx.rkMax, headFx.rk + dt * slow * scale * headFx.rkMax / 420); headFx.at += dt; if (headFx.at > 0.25) { headFx.at = 0; body.periorbital(headFx.rk); } } body.bloodTick && body.bloodTick(dt * slow, phys.hr > 20);
+  }
   // one full simulation + render step (also driven directly by the test harness for frame-exact capture)
   function step(dt, noRender) {
     movePlayer(dt);
@@ -561,23 +823,10 @@
     moveGrab();
     if (state.started) { simClock += dt * slow; while (pending.length && pending[0].t <= simClock) pending.shift().run(); }
     projectiles.update(simClock, dt * slow);
-    if (state.started) {
-      let simDt = dt * scale * slow; const sub = Math.ceil(simDt / 0.2);
-      for (let i = 0; i < sub; i++) { phys.step(simDt / sub); bleed(simDt / sub, i === sub - 1); }
-      npc.update(dt * Math.min(scale, 3) * slow);
-    } else npc.update(dt);
-    world.update(dt * slow); viscera.update(dt * slow); smearBody();
-    // hands get bloody: pressing a bleeding wound coats the palm and fingers within seconds; touching a pool on the
-    // floor (crawling, pushing up) smears them too. It stays on (it dries, it does not go away).
-    for (const sd of ['L', 'R']) {
-      const cw = npc.clutching && npc.clutching[sd], h = rag.parts['hand' + sd] && rag.parts['hand' + sd].b;
-      let add = 0; if (cw && (cw.rate || 0) > 0) add += dt * slow * Math.min(0.5, 0.04 + cw.rate / 600);
-      if (h && h.position.y < 0.06 && world.depthAt(h.position.x, h.position.z) > 0.03) add += dt * slow * 0.4;
-      if (add > 0) handBlood[sd] = Math.min(1, handBlood[sd] + add);
-    }
-    handBlood.at += dt; if (handBlood.at > 0.3) { handBlood.at = 0; if (handBlood.L > 0) body.bloodyHand('L', handBlood.L); if (handBlood.R > 0) body.bloodyHand('R', handBlood.R); }
-    // raccoon eyes come up over ~7 minutes while blood still circulates
-    if (headFx.rkMax > headFx.rk && phys.hr > 20) { headFx.rk = Math.min(headFx.rkMax, headFx.rk + dt * slow * scale * headFx.rkMax / 420); headFx.at += dt; if (headFx.at > 0.25) { headFx.at = 0; body.periorbital(headFx.rk); } } body.bloodTick && body.bloodTick(dt * slow, phys.hr > 20);
+    const active = duel && duel.on ? duel.fighters : [primary];
+    for (const S of active) simSubject(S, dt, scale, slow);
+    world.update(dt * slow);
+    if (duel && duel.on) duel.update(dt * slow, dt); else use(primary);
     if (state.started) {
       const dx = vent.x - state.pos.x, dz = vent.y - state.pos.z;
       const distance = Math.hypot(dx, dz);
@@ -594,13 +843,16 @@
     uiT += dt; if (uiT > 0.15) { uiT = 0;
       { const st = phys.status(), lost = Math.round(phys.total - phys.bv), mini = document.getElementById('mini');
         if (mini && document.body.classList.contains('min')) mini.innerHTML = '<b>' + st[0] + '</b> · HR ' + Math.round(phys.hr) + ' · ' + (lost > 0 ? '−' + lost + ' mL' : 'no blood loss') + ' · ' + G.WEAPONS[state.wi].name; }
+      for (const S of (duel && duel.on ? duel.fighters : [primary])) { use(S);
       // skin and pupils follow the physiology
       body.setPerfusion(phys.frac(), phys.spo2, phys.dead || phys.stemDestroyed, phys.deadT || 0);
       const brainGone = phys.dead || phys.stemDestroyed || phys.anoxic > 120;
       body.setPupil(brainGone ? 0.62 : 0.32 + 0.12 * Math.min(1, phys.frac() / 0.3) + (phys.tFirst != null && phys.conscious ? 0.06 : 0));
+      }
+      use(duel && duel.on ? duel.fighters[0] : primary);
       ui.update(phys, npc); ui.setRange(Math.hypot(state.pos.x - npc.pos.x, state.pos.z - npc.pos.z)); }
     if (!noRender) renderer.render(scene, camera);
   }
   requestAnimationFrame(frame);
-  G.debug = { viscera, projectiles, gun, scene, tick: step, manual: false, audio, rag, toggleGrab, toggleSlow, fire, state, setWeapon, toggleXray, camera, get phys() { return phys; }, get npc() { return npc; }, body, world };
+  G.debug = { get duel() { return duel; }, subjects, use, viscera, projectiles, gun, scene, tick: step, manual: false, audio, rag, toggleGrab, toggleSlow, fire, state, setWeapon, toggleXray, camera, get phys() { return phys; }, get npc() { return npc; }, body, world };
 })();

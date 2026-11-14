@@ -25,7 +25,7 @@
     const names = body.list.map((s) => s.name).filter((n) => n !== 'pelvis');
     const cur = {};
     for (const k of names) cur[k] = (POSES.stand[k] || [0, 0, 0]).slice();
-    const N = { lookT: 0, lookAt: null, armSw: { L: 0, R: 0 }, fleeT: 0, flees: false, retreatT: 0, riseT: 0, riseTries: 0, chose: false, flinchT: 0, dip: 0, posture: 'stand', pose: 'stand', pos: new THREE.Vector3(), decideT: -1, wantDown: false, clock: 0, breath: 0, ragT: 0, stillT: 0, stagger: 0, stagDir: [0, 0], crawling: false, downT: 0,
+    const N = { crouch: 0, lean: 0, aiming: false, gunHand: 'R', lookT: 0, lookAt: null, armSw: { L: 0, R: 0 }, fleeT: 0, flees: false, retreatT: 0, riseT: 0, riseTries: 0, chose: false, flinchT: 0, dip: 0, posture: 'stand', pose: 'stand', pos: new THREE.Vector3(), decideT: -1, wantDown: false, clock: 0, breath: 0, ragT: 0, stillT: 0, stagger: 0, stagDir: [0, 0], crawling: false, downT: 0,
       lowering: 0, giveT: 0, clutchT: 0, clutching: { L: null, R: null }, gasp: 0, cough: 0, coughAt: 4 + Math.random() * 6, groanAt: 3 + Math.random() * 5, voiceAt: 9, hitClock: -99, act: 'still', actT: 0, actDur: 1, actSeed: 0, actSide: 1, lastBreath: 0, motor: 'normal' };
     const ctl = rag.ctl, ev = (t, d) => hooks.event && hooks.event(t, d);
     rag.start(); ctl.s = 1; ctl.bal = 1; ctl.y0 = ctl.yRest; ctl.canStep = true; ctl.trunk = 0; ctl.draw = 0; ctl.lead = null; ctl.face = null; rag.lost = null; rag.stepWin = 0;
@@ -63,7 +63,7 @@
       // startle / stagger: a reflex step driven by the legs, in roughly the direction of fire
       N.stagger = 1; const a = Math.atan2(dir.z, dir.x) + (Math.random() - 0.5) * 1.2; N.stagDir = [Math.cos(a), Math.sin(a)];
       N.clutchT = 0.15; // re-check wounds shortly; when each one is noticed is decided per wound
-      if (N.decideT < 0 && N.posture === 'stand') {
+      if (N.decideT < 0 && N.posture === 'stand' && !hooks.fighter) {
         N.decideT = 0.6 + Math.random() * 2.2;
         // many gunshot victims go down even when physically able to stand
         N.wantDown = phys.pain > 0.5 || Math.random() < 0.3 + phys.pain * 0.5;
@@ -94,7 +94,7 @@
       const pick = {};
       for (const sd of ['L', 'R']) {
         let best = null, bs = 0;
-        if (can && !P.armsPara && !P.armBroken[sd]) {
+        if (can && !P.armsPara && !P.armBroken[sd] && !(N.aiming && sd === N.gunHand)) {
           body.segs['uarm' + sd].g.getWorldPosition(v1);
           for (const w of body.wounds) {
             if (!(w.noticeAt <= now)) continue;
@@ -140,6 +140,7 @@
     }
     N.update = (dt) => {
       N.clock += dt;
+      N.ai = hooks.ai ? hooks.ai(N) : null; // a fighter's intent this frame: { face, move, crouch, lean, aim, gunHand }
       const P = phys, M = P.motor.mode, c = N.clock;
       const rigid = M === 'decerebrate' || M === 'tonic', clonic = M === 'clonic';
       const limp = (!P.conscious || P.brainDestroyed || P.dead) && !rigid && !clonic;
@@ -237,6 +238,14 @@
               ctl.lead = { x: dx * ll, z: dz * ll };
             }
           }
+          // a fighter: turns to where it wants to face, walks where it wants to go, crouches behind cover
+          const ai = N.ai;
+          if (ai && N.stagger < 0.4) {
+            if (ai.face != null) ctl.face = ai.face;
+            if (ai.move) { const sp = 0.11 * Math.min(1, P.brainE) * (P.map > 60 ? 1 : 0.6) * (ai.run ? 1.45 : 1) * (1 - 0.4 * (ai.crouch || 0)); ctl.lead = { x: ai.move.x * sp, z: ai.move.z * sp }; }
+            N.crouch += ((ai.crouch || 0) - N.crouch) * Math.min(1, dt * 3);
+          } else N.crouch = Math.max(0, N.crouch - dt * 2);
+          ctl.y0 -= ctl.yRest * 0.3 * N.crouch;
           N.flinchT = Math.max(0, N.flinchT - dt);
           target = N.lowering > 0 ? POSES.brace : N.flinchT > 0 ? POSES.guard : POSES[N.pose];
         }
@@ -274,6 +283,14 @@
         }
         N.clutching.L = N.clutching.R = null; rag.setClutch('L', null); rag.setClutch('R', null);
       } else if (rag.reach.L || rag.reach.R) { rag.reach.L = rag.reach.R = null; }
+      N.aiming = false; rag.reachCap = 130;
+      if (!N.protect && N.ai && N.ai.aim && aware && !P.armsPara) {
+        const gh = N.ai.gunHand || 'R';
+        if (!P.armBroken[gh] && !(rag.parts['hand' + gh] && rag.parts['hand' + gh].severed)) {
+          N.gunHand = gh; N.aiming = true; rag.reach[gh] = N.ai.aim; rag.reachCap = 300 * Math.min(1, P.brainE) * (1 - 0.35 * P.pain); // the shoulder holds a gun up at arm's length
+          if (N.clutching[gh]) { N.clutching[gh] = null; rag.setClutch(gh, null); }
+        }
+      }
       // ---- a hand goes to the wound: neck, chest, belly, thigh, whatever it can reach
       // grip strength follows the brain: hands weaken, then fall away, as consciousness fades
       const grip = Math.max(0, Math.min(1, (P.brainE - 0.45) / 0.4)) * (P.conscious ? 1 : 0);
@@ -365,6 +382,9 @@
         if (N.posture === 'down' && aware && tone > 0 && !(isArm && N.clutching[side])) tone = Math.max(tone, 0.5 * (1 - 0.5 * shock));
         if (N.crawling && n.startsWith('uarm')) x = -1.6 + Math.sin(c * 2.4 + (side === 'L' ? 0 : Math.PI)) * 0.9;
         if (isArm && N.protect) { tone *= 0.25; }
+        if (isArm && N.aiming && side === N.gunHand) { tone *= 0.3; if (n.startsWith('farm')) x = -0.25; } // arm out toward the target
+        if (N.crouch > 0.01 && N.posture === 'stand') { const cr = N.crouch; if (n.startsWith('thigh')) x -= 1.0 * cr; else if (n.startsWith('shin')) x += 1.55 * cr; else if (n.startsWith('foot')) x -= 0.5 * cr; else if (n === 'abdomen') x += 0.25 * cr; }
+        if (N.ai && N.ai.lean && (n === 'abdomen' || n === 'thorax')) z += 0.22 * N.ai.lean; // leaning out from cover
         // walking: each arm swings forward as the opposite leg steps
         if (n.startsWith('uarm')) {
           const st = rag.stepping, want = N.retreating && st && !N.clutching[side] ? (st.side === side ? 0.32 : -0.38) : 0;

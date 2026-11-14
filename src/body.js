@@ -626,6 +626,15 @@
       if (w.soak) { w.soak.geometry.dispose(); w.soak.geometry = g; }
       else { w.soak = new THREE.SkinnedMesh(g, soakMat); w.soak.frustumCulled = false; w.soak.renderOrder = 4; w.soak.bind(hm.skeleton, hm.bindMatrix); hm.parent.add(w.soak); }
     }
+    // the colour of the shorts (a tint over the cloth texture); kept through wound resets
+    let shortsIdx = null;
+    body.setShorts = (hex) => {
+      const hm = body.human; if (!hm) return;
+      const geo = hm.geometry, P = geo.attributes.position, col = geo.attributes.color, SI4 = geo.attributes.skinIndex.array, SW4 = geo.attributes.skinWeight.array, c = new THREE.Color(hex);
+      if (!shortsIdx) { shortsIdx = []; for (let i = 0; i < P.count; i++) { const y = body.skin0.pos[i * 3 + 1]; if (y < 0.742 || y > 1.028) continue; let m = -1, b = 0; for (let q = 0; q < 4; q++) if (SW4[i * 4 + q] > m) { m = SW4[i * 4 + q]; b = SI4[i * 4 + q]; } if (/^(uarm|farm|hand)/.test(body.list[b].name)) continue; shortsIdx.push(i); } }
+      for (const i of shortsIdx) { col.setXYZ(i, c.r, c.g, c.b); body.skin0.col[i * 3] = c.r; body.skin0.col[i * 3 + 1] = c.g; body.skin0.col[i * 3 + 2] = c.b; }
+      col.needsUpdate = true;
+    };
     body.paintSoak = paintSoak;
     // ---- traumatic amputation. Every skin vertex near the cut is given wholly to one side (the separated part and
     // everything beyond it, or the body); triangles that would span the gap are removed; both open ends get a stump
