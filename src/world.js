@@ -6,48 +6,9 @@
   const ROOM = { x0: -4, x1: 4, y0: 0, y1: 3.2, z0: -2.4, z1: 7 };
   G.ROOM = ROOM;
 
-  function gridTex(base, line, cells, size) {
-    const c = document.createElement('canvas'); c.width = c.height = size;
-    const x = c.getContext('2d'); x.fillStyle = base; x.fillRect(0, 0, size, size);
-    for (let i = 0; i < 2600; i++) { x.fillStyle = 'rgba(' + (Math.random() < 0.5 ? '0,0,0' : '255,255,255') + ',' + Math.random() * 0.035 + ')'; x.fillRect(Math.random() * size, Math.random() * size, 2 + Math.random() * 5, 2 + Math.random() * 5); }
-    x.strokeStyle = line; x.lineWidth = 2;
-    const s = size / cells;
-    for (let i = 0; i <= cells; i++) { x.beginPath(); x.moveTo(i * s, 0); x.lineTo(i * s, size); x.moveTo(0, i * s); x.lineTo(size, i * s); x.stroke(); }
-    const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4; t.encoding = THREE.sRGBEncoding;
-    return t;
-  }
-
   G.buildWorld = function (scene) {
     const W = { stains: [], holes: [] };
-    const w = ROOM.x1 - ROOM.x0, h = ROOM.y1, d = ROOM.z1 - ROOM.z0, cz = (ROOM.z0 + ROOM.z1) / 2;
-    const floorT = gridTex('#9aa3a6', 'rgba(40,52,58,0.55)', 2, 512); floorT.repeat.set(w / 1, d / 1);
-    const wallT = gridTex('#c9d0d1', 'rgba(60,76,84,0.5)', 2, 512);
-    const plane = (pw, ph, tex, rep) => { const t = tex.clone(); t.needsUpdate = true; t.repeat.set(rep[0], rep[1]); return new THREE.Mesh(new THREE.PlaneGeometry(pw, ph), new THREE.MeshStandardMaterial({ map: t, roughness: 0.82 })); };
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(w, d), new THREE.MeshStandardMaterial({ map: floorT, roughness: 0.55, metalness: 0.05 }));
-    floor.rotation.x = -Math.PI / 2; floor.position.set(0, 0, cz); floor.receiveShadow = true; scene.add(floor);
-    const ceil = new THREE.Mesh(new THREE.PlaneGeometry(w, d), new THREE.MeshStandardMaterial({ color: 0xd8dcdc, roughness: 1 }));
-    ceil.rotation.x = Math.PI / 2; ceil.position.set(0, h, cz); scene.add(ceil);
-    const back = plane(w, h, wallT, [w / 1, h / 1]); back.position.set(0, h / 2, ROOM.z0); back.receiveShadow = true; scene.add(back);
-    const front = plane(w, h, wallT, [w, h]); front.position.set(0, h / 2, ROOM.z1); front.rotation.y = Math.PI; scene.add(front);
-    const left = plane(d, h, wallT, [d, h]); left.position.set(ROOM.x0, h / 2, cz); left.rotation.y = Math.PI / 2; left.receiveShadow = true; scene.add(left);
-    const right = plane(d, h, wallT, [d, h]); right.position.set(ROOM.x1, h / 2, cz); right.rotation.y = -Math.PI / 2; right.receiveShadow = true; scene.add(right);
-    // height scale on the back wall (cm) so wound heights can be read off
-    const sc = document.createElement('canvas'); sc.width = 96; sc.height = 1024;
-    const sx = sc.getContext('2d'); sx.fillStyle = '#f3f1e6'; sx.fillRect(0, 0, 96, 1024); sx.fillStyle = '#1b2327'; sx.font = 'bold 22px monospace';
-    for (let cm = 0; cm <= 200; cm += 10) { const y = 1024 - (cm / 200) * 1024; sx.fillRect(0, y - 1, cm % 50 === 0 ? 50 : 26, 3); if (cm % 50 === 0 && cm) sx.fillText(cm, 40, y + 24); }
-    const st = new THREE.CanvasTexture(sc); st.encoding = THREE.sRGBEncoding;
-    const scale = new THREE.Mesh(new THREE.PlaneGeometry(0.19, 2), new THREE.MeshStandardMaterial({ map: st, roughness: 0.9 }));
-    scale.position.set(-0.75, 1, ROOM.z0 + 0.004); scene.add(scale);
-    // lights
-    scene.add(new THREE.HemisphereLight(0xe9f1f4, 0x5a5f60, 0.3)); // most ambient light now comes from the room reflection map
-    const key = new THREE.DirectionalLight(0xffffff, 0.85); key.position.set(1.8, 3.1, 3.2); key.target.position.set(0, 0.9, 0);
-    key.castShadow = true; key.shadow.mapSize.set(1024, 1024);
-    Object.assign(key.shadow.camera, { left: -2.5, right: 2.5, top: 2.5, bottom: -2.5, near: 0.5, far: 9 }); key.shadow.bias = -0.0015;
-    scene.add(key, key.target);
-    for (const z of [0.5, 4.2]) {
-      const p = new THREE.PointLight(0xf4fbff, 0.35, 9, 2); p.position.set(0, 3.0, z); scene.add(p);
-      const tube = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.03, 0.16), new THREE.MeshBasicMaterial({ color: 0xffffff })); tube.position.set(0, h - 0.02, z); scene.add(tube);
-    }
+    const w = ROOM.x1 - ROOM.x0, d = ROOM.z1 - ROOM.z0, cz = (ROOM.z0 + ROOM.z1) / 2;
 
     // ---- ray vs room (from inside)
     W.rayRoom = (o, dir) => {

@@ -11,16 +11,7 @@
   const camera = new THREE.PerspectiveCamera(62, 1, 0.05, 40);
   camera.rotation.order = 'YXZ'; scene.add(camera);
 
-  // image-based lighting: a blurred reflection of a tiled room with two bright ceiling panels, so wet blood,
-  // eyes, gun metal and skin catch soft reflections the way real surfaces do
-  {
-    const env = new THREE.Scene(), pm = new THREE.PMREMGenerator(renderer);
-    const room = new THREE.Mesh(new THREE.BoxGeometry(8, 3.2, 9.4), new THREE.MeshBasicMaterial({ color: 0x8a9294, side: THREE.BackSide }));
-    room.position.set(0, 1.6, 2.3); env.add(room);
-    const floorE = new THREE.Mesh(new THREE.PlaneGeometry(8, 9.4), new THREE.MeshBasicMaterial({ color: 0x5a6062 })); floorE.rotation.x = -Math.PI / 2; floorE.position.set(0, 0.01, 2.3); env.add(floorE);
-    for (const z of [0.5, 4.2]) { const l = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 0.16), new THREE.MeshBasicMaterial({ color: 0xffffff })); l.material.color.multiplyScalar(14); l.rotation.x = Math.PI / 2; l.position.set(0, 3.15, z); env.add(l); }
-    scene.environment = pm.fromScene(env, 0.04).texture; pm.dispose();
-  }
+  const vent = G.buildChamber(scene, renderer);
   const world = G.buildWorld(scene), body = G.buildBody(scene), gun = G.buildGun(camera), audio = G.Audio();
   const rag = G.buildPhysics(scene, body, audio, { headImpact: (v) => phys && npc && npc.posture === 'falling' && phys.headImpact(v), footstep: (k) => { audio.dist = Math.hypot(state.pos.x - npc.pos.x, state.pos.z - npc.pos.z); audio.step(k); } }); // only a real fall, not movement on the floor
   let phys, npc;
@@ -120,7 +111,6 @@
     if (k.startsWith('arrow')) e.preventDefault();
   });
   window.addEventListener('keyup', (e) => { state.keys[e.key.toLowerCase()] = false; });
-  window.addEventListener('blur', () => { state.keys = {}; });
   // touch move stick
   const stick = document.getElementById('stick'), knob = document.getElementById('knob');
   if (window.matchMedia('(pointer: coarse)').matches) stick.hidden = false;
@@ -132,7 +122,15 @@
   stick.addEventListener('pointerdown', (e) => { stick.setPointerCapture(e.pointerId); stickMove(e); });
   stick.addEventListener('pointermove', (e) => { if (e.buttons || e.pointerType !== 'mouse') stickMove(e); });
   const stickEnd = () => { state.stick = [0, 0]; knob.style.transform = ''; };
-  stick.addEventListener('pointerup', stickEnd); stick.addEventListener('pointercancel', stickEnd);
+  stick.addEventListener('pointerup', stickEnd);
+  stick.addEventListener('pointercancel', stickEnd);
+  stick.addEventListener('lostpointercapture', stickEnd);
+  window.addEventListener('blur', () => {
+    state.keys = {};
+    look = false;
+    velocity.set(0, 0);
+    stickEnd();
+  });
 
   // ---------- firing
   const ndc = new V3(), dir = new V3(), tmp = new V3(), tmp2 = new V3();
@@ -310,6 +308,58 @@
     }
   }
 
+  // ---------- player movement
+  const walkSpeed = 2.2, stepLength = 0.91, subjectClearance = 0.75;
+  const minX = ROOM.x0 + 0.4, maxX = ROOM.x1 - 0.4;
+  const minZ = ROOM.z0 + 0.4, maxZ = ROOM.z1 - 0.4;
+  const { clamp, lerp } = THREE.MathUtils;
+  const velocity = new THREE.Vector2(), targetVelocity = new THREE.Vector2();
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  let stride = 0.5, eyeOffset = 0;
+
+  function movePlayer(dt) {
+    const keys = state.keys;
+    state.yaw += ((keys.arrowleft ? 1 : 0) - (keys.arrowright ? 1 : 0)) * dt * 1.6;
+    state.pitch += ((keys.arrowup ? 1 : 0) - (keys.arrowdown ? 1 : 0)) * dt * 1.2;
+    state.pitch = clamp(state.pitch, -1.3, 1.3);
+    if (!state.started || dt <= 0) return;
+
+    const mx = (keys.d ? 1 : 0) - (keys.a ? 1 : 0) + state.stick[0];
+    const mz = (keys.s ? 1 : 0) - (keys.w ? 1 : 0) + state.stick[1];
+    const c = Math.cos(state.yaw), s = Math.sin(state.yaw);
+    targetVelocity.set(mx * c + mz * s, -mx * s + mz * c).clampLength(0, 1).multiplyScalar(walkSpeed);
+    velocity.lerp(targetVelocity, 1 - Math.exp(-dt * (mx || mz ? 13 : 23)));
+    if (velocity.lengthSq() < 0.0001) velocity.set(0, 0);
+
+    const previousX = state.pos.x, previousZ = state.pos.z;
+    let x = clamp(previousX + velocity.x * dt, minX, maxX);
+    let z = clamp(previousZ + velocity.y * dt, minZ, maxZ);
+    if (x !== previousX || z !== previousZ) {
+      const dx = x - npc.pos.x, dz = z - npc.pos.z, separation = Math.hypot(dx, dz);
+      if (separation < subjectClearance) {
+        if (separation > 0.0001) {
+          x = clamp(npc.pos.x + dx / separation * subjectClearance, minX, maxX);
+          z = clamp(npc.pos.z + dz / separation * subjectClearance, minZ, maxZ);
+        } else {
+          x = previousX;
+          z = previousZ;
+        }
+      }
+      state.pos.x = x;
+      state.pos.z = z;
+    }
+
+    const traveled = Math.hypot(x - previousX, z - previousZ);
+    const pace = Math.min(1, traveled / (walkSpeed * dt));
+    stride += traveled / stepLength;
+    if (stride >= 1) {
+      stride %= 1;
+      audio.playerStep(pace);
+    }
+    const targetEyeOffset = -Math.cos(stride * Math.PI * 2) * 0.014 * pace;
+    eyeOffset = reducedMotion.matches ? 0 : lerp(eyeOffset, targetEyeOffset, 1 - Math.exp(-dt * 20));
+  }
+
   // ---------- loop
   let last = performance.now(), uiT = 0;
   const camDir = new V3(), q = new THREE.Quaternion();
@@ -320,20 +370,11 @@
   }
   // one full simulation + render step (also driven directly by the test harness for frame-exact capture)
   function step(dt, noRender) {
-    // movement
-    const k = state.keys, sp = 2.2 * dt;
-    let mx = (k.d ? 1 : 0) - (k.a ? 1 : 0) + state.stick[0], mz = (k.s ? 1 : 0) - (k.w ? 1 : 0) + state.stick[1];
-    state.yaw += ((k.arrowleft ? 1 : 0) - (k.arrowright ? 1 : 0)) * dt * 1.6; state.pitch += ((k.arrowup ? 1 : 0) - (k.arrowdown ? 1 : 0)) * dt * 1.2;
-    state.pitch = Math.max(-1.3, Math.min(1.3, state.pitch));
-    if (state.started && (mx || mz)) {
-      const c = Math.cos(state.yaw), s = Math.sin(state.yaw);
-      state.pos.x += (mx * c + mz * s) * sp; state.pos.z += (-mx * s + mz * c) * sp;
-      state.pos.x = Math.max(ROOM.x0 + 0.4, Math.min(ROOM.x1 - 0.4, state.pos.x)); state.pos.z = Math.max(ROOM.z0 + 0.4, Math.min(ROOM.z1 - 0.4, state.pos.z));
-      const dx = state.pos.x - npc.pos.x, dz = state.pos.z - npc.pos.z, dd = Math.hypot(dx, dz);
-      if (dd < 0.75) { state.pos.x = npc.pos.x + (dx / dd) * 0.75; state.pos.z = npc.pos.z + (dz / dd) * 0.75; }
-    }
+    movePlayer(dt);
     state.kick = Math.max(0, state.kick - dt * 0.12 * (1 + state.kick * 40));
-    camera.position.copy(state.pos); camera.rotation.set(state.pitch + state.kick, state.yaw, 0); camera.updateMatrixWorld();
+    camera.position.copy(state.pos);
+    camera.position.y += eyeOffset;
+    camera.rotation.set(state.pitch + state.kick, state.yaw, 0); camera.updateMatrixWorld();
     // simulation time
     const scale = TIMES[state.ti], slow = state.slow ? 0.2 : 1;
     moveGrab();
@@ -344,6 +385,11 @@
       npc.update(dt * Math.min(scale, 3) * slow);
     } else npc.update(dt);
     world.update(dt * slow); smearBody();
+    if (state.started) {
+      const dx = vent.x - state.pos.x, dz = vent.y - state.pos.z;
+      const distance = Math.hypot(dx, dz);
+      audio.ventilation(distance, (dx * Math.cos(state.yaw) - dz * Math.sin(state.yaw)) / Math.max(1, distance));
+    }
     audio.dist = Math.hypot(state.pos.x - npc.pos.x, state.pos.z - npc.pos.z);
     const effort = !phys.conscious ? (phys.rr > 1 ? 0.35 : 0) : Math.min(1.6, 0.15 + Math.max(0, phys.rr - 14) / 14 + phys.pain * 0.6);
     audio.breath(npc.breath, phys.rr, phys.agonal ? 0 : effort, phys.hemoptysis);

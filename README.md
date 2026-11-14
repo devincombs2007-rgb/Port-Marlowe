@@ -1,4 +1,4 @@
-# Port-Marlowe — Wound Ballistics Lab (v1.4)
+# Port-Marlowe — Wound Ballistics Lab (v1.5)
 
 A browser-based 3D simulator of gunshot wounds. A test subject stands in a chamber; every
 round is traced millimetre by millimetre through skin, bone, organs and vessels, and the
@@ -6,6 +6,10 @@ body then responds in real time (bleeding, blood pressure, breathing, consciousn
 
 **Run it:** serve this folder with any static server (`python3 -m http.server`) and open
 `index.html`. No build step. `node tools/build.js` bundles a single-file page into `dist/`.
+
+**v1.5** adds textured ceramic and grout, ceiling fixtures reflected in the room, and a spatial
+ventilation hum. Player movement eases in and out, with footsteps spaced by distance traveled.
+Camera bob follows walking pace and respects the browser's reduced-motion setting.
 
 ## Controls
 

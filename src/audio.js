@@ -23,7 +23,15 @@
   G.Audio = function () {
     const bufs = {};
     let ctx = null, noise = null, master = null, wet = null, dry = null, breathG = null, breathF = null, gurgG = null;
-    const A = { muted: false, dist: 3 };
+    let ventGain = null, ventPan = null, muted = false;
+    const A = {
+      dist: 3,
+      get muted() { return muted; },
+      set muted(value) {
+        muted = value;
+        if (ctx && master) master.gain.setTargetAtTime(muted ? 0 : 0.9, ctx.currentTime, 0.03);
+      },
+    };
     A.init = () => {
       if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
       try {
@@ -40,11 +48,26 @@
         }
         const conv = ctx.createConvolver(); conv.buffer = ir;
         const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 6; comp.attack.value = 0.001; comp.release.value = 0.12;
-        master = ctx.createGain(); master.gain.value = 0.9; dry = ctx.createGain(); wet = ctx.createGain(); wet.gain.value = 0.32;
+        master = ctx.createGain(); master.gain.value = muted ? 0 : 0.9; dry = ctx.createGain(); wet = ctx.createGain(); wet.gain.value = 0.32;
         dry.connect(comp); dry.connect(conv); conv.connect(wet); wet.connect(comp); comp.connect(master); master.connect(ctx.destination);
         // continuous breath and airway-gurgle beds, modulated every frame
-        const mk = (type, f, q) => { const s = ctx.createBufferSource(); s.buffer = noise; s.loop = true; const fl = ctx.createBiquadFilter(); fl.type = type; fl.frequency.value = f; fl.Q.value = q; const g = ctx.createGain(); g.gain.value = 0; s.connect(fl); fl.connect(g); g.connect(dry); s.start(); return [g, fl]; };
+        const mk = (type, f, q, output = dry) => { const s = ctx.createBufferSource(); s.buffer = noise; s.loop = true; const fl = ctx.createBiquadFilter(); fl.type = type; fl.frequency.value = f; fl.Q.value = q; const g = ctx.createGain(); g.gain.value = 0; s.connect(fl); fl.connect(g); g.connect(output); s.start(); return [g, fl]; };
         [breathG, breathF] = mk('bandpass', 900, 0.8); [gurgG] = mk('bandpass', 260, 3);
+        // The vent combines air noise with a faint motor hum.
+        ventGain = ctx.createGain();
+        ventGain.gain.value = 0;
+        ventPan = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
+        ventGain.connect(ventPan || comp);
+        if (ventPan) ventPan.connect(comp);
+        const [air] = mk('lowpass', 420, 0.7, ventGain);
+        air.gain.value = 0.6;
+        const motor = ctx.createOscillator(), motorGain = ctx.createGain();
+        motor.type = 'triangle';
+        motor.frequency.value = 108;
+        motorGain.gain.value = 0.05;
+        motor.connect(motorGain);
+        motorGain.connect(ventGain);
+        motor.start();
         // decode the embedded recordings
         for (const k in G.SOUNDS || {}) {
           try {
@@ -113,6 +136,22 @@
     A.tink = (dull) => { if (!ok()) return; if (one('casing', dull ? 0.18 : 0.22, dull ? 0.7 : 1.7)) return; if (dull) burst(0.05, 900, 300, 0.12, 'lowpass'); else { const f = 5200 + Math.random() * 1800; tone(0.07, f, f * 0.7, 0.05); tone(0.05, f * 1.52, f, 0.025); } };
     // footsteps: recorded steps on concrete, softer for a shuffling wounded step
     A.step = (k) => { if (ok()) one('step', (0.25 + 0.35 * (k == null ? 1 : k)) * near(), 0.9 + Math.random() * 0.2); };
+    A.playerStep = (pace) => {
+      if (!ok()) return;
+      const gain = 0.14 + pace * 0.2;
+      if (one('step', gain, 0.88 + pace * 0.16)) return;
+      burst(0.11, 1300, 250, gain * 0.6, 'lowpass');
+      tone(0.09, 120, 52, gain * 0.28);
+    };
+    A.ventilation = (distance, side) => {
+      if (!ctx || !ventGain) return;
+      const gain = document.hidden ? 0 : 0.19 / (1 + distance * 0.27);
+      ventGain.gain.setTargetAtTime(gain, ctx.currentTime, 0.12);
+      if (ventPan) ventPan.pan.setTargetAtTime(side * 0.76, ctx.currentTime, 0.08);
+    };
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && ctx && ventGain) ventGain.gain.setTargetAtTime(0, ctx.currentTime, 0.12);
+    });
     // a ricochet: the deformed bullet tumbling away makes a falling, wavering whine
     A.ricochet = () => {
       if (!ok()) return;
