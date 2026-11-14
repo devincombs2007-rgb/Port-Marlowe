@@ -13,6 +13,8 @@
 
   const vent = G.buildChamber(scene, renderer);
   const world = G.buildWorld(scene), body = G.buildBody(scene), gun = G.buildGun(camera), audio = G.Audio();
+  if (G.FPHands) gun.hands = G.FPHands(gun);
+  const intro = G.Intro ? G.Intro({ scene, canvas, gun, room: G.ROOM }) : null;
   const rag = G.buildPhysics(scene, body, audio, { headImpact: (v) => phys && npc && npc.posture === 'falling' && phys.headImpact(v), footstep: (k) => { audio.dist = Math.hypot(state.pos.x - npc.pos.x, state.pos.z - npc.pos.z); audio.step(k); } }); // only a real fall, not movement on the floor
   let phys, npc;
   const sampler = { sample: body.sample, cavity: body.cavity, maxDist: 20 };
@@ -22,7 +24,7 @@
   const ui = G.UI({
     weapon: (i) => setWeapon(i), xray: () => toggleXray(), time: () => cycleTime(), reset: () => reset(),
     grab: () => toggleGrab(), slow: () => toggleSlow(),
-    sound: () => { audio.muted = !audio.muted; ui.setSound(!audio.muted); }, start: () => { state.started = true; audio.init(); },
+    sound: () => { audio.muted = !audio.muted; ui.setSound(!audio.muted); }, start: () => { state.started = true; audio.init(); if (intro && !window.GSW_NOINTRO) intro.start(); },
   });
   function setWeapon(i) { state.wi = i; const w = G.WEAPONS[i]; gun.set(w.cls, w.model); ui.setWeapon(w, i); }
   function toggleXray() { body.setXray(!body.xray); ui.setXray(body.xray); }
@@ -56,9 +58,10 @@
   const projectiles = G.Projectiles(scene);
   const viscera = G.Viscera(scene, body, rag);
   const headFx = { rk: 0, rkMax: 0, at: 0 }; // raccoon-eye bruising: current and eventual depth
+  const handBlood = { L: 0, R: 0, at: 0 };
   function cycleTime() { state.ti = (state.ti + 1) % TIMES.length; ui.setTime(TIMES[state.ti]); }
   function reset() {
-    body.clearWounds(); world.clear(); rag.stop(); rag.clear(); projectiles.clear(); viscera.clear(); headFx.rk = headFx.rkMax = 0;
+    body.clearWounds(); world.clear(); rag.stop(); rag.clear(); projectiles.clear(); viscera.clear(); headFx.rk = headFx.rkMax = 0; headFx.mouth = false; handBlood.L = handBlood.R = 0;
     // each new subject is a different person (the first one is always the same, for a consistent start)
     if (body.setLook) { const first = reset.n == null; reset.n = (reset.n || 0) + 1;
       const tints = [0xffffff, 0x8a6a50, 0x5a4030, 0xd0b090, 0x404040];
@@ -111,6 +114,9 @@
     touch.id = null;
   };
   canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
+  const toggleHud = () => document.body.classList.toggle('min');
+  document.getElementById('bMenu').addEventListener('click', toggleHud);
+  window.addEventListener('keydown', (e) => { if (e.key === 'Tab') { e.preventDefault(); toggleHud(); } });
   window.addEventListener('keydown', (e) => {
     if (e.repeat || e.metaKey || e.ctrlKey) return;
     const k = e.key.toLowerCase(); state.keys[k] = true;
@@ -148,13 +154,14 @@
     return out.copy(ndc).sub(camera.position).normalize();
   }
   function fire() {
-    if (!state.started || state.grab) return;
+    if (!state.started || state.grab || (intro && intro.active())) return;
     const now = performance.now() / 1000, w = G.WEAPONS[state.wi];
     if (now - state.lastShot < 60 / w.rpm) return;
     state.lastShot = now;
     camera.updateMatrixWorld(); body.updateMatrices();
     aimDir(dir);
-    gun.fire(w.recoil); audio.shot(w); state.kick += 0.012 + w.recoil * 0.012;
+    gun.fire(w.recoil); audio.shot(w); state.kick += 0.012 + w.recoil * 0.012; state.shake = Math.min(1, (state.shake || 0) + 0.25 + w.recoil * 0.25);
+    if (audio.deafen) audio.deafen(Math.min(1, (w.loud || 1) - 0.3));
     // a puff of powder smoke at the muzzle, drifting up; more from rifles and shotguns
     { const m = gun.models[gun.model]; if (m) { tmp.set(0, m.userData.fy || 0.03, (m.userData.muzzle || -0.2) - 0.02); m.localToWorld(tmp); world.smoke(tmp, dir, Math.round(2 + w.recoil * 2), Math.min(1.4, 0.5 + w.recoil * 0.5)); } }
     // eject the spent case: up and to the right of the weapon
@@ -208,6 +215,9 @@
         rag.fracture(seg + pr.side);
       }
       dismember(results, w, origin);
+      // blood from the mouth: a torn lung or airway brings it up; a broken jaw or face bleeds into the mouth
+      { const ord = results.flatMap((r) => r.order), lung = ord.some((o) => o.kind === 'lung' || o.kind === 'airway'), face = ord.some((o) => o.bone === 'jaw' || o.bone === 'face');
+        if ((lung || face) && !headFx.mouth) { headFx.mouth = true; const sd = Math.random() < 0.5 ? 1 : -1; oozeAt(new V3(0.02 * sd, 1.598, 0.088), new V3(0.3 * sd, -0.6, 0.75), face ? 14 : 5, 'Mouth'); if (face) oozeAt(new V3(-0.02 * sd, 1.598, 0.088), new V3(-0.3 * sd, -0.6, 0.75), 8, 'Mouth'); } }
       headTrauma(results);
       ui.report(buildReport(results, w));
     } });
@@ -542,7 +552,9 @@
     state.kick = Math.max(0, state.kick - dt * 0.12 * (1 + state.kick * 40));
     camera.position.copy(state.pos);
     camera.position.y += eyeOffset;
-    camera.rotation.set(state.pitch + state.kick, state.yaw, 0); camera.updateMatrixWorld();
+    // the blast jolts the head a little: a quick, decaying shake on top of the muzzle rise
+    state.shake = Math.max(0, (state.shake || 0) - dt * 6); const sk = state.shake * state.shake * 0.006;
+    camera.rotation.set(state.pitch + state.kick + (Math.random() - 0.5) * sk, state.yaw + (Math.random() - 0.5) * sk, (Math.random() - 0.5) * sk * 0.6); camera.updateMatrixWorld();
     // simulation time
     // slow motion drops to bullet speed while a round is in the air, so it can be watched in flight
     const scale = TIMES[state.ti], slow = state.slow ? (projectiles.active(simClock) ? 0.004 : 0.2) : 1;
@@ -555,6 +567,15 @@
       npc.update(dt * Math.min(scale, 3) * slow);
     } else npc.update(dt);
     world.update(dt * slow); viscera.update(dt * slow); smearBody();
+    // hands get bloody: pressing a bleeding wound coats the palm and fingers within seconds; touching a pool on the
+    // floor (crawling, pushing up) smears them too. It stays on (it dries, it does not go away).
+    for (const sd of ['L', 'R']) {
+      const cw = npc.clutching && npc.clutching[sd], h = rag.parts['hand' + sd] && rag.parts['hand' + sd].b;
+      let add = 0; if (cw && (cw.rate || 0) > 0) add += dt * slow * Math.min(0.5, 0.04 + cw.rate / 600);
+      if (h && h.position.y < 0.06 && world.depthAt(h.position.x, h.position.z) > 0.03) add += dt * slow * 0.4;
+      if (add > 0) handBlood[sd] = Math.min(1, handBlood[sd] + add);
+    }
+    handBlood.at += dt; if (handBlood.at > 0.3) { handBlood.at = 0; if (handBlood.L > 0) body.bloodyHand('L', handBlood.L); if (handBlood.R > 0) body.bloodyHand('R', handBlood.R); }
     // raccoon eyes come up over ~7 minutes while blood still circulates
     if (headFx.rkMax > headFx.rk && phys.hr > 20) { headFx.rk = Math.min(headFx.rkMax, headFx.rk + dt * slow * scale * headFx.rkMax / 420); headFx.at += dt; if (headFx.at > 0.25) { headFx.at = 0; body.periorbital(headFx.rk); } } body.bloodTick && body.bloodTick(dt * slow, phys.hr > 20);
     if (state.started) {
@@ -567,9 +588,12 @@
     audio.breath(npc.breath, phys.rr, effort, phys.hemoptysis, phys.dead ? 'none' : phys.agonal ? 'agonal' : !phys.conscious ? 'snore' : 'awake');
     if (world.landed && Math.random() < 0.25) audio.drip();
     aimDir(camDir); q.copy(camera.quaternion).invert(); camDir.applyQuaternion(q);
+    if (intro) intro.update(dt);
     gun.update(dt, camDir, state.narrow);
     ui.cross(state.ax, state.ay); ui.ecg(phys, dt * Math.min(scale, 2) * slow);
     uiT += dt; if (uiT > 0.15) { uiT = 0;
+      { const st = phys.status(), lost = Math.round(phys.total - phys.bv), mini = document.getElementById('mini');
+        if (mini && document.body.classList.contains('min')) mini.innerHTML = '<b>' + st[0] + '</b> · HR ' + Math.round(phys.hr) + ' · ' + (lost > 0 ? '−' + lost + ' mL' : 'no blood loss') + ' · ' + G.WEAPONS[state.wi].name; }
       // skin and pupils follow the physiology
       body.setPerfusion(phys.frac(), phys.spo2, phys.dead || phys.stemDestroyed, phys.deadT || 0);
       const brainGone = phys.dead || phys.stemDestroyed || phys.anoxic > 120;

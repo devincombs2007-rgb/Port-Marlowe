@@ -89,7 +89,7 @@
       const he = heOf(box); addShapes(b, name, he); b.mass = mass; b.invMass = mass > 0 ? 1 / mass : 0; b.updateMassProperties(); b.updateBoundingRadius(); b.aabbNeedsUpdate = true; return he;
     };
     const mkBody = (s, name, box, mass) => {
-      const b = new C.Body({ mass, linearDamping: 0.04, angularDamping: 0.3 });
+      const b = new C.Body({ mass, linearDamping: 0.04, angularDamping: name === 'head' ? 0.6 : 0.3 }); // scalp and hair on the floor: the head does not roll like a ball
       const he = setShapes(b, name, box, mass);
       if (name.startsWith('foot')) b.material = footMat;
       [b.collisionFilterGroup, b.collisionFilterMask] = filter(name); b.sleepSpeedLimit = 0.12; b.sleepTimeLimit = 1.2;
@@ -138,6 +138,7 @@
       for (const c of j.cons) c.collideConnected = false;
       // gains from the reduced inertia of the pair, so the explicit PD torque stays stable at 120 Hz
       const Ir = (a.I * b.I) / (a.I + b.I); j.k = 290 * Ir * d.gain; j.d = 34 * Ir * d.gain; j.pd = 22 * Ir;
+      if (/^(neck|head)$/.test(s.name)) { j.passive = true; j.kp = 290 * Ir * d.gain * 0.22; j.dp = 0; /* extra explicit damping here destabilises the light neck */ }
     }
     for (const s of body.list) {
       if (!s.parent) continue;
@@ -245,6 +246,14 @@
         }
         if (j.shaft || j.broken) { if (j.broken) { const d = j.pd * 0.4; B.torque.x -= d * (B.angularVelocity.x - A.angularVelocity.x); B.torque.y -= d * (B.angularVelocity.y - A.angularVelocity.y); B.torque.z -= d * (B.angularVelocity.z - A.angularVelocity.z); A.torque.x += d * (B.angularVelocity.x - A.angularVelocity.x); A.torque.y += d * (B.angularVelocity.y - A.angularVelocity.y); A.torque.z += d * (B.angularVelocity.z - A.angularVelocity.z); } continue; }
         let tone = j.b.tone;
+        // the neck is never a free hinge: ligaments, discs and resting muscle hold it near neutral even when the person
+        // is unconscious or dead (no whipping round on a hit, no rolling about like a ball on the floor)
+        if (j.passive) {
+          q2.set(B.quaternion.x, B.quaternion.y, B.quaternion.z, B.quaternion.w).invert(); q3.set(A.quaternion.x, A.quaternion.y, A.quaternion.z, A.quaternion.w).multiply(q2);
+          if (q3.w < 0) { q3.x = -q3.x; q3.y = -q3.y; q3.z = -q3.z; q3.w = -q3.w; } const sn = Math.hypot(q3.x, q3.y, q3.z);
+          if (sn > 1e-5) { const ang = 2 * Math.atan2(sn, q3.w), f = (j.kp * Math.max(0, ang - 0.12)) / sn; A.wakeUp(); B.wakeUp(); B.torque.x += q3.x * f; B.torque.y += q3.y * f; B.torque.z += q3.z * f; A.torque.x -= q3.x * f; A.torque.y -= q3.y * f; A.torque.z -= q3.z * f; }
+          const dp = j.dp; if (dp) B.torque.x -= dp * (B.angularVelocity.x - A.angularVelocity.x); B.torque.y -= dp * (B.angularVelocity.y - A.angularVelocity.y); B.torque.z -= dp * (B.angularVelocity.z - A.angularVelocity.z); A.torque.x += dp * (B.angularVelocity.x - A.angularVelocity.x); A.torque.y += dp * (B.angularVelocity.y - A.angularVelocity.y); A.torque.z += dp * (B.angularVelocity.z - A.angularVelocity.z);
+        }
         if (P.stepping && j.b.leg === P.stepping.side) tone *= 0.25; // the swinging leg is carried by the hip, not held stiff
         if (j.b.slack > 0) { tone *= 0.2; j.b.slack -= H; }
         let tx = 0, ty = 0, tz = 0;

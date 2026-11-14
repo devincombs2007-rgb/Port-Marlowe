@@ -684,6 +684,25 @@
     body.eyeForward = (e, mm) => { if (e.state === 'ruptured' || e.state === 'out') return; e.state = 'proptosed'; e.g.position.z = e.p0.z + Math.min(5, mm) / 1000; };
     body.eyeOut = (e) => { e.state = 'out'; e.g.visible = false; };
     body.resetEyes = () => { for (const e of body.eyes || []) { e.state = null; e.g.visible = true; e.g.position.copy(e.p0); e.ball.scale.set(1, 1, 1); e.ball.material.color.set(0xe6e0d8); e.ball.material.roughness = 0.3; e.disc.material.color.set(0xffffff); e.disc.scale.setScalar(1); e.pupil.visible = true; e.cornea.visible = true; } };
+    // blood on a hand: palm and fingers first (they did the pressing), creeping onto the back of the hand and wrist
+    const handCache = {}, bloodC2 = new THREE.Color(0x3a0405);
+    body.bloodyHand = (side, k) => {
+      const hm = body.human; if (!hm) return;
+      const geo = hm.geometry, P = geo.attributes.position, col = geo.attributes.color, SI4 = geo.attributes.skinIndex.array, SW4 = geo.attributes.skinWeight.array;
+      if (!handCache[side]) {
+        const hi = body.list.indexOf(body.segs['hand' + side]), fi = body.list.indexOf(body.segs['farmX' + side]), lst = [], sg = side === 'L' ? 1 : -1;
+        for (let i = 0; i < P.count; i++) {
+          let wh = 0, wf = 0; for (let q = 0; q < 4; q++) { if (SI4[i * 4 + q] === hi) wh += SW4[i * 4 + q]; if (SI4[i * 4 + q] === fi) wf += SW4[i * 4 + q]; }
+          if (wh + wf < 0.3) continue;
+          const palm = Math.max(0, -(P.getX(i) - sg * 0.2) * sg * 30 + 0.5), noise = 0.75 + 0.5 * Math.abs(Math.sin(i * 12.9898) * 43758.5453 % 1);
+          const reach = wh > 0.5 ? Math.min(1, 0.55 + 0.6 * palm) : Math.max(0, (0.87 + 0.08 - P.getY(i)) / 0.08) * 0.6; // wrist and lower forearm only a little
+          lst.push([i, reach * noise, col.getX(i), col.getY(i), col.getZ(i)]);
+        }
+        handCache[side] = lst;
+      }
+      for (const [i, wgt, r, g, b] of handCache[side]) { const t = Math.min(0.92, k * wgt * 1.2); col.setXYZ(i, r + (bloodC2.r - r) * t, g + (bloodC2.g - g) * t, b + (bloodC2.b - b) * t); }
+      col.needsUpdate = true; body.dirty = true;
+    };
     // bruising round both eyes from a fractured skull base ("raccoon eyes"): painted into the skin, deepening with k
     let orb = null; const purple = new THREE.Color(0x3c1a30);
     body.periorbital = (k) => {

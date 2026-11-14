@@ -310,13 +310,31 @@
     mk('pump', [ext(steel, [[-0.1, 0.0], [0.105, 0.0], [0.105, 0.056], [-0.08, 0.056], [-0.1, 0.04]], 0.04), cyl(steel, 0.0118, 0.52, 0.36, 0.043), cyl(steel, 0.011, 0.44, 0.32, 0.017), cyl(wood, 0.0225, 0.17, 0.28, 0.019),
       bx(steel, 0.014, 0.008, 0.012, 0.6, 0.03), cyl(stainless, 0.002, 0.004, 0.61, 0.058), ext(wood, [[-0.39, 0.046], [-0.1, 0.05], [-0.1, 0.0], [-0.14, -0.04], [-0.2, -0.02], [-0.39, -0.078]], 0.04),
       guard(steel, -0.02, 0.05, 0.0, -0.038, 0.011), bx(steel, 0.004, 0.016, 0.005, 0.014, -0.018), bx(black, 0.002, 0.016, 0.06, 0.04, 0.03, 0.0205)], -0.62, 0.043);
-    const flash = new THREE.Mesh(new THREE.SphereGeometry(1, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffd98a, transparent: true, opacity: 0.9, depthWrite: false }));
-    flash.visible = false; g.add(flash);
+    // muzzle flash: burning powder gas leaving the muzzle for a millisecond or two. A white-hot core with short,
+    // irregular orange petals (the "flower" seen face-on) and, from the side, a ragged plume ahead of the muzzle.
+    // It lives for one rendered frame.
+    const ftex = (draw) => { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'); x.translate(64, 64); draw(x); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t; };
+    const starTex = [0, 1, 2].map(() => ftex((x) => {
+      const n = 4 + Math.floor(Math.random() * 3);
+      for (let i = 0; i < n; i++) { const a = (i / n) * 6.283 + Math.random() * 0.6, L = 34 + Math.random() * 26; x.save(); x.rotate(a); const gr = x.createLinearGradient(0, 0, L, 0); gr.addColorStop(0, 'rgba(255,240,200,0.95)'); gr.addColorStop(0.4, 'rgba(255,170,60,0.75)'); gr.addColorStop(1, 'rgba(255,90,10,0)'); x.fillStyle = gr; x.beginPath(); x.moveTo(0, -6); x.quadraticCurveTo(L * 0.5, -7 - Math.random() * 5, L, 0); x.quadraticCurveTo(L * 0.5, 7 + Math.random() * 5, 0, 6); x.fill(); x.restore(); }
+      const c = x.createRadialGradient(0, 0, 0, 0, 0, 20); c.addColorStop(0, 'rgba(255,255,245,1)'); c.addColorStop(0.5, 'rgba(255,220,150,0.8)'); c.addColorStop(1, 'rgba(255,160,60,0)'); x.fillStyle = c; x.beginPath(); x.arc(0, 0, 20, 0, 7); x.fill();
+    }));
+    const plumeTex = ftex((x) => { const gr = x.createLinearGradient(-64, 0, 64, 0); gr.addColorStop(0, 'rgba(255,250,230,1)'); gr.addColorStop(0.35, 'rgba(255,190,90,0.8)'); gr.addColorStop(1, 'rgba(255,100,20,0)'); x.fillStyle = gr; x.beginPath(); x.moveTo(-64, 0); for (let i = 0; i <= 16; i++) { const u = i / 16; x.lineTo(-64 + 128 * u, -(6 + 22 * Math.sin(u * Math.PI) * (0.6 + Math.random() * 0.6))); } for (let i = 16; i >= 0; i--) { const u = i / 16; x.lineTo(-64 + 128 * u, 6 + 22 * Math.sin(u * Math.PI) * (0.6 + Math.random() * 0.6)); } x.fill(); });
+    const fmat = (map) => new THREE.MeshBasicMaterial({ map, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
+    const flash = new THREE.Group(), star = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), fmat(starTex[0])), p1 = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), fmat(plumeTex)), p2 = p1.clone();
+    p1.rotation.y = Math.PI / 2; p2.rotation.set(0, Math.PI / 2, Math.PI / 2); p1.position.z = p2.position.z = -0.5; // plumes ahead of the muzzle
+    flash.add(star, p1, p2); flash.visible = false; g.add(flash);
     const light = new THREE.PointLight(0xffc878, 0, 9, 2); g.add(light);
-    const S = { g, models, cls: null, kick: 0, flashT: 0, aim: new THREE.Quaternion() };
+    const S = { g, models, cls: null, kick: 0, flashT: 0, flashN: 0, raise: 1, aim: new THREE.Quaternion() };
     const fwd = new V3(0, 0, -1), d = new V3();
-    S.set = (cls, model) => { S.model = models[model] ? model : 'glock'; for (const k in models) models[k].visible = k === S.model; S.cls = cls; };
-    S.fire = (recoil) => { S.kick = Math.min(1.6, S.kick + 0.5 + recoil * 0.4); S.flashT = 0.05; const mz = models[S.model].userData.muzzle; flash.position.set(0, models[S.model].userData.fy, mz - 0.05); flash.scale.set(0.035 + recoil * 0.02, 0.035 + recoil * 0.02, 0.09 + recoil * 0.04); flash.rotation.z = Math.random() * 3; light.position.copy(flash.position); };
+    S.set = (cls, model) => { S.model = models[model] ? model : 'glock'; for (const k in models) models[k].visible = k === S.model; S.cls = cls; if (S.hands) S.hands.place(S.model); };
+    S.fire = (recoil) => {
+      S.kick = Math.min(1.6, S.kick + 0.5 + recoil * 0.4); S.flashN = 1;
+      const md = models[S.model].userData, k = 0.06 + recoil * 0.05, long = S.cls === 'rifle' || S.cls === 'shotgun';
+      flash.position.set(0, md.fy, md.muzzle - 0.004); flash.scale.set(k, k, k * (long ? 2.4 : 1.6));
+      star.material.map = starTex[Math.floor(Math.random() * 3)]; star.rotation.z = Math.random() * 6.3; star.scale.setScalar(0.9 + Math.random() * 0.4);
+      light.position.copy(flash.position); light.intensity = 3 + recoil * 1.5;
+    };
     // dirCam: aim direction in camera space
     S.update = (dt, dirCam, narrow) => {
       const long = S.cls === 'rifle' || S.cls === 'shotgun';
@@ -325,7 +343,10 @@
       S.aim.setFromUnitVectors(fwd, d); g.quaternion.slerp(S.aim, Math.min(1, dt * 18));
       S.kick = Math.max(0, S.kick - dt * 7 * (0.4 + S.kick));
       g.position.z += S.kick * 0.05; g.rotateX(S.kick * 0.12);
-      S.flashT -= dt; flash.visible = S.flashT > 0; light.intensity = S.flashT > 0 ? 2.2 : 0;
+      flash.visible = S.flashN > 0; if (S.flashN > 0) S.flashN--; else light.intensity = 0; // one frame
+      // being brought up (opening): from below the view, muzzle tipped down
+      g.visible = S.raise > 0.02;
+      if (S.raise < 1) { const r = 1 - S.raise; g.position.y -= r * r * 0.4; g.position.z += r * 0.08; g.rotateX(-r * 0.7); }
     };
     return S;
   };

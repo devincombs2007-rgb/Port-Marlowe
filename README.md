@@ -1,4 +1,4 @@
-# Port-Marlowe — Wound Ballistics Lab (v2.0)
+# Port-Marlowe — Wound Ballistics Lab (v2.1)
 
 A browser-based 3D simulator of gunshot wounds. A test subject stands in a chamber; every
 round is traced millimetre by millimetre through skin, bone, organs and vessels, and the
@@ -7,6 +7,14 @@ body then responds in real time (bleeding, blood pressure, breathing, consciousn
 **Run it:** serve this folder with any static server (`python3 -m http.server`) and open
 `index.html`. No build step. `node tools/build.js` bundles a single-file page into `dist/`.
 
+**v2.1**: an opening: black, then a bare bulb on a cord flickers on and swings, lighting the room; vision starts
+blurred and clears, and your hands bring the pistol up (the bulb stays as the room's main light). Hands hold every
+weapon (index finger on the trigger, support hand on a long gun's forend). Muzzle flash is a one-frame burst of hot gas
+(white core, ragged petals, forward plume) that lights the room; every shot jolts your view and, indoors, briefly
+deafens you (louder guns longer). The HUD is a single status line; Tab or the corner button shows the panels and
+tools. The neck has passive stiffness (ligaments and resting muscle), so a head shot nods the head instead of
+spinning it, and it no longer rolls about on the floor. Blood comes from the mouth after lung, airway, jaw or face
+wounds, and hands that press a bleeding wound or touch a pool get bloody.
 **v2.0**: bones break and limbs come off. Each long bone (femur, tibia, humerus, forearm) is one rigid body while it
 is whole; a bullet through the shaft splits it into two, joined only by soft tissue, and the muscles spanning the
 break pull it into angulation and outward rotation, so the limb bends where it broke and flops when moved. Close-range

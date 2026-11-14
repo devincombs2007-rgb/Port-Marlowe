@@ -11,7 +11,7 @@
   };
   G.Audio = function () {
     const bufs = {};
-    let ctx = null, master = null, wet = null, dry = null, ventGain = null, ventPan = null, ventSrc = null, muted = false;
+    let ctx = null, master = null, wet = null, dry = null, ventGain = null, ventPan = null, ventSrc = null, muted = false, ear = null;
     const A = {
       dist: 3,
       get muted() { return muted; },
@@ -33,7 +33,9 @@
         const conv = ctx.createConvolver(); conv.buffer = ir;
         const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 6; comp.attack.value = 0.001; comp.release.value = 0.12;
         master = ctx.createGain(); master.gain.value = muted ? 0 : 0.9; dry = ctx.createGain(); wet = ctx.createGain(); wet.gain.value = 0.32;
-        dry.connect(comp); dry.connect(conv); conv.connect(wet); wet.connect(comp); comp.connect(master); master.connect(ctx.destination);
+        dry.connect(comp); dry.connect(conv); conv.connect(wet); wet.connect(comp);
+        // hearing: a gunshot indoors briefly deafens; everything goes dull and comes back over a second or two
+        ear = ctx.createBiquadFilter(); ear.type = 'lowpass'; ear.frequency.value = 20000; ear.Q.value = 0.5; comp.connect(ear); ear.connect(master); master.connect(ctx.destination);
         ventGain = ctx.createGain(); ventGain.gain.value = 0;
         ventPan = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
         ventGain.connect(ventPan || comp); if (ventPan) ventPan.connect(comp);
@@ -59,6 +61,8 @@
     const pick = (group) => { const ks = takes(group); if (!ks.length) return null; let k = ks[Math.floor(Math.random() * ks.length)]; if (ks.length > 1 && k === lastTake[group]) k = ks[(ks.indexOf(k) + 1) % ks.length]; lastTake[group] = k; return k; };
     const one = (group, gain, rate, at) => { const k = pick(group); if (!k) return null; return play(k, gain, at || 0, (rate || 1) * (0.95 + Math.random() * 0.1)); };
     const near = () => 1 / (1 + A.dist * 0.3);
+    // k: 0 (a .22) to 1 (a rifle or shotgun in a tiled room)
+    A.deafen = (k) => { if (!ctx || !ear) return; const t = ctx.currentTime, f = 600 + (1 - k) * 4000; ear.frequency.cancelScheduledValues(t); ear.frequency.setValueAtTime(Math.min(ear.frequency.value, f), t + 0.06); ear.frequency.exponentialRampToValueAtTime(20000, t + 0.6 + k * 2.2); };
     A.shot = (w) => {
       if (!ok()) return;
       const r = REC[w.name]; if (!r || !bufs[r[0]]) return;

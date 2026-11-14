@@ -8,12 +8,14 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="src/style.css">
 </head>
-<body>
+<body class="min">
 <!--BODY-->
 <div id="app">
   <canvas id="view" aria-label="3D test chamber"></canvas>
   <div id="cross" aria-hidden="true"></div>
   <div id="hud">
+    <div id="mini" aria-live="off"></div>
+    <button id="bMenu" type="button" aria-label="Show panels and tools" title="Panels and tools (Tab)">≡</button>
     <section id="subject" class="panel" aria-live="off">
       <button id="subjHead" class="phead" type="button" aria-expanded="true">
         <span>Subject</span><span class="dim">M · 1.78 m · 77 kg</span>
@@ -71,14 +73,14 @@
   </div>
   <div id="intro">
     <div class="card">
-      <p class="eyebrow">v2.0 · terminal ballistics, trauma physiology, active ragdoll physics, liquid blood</p>
+      <p class="eyebrow">v2.1 · terminal ballistics, trauma physiology, active ragdoll physics, liquid blood</p>
       <h1>Wound Ballistics Lab</h1>
       <p>A test subject stands in the chamber. Every round is traced millimetre by millimetre through skin, bone, organs and vessels, and the body responds in real time: bleeding, blood pressure, breathing, consciousness.</p>
       <ul class="keys">
         <li><b>Mouse</b> aim · <b>click</b> fire · <b>right-drag</b> or <b>arrows</b> look · <b>WASD</b> move</li>
         <li><b>Touch</b> tap to fire where you tap · drag to look · stick to move</li>
         <li><b>1–0</b> weapon · <b>X</b> X-ray anatomy · <b>T</b> time speed · <b>R</b> new subject</li>
-        <li><b>G</b> grab tool: drag the body by any part · <b>F</b> slow motion</li>
+        <li><b>G</b> grab tool: drag the body by any part · <b>F</b> slow motion · <b>Tab</b> panels and tools</li>
       </ul>
       <p class="dim small">Simulated graphic injury. Educational model, not medical guidance. No treatment is modelled, so outcomes are untreated outcomes.</p>
       <button id="bStart" type="button">Enter test chamber</button>
@@ -99,6 +101,8 @@
 <script src="src/npc.js"></script>
 <script src="src/world.js"></script>
 <script src="src/projectiles.js"></script>
+<script src="src/fphands.js"></script>
+<script src="src/intro.js"></script>
 <script src="src/viscera.js"></script>
 <script src="src/chamber.js"></script>
 <script src="src/sounds.js"></script>
