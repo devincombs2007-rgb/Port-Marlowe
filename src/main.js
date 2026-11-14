@@ -276,7 +276,7 @@
 
   // ---------- blood leaving the body. It exits each wound as drops that carry real volume; where they land
   // the floor liquid takes over. A wound lying against the floor seeps straight into it.
-  const wp = new V3(), wn = new V3(), vel = new V3();
+  const wp = new V3(), wn = new V3(), vel = new V3(), dp = new V3();
   function bleed(dt, visual) {
     const ws = body.wounds; if (!ws.length) return;
     for (const s of ws) s.rate = 0;
@@ -290,6 +290,11 @@
       const ml = (s.rate * dt) / 60; s.ext += ml; s.buf += ml; body.growStain(s, s.ext);
       body.woundWorld(s, wp);
       if (wp.y < 0.09 || !visual) { world.addBlood(wp.x, wp.z, s.buf); s.buf = 0; continue; }
+      // slow bleeding runs down the skin first and only drips from where the trail leaves the body
+      const jet = s.rate > 140;
+      if (!jet && body.holdDrops && body.holdDrops(s)) continue;
+      const drip = !jet && body.dripPoint && body.dripPoint(s, dp);
+      if (drip && dp.y < 0.09) { world.addBlood(dp.x, dp.z, s.buf); s.buf = 0; continue; }
       // drip count follows flow, capped; each drop carries its share of the buffered volume
       s.acc += dt * Math.min(40, 0.5 + s.rate / 10);
       const n = Math.min(6, Math.floor(s.acc)); if (!n) continue;
@@ -298,8 +303,9 @@
       for (let i = 0; i < n; i++) {
         // arterial wounds spurt with each heartbeat, scaled by blood pressure; venous and tissue bleeding just runs off
         const art = s.rate > 140 ? (0.5 + 1.9 * beat) * (phys.map / 93) : 0.12;
-        vel.set(wn.x * art + (Math.random() - 0.5) * 0.25, wn.y * art + 0.1 * art, wn.z * art + (Math.random() - 0.5) * 0.25);
-        world.drop(wp, vel, art > 0.8 && Math.random() < 0.3 ? 0.006 : 0, each);
+        if (drip) vel.set((Math.random() - 0.5) * 0.04, -0.05, (Math.random() - 0.5) * 0.04);
+        else vel.set(wn.x * art + (Math.random() - 0.5) * 0.25, wn.y * art + 0.1 * art, wn.z * art + (Math.random() - 0.5) * 0.25);
+        world.drop(drip ? dp : wp, vel, art > 0.8 && Math.random() < 0.3 ? 0.006 : 0, each);
       }
     }
   }
@@ -388,7 +394,7 @@
       for (let i = 0; i < sub; i++) { phys.step(simDt / sub); bleed(simDt / sub, i === sub - 1); }
       npc.update(dt * Math.min(scale, 3) * slow);
     } else npc.update(dt);
-    world.update(dt * slow); smearBody();
+    world.update(dt * slow); smearBody(); body.bloodTick && body.bloodTick(dt * slow, phys.hr > 20);
     if (state.started) {
       const dx = vent.x - state.pos.x, dz = vent.y - state.pos.z;
       const distance = Math.hypot(dx, dz);

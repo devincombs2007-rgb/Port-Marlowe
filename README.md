@@ -1,4 +1,4 @@
-# Port-Marlowe — Wound Ballistics Lab (v1.6)
+# Port-Marlowe — Wound Ballistics Lab (v1.7)
 
 A browser-based 3D simulator of gunshot wounds. A test subject stands in a chamber; every
 round is traced millimetre by millimetre through skin, bone, organs and vessels, and the
@@ -7,6 +7,9 @@ body then responds in real time (bleeding, blood pressure, breathing, consciousn
 **Run it:** serve this folder with any static server (`python3 -m http.server`) and open
 `index.html`. No build step. `node tools/build.js` bundles a single-file page into `dist/`.
 
+**v1.7** makes wounds look like real ones: blood runs down the skin in trails that follow the body,
+entry holes are oval with an off-centre abrasion collar when the bullet comes in at an angle, slow bullets
+leave slit-shaped exits, and bruising develops over minutes.
 **v1.6** adds four different subjects (a new one each reset) and blood soaking into fabric.
 **v1.5** (contributed by Codex) adds textured ceramic and grout, ceiling fixtures reflected in the room, and a spatial
 ventilation hum. Player movement eases in and out, with footsteps spaced by distance traveled.
@@ -84,7 +87,21 @@ Camera bob follows walking pace and respects the browser's reduced-motion settin
 - **Blood appears over time**: a fresh bullet hole first shows almost nothing (elastic skin closes over
   the track and small vessels spasm). Tissue wounds start to show blood after about 1.5-4.5 s and build
   over the next several seconds, veins after about 1-2 s, a cut artery at once. The skin stain grows only
-  with the blood that has actually come out, a rim first and then a trickle running downhill. Entry
+  with the blood that has actually come out.
+- **Blood on the skin**: blood wells up as a bead just below the hole. Where the skin faces up it collects
+  into a small pool round the wound. Then it overflows into trails that run downhill over the real body
+  surface, following its curves, meandering, and branching when the flow is heavy. A trail drips off
+  where the skin turns to face the floor (an elbow, a fingertip, the underside of a limb) or soaks in
+  where it reaches the shorts, and that is where the drops fall from. Slow bleeding reaches the floor
+  only after it has run down the body; an arterial jet still sprays straight from the hole. When the
+  body moves, the old trails stop and a new one starts downhill. Blood dries from glossy red to a matte,
+  darker red-brown over a few minutes.
+- **Wound appearance**: an entry is a round hole a little smaller than the bullet with a 1-2 mm
+  reddish-brown abrasion collar. At an angle the hole is oval and the collar is wide on the side the
+  bullet came from, and powder stippling and soot form an oval too. Exits have no collar: stellate tears
+  with everted edges where the bullet is tumbling or expanded, a short slit or crescent where it leaves
+  slowly. The bruise round an entry starts faint and darkens over about ten minutes, but only while the
+  heart is still pumping. Entry
   back-spatter is a faint mist except at close range or from high-energy rounds.
 - **Wound awareness and pressure**: adrenaline masks pain, so torso, neck and head wounds are noticed
   within about a second, limb wounds after a few seconds, and about a quarter of minor limb wounds not

@@ -285,9 +285,10 @@
       }
       // nearest point of the real skin along a wound's normal (rest pose), so decals sit on the mesh, not the hit volume
       const ia = geo.index.array, e1 = new V3(), e2 = new V3(), pv = new V3(), tv = new V3(), qv = new V3(), a = new V3(), o = new V3(), d = new V3();
+      body.snapN = new V3();
       body.snap = (seg, local, nrm) => {
         o.copy(local).add(seg.origin).addScaledVector(nrm, 0.07); d.copy(nrm).negate();
-        let best = 0.16;
+        let best = 0.16, bt = -1;
         for (let t = 0; t < ia.length; t += 3) {
           a.fromArray(pos, ia[t] * 3);
           if (Math.abs(a.x - o.x) > 0.2 || Math.abs(a.y - o.y) > 0.2 || Math.abs(a.z - o.z) > 0.2) continue;
@@ -295,9 +296,12 @@
           pv.crossVectors(d, e2); const det = e1.dot(pv); if (Math.abs(det) < 1e-10) continue;
           const inv = 1 / det; tv.subVectors(o, a); const u = tv.dot(pv) * inv; if (u < 0 || u > 1) continue;
           qv.crossVectors(tv, e1); const w = d.dot(qv) * inv; if (w < 0 || u + w > 1) continue;
-          const tt = e2.dot(qv) * inv; if (tt > 0 && tt < best) best = tt;
+          const tt = e2.dot(qv) * inv; if (tt > 0 && tt < best) { best = tt; bt = t; }
         }
-        return best < 0.16 ? local.copy(o).addScaledVector(d, best).sub(seg.origin) : null;
+        if (best >= 0.16) return null;
+        a.fromArray(pos, ia[bt] * 3); e1.fromArray(pos, ia[bt + 1] * 3).sub(a); e2.fromArray(pos, ia[bt + 2] * 3).sub(a);
+        body.snapN.crossVectors(e1, e2).normalize(); if (body.snapN.dot(nrm) < 0) body.snapN.negate();
+        return local.copy(o).addScaledVector(d, best).sub(seg.origin);
       };
     }
 
@@ -331,6 +335,7 @@
       for (const d of body.decoMeshes) d.visible = !on;
       (body.hairs || []).forEach((m, i) => { m.visible = !on && i === (body.hairIdx || 0); });
       if (body.soakMat) body.soakMat.opacity = on ? 0.3 : 1;
+      for (const r of body.rivers || []) r.mesh.visible = !on;
       for (const w of body.wounds) if (w.track) w.track.visible = on;
     };
 
@@ -397,52 +402,82 @@
     const woundGeo = new THREE.CircleGeometry(1, 20);
     // wound textures drawn procedurally: entry (punched-out hole, abrasion collar, bruise), exit (ragged,
     // stellate, everted edges), powder stippling and soot for close and contact range
-    const tex = (draw) => { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'); x.translate(64, 64); draw(x); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t; };
-    const dmat = (map, f) => new THREE.MeshBasicMaterial({ map, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: f });
-    const entryMat = dmat(tex((x) => {
-      let g = x.createRadialGradient(0, 0, 18, 0, 0, 62); g.addColorStop(0, 'rgba(70,20,55,0.55)'); g.addColorStop(0.5, 'rgba(90,30,60,0.25)'); g.addColorStop(1, 'rgba(90,30,60,0)');
-      x.fillStyle = g; x.beginPath(); x.arc(0, 0, 62, 0, 7); x.fill();
-      x.fillStyle = '#5a1a12'; x.beginPath(); x.arc(0, 0, 27, 0, 7); x.fill(); // abrasion collar
-      x.fillStyle = '#2a0606'; x.beginPath(); x.arc(0, 0, 22, 0, 7); x.fill();
-      x.fillStyle = '#060101'; x.beginPath(); x.arc(0, 0, 19, 0, 7); x.fill();
-    }), -5);
+    const tex = (draw, S = 128) => { const c = document.createElement('canvas'); c.width = c.height = S; const x = c.getContext('2d'); x.translate(S / 2, S / 2); x.scale(S / 128, S / 128); draw(x); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t; };
+    // lit, so a wound sits in the same light as the skin around it (the wet centre is glossier than the collar)
+    const dmat = (map, f, rough = 0.42) => new THREE.MeshStandardMaterial({ map, transparent: true, depthWrite: false, roughness: rough, metalness: 0, polygonOffset: true, polygonOffsetFactor: f, polygonOffsetUnits: f });
+    const jitter = (x, r, n, amp, seed) => { x.beginPath(); for (let i = 0; i <= n; i++) { const a = (i / n) * 6.283, k = r * (1 + amp * Math.sin(a * 7 + seed) * Math.sin(a * 3 + seed * 2.3) + amp * 0.5 * Math.sin(a * 17 + seed)); i ? x.lineTo(Math.cos(a) * k, Math.sin(a) * k) : x.moveTo(Math.cos(a) * k, Math.sin(a) * k); } x.closePath(); };
+    // entry: the bullet punches out a round hole a little smaller than itself (skin stretches, then recoils), rubbing a
+    // 1-2 mm reddish-brown abrasion collar into the margin. Hit at an angle, the hole is oval and the collar is wide on
+    // the side the bullet came from and nearly absent on the other.
+    const entryTex = (ecc) => tex((x) => {
+      x.fillStyle = 'rgba(150,70,60,0.35)'; x.beginPath(); x.arc(ecc * 7, 0, 34, 0, 7); x.fill(); // faint reddening
+      x.fillStyle = '#6e2a1c'; jitter(x, 27, 48, 0.04, 1); x.save(); x.translate(ecc * 7, 0); x.fill(); x.restore(); // abrasion collar
+      x.fillStyle = '#7a3324'; x.beginPath(); x.arc(ecc * 9, 0, 24, 0, 7); x.fill();
+      x.fillStyle = '#3a0a08'; jitter(x, 21.5, 40, 0.05, 2); x.fill(); // inverted, bruised margin
+      x.fillStyle = '#0a0202'; jitter(x, 18.5, 40, 0.06, 3); x.fill(); // the hole
+      const g = x.createRadialGradient(-4, -4, 1, 0, 0, 16); g.addColorStop(0, 'rgba(90,10,12,0.8)'); g.addColorStop(1, 'rgba(20,2,2,0)'); x.fillStyle = g; x.beginPath(); x.arc(0, 0, 16, 0, 7); x.fill(); // wet glint of blood inside
+    });
+    const entryMat = dmat(entryTex(0), -5, 0.3), entryObMat = dmat(entryTex(1), -5, 0.3);
+    // a contusion ring that is barely there at first and darkens over minutes while the heart still pumps
+    const bruiseTex = tex((x) => { const g = x.createRadialGradient(0, 0, 14, 0, 0, 62); g.addColorStop(0, 'rgba(105,25,45,0.95)'); g.addColorStop(0.45, 'rgba(95,30,60,0.55)'); g.addColorStop(1, 'rgba(90,35,65,0)'); x.fillStyle = g; x.beginPath(); x.arc(0, 0, 62, 0, 7); x.fill(); });
+    // exit: no collar, the skin bursts outward from inside. Stellate tears where the bullet is tumbling or expanded,
+    // a short slit or crescent where it leaves slowly, nose first.
     const exitMats = [0, 1, 2].map((k) => dmat(tex((x) => {
       const n = 5 + k, pts = [];
       for (let i = 0; i < n * 2; i++) { const a = (i / (n * 2)) * 6.283 + k, r = (i % 2 ? 22 : 44 + Math.random() * 16) * (0.8 + Math.random() * 0.4); pts.push([Math.cos(a) * r, Math.sin(a) * r]); }
       const path = (sc) => { x.beginPath(); pts.forEach((p, i) => (i ? x.lineTo(p[0] * sc, p[1] * sc) : x.moveTo(p[0] * sc, p[1] * sc))); x.closePath(); };
-      x.fillStyle = 'rgba(120,14,16,0.9)'; path(1.05); x.fill(); x.fillStyle = '#4a0507'; path(0.9); x.fill(); x.fillStyle = '#1c0203'; path(0.62); x.fill();
-      x.fillStyle = '#070101'; x.beginPath(); x.arc(0, 0, 15, 0, 7); x.fill();
-    }), -5));
-    const stippleMat = dmat(tex((x) => { for (let i = 0; i < 520; i++) { const a = Math.random() * 6.283, r = 12 + Math.pow(Math.random(), 0.7) * 50; x.fillStyle = 'rgba(40,22,16,' + (0.85 - r / 80) + ')'; x.beginPath(); x.arc(Math.cos(a) * r, Math.sin(a) * r, 0.6 + Math.random() * 0.9, 0, 7); x.fill(); } }), -4);
-    const sootMat = dmat(tex((x) => { const g = x.createRadialGradient(0, 0, 4, 0, 0, 60); g.addColorStop(0, 'rgba(8,8,8,0.85)'); g.addColorStop(0.6, 'rgba(15,14,13,0.4)'); g.addColorStop(1, 'rgba(20,18,16,0)'); x.fillStyle = g; x.beginPath(); x.arc(0, 0, 60, 0, 7); x.fill(); }), -4);
-    const stainMat = new THREE.MeshStandardMaterial({ color: 0x560709, roughness: 0.25, transparent: true, opacity: 0.88, polygonOffset: true, polygonOffsetFactor: -3, depthWrite: false });
-    const down = new V3(), bx = new V3(), by = new V3(), bm = new THREE.Matrix4();
+      x.fillStyle = 'rgba(150,60,55,0.5)'; path(1.12); x.fill(); // everted, swollen edges
+      x.fillStyle = 'rgba(120,14,16,0.92)'; path(1.0); x.fill(); x.fillStyle = '#4a0507'; path(0.85); x.fill(); x.fillStyle = '#1c0203'; path(0.6); x.fill();
+      for (let i = 0; i < 9; i++) { const a = Math.random() * 6.283, r = 6 + Math.random() * 14; x.fillStyle = 'rgba(' + (150 + Math.random() * 60) + ',' + (40 + Math.random() * 50) + ',40,0.85)'; x.beginPath(); x.arc(Math.cos(a) * r, Math.sin(a) * r, 2 + Math.random() * 3, 0, 7); x.fill(); } // fat and muscle pushed out
+      x.fillStyle = '#070101'; x.beginPath(); x.arc(0, 0, 11, 0, 7); x.fill();
+    }), -5, 0.3));
+    const slitMats = [0, 1].map((k) => dmat(tex((x) => {
+      const L = 46, W = 9 + k * 5, pts = [];
+      for (let i = 0; i <= 24; i++) { const u = i / 24, xx = -L + 2 * L * u, half = W * Math.pow(Math.sin(u * Math.PI), 0.7) * (0.75 + Math.random() * 0.5); pts.push([xx + (k ? 10 * Math.sin(u * Math.PI) ** 2 : 0), half]); }
+      const path = (sc, sw) => { x.beginPath(); pts.forEach((p, i) => (i ? x.lineTo(p[0] * sc, p[1] * sw + (k ? -p[0] * p[0] * 0.006 : 0)) : x.moveTo(p[0] * sc, p[1] * sw))); for (let i = pts.length - 1; i >= 0; i--) x.lineTo(pts[i][0] * sc, -pts[i][1] * sw + (k ? -pts[i][0] * pts[i][0] * 0.006 : 0)); x.closePath(); };
+      x.fillStyle = 'rgba(130,60,55,0.22)'; path(1.08, 1.7); x.fill(); x.fillStyle = 'rgba(95,22,20,0.85)'; path(1.0, 1.15); x.fill(); x.fillStyle = '#1a0303'; path(0.92, 0.8); x.fill();
+    }), -5, 0.3));
+    const stippleMat = dmat(tex((x) => { for (let i = 0; i < 520; i++) { const a = Math.random() * 6.283, r = 12 + Math.pow(Math.random(), 0.7) * 50; x.fillStyle = 'rgba(40,22,16,' + (0.85 - r / 80) + ')'; x.beginPath(); x.arc(Math.cos(a) * r, Math.sin(a) * r, 0.6 + Math.random() * 0.9, 0, 7); x.fill(); } }, 256), -4, 0.8);
+    const sootMat = dmat(tex((x) => { const g = x.createRadialGradient(0, 0, 4, 0, 0, 60); g.addColorStop(0, 'rgba(8,8,8,0.85)'); g.addColorStop(0.6, 'rgba(15,14,13,0.4)'); g.addColorStop(1, 'rgba(20,18,16,0)'); x.fillStyle = g; x.beginPath(); x.arc(0, 0, 60, 0, 7); x.fill(); }), -4, 0.9);
+    // the blood that wells up at the hole: a glossy bead that grows into a pool where the skin faces up
+    const poolTex = tex((x) => { x.fillStyle = '#fff'; jitter(x, 58, 64, 0.06, 4); x.fill(); });
+    const stainMat = new THREE.MeshStandardMaterial({ color: 0x5c0608, alphaMap: poolTex, roughness: 0.14, metalness: 0, transparent: true, opacity: 0.95, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3, depthWrite: false });
+    const down = new V3(), bx = new V3(), by = new V3(), bm = new THREE.Matrix4(), tv2 = new V3();
+    body.bt = 0; // body clock (s), advanced by bloodTick
     body.addWound = (mark, normal, range) => {
       const seg = mark.seg || body.segs.thorax, g = new THREE.Group();
       const q = new THREE.Quaternion().setFromRotationMatrix(seg.g.matrixWorld).invert();
-      const n = new V3(normal.x, normal.y, normal.z).applyQuaternion(q).normalize();
+      const dir = new V3(normal.x, normal.y, normal.z).applyQuaternion(q).normalize(); // outward along the track (toward the shooter for an entry)
+      const n = dir.clone();
       g.position.set(mark.p.x, mark.p.y, mark.p.z).applyMatrix4(seg.inv).addScaledVector(n, 0.0025);
-      if (body.snap) { g.position.addScaledVector(n, -0.0025); if (body.snap(seg, g.position, n)) g.position.addScaledVector(n, 0.003); else g.position.addScaledVector(n, 0.0025); }
-      // orient the decal so its -Y runs downhill along the skin: blood tracks down from the wound
+      if (body.snap) { g.position.addScaledVector(n, -0.0025); if (body.snap(seg, g.position, n)) { n.copy(body.snapN); g.position.addScaledVector(n, 0.003); } else g.position.addScaledVector(n, 0.0025); }
+      // orient the decal on the real skin; its -Y runs downhill (rest pose)
       down.set(0, -1, 0).applyQuaternion(q); down.addScaledVector(n, -down.dot(n));
       const run = down.length() > 0.3;
       if (run) { by.copy(down).normalize().negate(); bx.crossVectors(by, n); g.quaternion.setFromRotationMatrix(bm.makeBasis(bx, by, n)); }
-      else g.quaternion.setFromUnitVectors(new V3(0, 0, 1), n);
-      const exit = mark.type === 'exit';
-      const hole = new THREE.Mesh(woundGeo, exit ? exitMats[Math.floor(Math.random() * 3)] : entryMat), stain = new THREE.Mesh(woundGeo, stainMat);
-      // entry holes are about bullet diameter; the texture's hole is ~1/3 of its radius
-      hole.scale.setScalar(exit ? mark.r * 2.0 : mark.r * 3.1); hole.rotation.z = Math.random() * 6.3; hole.position.z = 0.0008; hole.renderOrder = 6;
+      else { g.quaternion.setFromUnitVectors(new V3(0, 0, 1), n); bx.set(1, 0, 0).applyQuaternion(g.quaternion); by.crossVectors(n, bx); }
+      const exit = mark.type === 'exit', cos = Math.min(1, Math.max(0.05, dir.dot(n)));
+      // the track's direction along the skin, in decal coordinates
+      tv2.copy(dir).addScaledVector(n, -dir.dot(n)); const ang = tv2.lengthSq() > 1e-6 ? Math.atan2(tv2.dot(by), tv2.dot(bx)) : Math.random() * 6.3;
+      const slit = exit && (mark.v || 0) < 260, oblique = !exit && cos < 0.88;
+      const hole = new THREE.Mesh(woundGeo, exit ? (slit ? slitMats[Math.random() < 0.6 ? 0 : 1] : exitMats[Math.floor(Math.random() * 3)]) : oblique ? entryObMat : entryMat), stain = new THREE.Mesh(woundGeo, stainMat.clone());
+      // entry holes are about bullet diameter (the texture's hole is ~0.3 of its radius); stretched by 1/cos at an angle
+      if (exit) { hole.scale.setScalar(slit ? mark.r * 1.7 : mark.r * 2.0); hole.rotation.z = slit ? ang + (Math.random() - 0.5) * 1.2 : Math.random() * 6.3; }
+      else { const e = Math.min(2.3, 1 / Math.max(0.43, cos)); hole.scale.set(mark.r * 3.0 * e, mark.r * 3.0, 1); hole.rotation.z = ang; }
+      hole.position.z = 0.0008; hole.renderOrder = 6;
+      let bruise = null;
+      if (!exit) { bruise = new THREE.Mesh(woundGeo, dmat(bruiseTex, -2, 0.6)); bruise.scale.setScalar(mark.r * 4.2 + 0.006); bruise.material.opacity = 0.12; bruise.position.z = 0.0004; bruise.renderOrder = 4; g.add(bruise); }
       if (!exit && range != null && range < 0.75) {
-        // unburnt powder tattoos the skin out to roughly 60-75 cm; soot only within a hand's width
-        const st = new THREE.Mesh(woundGeo, stippleMat); st.scale.setScalar(0.022 + range * 0.075); st.position.z = 0.0022; st.renderOrder = 5; st.material.opacity = 1; g.add(st);
-        if (range < 0.16) { const so = new THREE.Mesh(woundGeo, sootMat); so.scale.setScalar(0.02 + range * 0.14); so.position.z = 0.0024; so.renderOrder = 5; g.add(so); }
+        // unburnt powder tattoos the skin out to roughly 60-75 cm (an oval pattern when the muzzle is at an angle); soot only within a hand's width
+        const st = new THREE.Mesh(woundGeo, stippleMat); st.scale.set((0.022 + range * 0.075) / Math.max(0.5, cos), 0.022 + range * 0.075, 1); st.rotation.z = ang; st.position.z = 0.0022; st.renderOrder = 5; g.add(st);
+        if (range < 0.16) { const so = new THREE.Mesh(woundGeo, sootMat); so.scale.set((0.02 + range * 0.14) / Math.max(0.5, cos), 0.02 + range * 0.14, 1); so.rotation.z = ang; so.position.z = 0.0024; so.renderOrder = 5; g.add(so); }
       }
-      stain.scale.set(0.0001, 0.0001, 1); stain.renderOrder = 4; // no blood showing yet: it wells up over the next seconds
+      stain.scale.set(0.0001, 0.0001, 1); stain.renderOrder = 5; stain.position.z = 0.0012; // no blood showing yet: it wells up over the next seconds
       g.add(stain, hole); seg.g.add(g);
       // on the shorts, blood soaks into the fabric: it wicks outward as a dark, matte, widening patch instead of running
       const ry = g.position.y + seg.origin.y, cloth = !/^(uarm|farm|hand)/.test(seg.name) && ry > 0.745 && ry < 1.025;
-      if (cloth) stain.visible = false; // fabric soak is painted into the mesh (see paintSoak), so it follows the curved surface
-      const w = { g, stain, seg, mark, n, ext: 0, base: mark.r * 1.2, track: null, run, cloth };
+      if (cloth) stain.visible = false; // fabric soak is a decal cut from the mesh (see paintSoak), so it follows the curved surface
+      const w = { g, stain, seg, mark, n, ext: 0, base: mark.r * 1.2, track: null, run, cloth, bruise, t0: body.bt, pool: 0, seen: 0, feed: 0, rivers: [] };
       body.wounds.push(w);
       return w;
     };
@@ -488,7 +523,7 @@
     function paintSoak(w, r) {
       const hm = body.human; if (!hm) return;
       const geo = hm.geometry, pos = geo.attributes.position, nor = geo.attributes.normal, si = geo.attributes.skinIndex, sw = geo.attributes.skinWeight, idx = geo.index.array;
-      const n = w.n, c = w.g.position.clone().add(w.seg.origin);
+      const n = w.n, c = w.c ? w.c.clone() : w.g.position.clone().add(w.seg.origin);
       c.y -= r * 0.22; // gravity drags the wet front downward
       tA.set(0, 1, 0).cross(n); if (tA.lengthSq() < 1e-6) tA.set(1, 0, 0); tA.normalize(); tB.copy(n).cross(tA).normalize(); // tA horizontal, tB up
       const R = r * 1.05, R2 = (R + 0.02) * (R + 0.02), P = [], N = [], I = [], W = [], U = [], ix = [], remap = new Map();
@@ -519,6 +554,7 @@
       if (w.soak) { w.soak.geometry.dispose(); w.soak.geometry = g; }
       else { w.soak = new THREE.SkinnedMesh(g, soakMat); w.soak.frustumCulled = false; w.soak.renderOrder = 4; w.soak.bind(hm.skeleton, hm.bindMatrix); hm.parent.add(w.soak); }
     }
+    body.paintSoak = paintSoak;
     body.growStain = (w, ml) => {
       if (w.cloth) {
         // cotton holds roughly 1 mL per 4-5 cm^2 before it drips: the patch spreads with the square root of the volume
@@ -526,7 +562,9 @@
         if (r - (w.soakR || 0) > 0.004) { w.soakR = r; paintSoak(w, r); }
         return;
       }
-      // the stain grows with the blood that has actually come out: a rim first, then a trickle that runs downhill
+      // with the skin-blood model (skinblood.js) the volume feeds the pool and the rivulets there
+      if (body.bloodTick) { w.feed += ml - w.seen; w.seen = ml; return; }
+      // fallback: a rim first, then a trickle that runs downhill
       const r = Math.min(0.045, w.base * Math.min(1, ml / 0.4) + Math.sqrt(ml) * 0.0022), L = w.run && ml > 0.6 ? Math.min(0.13, Math.sqrt(ml - 0.6) * 0.012) : 0;
       w.stain.scale.set(r * (L ? 0.8 : 1), r + L / 2, 1); w.stain.position.y = -L / 2;
     };
@@ -542,8 +580,9 @@
     body.woundNormal = (w, out) => out.copy(w.n).transformDirection(w.seg.g.matrixWorld);
     body.clearWounds = () => {
       if (body.human && body.dirty) { const g = body.human.geometry; g.attributes.position.array.set(body.skin0.pos); g.attributes.color.array.set(body.skin0.col); g.attributes.position.needsUpdate = g.attributes.color.needsUpdate = true; g.computeVertexNormals(); body.dirty = false; }
-      for (const sg of body.list) if (sg.dirty && sg.skin) { const g = sg.skin.geometry; g.attributes.position.array.set(sg.skin0.pos); g.attributes.color.array.set(sg.skin0.col); g.attributes.position.needsUpdate = g.attributes.color.needsUpdate = true; g.computeVertexNormals(); sg.dirty = false; } for (const w of body.wounds) { w.seg.g.remove(w.g); if (w.track) w.seg.g.remove(w.track); if (w.soak) { w.soak.parent.remove(w.soak); w.soak.geometry.dispose(); } } body.wounds.length = 0; };
+      for (const sg of body.list) if (sg.dirty && sg.skin) { const g = sg.skin.geometry; g.attributes.position.array.set(sg.skin0.pos); g.attributes.color.array.set(sg.skin0.col); g.attributes.position.needsUpdate = g.attributes.color.needsUpdate = true; g.computeVertexNormals(); sg.dirty = false; } for (const w of body.wounds) { w.seg.g.remove(w.g); if (w.track) w.seg.g.remove(w.track); if (w.soak) { w.soak.parent.remove(w.soak); w.soak.geometry.dispose(); } } body.wounds.length = 0; if (body.clearBlood) body.clearBlood(); };
     body.updateMatrices();
+    if (G.skinBlood) G.skinBlood(body);
     return body;
   };
 })();
