@@ -10,7 +10,7 @@
   camera.rotation.order = 'YXZ'; scene.add(camera);
 
   const world = G.buildWorld(scene), body = G.buildBody(scene), gun = G.buildGun(camera), audio = G.Audio();
-  const rag = G.buildPhysics(scene, body, audio, { headImpact: (v) => phys && phys.headImpact(v) });
+  const rag = G.buildPhysics(scene, body, audio, { headImpact: (v) => phys && npc && npc.posture === 'falling' && phys.headImpact(v) }); // only a real fall, not movement on the floor
   let phys, npc;
   const sampler = { sample: body.sample, cavity: body.cavity, maxDist: 20 };
   const TIMES = [1, 4, 15, 60];

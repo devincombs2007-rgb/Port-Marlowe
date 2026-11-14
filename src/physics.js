@@ -20,7 +20,7 @@
       case 'uarm': return { aA: n3(0.55 * s, -0.7, 0.4), aB: DOWN, cone: 1.35, twist: 0.9, gain: 2.5 };
       case 'farm': return { aA: n3(0, -0.3, 0.95), aB: DOWN, cone: 1.25, twist: 0.5, hinge: true, gain: 2 };
       case 'hand': return { aA: DOWN, aB: DOWN, cone: 0.6, twist: 0.3, gain: 1 };
-      case 'thigh': return { aA: n3(0.12 * s, -0.75, 0.65), aB: DOWN, cone: 0.95, twist: 0.4, gain: 3 };
+      case 'thigh': return { aA: n3(0.12 * s, -0.64, 0.77), aB: DOWN, cone: 1.2, twist: 0.4, gain: 3 }; // hip: about 120 deg flexion, 20 deg extension
       case 'shin': return { aA: n3(0, -0.3, -0.95), aB: DOWN, cone: 1.25, twist: 0.2, hinge: true, gain: 2.5 };
       case 'foot': return { aA: DOWN, aB: DOWN, cone: 0.5, twist: 0.25, gain: 1 };
     }
@@ -81,9 +81,10 @@
       const he = new C.Vec3(Math.max(0.014, size.x * 0.46), Math.max(0.014, size.y * 0.47), Math.max(0.014, size.z * 0.46));
       const b = new C.Body({ mass: MASS[s.name.replace(/[LR]$/, '')], linearDamping: 0.04, angularDamping: 0.3 });
       addShapes(b, s.name, he);
+      const halfLen = he.y;
       if (s.name.startsWith('foot')) b.material = footMat;
       [b.collisionFilterGroup, b.collisionFilterMask] = filter(s.name); b.sleepSpeedLimit = 0.12; b.sleepTimeLimit = 1.2;
-      const part = { seg: s, b, off: s.origin.clone().sub(c), center: c, tone: 0, target: new Q(), I: 0, slack: 0, leg: /^(thigh|shin|foot)/.test(s.name) ? s.name.slice(-1) : null };
+      const part = { seg: s, b, off: s.origin.clone().sub(c), center: c, tone: 0, target: new Q(), I: 0, slack: 0, half: halfLen, leg: /^(thigh|shin|foot)/.test(s.name) ? s.name.slice(-1) : null };
       b.updateMassProperties(); part.I = Math.min(b.inertia.x, b.inertia.y, b.inertia.z);
       b.addEventListener('collide', (e) => {
         const v = Math.abs(e.contact.getImpactVelocityAlongNormal());
@@ -130,7 +131,7 @@
     P.stop = () => {
       if (!P.active) return;
       P.setRigid(false);
-      P.active = false; P.stepping = null; P.grabbed = null; P.clutch.L = P.clutch.R = null; P.ctl.s = 0; P.ctl.push.set(0, 0, 0);
+      P.active = false; P.stepping = null; P.lost = null; P.stepWin = 0; P.grabbed = null; P.clutch.L = P.clutch.R = null; P.reach.L = P.reach.R = null; P.ctl.s = 0; P.ctl.push.set(0, 0, 0);
       for (const j of P.joints) for (const c of j.cons) world.removeConstraint(c);
       for (const k in P.parts) world.remove(P.parts[k].b);
       for (const s of body.list) { s.g.position.copy(s.rest); s.g.quaternion.set(0, 0, 0, 1); }
@@ -180,8 +181,37 @@
     // Push harder than the legs can correct and the subject goes over.
     const up = new C.Vec3(), ax = new C.Vec3();
     function balance() {
-      const c = P.ctl; footCM.friction = c.s > 0.01 ? 0.1 : 0.012;
-      if (c.s <= 0.01) return;
+      const c = P.ctl; footCM.friction = c.s > 0.01 ? 0.1 : 0.003; // heels slide while the feet are drawn in; they grip once pushing up
+      if (c.draw > 0.01) {
+        // drawing the feet in under the hips (getting up): the hip and thigh muscles pull each foot toward a
+        // point just in front of the pelvis. Internal force: equal and opposite on the pelvis.
+        const pel = P.parts.pelvis.b; pel.quaternion.vmult(FWD, fw); pel.quaternion.vmult(LEFT, lv);
+        const hx = fw.x, hz = fw.z, hm = Math.hypot(hx, hz) || 1, lx = lv.x, lz = lv.z, lm = Math.hypot(lx, lz) || 1;
+        for (const [f, sg] of [[P.parts.footL.b, 1], [P.parts.footR.b, -1]]) {
+          const tx = pel.position.x + (hx / hm) * 0.3 + (lx / lm) * 0.12 * sg, tz = pel.position.z + (hz / hm) * 0.3 + (lz / lm) * 0.12 * sg;
+          sf.set(500 * (tx - f.position.x) - 40 * f.velocity.x, 0, 500 * (tz - f.position.z) - 40 * f.velocity.z);
+          const m = sf.norm(), cap = 220 * c.draw; if (m > cap) sf.scale(cap / m, sf);
+          f.wakeUp(); f.force.vadd(sf, f.force); pel.force.vsub(sf, pel.force);
+        }
+        // the hip flexors lift each knee (the lower end of the thigh) while the heel stays on the floor and is drawn
+        // in, so the leg folds at the knee instead of lifting as a straight strut
+        for (const sd of ['L', 'R']) {
+          const part = P.parts['thigh' + sd], th = part.b, ft = P.parts['foot' + sd].b; th.wakeUp(); ft.wakeUp();
+          th.quaternion.vmult(DOWN, kv); const half = part.half || 0.2; kp.set(th.position.x + kv.x * half, th.position.y + kv.y * half, th.position.z + kv.z * half);
+          const lift = Math.min(160, Math.max(0, 0.45 - kp.y) * 700) * c.draw;
+          kf.set(0, lift, 0); kr.set(kp.x - th.position.x, kp.y - th.position.y, kp.z - th.position.z); th.applyForce(kf, kr);
+          pel.force.y -= lift * 0.6; ft.force.y -= lift * 0.4; // reaction through the pelvis and the heel
+        }
+      }
+      if (c.s <= 0.01) {
+        // sitting up from the floor uses the trunk muscles alone
+        if (c.trunk > 0.01) for (const n in TRUNKK) {
+          const b = P.parts[n].b, [K, D] = TRUNKK[n], g = c.trunk * 1.4;
+          b.quaternion.vmult(UP, up); up.cross(UP, ax);
+          b.torque.x += K * g * ax.x - D * c.trunk * b.angularVelocity.x; b.torque.z += K * g * ax.z - D * c.trunk * b.angularVelocity.z;
+        }
+        return;
+      }
       const pel = P.parts.pelvis.b, tho = P.parts.thorax.b, fl = P.parts.footL.b, fr = P.parts.footR.b;
       let Fy = MTOT * GRAV * 0.8 + 7000 * (c.y0 - pel.position.y) - 1500 * pel.velocity.y;
       Fy = Math.max(0, Math.min(1.5 * MTOT * GRAV, Fy)) * Math.min(1, c.s);
@@ -197,6 +227,9 @@
       const vx = (pel.velocity.x + tho.velocity.x) / 2, vz = (pel.velocity.z + tho.velocity.z) / 2;
       const capx = cx + vx * 0.31, capz = cz + vz * 0.31, ex = capx - mx, ez = capz - mz, em = Math.hypot(ex, ez);
       P.stepCool -= H;
+      // past recovery: the capture point is further than a step can reach, or a run of steps has not caught it
+      P.stepWin = Math.max(0, (P.stepWin || 0) - H);
+      if (c.s > 0.6 && (em > 0.5 || (P.stepWin > 2.4 && em > 0.16))) { P.lost = { x: ex / (em || 1), z: ez / (em || 1), t: P.t }; }
       if (!P.stepping && c.s > 0.6 && c.canStep !== false && em > 0.075 && P.stepCool <= 0) {
         const ux = ex / em, uz = ez / em;
         // the foot that is furthest behind the direction of fall makes the step
@@ -207,7 +240,7 @@
         const sx = tx - foot.position.x, sz = tz - foot.position.z, sl = Math.hypot(sx, sz), maxL = 0.5;
         if (sl > maxL) { tx = foot.position.x + sx / sl * maxL; tz = foot.position.z + sz / sl * maxL; }
         P.stepping = { side, foot, t: 0, dur: 0.24 + Math.min(0.12, sl * 0.25), fx: foot.position.x, fz: foot.position.z, fy: foot.position.y, tx, tz };
-        P.steps++;
+        P.steps++; P.stepWin += 0.8;
       }
       // once steady again, bring the feet back to a normal stance with a small step
       if (!P.stepping && c.s > 0.6 && c.canStep !== false && P.stepCool <= 0 && em < 0.04 && Math.hypot(vx, vz) < 0.12) {
@@ -237,16 +270,16 @@
       } else for (const f of [fl, fr]) { f.force.y -= Fy / 2; f.force.x -= Fx / 2; f.force.z -= Fz / 2; }
       // trunk muscles hold the spine upright (N·m per rad of lean, and damping), sized against the weight above each joint
       for (const n in TRUNKK) {
-        const b = P.parts[n].b, [K, D] = TRUNKK[n], g = c.s * c.bal;
+        const b = P.parts[n].b, [K, D] = TRUNKK[n], g = Math.max(c.s * c.bal, c.trunk || 0);
         b.quaternion.vmult(UP, up); up.cross(UP, ax);
         b.torque.x += K * g * ax.x - D * c.s * b.angularVelocity.x; b.torque.y -= D * 0.5 * c.s * b.angularVelocity.y; b.torque.z += K * g * ax.z - D * c.s * b.angularVelocity.z;
       }
     }
-    const LEFT = new C.Vec3(1, 0, 0), lv = new C.Vec3(), sf = new C.Vec3();
+    const LEFT = new C.Vec3(1, 0, 0), lv = new C.Vec3(), sf = new C.Vec3(), kv = new C.Vec3(), kp = new C.Vec3(), kf = new C.Vec3(), kr = new C.Vec3();
     const TRUNKK = { pelvis: [260, 7], abdomen: [200, 5], thorax: [320, 14], head: [22, 0.7] };
     // wound clutching: the arm muscles pull a hand onto a wound. Modelled as an internal spring
     // (equal and opposite on the hand and on the wounded segment), so it adds no net force to the body.
-    P.clutch = { L: null, R: null };
+    P.clutch = { L: null, R: null }; P.reach = { L: null, R: null };
     P.setClutch = (side, seg, wpt) => {
       if (!seg) { P.clutch[side] = null; return; }
       const b = seg.part.b, l = new C.Vec3(); b.pointToLocalFrame(new C.Vec3(wpt.x, wpt.y, wpt.z), l);
@@ -254,7 +287,16 @@
     };
     const cp = new C.Vec3(), cr = new C.Vec3(), cv = new C.Vec3(), cf = new C.Vec3(), cn = new C.Vec3();
     function clutchForce() {
+      const tho = P.parts.thorax.b;
       for (const sd of ['L', 'R']) {
+        const rp = P.reach[sd];
+        if (rp) {
+          // reaching for a point in the world (arms thrown out to break a fall): internal force between hand and chest
+          const h = P.parts['hand' + sd].b; h.wakeUp();
+          cf.set(650 * (rp.x - h.position.x) - 30 * h.velocity.x, 650 * (rp.y - h.position.y) - 30 * h.velocity.y, 650 * (rp.z - h.position.z) - 30 * h.velocity.z);
+          const m = cf.norm(); if (m > 130) cf.scale(130 / m, cf);
+          h.force.vadd(cf, h.force); tho.force.vsub(cf, tho.force); continue;
+        }
         const c = P.clutch[sd]; if (!c) continue;
         const h = P.parts['hand' + sd].b, b = c.b; h.wakeUp(); b.wakeUp();
         b.pointToWorldFrame(c.l, cp); cp.vsub(b.position, cr); b.angularVelocity.cross(cr, cv); cv.vadd(b.velocity, cv);

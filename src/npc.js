@@ -14,6 +14,8 @@
     decerebrate: { abdomen: [-0.12, 0, 0], thorax: [-0.18, 0, 0], neck: [-0.3, 0, 0], head: [-0.3, 0, 0], uarmL: [0.25, 0.5, 0.1], uarmR: [0.25, -0.5, -0.1], farmL: [0, 0, 0], farmR: [0, 0, 0], handL: [0.7, 0, 0], handR: [0.7, 0, 0], thighL: [0.06, 0, -0.04], thighR: [0.06, 0, 0.04], footL: [0.65, 0, 0], footR: [0.65, 0, 0] },
     // tonic / decorticate: arms flex hard onto the chest, legs extend
     tonic: { thorax: [-0.1, 0, 0], neck: [-0.2, 0, 0], head: [-0.2, 0, 0], uarmL: [-0.45, 0, -0.2], uarmR: [-0.45, 0, 0.2], farmL: [-2.1, 0, -0.3], farmR: [-2.1, 0, 0.3], handL: [0.8, 0, 0], handR: [0.8, 0, 0], thighL: [0.04, 0, 0], thighR: [0.04, 0, 0], footL: [0.6, 0, 0], footR: [0.6, 0, 0] },
+    // getting up: knees folded under, trunk forward over the feet, hands toward the floor
+    rise: { abdomen: [0.45, 0, 0], thorax: [0.35, 0, 0], head: [0.1, 0, 0], uarmL: [-0.8, 0, 0.25], uarmR: [-0.8, 0, -0.25], farmL: [-0.3, 0, 0], farmR: [-0.3, 0, 0], thighL: [-1.45, 0, 0.1], thighR: [-1.45, 0, -0.1], shinL: [2.05, 0, 0], shinR: [2.05, 0, 0], footL: [-0.6, 0, 0], footR: [-0.6, 0, 0] },
     jerk: { abdomen: [0.25, 0, 0], thorax: [0.2, 0, 0], uarmL: [-0.8, 0, 0.1], uarmR: [-0.8, 0, -0.1], farmL: [-1.2, 0, 0], farmR: [-1.2, 0, 0], thighL: [-0.5, 0, 0], thighR: [-0.5, 0, 0], shinL: [0.7, 0, 0], shinR: [0.7, 0, 0] },
   };
   const PRIO = { neck: 5, thorax: 4, abdomen: 4, head: 3, pelvis: 3, thighL: 2, thighR: 2 };
@@ -23,17 +25,23 @@
     const names = body.list.map((s) => s.name).filter((n) => n !== 'pelvis');
     const cur = {};
     for (const k of names) cur[k] = (POSES.stand[k] || [0, 0, 0]).slice();
-    const N = { flinchT: 0, dip: 0, posture: 'stand', pose: 'stand', pos: new THREE.Vector3(), decideT: -1, wantDown: false, clock: 0, breath: 0, ragT: 0, stillT: 0, stagger: 0, stagDir: [0, 0], crawling: false, downT: 0,
+    const N = { riseT: 0, riseTries: 0, chose: false, flinchT: 0, dip: 0, posture: 'stand', pose: 'stand', pos: new THREE.Vector3(), decideT: -1, wantDown: false, clock: 0, breath: 0, ragT: 0, stillT: 0, stagger: 0, stagDir: [0, 0], crawling: false, downT: 0,
       lowering: 0, giveT: 0, clutchT: 0, clutching: { L: null, R: null }, gasp: 0, cough: 0, coughAt: 4 + Math.random() * 6, groanAt: 3 + Math.random() * 5, lastBreath: 0, motor: 'normal' };
     const ctl = rag.ctl, ev = (t, d) => hooks.event && hooks.event(t, d);
     rag.start(); ctl.s = 1; ctl.bal = 1; ctl.y0 = ctl.yRest;
-    const collapse = (rigid) => {
+    const collapse = (rigid, tripped) => {
       if (N.posture !== 'stand') return;
-      N.posture = 'falling'; N.ragT = 0; ctl.s = 0; ctl.push.set(0, 0, 0); N.giveT = 1.4; N.lowering = 0;
+      rag.lost = null;
+      N.posture = 'falling'; N.ragT = 0; ctl.s = 0; ctl.push.set(0, 0, 0); N.giveT = tripped ? 0 : 1.4; N.lowering = 0; N.tripped = !!tripped;
+      if (tripped) return; // already moving: momentum decides the fall, the legs stay under tone
       const a = Math.random() * 6.283, v = 0.25 + Math.random() * 0.3;
       rag.push('thorax', Math.cos(a) * v, 0, Math.sin(a) * v);
       // limp legs fold at the knee; a rigid (posturing) body goes over like a felled tree
-      if (!rigid) { rag.push('pelvis', 0, -0.4, -0.2); rag.push('thighL', 0, 0, 0.6); rag.push('thighR', 0, 0, 0.6); }
+      if (!rigid) {
+        rag.push('pelvis', 0, -0.4, -0.2);
+        // the knees rarely fold perfectly straight: one leg goes a little to the side
+        const sx = (Math.random() - 0.5) * 0.9; rag.push('thighL', sx, 0, 0.6); rag.push('thighR', sx + (Math.random() - 0.5) * 0.4, 0, 0.6);
+      }
     };
     N.impulse = (seg, pt, imp) => rag.impulse(seg, pt, imp);
     N.onHit = (res, mark, dir) => {
@@ -98,18 +106,42 @@
       if (aware && N.posture === 'down' && P.pain > 0.25) { N.groanAt -= dt; if (N.groanAt <= 0) { N.groanAt = 5 + Math.random() * 10; ev('groan', P.pain); } }
       const pel = rag.parts.pelvis.b, tho = rag.parts.thorax.b;
       let target = POSES.curl;
+      // ---- getting back up after a fall that did not disable: a shove, or coming round from a knockout
+      const fit = aware && !legsOut && !P.legsPara && P.brainE > 0.85 && P.map > 70 && P.pain < 0.55 && !N.chose;
+      if (N.posture === 'down') { N.downT += dt; if (fit && N.riseTries < 3 && N.downT > 2.5 + N.riseTries * 2) { N.posture = 'rising'; N.riseT = 0; N.riseTries++; } }
+      if (N.posture === 'rising') {
+        N.riseT += dt; const t = N.riseT;
+        if (!fit) { N.posture = 'down'; N.downT = 0; ctl.s = 0; ctl.trunk = 0; ctl.draw = 0; }
+        else {
+          const sm = (a, b) => { const u = Math.min(1, Math.max(0, (t - a) / (b - a))); return u * u * (3 - 2 * u); };
+          // sit up and draw the feet in; push up only once the feet are under the hips; then stand
+          if (N.riseT < dt * 1.5) { N.riseY = pel.position.y; N.pushT = null; }
+          const fl = rag.parts.footL.b.position, fr = rag.parts.footR.b.position;
+          const feetIn = Math.hypot((fl.x + fr.x) / 2 - pel.position.x, (fl.z + fr.z) / 2 - pel.position.z) < 0.5;
+          if (N.pushT == null && t > 0.9 && (feetIn || t > 2)) N.pushT = t;
+          const tp = N.pushT == null ? -1 : t - N.pushT;
+          ctl.draw = tp < 0 ? sm(0.3, 0.9) : Math.max(0, 1 - tp / 1.2);
+          ctl.trunk = sm(0, 0.8); ctl.s = tp < 0 ? 0 : Math.min(1, tp / 1.0); ctl.bal = 1; ctl.canStep = tp > 2.4; ctl.push.set(0, 0, 0);
+          ctl.y0 = N.riseY + (ctl.yRest - N.riseY) * (tp < 0 ? 0 : (u => u * u * (3 - 2 * u))(Math.min(1, tp / 2.0)));
+          target = tp < 1.6 ? POSES.rise : POSES.stand;
+          tho.quaternion.vmult(UP, upv);
+          if (tp > 2.0 && pel.position.y > ctl.yRest * 0.88 && upv.y > 0.8) { N.posture = 'stand'; N.pose = 'stand'; ctl.trunk = 0; ctl.draw = 0; ctl.canStep = true; N.downT = 0; }
+          else if (t > 7 || tp > 3.6) { N.posture = 'falling'; N.ragT = 0; ctl.s = 0; ctl.trunk = 0; ctl.draw = 0; ctl.canStep = true; } // could not make it: sinks back down
+        }
+      }
       if (N.posture === 'stand') {
         const dizzy = Math.max(0, 0.9 - P.brainE) + Math.max(0, (72 - P.map) / 50);
         tho.quaternion.vmult(UP, upv);
         if (rigid || clonic) collapse(rigid);
         else if (limp || legsOut || P.brainE < 0.55 || P.map < 48) collapse();
         else if ((pel.position.y < ctl.yRest * 0.74 && !N.lowering) || upv.y < 0.55) collapse(); // past the tipping point
+        else if (rag.lost) collapse(false, true); // pushed or pulled further than a step can recover
         else {
           if (N.decideT >= 0) {
             N.decideT -= dt;
             if (N.decideT < 0) {
               N.decideT = -1;
-              if (N.wantDown) N.lowering = 0.001;
+              if (N.wantDown) { N.lowering = 0.001; N.chose = true; }
               else { if (P.pain > 0.15) N.pose = 'guard'; if (P.pain > 0.6) { N.decideT = 2 + Math.random() * 4; N.wantDown = true; } }
             }
           } else if (P.pain > 0.15) N.pose = 'guard';
@@ -128,7 +160,7 @@
           target = N.lowering > 0 ? POSES.brace : N.flinchT > 0 ? POSES.guard : POSES[N.pose];
         }
       }
-      if (N.posture !== 'stand') {
+      if (N.posture !== 'stand' && N.posture !== 'rising') {
         N.ragT += dt;
         target = N.ragT < 0.9 ? POSES.brace : POSES.curl;
         if (N.posture === 'falling') { N.stillT = (rag.speed() < 0.6 && N.ragT > 0.6 && pel.position.y < 0.5) || N.ragT > 5 ? N.stillT + dt : 0; if (N.stillT > 0.4) { N.posture = 'down'; N.downT = 0; } }
@@ -136,8 +168,7 @@
       P.upright = N.posture === 'stand';
       // ---- wounded and down but aware with working arms: drag away from the shooter
       N.crawling = false;
-      if (N.posture === 'down' && aware && !P.armsPara && P.brainE > 0.7) {
-        N.downT += dt;
+      if (N.posture === 'down' && aware && !P.armsPara && P.brainE > 0.7 && !fit) {
         const th = hooks.threat ? hooks.threat() : null;
         if (th && N.downT > 6) {
           let dx = tho.position.x - th.x, dz = tho.position.z - th.z; const d = Math.hypot(dx, dz) || 1; dx /= d; dz /= d;
@@ -149,9 +180,20 @@
           }
         }
       }
+      // ---- breaking the fall: a conscious person thrown off balance puts both hands out toward the floor
+      N.protect = N.posture === 'falling' && aware && !P.armsPara && N.ragT < 1.2 && pel.position.y > 0.3;
+      if (N.protect) {
+        const v = tho.velocity, sp = Math.hypot(v.x, v.z) || 1, dx = v.x / sp, dz = v.z / sp;
+        for (const sd of ['L', 'R']) {
+          if (P.armBroken[sd]) { rag.reach[sd] = null; continue; }
+          body.segs['uarm' + sd].g.getWorldPosition(v1);
+          rag.reach[sd] = new THREE.Vector3(v1.x + dx * 0.45, Math.max(0.05, v1.y - 0.45), v1.z + dz * 0.45);
+        }
+        N.clutching.L = N.clutching.R = null; rag.setClutch('L', null); rag.setClutch('R', null);
+      } else if (rag.reach.L || rag.reach.R) { rag.reach.L = rag.reach.R = null; }
       // ---- a hand goes to the wound: neck, chest, belly, thigh, whatever it can reach
       if (N.clutchT > 0) N.clutchT -= dt;
-      else { N.clutchT = 0.5; chooseClutch(P, aware && !N.crawling && body.wounds.length > 0); }
+      else { N.clutchT = 0.5; chooseClutch(P, aware && !N.crawling && !N.protect && body.wounds.length > 0); }
       // ---- muscle tone and joint targets
       const base = limp ? 0 : Math.max(0.25, Math.min(1, P.brainE)) * (1 - 0.3 * Math.min(1, Math.max(0, (60 - P.map) / 40)));
       const writhe = N.posture === 'down' && aware ? 0.05 + 0.2 * P.pain : 0, k = Math.min(1, dt * (rigid || clonic || N.flinchT > 0.3 ? 14 : 5));
@@ -165,6 +207,7 @@
         const part = rag.parts[n], side = n.slice(-1), isLeg = /^(thigh|shin|foot)/.test(n), isArm = /^(uarm|farm|hand)/.test(n);
         let tone = rigid ? 1.5 : clonic ? 1.25 : base;
         if (giving && !rigid) tone *= isLeg ? 0.06 : isArm ? 1 : 0.35;
+        if (N.tripped && N.posture === 'falling' && isLeg) tone *= 0.5;
         if (isLeg) tone *= P.legsPara ? 0 : P.legBroken[side] ? 0.15 : P.pelvisBroken ? 0.4 : 1;
         if (isArm) tone *= P.armsPara ? 0 : P.armBroken[side] ? 0.2 : 1;
         const a = target[n] || [0, 0, 0], q = cur[n];
@@ -172,6 +215,7 @@
         let x = q[0], y = q[1], z = q[2];
         if (writhe && tone > 0) { const ph = c * (1.1 + (n.length % 3) * 0.4) + n.charCodeAt(0); x += Math.sin(ph) * writhe; z += Math.sin(ph * 0.7) * writhe * 0.4; }
         if (N.crawling && n.startsWith('uarm')) x = -1.6 + Math.sin(c * 2.4 + (side === 'L' ? 0 : Math.PI)) * 0.9;
+        if (isArm && N.protect) { tone *= 0.25; }
         if (isArm && N.clutching[side]) { tone *= 0.12; if (n.startsWith('farm')) x = -1.3; } // let the reaching force place the hand
         if (n === 'thorax') {
           // breathing is involuntary: the chest keeps moving while the brainstem drives it
