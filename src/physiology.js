@@ -28,6 +28,10 @@
     // rate mL/min at normal pressure; clot = time constant (s) of natural slowing (0 = none)
     const wound = (label, rate, o = {}) => {
       const w = { label, rate, clot: o.clot || 0, ext: o.ext == null ? 1 : o.ext, cavity: o.cavity || null, side: o.side || null, venous: !!o.venous, t0: S.t, lost: 0, surf: o.surf || null };
+      // Onset of visible bleeding: a bullet hole first shows almost nothing - elastic skin closes over the track
+      // and small vessels spasm - then blood wells up and starts to run. A cut artery spurts at once.
+      const art = !w.venous && rate >= 400;
+      w.onset = art ? [0.1 + Math.random() * 0.2, 0.4] : w.venous ? [0.6 + Math.random() * 1.2, 2.5 + Math.random() * 2] : [1.5 + Math.random() * 3, 4 + Math.random() * 6];
       S.wounds.push(w); return w;
     };
     S.inj = inj;
@@ -177,7 +181,8 @@
         let r = w.rate * pf * cf;
         if (w.cavity === 'thorax' && w.side && S.hemo[w.side] > 2200) r *= 0.3; // contained
         // a hand pressed on the wound slows what comes out of it (not what bleeds inside)
-        const press = w.press || 0, rOut = r * w.ext * (1 - press), rIn = r * (1 - w.ext);
+        const on = w.onset ? clamp((S.t - w.t0 - w.onset[0]) / w.onset[1], 0, 1) : 1;
+        const press = w.press || 0, rOut = r * w.ext * (1 - press) * on, rIn = r * (1 - w.ext);
         r = rOut + rIn;
         const ml = Math.min(S.bv, (r * dt) / 60), fe = r > 0 ? rOut / r : 0;
         w.now = r; w.lost += ml; S.bv -= ml; rate += r;

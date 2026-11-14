@@ -1,4 +1,4 @@
-# Port-Marlowe — Wound Ballistics Lab (v1.3)
+# Port-Marlowe — Wound Ballistics Lab (v1.4)
 
 A browser-based 3D simulator of gunshot wounds. A test subject stands in a chamber; every
 round is traced millimetre by millimetre through skin, bone, organs and vessels, and the
@@ -74,6 +74,11 @@ body then responds in real time (bleeding, blood pressure, breathing, consciousn
   carotid cut ~2 min; femoral artery ~3 min; brachial artery ~9 min; liver or spleen ~17-18 min;
   brain death ~5 min after the heart stops. These are model outputs, chosen to fall inside published
   forensic ranges, not validated predictions.
+- **Blood appears over time**: a fresh bullet hole first shows almost nothing (elastic skin closes over
+  the track and small vessels spasm). Tissue wounds start to show blood after about 1.5-4.5 s and build
+  over the next several seconds, veins after about 1-2 s, a cut artery at once. The skin stain grows only
+  with the blood that has actually come out, a rim first and then a trickle running downhill. Entry
+  back-spatter is a faint mist except at close range or from high-energy rounds.
 - **Wound awareness and pressure**: adrenaline masks pain, so torso, neck and head wounds are noticed
   within about a second, limb wounds after a few seconds, and about a quarter of minor limb wounds not
   at all; a broken bone or a wound pouring blood is noticed at once. Both hands go to one wound when it

@@ -203,7 +203,9 @@
         // back spatter is small; a high-energy impact at the surface also bursts the entry
         const first0 = m === entries[0] && t0;
         if (first0 && t0.rtc > 0.045) body.crater(sw, Math.min(0.05, t0.rtc * 0.45), t0.rtc * 0.2);
-        world.burst(tmp2, { x: -md.x, y: -md.y + 0.2, z: -md.z }, 3 + Math.round(Math.random() * 4), 1.6, 1.1, 0.003, 0.4);
+        // back-spatter from an entry is a faint mist, visible mainly at close range or from high-energy rounds
+        const bs = range < 1 || res.Edep > 1200 ? 2 + Math.round(Math.random() * 3) : Math.random() < 0.4 ? 1 : 0;
+        if (bs) world.burst(tmp2, { x: -md.x, y: -md.y + 0.2, z: -md.z }, bs, 1.4, 1.1, 0.002, 0.1);
         if (range < 0.5) world.chunks(tmp2, { x: -md.x, y: -md.y, z: -md.z }, 5, 1.2, 1.4, 'dust'); // powder smoke
       }
     }

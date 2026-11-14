@@ -421,9 +421,9 @@
         const st = new THREE.Mesh(woundGeo, stippleMat); st.scale.setScalar(0.022 + range * 0.075); st.position.z = 0.0022; st.renderOrder = 5; st.material.opacity = 1; g.add(st);
         if (range < 0.16) { const so = new THREE.Mesh(woundGeo, sootMat); so.scale.setScalar(0.02 + range * 0.14); so.position.z = 0.0024; so.renderOrder = 5; g.add(so); }
       }
-      stain.scale.set(mark.r * 1.9, mark.r * 1.9, 1); stain.renderOrder = 4;
+      stain.scale.set(0.0001, 0.0001, 1); stain.renderOrder = 4; // no blood showing yet: it wells up over the next seconds
       g.add(stain, hole); seg.g.add(g);
-      const w = { g, stain, seg, mark, n, ext: 0, base: mark.r * 1.9, track: null, run };
+      const w = { g, stain, seg, mark, n, ext: 0, base: mark.r * 1.2, track: null, run };
       body.wounds.push(w);
       return w;
     };
@@ -449,7 +449,8 @@
       w.g.position.addScaledVector(n, -depth * 0.8); w.crater = radius;
     };
     body.growStain = (w, ml) => {
-      const r = Math.min(0.045, w.base + Math.sqrt(ml) * 0.0022), L = w.run ? Math.min(0.13, Math.sqrt(ml) * 0.012) : 0;
+      // the stain grows with the blood that has actually come out: a rim first, then a trickle that runs downhill
+      const r = Math.min(0.045, w.base * Math.min(1, ml / 0.4) + Math.sqrt(ml) * 0.0022), L = w.run && ml > 0.6 ? Math.min(0.13, Math.sqrt(ml - 0.6) * 0.012) : 0;
       w.stain.scale.set(r * (L ? 0.8 : 1), r + L / 2, 1); w.stain.position.y = -L / 2;
     };
     const trackMat = new THREE.LineBasicMaterial({ color: 0xfff27a, depthTest: false, transparent: true, opacity: 0.9 });
