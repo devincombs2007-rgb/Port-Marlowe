@@ -25,7 +25,7 @@
     const names = body.list.map((s) => s.name).filter((n) => n !== 'pelvis');
     const cur = {};
     for (const k of names) cur[k] = (POSES.stand[k] || [0, 0, 0]).slice();
-    const N = { armSw: { L: 0, R: 0 }, fleeT: 0, flees: false, retreatT: 0, riseT: 0, riseTries: 0, chose: false, flinchT: 0, dip: 0, posture: 'stand', pose: 'stand', pos: new THREE.Vector3(), decideT: -1, wantDown: false, clock: 0, breath: 0, ragT: 0, stillT: 0, stagger: 0, stagDir: [0, 0], crawling: false, downT: 0,
+    const N = { lookT: 0, lookAt: null, armSw: { L: 0, R: 0 }, fleeT: 0, flees: false, retreatT: 0, riseT: 0, riseTries: 0, chose: false, flinchT: 0, dip: 0, posture: 'stand', pose: 'stand', pos: new THREE.Vector3(), decideT: -1, wantDown: false, clock: 0, breath: 0, ragT: 0, stillT: 0, stagger: 0, stagDir: [0, 0], crawling: false, downT: 0,
       lowering: 0, giveT: 0, clutchT: 0, clutching: { L: null, R: null }, gasp: 0, cough: 0, coughAt: 4 + Math.random() * 6, groanAt: 3 + Math.random() * 5, lastBreath: 0, motor: 'normal' };
     const ctl = rag.ctl, ev = (t, d) => hooks.event && hooks.event(t, d);
     rag.start(); ctl.s = 1; ctl.bal = 1; ctl.y0 = ctl.yRest; ctl.canStep = true; ctl.trunk = 0; ctl.draw = 0; ctl.lead = null; ctl.face = null; rag.lost = null; rag.stepWin = 0;
@@ -58,7 +58,7 @@
       ev('grunt', Math.min(1, 0.4 + phys.pain));
       // startle / stagger: a reflex step driven by the legs, in roughly the direction of fire
       N.stagger = 1; const a = Math.atan2(dir.z, dir.x) + (Math.random() - 0.5) * 1.2; N.stagDir = [Math.cos(a), Math.sin(a)];
-      N.clutchT = 0.25 + Math.random() * 0.4; // reaction time before a hand goes to the wound
+      N.clutchT = 0.15; // re-check wounds shortly; when each one is noticed is decided per wound
       if (N.decideT < 0 && N.posture === 'stand') {
         N.decideT = 0.6 + Math.random() * 2.2;
         // many gunshot victims go down even when physically able to stand
@@ -67,26 +67,60 @@
         if (!N.wantDown && Math.random() < 0.75) { N.retreatT = 2.5 + Math.random() * 3.5; N.flees = Math.random() < 0.65; N.fleeT = 0; }
       }
     };
-    // pick, for each usable arm, the most serious wound that hand can physically reach
+    // When does a person become aware of a wound? Adrenaline masks a lot: torso, neck and head wounds are usually
+    // felt within a second; a limb hit often goes unnoticed for several seconds and a minor one may never be held.
+    // A broken bone or a wound pouring blood is noticed at once.
+    const TRUNKSEG = /^(neck|thorax|abdomen|pelvis|head)$/;
+    function noticeDelay(w, P) {
+      const n = w.seg.name, side = n.slice(-1);
+      if (TRUNKSEG.test(n)) return 0.3 + Math.random() * 0.7;
+      const broken = (/^(thigh|shin)/.test(n) && P.legBroken[side]) || (/^(uarm|farm)/.test(n) && P.armBroken[side]);
+      if (broken) return 0.4 + Math.random() * 0.8;
+      return Math.random() < 0.25 ? Infinity : 1.5 + Math.random() * 4.5;
+    }
+    const severity = (w) => (PRIO[w.seg.name] || 1) * 2 + Math.min(4, (w.rate || 0) / 120);
+    // pick, for each usable arm, the most serious noticed wound that hand can physically reach
     function chooseClutch(P, can) {
+      const now = N.clock;
+      for (const w of body.wounds) {
+        if (w.noticeAt == null) w.noticeAt = now + noticeDelay(w, P);
+        if (w.noticeAt > now && (w.rate || 0) > 150) w.noticeAt = now + 0.4; // you notice a wound that is pouring blood
+        if (!w.seen && w.noticeAt <= now) { w.seen = true; N.lookT = 1.4; N.lookAt = w; } // first realises: looks down at it
+      }
+      const pick = {};
       for (const sd of ['L', 'R']) {
         let best = null, bs = 0;
         if (can && !P.armsPara && !P.armBroken[sd]) {
           body.segs['uarm' + sd].g.getWorldPosition(v1);
           for (const w of body.wounds) {
+            if (!(w.noticeAt <= now)) continue;
             const n = w.seg.name;
             if (n.endsWith(sd) && /^(uarm|farm|hand)/.test(n)) continue; // cannot hold its own arm
             body.woundWorld(w, v2);
-            const d = v2.distanceTo(v1); if (d > 0.66) continue;
-            const other = N.clutching[sd === 'L' ? 'R' : 'L'];
-            const sc = (PRIO[n] || 1) * 2 - d + (w.rate > 30 ? 1.5 : 0) - (other === w ? 2.5 : 0);
+            // a hanging hand already reaches the upper thigh; a hand already on a wound keeps it (hysteresis)
+            const d = v2.distanceTo(v1); if (d > (N.clutching[sd] === w ? 1.0 : 0.8)) continue;
+            const other = pick[sd === 'L' ? 'R' : 'L'], sev = severity(w);
+            // both hands go to one wound when it is clearly the worst (a neck or chest wound pumping blood)
+            const share = other === w ? (sev >= 8 ? -0.5 : -2.5) : 0;
+            const sc = sev - d + share + (N.clutching[sd] === w ? 1 : 0);
             if (sc > bs) { bs = sc; best = w; }
           }
         }
+        pick[sd] = best;
         if (best !== N.clutching[sd]) {
           N.clutching[sd] = best;
-          if (best) { body.woundWorld(best, v2); body.woundNormal(best, v3); v2.addScaledVector(v3, 0.03); rag.setClutch(sd, best.seg, v2); } else rag.setClutch(sd, null);
+          if (best) { body.woundWorld(best, v2); body.woundNormal(best, v3); v2.addScaledVector(v3, 0.03); rag.setClutch(sd, best.seg, v2); const cl = rag.clutch[sd]; if (cl) { const ln = new CANNON.Vec3(v3.x, v3.y, v3.z); const qi = cl.b.quaternion.inverse(); cl.nl = qi.vmult(ln); } } else rag.setClutch(sd, null);
         }
+      }
+    }
+    // pressure from the hands on each wound: about half the outflow for ordinary bleeding, much less for an artery;
+    // two hands do better than one. Fades with grip strength as consciousness goes.
+    function applyPressure(P, grip) {
+      for (const w of P.wounds) {
+        if (!w.surf) { w.press = 0; continue; }
+        const hands = (N.clutching.L === w.surf ? 1 : 0) + (N.clutching.R === w.surf ? 1 : 0);
+        const one = (!w.venous && w.rate >= 400 ? 0.25 : 0.5) * grip;
+        w.press = hands ? 1 - Math.pow(1 - one, hands) : 0;
       }
     }
     N.update = (dt) => {
@@ -186,7 +220,9 @@
       P.upright = N.posture === 'stand';
       // ---- wounded and down but aware with working arms: drag away from the shooter
       N.crawling = false;
-      if (N.posture === 'down' && aware && !P.armsPara && P.brainE > 0.7 && !fit) {
+      // someone pressing on a serious wound (neck, chest, belly, or anything pouring blood) stays put and keeps pressing
+      const holdingSerious = [N.clutching.L, N.clutching.R].some((w) => w && severity(w) >= 6);
+      if (N.posture === 'down' && aware && !P.armsPara && P.brainE > 0.7 && !fit && !holdingSerious) {
         const th = hooks.threat ? hooks.threat() : null;
         if (th && N.downT > 6) {
           let dx = tho.position.x - th.x, dz = tho.position.z - th.z; const d = Math.hypot(dx, dz) || 1; dx /= d; dz /= d;
@@ -210,8 +246,14 @@
         N.clutching.L = N.clutching.R = null; rag.setClutch('L', null); rag.setClutch('R', null);
       } else if (rag.reach.L || rag.reach.R) { rag.reach.L = rag.reach.R = null; }
       // ---- a hand goes to the wound: neck, chest, belly, thigh, whatever it can reach
+      // grip strength follows the brain: hands weaken, then fall away, as consciousness fades
+      const grip = Math.max(0, Math.min(1, (P.brainE - 0.45) / 0.4)) * (P.conscious ? 1 : 0);
+      rag.grip = grip;
+      if (grip < 0.15 && (N.clutching.L || N.clutching.R)) { N.clutching.L = N.clutching.R = null; rag.setClutch('L', null); rag.setClutch('R', null); }
+      applyPressure(P, grip);
+      N.lookT = Math.max(0, N.lookT - dt);
       if (N.clutchT > 0) N.clutchT -= dt;
-      else { N.clutchT = 0.5; chooseClutch(P, aware && !N.crawling && !N.protect && body.wounds.length > 0); }
+      else { N.clutchT = 0.5; chooseClutch(P, aware && !N.crawling && !N.protect && body.wounds.length > 0 && grip > ((N.clutching.L || N.clutching.R) ? 0.15 : 0.35)); } // once the hands have dropped they need real strength to come back
       // ---- muscle tone and joint targets
       const base = limp ? 0 : Math.max(0.25, Math.min(1, P.brainE)) * (1 - 0.3 * Math.min(1, Math.max(0, (60 - P.map) / 40)));
       const writhe = N.posture === 'down' && aware ? 0.05 + 0.2 * P.pain : 0, k = Math.min(1, dt * (rigid || clonic || N.flinchT > 0.3 ? 14 : 5));
@@ -247,6 +289,7 @@
           if (N.gasp > 0) { tone = Math.max(tone, 0.8); x -= 0.22 * N.gasp; }
           if (N.cough > 0) { tone = Math.max(tone, 0.9); x += 0.3 * N.cough; }
         }
+        if ((n === 'neck' || n === 'head') && N.lookT > 0 && aware) { x += 0.32 * Math.min(1, N.lookT); tone = Math.max(tone, 0.6); } // looks down at the wound
         if ((n === 'neck' || n === 'head') && N.gasp > 0) { tone = Math.max(tone, 0.7); x -= 0.3 * N.gasp; }
         part.tone = tone; part.target.setFromEuler(eul.set(x, y, z));
       }

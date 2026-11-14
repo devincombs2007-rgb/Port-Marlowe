@@ -306,12 +306,21 @@
     // wound clutching: the arm muscles pull a hand onto a wound. Modelled as an internal spring
     // (equal and opposite on the hand and on the wounded segment), so it adds no net force to the body.
     P.clutch = { L: null, R: null }; P.reach = { L: null, R: null };
+    // a hand holding a wound is in contact with its own body: the coarse chest/belly collision boxes would keep it
+    // pushed away (they enclose the base of the neck), so while holding, that hand and forearm skip them
+    const handMask = (side, holding) => {
+      for (const n of ['hand' + side, 'farm' + side]) {
+        const b = P.parts[n].b; if (b.mask0 == null) b.mask0 = b.collisionFilterMask;
+        b.collisionFilterMask = holding ? (b.mask0 & ~(CHEST | TRUNK)) : b.mask0;
+      }
+    };
     P.setClutch = (side, seg, wpt) => {
+      handMask(side, !!seg);
       if (!seg) { P.clutch[side] = null; return; }
       const b = seg.part.b, l = new C.Vec3(); b.pointToLocalFrame(new C.Vec3(wpt.x, wpt.y, wpt.z), l);
       P.clutch[side] = { b, l, seg };
     };
-    const cp = new C.Vec3(), cr = new C.Vec3(), cv = new C.Vec3(), cf = new C.Vec3(), cn = new C.Vec3();
+    const an = new C.Vec3(), cp = new C.Vec3(), cr = new C.Vec3(), cv = new C.Vec3(), cf = new C.Vec3(), cn = new C.Vec3();
     function clutchForce() {
       const tho = P.parts.thorax.b;
       for (const sd of ['L', 'R']) {
@@ -326,9 +335,19 @@
         const c = P.clutch[sd]; if (!c) continue;
         const h = P.parts['hand' + sd].b, b = c.b; h.wakeUp(); b.wakeUp();
         b.pointToWorldFrame(c.l, cp); cp.vsub(b.position, cr); b.angularVelocity.cross(cr, cv); cv.vadd(b.velocity, cv);
+        // approach from outside the body: aim at a point out along the wound's normal and close in as the hand
+        // arrives, so the arm swings round the front instead of jamming the hand into its own side
+        if (c.nl) {
+          b.quaternion.vmult(c.nl, an); const dist = Math.hypot(cp.x - h.position.x, cp.y - h.position.y, cp.z - h.position.z);
+          const off = Math.min(0.25, Math.max(0, dist - 0.1)); cp.x += an.x * off; cp.y += an.y * off; cp.z += an.z * off;
+          if (c.seg.name === 'neck' || c.seg.name === 'head') cp.y -= 0.06; // the palm sits over the wound with the fingers up toward the jaw, not over the mouth
+        }
         cf.set(900 * (cp.x - h.position.x) - 40 * (h.velocity.x - cv.x), 900 * (cp.y - h.position.y) - 40 * (h.velocity.y - cv.y), 900 * (cp.z - h.position.z) - 40 * (h.velocity.z - cv.z));
-        const m = cf.norm(); if (m > 170) cf.scale(170 / m, cf);
-        h.force.vadd(cf, h.force); cf.negate(cn); b.applyForce(cn, cr);
+        const m = cf.norm(), cap = 170 * (P.grip == null ? 1 : P.grip); if (m > cap) cf.scale(cap / Math.max(m, 1e-6), cf);
+        // the arm is anchored at the shoulder: its push-back goes into the chest, while the wounded part only feels the
+        // hand pressing on it (a small inward force), so holding a neck wound does not drag the head down
+        h.force.vadd(cf, h.force); tho.force.vsub(cf, tho.force);
+        b.quaternion.vmult(c.nl || (c.nl = new C.Vec3(0, 0, 0)), cn); if (c.nl.norm() > 0) { cn.scale(-12 * (P.grip == null ? 1 : P.grip), cn); b.applyForce(cn, cr); }
       }
     }
     // grab tool: a damped spring between a point on a segment and the cursor

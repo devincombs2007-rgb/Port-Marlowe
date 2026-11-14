@@ -171,7 +171,7 @@
   V('thorax', 'Pulmonary vessels (left hilum)', COL.vein, [[0, 1.348, 0.032], [0.05, 1.335, 0]], 0.009, 2500, { cavity: 'thorax', side: 'L' });
   for (const [S, s, N] of SIDES) {
     V('thorax', N + ' subclavian artery', COL.artery, [[0.02 * s, 1.41, 0.004], [0.085 * s, 1.447, 0.012], [0.165 * s, 1.428, 0]], 0.0045, 1200, { cavity: 'thorax', side: S, ext: 0.3 });
-    V('neck', N + ' carotid artery', COL.artery, [[0.02 * s, 1.445, 0.012], [0.03 * s, 1.56, 0.014], [0.03 * s, 1.612, 0.002]], 0.0035, 900, { ext: 0.85 });
+    V('neck', N + ' carotid artery', COL.artery, [[0.02 * s, 1.445, 0.012], [0.03 * s, 1.56, 0.014], [0.03 * s, 1.612, 0.002]], 0.0035, 1500, { ext: 0.85 }); // both cut ends bleed at arterial pressure
     V('neck', N + ' jugular vein', COL.vein, [[0.04 * s, 1.45, 0.014], [0.043 * s, 1.6, 0.008]], 0.005, 450, { ext: 0.85, venous: true });
     V('uarm' + S, N + ' brachial artery', COL.artery, [[0.172 * s, 1.41, -0.004], [0.176 * s, 1.27, 0], [0.195 * s, 1.135, 0.014]], 0.0025, 300, { ext: 0.9 });
     V('farm' + S, N + ' radial artery', COL.artery, [[0.195 * s, 1.13, 0.012], [0.2 * s, 0.88, 0.01]], 0.0015, 70, { ext: 0.9 });

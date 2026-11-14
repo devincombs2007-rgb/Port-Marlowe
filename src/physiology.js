@@ -97,6 +97,8 @@
           case 'vessel': {
             const sev = clamp((h.rpc * 0.7 - h.dmin) / (2 * prim.rad), 0.15, 1);
             const key = 'v' + name;
+            // a cut carotid also takes away much of that side's supply to the brain (the circle of Willis only partly makes up for it)
+            if (/carotid/.test(name)) S.cbf = (S.cbf || 1) * (1 - 0.3 * sev);
             const w = wound(name, prim.rate * sev, { ext: prim.ext == null ? 0.05 : prim.ext, cavity: prim.cavity, side: prim.side, venous: prim.venous, surf: pickSurf() });
             if (!inj(key, name + (sev > 0.7 ? ' transected' : ' lacerated'), prim.rate >= 400 ? 2 : 1)) w.rate *= 0.4;
             notes.push(name); break;
@@ -168,18 +170,22 @@
       S.t += dt;
       if (S.dead) { if (S.motor.mode !== 'flaccid') S.setMotor('flaccid', 1e9); S.deadT += dt; S.hr = Math.max(0, S.hr - dt * 0.6); S.map = 0; S.sys = S.dia = 0; S.rr = 0; S.spo2 = Math.max(0, S.spo2 - dt * 0.3); S.bleedRate = 0; for (const w of S.wounds) w.now = 0; return; }
       // bleeding
-      let rate = 0;
+      let rate = 0, art = 0;
       for (const w of S.wounds) {
         const pf = S.arrest ? 0.04 : w.venous ? 0.35 + (0.65 * S.map) / 93 : S.map / 93;
         const cf = w.clot ? Math.max(0.08, Math.exp(-(S.t - w.t0) / w.clot)) : 1;
         let r = w.rate * pf * cf;
         if (w.cavity === 'thorax' && w.side && S.hemo[w.side] > 2200) r *= 0.3; // contained
-        const ml = Math.min(S.bv, (r * dt) / 60);
+        // a hand pressed on the wound slows what comes out of it (not what bleeds inside)
+        const press = w.press || 0, rOut = r * w.ext * (1 - press), rIn = r * (1 - w.ext);
+        r = rOut + rIn;
+        const ml = Math.min(S.bv, (r * dt) / 60), fe = r > 0 ? rOut / r : 0;
         w.now = r; w.lost += ml; S.bv -= ml; rate += r;
-        S.lostExt += ml * w.ext; S.lostInt += ml * (1 - w.ext);
-        if (w.cavity === 'thorax') S.hemo[w.side || 'L'] += ml * (1 - w.ext); else if (w.cavity === 'abdomen') S.abdoBlood += ml * (1 - w.ext);
+        if (!w.venous && w.rate >= 400 && !S.arrest) art += w.rate * cf * (w.cavity === 'thorax' && w.side && S.hemo[w.side] > 2200 ? 0.3 : 1); // size of the opening, not current flow
+        S.lostExt += ml * fe; S.lostInt += ml * (1 - fe);
+        if (w.cavity === 'thorax') S.hemo[w.side || 'L'] += ml * (1 - fe); else if (w.cavity === 'abdomen') S.abdoBlood += ml * (1 - fe);
       }
-      S.bleedRate = rate;
+      S.bleedRate = rate; S.artLeak = art;
       const frac = (S.total - S.bv) / S.total;
       // tamponade
       if (S.periRate > 0 && !S.arrest) S.periVol += (S.periRate * dt) / 60 * (S.map / 93);
@@ -211,6 +217,9 @@
       const g = frac < 0.15 ? 1 : frac < 0.3 ? lerp(1, 0.9, (frac - 0.15) / 0.15) : frac < 0.4 ? lerp(0.9, 0.6, (frac - 0.3) / 0.1) : frac < 0.5 ? lerp(0.6, 0.3, (frac - 0.4) / 0.1) : lerp(0.3, 0.08, (frac - 0.5) / 0.1);
       const pumpEff = S.pump * tamp * tens;
       let mapT = 93 * g * Math.min(1, pumpEff * 1.25) * (S.neurogenic ? 0.68 : 1);
+      // a large open artery is a low-resistance path out of the circulation: pressure collapses at once,
+      // before much volume is lost (an open aorta drops it within seconds; a femoral artery only partly)
+      mapT *= 1 - 0.85 * Math.min(0.92, S.artLeak / 4200);
       mapT *= 1 - 0.6 * S.vagal;
       if (S.spo2 < 55) mapT *= lerp(0.2, 1, (S.spo2 - 30) / 25);
       if (S.arrest) mapT = 0;
@@ -247,7 +256,7 @@
       S.spo2 += (sT - S.spo2) * clamp(dt / (sT < S.spo2 ? 100 : 25), 0, 1);
       // brain
       // standing costs the brain ~12 mmHg of perfusion pressure: a body that faints upright can come round lying flat
-      const d = clamp((S.map - (S.upright ? 30 : 18)) / 40, 0, 1) * (S.spo2 / 97);
+      const d = clamp((S.map - (S.upright ? 30 : 18)) / 40, 0, 1) * (S.spo2 / 97) * (S.cbf || 1);
       if (d < 0.55) S.brainE = Math.max(0, S.brainE - ((0.55 - d) / 0.55 / 13) * dt); else S.brainE = Math.min(1, S.brainE + 0.04 * dt);
       if (d < 0.15) S.anoxic += dt; else S.anoxic = Math.max(0, S.anoxic - dt * 0.5);
       if (S.koUntil && S.t > S.koUntil && !S.brainInjury) { S.koUntil = 0; S.koForced = false; }

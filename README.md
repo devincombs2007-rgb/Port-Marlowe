@@ -1,4 +1,4 @@
-# Port-Marlowe — Wound Ballistics Lab (v1.2)
+# Port-Marlowe — Wound Ballistics Lab (v1.3)
 
 A browser-based 3D simulator of gunshot wounds. A test subject stands in a chamber; every
 round is traced millimetre by millimetre through skin, bone, organs and vessels, and the
@@ -68,6 +68,18 @@ body then responds in real time (bleeding, blood pressure, breathing, consciousn
   before the brainstem fails. Smaller wounds: tonic stiffening, often clonic jerking, then
   coma or continued consciousness. Also convulsive syncope, vasovagal fainting with recovery,
   and the orthostatic effect (a body that faints upright can come round lying flat).
+- **Time to incapacitation**: a large open artery drops blood pressure at once (it is a low-resistance
+  path out of the circulation), not only as volume is lost; a cut carotid also takes away part of the
+  brain's own supply. Typical untreated timings: heart destroyed, unconscious ~12 s; aorta cut ~30 s;
+  carotid cut ~2 min; femoral artery ~3 min; brachial artery ~9 min; liver or spleen ~17-18 min;
+  brain death ~5 min after the heart stops. These are model outputs, chosen to fall inside published
+  forensic ranges, not validated predictions.
+- **Wound awareness and pressure**: adrenaline masks pain, so torso, neck and head wounds are noticed
+  within about a second, limb wounds after a few seconds, and about a quarter of minor limb wounds not
+  at all; a broken bone or a wound pouring blood is noticed at once. Both hands go to one wound when it
+  is clearly the worst. A hand on a wound halves external venous/tissue bleeding (a quarter for an
+  artery; two hands more); internal bleeding is unaffected. Someone pressing on a serious wound stays
+  put rather than crawling away. As consciousness fades, the grip weakens and the hands fall away.
 - **Voluntary reactions**: a conscious subject puts a hand on the most serious wound it can
   reach (neck, chest, belly, thigh), coughs up blood after lung or airway hits, groans, and
   drags itself away from the shooter.
