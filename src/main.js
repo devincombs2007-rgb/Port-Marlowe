@@ -54,6 +54,10 @@
   function cycleTime() { state.ti = (state.ti + 1) % TIMES.length; ui.setTime(TIMES[state.ti]); }
   function reset() {
     body.clearWounds(); world.clear(); rag.stop(); rag.clear();
+    // each new subject is a different person (the first one is always the same, for a consistent start)
+    if (body.setLook) { const first = reset.n == null; reset.n = (reset.n || 0) + 1;
+      const tints = [0xffffff, 0x8a6a50, 0x5a4030, 0xd0b090, 0x404040];
+      body.setLook(first ? 0 : Math.floor(Math.random() * body.looks), first ? 0 : Math.floor(Math.random() * 3), first ? 0xffffff : tints[Math.floor(Math.random() * tints.length)]); }
     phys = G.Physiology(G.ANATOMY.bloodVolume);
     npc = G.NPC(body, phys, rag, { threat: () => state.threat || state.pos, event: npcEvent }); pending.length = 0;
     npc.update(0.001); ui.report(null); G.state = { phys, npc, body, world, state };

@@ -1,4 +1,4 @@
-# Port-Marlowe — Wound Ballistics Lab (v1.5)
+# Port-Marlowe — Wound Ballistics Lab (v1.6)
 
 A browser-based 3D simulator of gunshot wounds. A test subject stands in a chamber; every
 round is traced millimetre by millimetre through skin, bone, organs and vessels, and the
@@ -7,7 +7,8 @@ body then responds in real time (bleeding, blood pressure, breathing, consciousn
 **Run it:** serve this folder with any static server (`python3 -m http.server`) and open
 `index.html`. No build step. `node tools/build.js` bundles a single-file page into `dist/`.
 
-**v1.5** adds textured ceramic and grout, ceiling fixtures reflected in the room, and a spatial
+**v1.6** adds four different subjects (a new one each reset) and blood soaking into fabric.
+**v1.5** (contributed by Codex) adds textured ceramic and grout, ceiling fixtures reflected in the room, and a spatial
 ventilation hum. Player movement eases in and out, with footsteps spaced by distance traveled.
 Camera bob follows walking pace and respects the browser's reduced-motion setting.
 
@@ -78,6 +79,8 @@ Camera bob follows walking pace and respects the browser's reduced-motion settin
   carotid cut ~2 min; femoral artery ~3 min; brachial artery ~9 min; liver or spleen ~17-18 min;
   brain death ~5 min after the heart stops. These are model outputs, chosen to fall inside published
   forensic ranges, not validated predictions.
+- **Blood on clothing**: a wound on the shorts soaks outward through the fabric as a dark, matte
+  patch that grows with the square root of the volume, instead of a glossy trickle.
 - **Blood appears over time**: a fresh bullet hole first shows almost nothing (elastic skin closes over
   the track and small vessels spasm). Tissue wounds start to show blood after about 1.5-4.5 s and build
   over the next several seconds, veins after about 1-2 s, a cut artery at once. The skin stain grows only
@@ -124,6 +127,9 @@ Untreated outcomes only. This is an educational model, not medical guidance.
   (MakeHuman .mhclo fitting: each proxy vertex is a weighted sum of three body vertices plus a scaled
   offset) and skins them to the same skeleton. Skin, hair and eyebrow assets are MakeHuman system
   assets, released as CC0 in September 2020 (fetched from a public copy of MakeHuman's data folder).
+  It also embeds MakeHuman's young dark-skinned, young East Asian and middle-aged light-skinned male
+  skins and the short01 and short04 hairstyles (all CC0); each reset after the first picks a skin,
+  hairstyle and hair colour at random.
   Output: `src/human.js`. Run: `python3 tools/build_human.py <makehuman data> <proxy and texture dir>`.
 - **Audio**: see `assets/sounds/README.md` (Still North Media firearm library, OpenGameArt
   packs by qubodup, haeldb, badre-eddine and rubberduck, Kenney Impact Sounds).

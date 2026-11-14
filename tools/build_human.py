@@ -239,7 +239,17 @@ if src2:
     # textured render mesh (replaces the per-vertex body for drawing; NV-indexed data above stays for the hit test)
     out['render'] = {'src': b64('H', R_src), 'uv': b64('H', [int(round(min(1, max(0, c)) * 65535)) for u in R_uv for c in u]), 'idx': b64('H', [i for t in Rtri for i in t]),
                      'skin': img(src2 + '/young_lightskinned_male_diffuse.png', 1024, 'jpg')}
-    for name, key2, tex, sz in (('short02', 'hair', 'short02_diffuse.png', 512), ('eyebrow001', 'brows', 'eyebrow001.png', 256)):
+    # other people: MakeHuman's young dark-skinned and young Asian male skins, and a middle-aged light-skinned one
+    out['skins'] = [{'name': 'young light', 'tex': out['render']['skin']}]
+    for nm, f in (('young dark', 'young_darkskinned_male_diffuse.png'), ('young east asian', 'young_lightskinned_male_diffuse3.png'), ('middle-aged light', 'middleage_lightskinned_male_diffuse.png')):
+        if os.path.exists(src2 + '/' + f): out['skins'].append({'name': nm, 'tex': img(src2 + '/' + f, 1024, 'jpg')})
+    out['hairs'] = []
+    for name in ('short02', 'short04', 'short01'):
+        if not os.path.exists(src2 + '/' + name + '.mhclo'): continue
+        pp, uu, si2, sw2, tt = proxy(name)
+        out['hairs'].append({'nv': len(pp), 'pos': b64('h', [int(round(c * 10000)) for p in pp for c in p]), 'uv': b64('H', [int(round(min(1, max(0, c)) * 65535)) for u in uu for c in u]),
+                     'si': b64('B', [x for r in si2 for x in r]), 'sw': b64('B', [x for r in sw2 for x in r]), 'idx': b64('H', [i for t in tt for i in t]), 'tex': img(src2 + '/' + name + '_diffuse.png', 512, 'png')})
+    for name, key2, tex, sz in (('eyebrow001', 'brows', 'eyebrow001.png', 256),):
         pp, uu, si2, sw2, tt = proxy(name)
         out[key2] = {'nv': len(pp), 'pos': b64('h', [int(round(c * 10000)) for p in pp for c in p]), 'uv': b64('H', [int(round(min(1, max(0, c)) * 65535)) for u in uu for c in u]),
                      'si': b64('B', [x for r in si2 for x in r]), 'sw': b64('B', [x for r in sw2 for x in r]), 'idx': b64('H', [i for t in tt for i in t]), 'tex': img(src2 + '/' + tex, sz, 'png')}

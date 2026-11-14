@@ -246,8 +246,9 @@
       body.human = mesh; body.skinMeshes.push(mesh); body.skin0 = { pos: pos.slice(), col: col.slice() };
       // hair and eyebrows: fitted MakeHuman proxy meshes, skinned to the same skeleton
       const skel = mesh.skeleton;
-      for (const [key, rough] of [['hair', 0.75], ['brows', 0.9]]) {
-        const Hp = H[key]; if (!Hp) continue;
+      body.hairs = []; body.skinTex = (H.skins || []).map((k, i) => (i === 0 ? body.skinMat.map : null));
+      const parts = (H.hairs || (H.hair ? [H.hair] : [])).map((h) => ['hair', 0.75, h]).concat(H.brows ? [['brows', 0.9, H.brows]] : []);
+      for (const [key, rough, Hp] of parts) {
         const q16 = dec(Hp.pos, Int16Array), u16 = dec(Hp.uv, Uint16Array), s8 = dec(Hp.si, Uint8Array), w8 = dec(Hp.sw, Uint8Array), k = Hp.nv;
         const pp = new Float32Array(k * 3), uu = new Float32Array(k * 2), ii = new Uint16Array(k * 4), ww = new Float32Array(k * 4);
         for (let i = 0; i < k * 3; i++) pp[i] = q16[i] / 10000;
@@ -260,6 +261,7 @@
         const m2 = new THREE.MeshStandardMaterial({ map: texOf(Hp.tex, true), skinning: true, transparent: true, alphaTest: 0.35, roughness: rough, side: THREE.DoubleSide, depthWrite: true });
         const sm = new THREE.SkinnedMesh(g2, m2); sm.frustumCulled = false; sm.castShadow = key === 'hair'; sm.renderOrder = 4;
         scene.add(sm); sm.bind(skel, new THREE.Matrix4()); body.decoMeshes.push(sm);
+        if (key === 'hair') { sm.visible = body.hairs.length === 0; body.hairs.push(sm); }
       }
       // eyes
       const irisTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'); x.translate(64, 64);
@@ -309,12 +311,26 @@
       tint.setRGB(1 - 0.16 * pale - 0.2 * cy - 0.14 * d, 1 - 0.12 * pale - 0.1 * cy - 0.13 * d, 1 - 0.06 * pale + 0.04 * cy - 0.08 * d);
       body.skinMat.color.copy(tint);
     };
+    // a different person: skin texture (loaded on first use), hairstyle and hair colour
+    body.looks = H && H.skins ? H.skins.length : 1;
+    // decode every skin up front, so a new subject never appears untextured while its skin loads
+    if (H && H.skins) H.skins.forEach((k, i) => { if (!body.skinTex[i]) { const t = new THREE.TextureLoader().load(k.tex); t.encoding = THREE.sRGBEncoding; t.flipY = true; t.anisotropy = 4; body.skinTex[i] = t; } });
+    body.setLook = (skin, hair, hairTint) => {
+      if (H && H.skins && H.skins[skin]) {
+        if (!body.skinTex[skin]) { const t = new THREE.TextureLoader().load(H.skins[skin].tex); t.encoding = THREE.sRGBEncoding; t.flipY = true; t.anisotropy = 4; body.skinTex[skin] = t; }
+        body.skinMat.map = body.skinTex[skin]; body.skinMat.needsUpdate = true; body.lookName = H.skins[skin].name;
+      }
+      body.hairIdx = (body.hairs || []).length ? hair % body.hairs.length : 0;
+      (body.hairs || []).forEach((m, i) => { m.visible = i === body.hairIdx && !body.xray; if (hairTint != null) m.material.color.set(hairTint); });
+    };
     body.setXray = (on) => {
       body.xray = on;
       const m = body.skinMat;
       m.transparent = on; m.opacity = on ? 0.16 : 1; m.depthWrite = !on; m.needsUpdate = true;
       for (const i of body.inner) i.visible = on;
       for (const d of body.decoMeshes) d.visible = !on;
+      (body.hairs || []).forEach((m, i) => { m.visible = !on && i === (body.hairIdx || 0); });
+      if (body.soakMat) body.soakMat.opacity = on ? 0.3 : 1;
       for (const w of body.wounds) if (w.track) w.track.visible = on;
     };
 
@@ -423,7 +439,10 @@
       }
       stain.scale.set(0.0001, 0.0001, 1); stain.renderOrder = 4; // no blood showing yet: it wells up over the next seconds
       g.add(stain, hole); seg.g.add(g);
-      const w = { g, stain, seg, mark, n, ext: 0, base: mark.r * 1.2, track: null, run };
+      // on the shorts, blood soaks into the fabric: it wicks outward as a dark, matte, widening patch instead of running
+      const ry = g.position.y + seg.origin.y, cloth = !/^(uarm|farm|hand)/.test(seg.name) && ry > 0.745 && ry < 1.025;
+      if (cloth) stain.visible = false; // fabric soak is painted into the mesh (see paintSoak), so it follows the curved surface
+      const w = { g, stain, seg, mark, n, ext: 0, base: mark.r * 1.2, track: null, run, cloth };
       body.wounds.push(w);
       return w;
     };
@@ -448,7 +467,65 @@
       pos.needsUpdate = col.needsUpdate = true; geo.computeVertexNormals(); w.seg.dirty = true; body.dirty = true;
       w.g.position.addScaledVector(n, -depth * 0.8); w.crater = radius;
     };
+    // fabric soak: a skinned decal cut from the body mesh under the wound, so the patch wraps the curved
+    // surface and moves with the limb. Its texture is a soft, irregular wicking blot, darkest at the hole.
+    const soakTex = (() => {
+      const S = 256, cv = document.createElement('canvas'); cv.width = cv.height = S; const x = cv.getContext('2d'), im = x.createImageData(S, S);
+      const lobes = [[0.4, 0.07, 2], [2.1, 0.06, 3], [4.0, 0.045, 5], [1.3, 0.03, 7], [5.2, 0.02, 11]];
+      for (let j = 0; j < S; j++) for (let i = 0; i < S; i++) {
+        const u = (i + 0.5) / S * 2 - 1, v = (j + 0.5) / S * 2 - 1, d = Math.hypot(u, v), a = Math.atan2(v, u);
+        let e = 0.82; for (const [ph, amp, k] of lobes) e += amp * Math.sin(a * k + ph) * 0.5;
+        e += 0.008 * Math.sin(a * 19 + 1.3) + 0.004 * Math.sin(a * 37 + d * 9);
+        const t = Math.max(0, Math.min(1, (e - d) / 0.035)), core = Math.max(0, 1 - d / e), o = (j * S + i) * 4;
+        // the wet front is a touch darker where blood pools against the dry fibres (tide line)
+        const tide = Math.exp(-Math.pow((e - d - 0.03) / 0.03, 2)) * 0.35;
+        im.data[o] = 60 - 30 * core - 25 * tide; im.data[o + 1] = 6; im.data[o + 2] = 8; im.data[o + 3] = 255 * t * Math.min(1, 0.72 + 0.3 * core + tide);
+      }
+      x.putImageData(im, 0, 0); const t = new THREE.CanvasTexture(cv); t.encoding = THREE.sRGBEncoding; return t;
+    })();
+    const soakMat = body.soakMat = new THREE.MeshStandardMaterial({ map: soakTex, skinning: true, transparent: true, depthWrite: false, roughness: 0.97, metalness: 0, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 });
+    const tA = new THREE.Vector3(), tB = new THREE.Vector3(), dV = new THREE.Vector3();
+    function paintSoak(w, r) {
+      const hm = body.human; if (!hm) return;
+      const geo = hm.geometry, pos = geo.attributes.position, nor = geo.attributes.normal, si = geo.attributes.skinIndex, sw = geo.attributes.skinWeight, idx = geo.index.array;
+      const n = w.n, c = w.g.position.clone().add(w.seg.origin);
+      c.y -= r * 0.22; // gravity drags the wet front downward
+      tA.set(0, 1, 0).cross(n); if (tA.lengthSq() < 1e-6) tA.set(1, 0, 0); tA.normalize(); tB.copy(n).cross(tA).normalize(); // tA horizontal, tB up
+      const R = r * 1.05, R2 = (R + 0.02) * (R + 0.02), P = [], N = [], I = [], W = [], U = [], ix = [], remap = new Map();
+      const fab = (k) => { const y = pos.getY(k); return y > 0.742 && y < 1.028; }; // the shorts end at the waistband and hems
+      const near = (k) => { dV.set(pos.getX(k) - c.x, pos.getY(k) - c.y, pos.getZ(k) - c.z); return dV.lengthSq() < R2 && nor.getX(k) * n.x + nor.getY(k) * n.y + nor.getZ(k) * n.z > 0.15; };
+      for (let f = 0; f < idx.length; f += 3) {
+        const a = idx[f], b = idx[f + 1], d = idx[f + 2];
+        if (!(near(a) || near(b) || near(d)) || !(fab(a) || fab(b) || fab(d))) continue;
+        for (const k of [a, b, d]) {
+          if (!remap.has(k)) {
+            remap.set(k, P.length / 3);
+            const x = pos.getX(k), y = pos.getY(k), z = pos.getZ(k), nx = nor.getX(k), ny = nor.getY(k), nz = nor.getZ(k);
+            const yc = Math.min(1.028, Math.max(0.742, y)); // pull overhanging vertices onto the hem so the edge runs straight
+            P.push(x + nx * 0.0012, yc + ny * 0.0012, z + nz * 0.0012); N.push(nx, ny, nz);
+            dV.set(x - c.x, y - c.y, z - c.z);
+            U.push(0.5 + dV.dot(tA) / (2 * R), 0.5 + dV.dot(tB) / (2 * R));
+            for (let q = 0; q < 4; q++) { I.push(si.getComponent ? si.getComponent(k, q) : si.array[k * 4 + q]); W.push(sw.array[k * 4 + q]); }
+          }
+          ix.push(remap.get(k));
+        }
+      }
+      if (!ix.length) return;
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(N, 3));
+      g.setAttribute('uv', new THREE.Float32BufferAttribute(U, 2));
+      g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(I, 4)); g.setAttribute('skinWeight', new THREE.Float32BufferAttribute(W, 4));
+      g.setIndex(ix);
+      if (w.soak) { w.soak.geometry.dispose(); w.soak.geometry = g; }
+      else { w.soak = new THREE.SkinnedMesh(g, soakMat); w.soak.frustumCulled = false; w.soak.renderOrder = 4; w.soak.bind(hm.skeleton, hm.bindMatrix); hm.parent.add(w.soak); }
+    }
     body.growStain = (w, ml) => {
+      if (w.cloth) {
+        // cotton holds roughly 1 mL per 4-5 cm^2 before it drips: the patch spreads with the square root of the volume
+        const r = Math.min(0.11, w.base * Math.min(1, ml / 0.3) + Math.sqrt(ml) * 0.0075);
+        if (r - (w.soakR || 0) > 0.004) { w.soakR = r; paintSoak(w, r); }
+        return;
+      }
       // the stain grows with the blood that has actually come out: a rim first, then a trickle that runs downhill
       const r = Math.min(0.045, w.base * Math.min(1, ml / 0.4) + Math.sqrt(ml) * 0.0022), L = w.run && ml > 0.6 ? Math.min(0.13, Math.sqrt(ml - 0.6) * 0.012) : 0;
       w.stain.scale.set(r * (L ? 0.8 : 1), r + L / 2, 1); w.stain.position.y = -L / 2;
@@ -465,7 +542,7 @@
     body.woundNormal = (w, out) => out.copy(w.n).transformDirection(w.seg.g.matrixWorld);
     body.clearWounds = () => {
       if (body.human && body.dirty) { const g = body.human.geometry; g.attributes.position.array.set(body.skin0.pos); g.attributes.color.array.set(body.skin0.col); g.attributes.position.needsUpdate = g.attributes.color.needsUpdate = true; g.computeVertexNormals(); body.dirty = false; }
-      for (const sg of body.list) if (sg.dirty && sg.skin) { const g = sg.skin.geometry; g.attributes.position.array.set(sg.skin0.pos); g.attributes.color.array.set(sg.skin0.col); g.attributes.position.needsUpdate = g.attributes.color.needsUpdate = true; g.computeVertexNormals(); sg.dirty = false; } for (const w of body.wounds) { w.seg.g.remove(w.g); if (w.track) w.seg.g.remove(w.track); } body.wounds.length = 0; };
+      for (const sg of body.list) if (sg.dirty && sg.skin) { const g = sg.skin.geometry; g.attributes.position.array.set(sg.skin0.pos); g.attributes.color.array.set(sg.skin0.col); g.attributes.position.needsUpdate = g.attributes.color.needsUpdate = true; g.computeVertexNormals(); sg.dirty = false; } for (const w of body.wounds) { w.seg.g.remove(w.g); if (w.track) w.seg.g.remove(w.track); if (w.soak) { w.soak.parent.remove(w.soak); w.soak.geometry.dispose(); } } body.wounds.length = 0; };
     body.updateMatrices();
     return body;
   };
