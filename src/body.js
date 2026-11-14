@@ -393,6 +393,7 @@
       m.transparent = on; m.opacity = on ? 0.16 : 1; m.depthWrite = !on; m.needsUpdate = true;
       for (const i of body.inner) i.visible = on;
       for (const d of body.decoMeshes) d.visible = !on;
+      for (const k in body.garments || {}) { const gm = body.garments[k]; gm.mesh.visible = !on && gm.on; }
       (body.hairs || []).forEach((m, i) => { m.visible = !on && i === (body.hairIdx || 0); });
       if (body.soakMat) body.soakMat.opacity = on ? 0.3 : 1;
       for (const r of body.rivers || []) r.mesh.visible = !on;
@@ -502,6 +503,29 @@
       for (let i = 0; i < 9; i++) { const a = Math.random() * 6.283, r = 6 + Math.random() * 14; x.fillStyle = 'rgba(' + (150 + Math.random() * 60) + ',' + (40 + Math.random() * 50) + ',40,0.85)'; x.beginPath(); x.arc(Math.cos(a) * r, Math.sin(a) * r, 2 + Math.random() * 3, 0, 7); x.fill(); } // fat and muscle pushed out
       x.fillStyle = '#070101'; x.beginPath(); x.arc(0, 0, 11, 0, 7); x.fill();
     }), -5, 0.3, exitN, 1.3));
+    // graze (gutter wound): a bullet skimming the surface tears an open furrow along its path instead of a hole. Drawn
+    // along +x (the direction of travel) to fill the decal, which is stretched to the furrow's length and width: a raw,
+    // glistening red gutter, ragged edges with little skin tags torn toward the far end, a scraped (abraded) margin
+    // widest where the bullet came in, and fine scratch lines along the track.
+    const furrowTex = (seed) => tex((x) => {
+      let r = seed * 9.73; const rnd = () => ((r = (r * 9301 + 49297) % 233280) / 233280);
+      const edge = (k, sgn) => { for (let i = 0; i <= 40; i++) { const u = -60 + i * 3, t = u / 60, w = (1 - t * t) * (30 + 6 * Math.sin(i * 1.7 + seed)) * (1 + 0.2 * (rnd() - 0.5)) * k; const y = sgn * w; if (sgn > 0 && i === 0) x.moveTo(u, y); else x.lineTo(u, y); } };
+      // abraded margin (scraped epidermis): brownish-red, broadest at the near (entry) end
+      x.save(); x.scale(1, 1.25); x.beginPath(); edge(1.25, 1); for (let i = 40; i >= 0; i--) { const u = -60 + i * 3, t = u / 60; x.lineTo(u, -(1 - t * t) * 36 * (1.1 - 0.3 * (u + 60) / 120)); } x.closePath();
+      const ag = x.createLinearGradient(-60, 0, 60, 0); ag.addColorStop(0, 'rgba(150,70,55,0.75)'); ag.addColorStop(1, 'rgba(150,70,55,0.35)'); x.fillStyle = ag; x.fill(); x.restore();
+      // the open furrow
+      x.beginPath(); edge(1, 1); for (let i = 40; i >= 0; i--) { const u = -60 + i * 3, t = u / 60, w = (1 - t * t) * (30 + 6 * Math.sin(i * 1.3 + seed * 2)) * (1 + 0.25 * (rnd() - 0.5)); x.lineTo(u, -w); } x.closePath();
+      const fg = x.createRadialGradient(0, 0, 4, 0, 0, 62); fg.addColorStop(0, '#3a0406'); fg.addColorStop(0.45, '#6e0c10'); fg.addColorStop(0.85, '#8e2a26'); fg.addColorStop(1, '#a04a40'); x.fillStyle = fg; x.fill();
+      // yellow subcutaneous fat showing in the walls here and there
+      for (let i = 0; i < 6; i++) { const u = -40 + rnd() * 80, sg = rnd() < 0.5 ? 1 : -1, w = (1 - (u / 60) ** 2) * 22; x.fillStyle = 'rgba(214,180,110,0.45)'; x.beginPath(); x.ellipse(u, sg * w, 4 + rnd() * 5, 2 + rnd() * 2, 0, 0, 6.283); x.fill(); }
+      // skin tags along the edges toward the far end, pointing the way the bullet went
+      x.fillStyle = 'rgba(176,112,92,0.9)';
+      for (let i = 0; i < 7; i++) { const u = -10 + rnd() * 62, sg = rnd() < 0.5 ? 1 : -1, w = (1 - (u / 60) ** 2) * 32; x.beginPath(); x.moveTo(u - 5, sg * w); x.lineTo(u + 6 + rnd() * 5, sg * (w - 6 - rnd() * 5)); x.lineTo(u + 1, sg * (w + 1)); x.fill(); }
+      // scratch lines along the track
+      x.strokeStyle = 'rgba(40,2,4,0.55)'; x.lineWidth = 1.2; for (let i = 0; i < 9; i++) { const y = (rnd() - 0.5) * 34, u0 = -55 + rnd() * 30; x.beginPath(); x.moveTo(u0, y); x.lineTo(u0 + 40 + rnd() * 40, y + (rnd() - 0.5) * 4); x.stroke(); }
+    });
+    const furrowN = nmapOf((u, v) => -Math.max(0, 1 - u * u) * Math.exp(-((v / 0.42) ** 2)) * 1.1 + 0.15 * Math.exp(-(((Math.abs(v) - 0.55) / 0.12) ** 2)) * Math.max(0, 1 - u * u)); // a groove with slightly raised, everted lips
+    const furrowMats = [1, 2].map((k) => dmat(furrowTex(k), -5, 0.3, furrowN, 0.9));
     const slitMats = [0, 1].map((k) => dmat(tex((x) => {
       const L = 46, W = 9 + k * 5, pts = [];
       for (let i = 0; i <= 24; i++) { const u = i / 24, xx = -L + 2 * L * u, half = W * Math.pow(Math.sin(u * Math.PI), 0.7) * (0.75 + Math.random() * 0.5); pts.push([xx + (k ? 10 * Math.sin(u * Math.PI) ** 2 : 0), half]); }
@@ -532,13 +556,15 @@
       // the track's direction along the skin, in decal coordinates
       tv2.copy(dir).addScaledVector(n, -dir.dot(n)); const ang = tv2.lengthSq() > 1e-6 ? Math.atan2(tv2.dot(by), tv2.dot(bx)) : Math.random() * 6.3;
       const slit = exit && (mark.v || 0) < 260, oblique = !exit && cos < 0.88;
-      const hole = new THREE.Mesh(woundGeo, exit ? (slit ? slitMats[Math.random() < 0.6 ? 0 : 1] : exitMats[Math.floor(Math.random() * 3)]) : oblique ? entryObMat : entryMat), stain = new THREE.Mesh(woundGeo, stainMat.clone());
+      const furrow = mark.type === 'furrow' || mark.type === 'graze';
+      const hole = new THREE.Mesh(woundGeo, furrow ? furrowMats[Math.random() < 0.5 ? 0 : 1] : exit ? (slit ? slitMats[Math.random() < 0.6 ? 0 : 1] : exitMats[Math.floor(Math.random() * 3)]) : oblique ? entryObMat : entryMat), stain = new THREE.Mesh(woundGeo, stainMat.clone());
       // entry holes are about bullet diameter (the texture's hole is ~0.3 of its radius); stretched by 1/cos at an angle
       if (exit) { hole.scale.setScalar(slit ? mark.r * 1.7 : mark.r * 2.0); hole.rotation.z = slit ? ang + (Math.random() - 0.5) * 1.2 : Math.random() * 6.3; }
+      else if (furrow) { const L = mark.type === 'graze' ? mark.r * 5 : Math.max(mark.r * 4, (mark.len || 0.03) / 2 + mark.r * 1.2), W = mark.r * (mark.type === 'graze' ? 1.6 : 2.2); hole.scale.set(L, W, 1); hole.rotation.z = mark.ang != null ? mark.ang : ang + Math.PI; /* +x along the direction of travel (normal is reversed, as for an entry) */ if (mark.type === 'graze') hole.material = hole.material.clone(), hole.material.opacity = 0.75; }
       else { const e = Math.min(2.3, 1 / Math.max(0.43, cos)); hole.scale.set(mark.r * 1.9 * e, mark.r * 1.9, 1); hole.rotation.z = ang; }
       hole.position.z = 0.0008; hole.renderOrder = 6; if (mark.type === 'ooze') hole.visible = false;
       let bruise = null;
-      if (!exit && mark.type !== 'ooze') { bruise = new THREE.Mesh(woundGeo, dmat(bruiseTex, -2, 0.6)); bruise.scale.setScalar(mark.r * 4.2 + 0.006); bruise.material.opacity = 0.0; bruise.position.z = 0.0004; bruise.renderOrder = 4; g.add(bruise); }
+      if (!exit && mark.type !== 'ooze') { bruise = new THREE.Mesh(woundGeo, dmat(bruiseTex, -2, 0.6)); bruise.scale.setScalar(mark.r * 4.2 + 0.006); if (furrow) { bruise.scale.set(hole.scale.x * 1.3, hole.scale.y * 2.2, 1); bruise.rotation.z = hole.rotation.z; } bruise.material.opacity = 0.0; bruise.position.z = 0.0004; bruise.renderOrder = 4; g.add(bruise); }
       if (!exit && mark.type !== 'ooze' && range != null && range < 0.75) {
         // unburnt powder tattoos the skin out to roughly 60-75 cm (an oval pattern when the muzzle is at an angle); soot only within a hand's width
         const st = new THREE.Mesh(woundGeo, stippleMat); st.scale.set((0.022 + range * 0.075) / Math.max(0.5, cos), 0.022 + range * 0.075, 1); st.rotation.z = ang; st.position.z = 0.0022; st.renderOrder = 5; g.add(st);
@@ -547,9 +573,17 @@
       stain.scale.set(0.0001, 0.0001, 1); stain.renderOrder = 5; stain.position.z = 0.0012; // no blood showing yet: it wells up over the next seconds
       g.add(stain, hole); seg.g.add(g);
       // on the shorts, blood soaks into the fabric: it wicks outward as a dark, matte, widening patch instead of running
-      const ry = g.position.y + seg.origin.y, cloth = !/^(uarm|farm|hand)/.test(seg.name) && ry > 0.745 && ry < 1.025;
+      const ry = g.position.y + seg.origin.y, rp = g.position.clone().add(seg.origin), garment = body.garmentAt ? body.garmentAt(rp, seg.name) : null;
+      const cloth = !!garment || (!/^(uarm|farm|hand)/.test(seg.name) && ry > 0.745 && ry < 1.025);
       if (cloth) stain.visible = false; // fabric soak is a decal cut from the mesh (see paintSoak), so it follows the curved surface
-      const w = { g, stain, seg, mark, n, ext: 0, base: mark.r * 1.2, track: null, run, cloth, bruise, t0: body.bt, pool: 0, seen: 0, feed: 0, rivers: [] };
+      let fab = null;
+      if (garment) {
+        // under clothes the skin wound is hidden; the cloth shows a frayed hole over it
+        for (const c of g.children) c.visible = false;
+        fab = new THREE.Mesh(woundGeo, fabHoleMats[exit ? 1 : 0]); fab.scale.setScalar(mark.r * (exit ? 1.6 : 1.25) * (furrow ? 2 : 1)); fab.rotation.z = Math.random() * 6.3; fab.renderOrder = 7;
+        fab.position.z = garment.lift(ry, seg.name, rp.z) - 0.0027 + 0.0009; g.add(fab); // the wound group already sits ~3 mm off the skin
+      }
+      const w = { g, stain, seg, mark, n, ext: 0, base: mark.r * 1.2, track: null, run, cloth, bruise, t0: body.bt, pool: 0, seen: 0, feed: 0, rivers: [], garment, fab };
       body.wounds.push(w);
       return w;
     };
@@ -557,6 +591,7 @@
     // exposed tissue. Used for exit wounds and for any wound where the temporary cavity bursts the surface.
     const cA = new THREE.Color(0x3a0507), cRim = new THREE.Color(0x8a1a1c);
     body.crater = (w, radius, depth) => {
+      if (w.garment) { const p0 = w.g.position.clone().add(w.seg.origin); if (radius > 0.03 && body.tearGarment(w.garment, p0, radius * 1.25)) { for (const c of w.g.children) c.visible = c !== w.stain && c !== w.fab; if (w.fab) w.fab.visible = false; } else if (w.fab) w.fab.scale.setScalar(Math.max(w.fab.scale.x, radius * 1.15)); } // a big crater tears the cloth open; a smaller one leaves a bigger ragged hole
       const hm = body.human, geo = (hm || w.seg.skin).geometry, pos = geo.attributes.position, nor = geo.attributes.normal, col = geo.attributes.color, n = w.n;
       const p = hm ? w.g.position.clone().add(w.seg.origin) : w.g.position; // the skinned mesh lives in rest-pose coordinates
       let hit = 0;
@@ -594,12 +629,13 @@
     const tA = new THREE.Vector3(), tB = new THREE.Vector3(), dV = new THREE.Vector3();
     function paintSoak(w, r) {
       const hm = body.human; if (!hm) return;
-      const geo = hm.geometry, pos = geo.attributes.position, nor = geo.attributes.normal, si = geo.attributes.skinIndex, sw = geo.attributes.skinWeight, idx = geo.index.array;
+      const gm = w.garment, geo = (gm ? gm.mesh : hm).geometry, pos = geo.attributes.position, nor = geo.attributes.normal, si = geo.attributes.skinIndex, sw = geo.attributes.skinWeight, idx = geo.index.array;
       const n = w.n, c = w.c ? w.c.clone() : w.g.position.clone().add(w.seg.origin);
       c.y -= r * 0.22; // gravity drags the wet front downward
+      if (gm) c.addScaledVector(n, 0.004);
       tA.set(0, 1, 0).cross(n); if (tA.lengthSq() < 1e-6) tA.set(1, 0, 0); tA.normalize(); tB.copy(n).cross(tA).normalize(); // tA horizontal, tB up
       const R = r * 1.05, R2 = (R + 0.02) * (R + 0.02), P = [], N = [], I = [], W = [], U = [], ix = [], remap = new Map();
-      const fab = (k) => { const y = pos.getY(k); return y > 0.742 && y < 1.028; }; // the shorts end at the waistband and hems
+      const fab = gm ? () => true : (k) => { const y = pos.getY(k); return y > 0.742 && y < 1.028; }; // the shorts end at the waistband and hems
       const near = (k) => { dV.set(pos.getX(k) - c.x, pos.getY(k) - c.y, pos.getZ(k) - c.z); return dV.lengthSq() < R2 && nor.getX(k) * n.x + nor.getY(k) * n.y + nor.getZ(k) * n.z > 0.15; };
       for (let f = 0; f < idx.length; f += 3) {
         const a = idx[f], b = idx[f + 1], d = idx[f + 2];
@@ -608,7 +644,7 @@
           if (!remap.has(k)) {
             remap.set(k, P.length / 3);
             const x = pos.getX(k), y = pos.getY(k), z = pos.getZ(k), nx = nor.getX(k), ny = nor.getY(k), nz = nor.getZ(k);
-            const yc = Math.min(1.028, Math.max(0.742, y)); // pull overhanging vertices onto the hem so the edge runs straight
+            const yc = gm ? y : Math.min(1.028, Math.max(0.742, y)); // pull overhanging vertices onto the hem so the edge runs straight
             P.push(x + nx * 0.0012, yc + ny * 0.0012, z + nz * 0.0012); N.push(nx, ny, nz);
             dV.set(x - c.x, y - c.y, z - c.z);
             U.push(0.5 + dV.dot(tA) / (2 * R), 0.5 + dV.dot(tB) / (2 * R));
@@ -636,6 +672,116 @@
       col.needsUpdate = true;
     };
     body.paintSoak = paintSoak;
+
+    // ---- clothes: a T-shirt and trousers, each its own skinned shell copied from the skin under it and lifted off it
+    // (a few mm, looser over the belly and round the shins), bound to the same skeleton so it moves, bends and falls
+    // with the body. A bullet leaves a frayed hole in the cloth over the wound; blood wicks into the fabric round it; a
+    // big exit tears the cloth open; a limb torn off takes its sleeve or trouser leg with it.
+    const tileTex = (draw, hfn) => {
+      const S = 128, c = document.createElement('canvas'); c.width = c.height = S; const x = c.getContext('2d'); draw(x, S);
+      const map = new THREE.CanvasTexture(c); map.encoding = THREE.sRGBEncoding; map.wrapS = map.wrapT = THREE.RepeatWrapping; map.anisotropy = 4;
+      const c2 = document.createElement('canvas'); c2.width = c2.height = S; const x2 = c2.getContext('2d'), im = x2.createImageData(S, S), e = 1 / S;
+      for (let j = 0; j < S; j++) for (let i = 0; i < S; i++) { const u = i / S, v = j / S, dx = (hfn(u + e, v) - hfn(u - e, v)) / (2 * e) / S, dy = (hfn(u, v + e) - hfn(u, v - e)) / (2 * e) / S, m = Math.hypot(dx, dy, 1), o = (j * S + i) * 4; im.data[o] = 128 - dx / m * 127; im.data[o + 1] = 128 + dy / m * 127; im.data[o + 2] = 128 + 127 / m; im.data[o + 3] = 255; }
+      x2.putImageData(im, 0, 0); const nrm = new THREE.CanvasTexture(c2); nrm.wrapS = nrm.wrapT = THREE.RepeatWrapping; return { map, nrm };
+    };
+    const TAU = Math.PI * 2;
+    // cotton jersey: columns of little knitted Vs
+    const jersey = tileTex((x, S) => { x.fillStyle = '#dcdcdc'; x.fillRect(0, 0, S, S); for (let i = 0; i < 1400; i++) { const g = 200 + Math.random() * 40 | 0; x.fillStyle = 'rgba(' + g + ',' + g + ',' + g + ',0.5)'; x.fillRect(Math.random() * S, Math.random() * S, 1, 2); } },
+      (u, v) => 1.6 * Math.abs(Math.sin(u * TAU * 16)) * (0.6 + 0.4 * Math.sin(v * TAU * 22 + Math.sign(Math.sin(u * TAU * 16)) * 1.2)));
+    // denim: a diagonal twill of indigo warp over white weft
+    const denim = tileTex((x, S) => { x.fillStyle = '#c9cfd8'; x.fillRect(0, 0, S, S); for (let k = -S; k < S * 2; k += 4) { x.strokeStyle = 'rgba(70,80,105,0.55)'; x.lineWidth = 2.2; x.beginPath(); x.moveTo(k, 0); x.lineTo(k + S, S); x.stroke(); } for (let i = 0; i < 900; i++) { x.fillStyle = 'rgba(255,255,255,0.18)'; x.fillRect(Math.random() * S, Math.random() * S, 2, 1); } },
+      (u, v) => 1.2 * Math.abs(Math.sin((u + v) * TAU * 32)));
+    const SEGN = (i) => { const hm = body.human, SI = hm.geometry.attributes.skinIndex.array, SW = hm.geometry.attributes.skinWeight.array; let m = -1, b = 0; for (let q = 0; q < 4; q++) if (SW[i * 4 + q] > m) { m = SW[i * 4 + q]; b = SI[i * 4 + q]; } return body.list[b].name; };
+    // the crew neckline: lowest at the front, higher at the back, curving up toward the shoulders
+    const NECK = (x, z) => 1.418 + 0.035 * Math.max(0, Math.min(1, (0.03 - z) / 0.09)) + 0.055 * Math.min(1.6, (x / 0.085) ** 2);
+    const REGION = {
+      // crew-necked T-shirt with short sleeves to mid upper arm, hem a little over the waistband
+      shirt: (x, y, z, sn) => {
+        if (y < 0.975 || /^(neck|head|farm|hand|thigh|shin|foot)/.test(sn)) return false;
+        if (/^uarm/.test(sn)) return y > 1.235;
+        return y < Math.min(1.5, NECK(x, z));
+      },
+      // long trousers from the waist to the ankle
+      pants: (x, y, z, sn) => y > 0.085 && y < 1.036 && /^(pelvis|abdomen|thigh|shin)/.test(sn),
+    };
+    // where a vertex just outside a garment goes so the hem runs straight: onto the neckline, the sleeve end, the
+    // shirt's hem, the trouser cuffs and waistband
+    const HEM = {
+      shirt: (x, y, z, sn) => { if (/^uarm/.test(sn) || /^(farm|hand)/.test(sn)) return Math.max(y, 1.235); return Math.max(0.975, Math.min(1.5, NECK(x, z), y)); },
+      pants: (x, y) => Math.max(0.085, Math.min(1.036, y)),
+    };
+    const LIFT = { shirt: (y, sn, z) => (/^uarm/.test(sn) ? 0.0068 : 0.0055 + (y < 1.12 && z > 0 ? 0.004 * (1.12 - y) / 0.15 : 0) + (y < 1.07 ? 0.0055 * Math.min(1, (1.07 - y) / 0.03) : 0)) /* the untucked hem hangs over the waistband */, pants: (y, sn) => (/^shin/.test(sn) ? 0.0055 + 0.006 * Math.max(0, (0.5 - y) / 0.4) : /^thigh/.test(sn) ? 0.006 : 0.0058) };
+    body.garments = {};
+    function buildGarment(kind) {
+      const hm = body.human; if (!hm) return null;
+      const geo = hm.geometry, R0 = body.skin0.pos, nor = geo.attributes.normal.array, SI = geo.attributes.skinIndex.array, SW = geo.attributes.skinWeight.array, ix = geo.index.array, n = R0.length / 3;
+      const inR = new Uint8Array(n), sn = []; for (let i = 0; i < n; i++) { sn[i] = SEGN(i); inR[i] = REGION[kind](R0[i * 3], R0[i * 3 + 1], R0[i * 3 + 2], sn[i]) ? 1 : 0; }
+      // lift along one normal per position (seam duplicates must move together or the cloth cracks open along them)
+      const nAvg = new Map(), pk = (i) => R0[i * 3].toFixed(4) + ',' + R0[i * 3 + 1].toFixed(4) + ',' + R0[i * 3 + 2].toFixed(4);
+      for (let i = 0; i < n; i++) { if (!inR[i]) continue; const k = pk(i), a = nAvg.get(k) || [0, 0, 0]; a[0] += nor[i * 3]; a[1] += nor[i * 3 + 1]; a[2] += nor[i * 3 + 2]; nAvg.set(k, a); }
+      const nrmOf = (i) => { const a = nAvg.get(pk(i)); if (!a) return [nor[i * 3], nor[i * 3 + 1], nor[i * 3 + 2]]; const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; };
+      const remap = new Map(), P = [], N = [], U = [], I = [], W = [], src = [], tri = [];
+      for (let t = 0; t < ix.length; t += 3) {
+        const nin = inR[ix[t]] + inR[ix[t + 1]] + inR[ix[t + 2]]; if (!nin) continue;
+        if (nin < 3 && /^(head|foot|hand)/.test(sn[ix[t]] + '') && !inR[ix[t]]) continue; // never drag the head, a foot or a hand into the cloth
+        for (let k = 0; k < 3; k++) {
+          const i = ix[t + k];
+          if (!remap.has(i)) {
+            remap.set(i, src.length); src.push(i);
+            const x = R0[i * 3], y0 = R0[i * 3 + 1], z = R0[i * 3 + 2], y = inR[i] ? y0 : HEM[kind](x, y0, z, sn[i]), [nx, ny, nz] = nrmOf(i), off = LIFT[kind](y, sn[i], z);
+            P.push(x + nx * off, y + ny * off, z + nz * off); N.push(nx, ny, nz);
+            U.push((Math.abs(nx) > Math.abs(nz) ? z : x) * 22, y * 22);
+            for (let q = 0; q < 4; q++) { I.push(SI[i * 4 + q]); W.push(SW[i * 4 + q]); }
+          }
+          tri.push(remap.get(i));
+        }
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(N, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(U, 2));
+      g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(I, 4)); g.setAttribute('skinWeight', new THREE.Float32BufferAttribute(W, 4)); g.setIndex(tri); g.computeVertexNormals();
+      { // the skin's UV seams split vertices; smooth across them so the cloth shows no seam lines
+        const na = g.attributes.normal.array, groups = new Map(); for (let v = 0; v < P.length / 3; v++) { const k = P[v * 3].toFixed(4) + ',' + P[v * 3 + 1].toFixed(4) + ',' + P[v * 3 + 2].toFixed(4); (groups.get(k) || groups.set(k, []).get(k)).push(v); }
+        for (const vs of groups.values()) if (vs.length > 1) { let x = 0, y = 0, z = 0; for (const v of vs) { x += na[v * 3]; y += na[v * 3 + 1]; z += na[v * 3 + 2]; } const l = Math.hypot(x, y, z) || 1; for (const v of vs) { na[v * 3] = x / l; na[v * 3 + 1] = y / l; na[v * 3 + 2] = z / l; } }
+      }
+      const tex = kind === 'pants' ? denim : jersey;
+      const mat = new THREE.MeshStandardMaterial({ map: tex.map, normalMap: tex.nrm, normalScale: new THREE.Vector2(0.55, 0.55), roughness: 0.93, metalness: 0, skinning: true, side: THREE.DoubleSide });
+      const mesh = new THREE.SkinnedMesh(g, mat); mesh.frustumCulled = false; mesh.castShadow = mesh.receiveShadow = true; mesh.bind(hm.skeleton, hm.bindMatrix); hm.parent.add(mesh); mesh.visible = false;
+      const gm = { kind, mesh, src, idx0: tri.slice(), si0: Float32Array.from(I), sw0: Float32Array.from(W), region: REGION[kind], lift: LIFT[kind] };
+      body.garments[kind] = gm; return gm;
+    }
+    // dress the body: { shirt: colour or null, pants: colour or null }
+    body.dress = (o) => {
+      for (const kind of ['shirt', 'pants']) {
+        const want = o && o[kind] != null; let gm = body.garments[kind];
+        if (want && !gm) gm = buildGarment(kind); if (!gm) continue;
+        gm.mesh.visible = want && !body.xray; gm.on = want; if (want) gm.mesh.material.color.set(o[kind]);
+      }
+    };
+    // the garment over a point on the body (rest-pose coordinates), if any
+    body.garmentAt = (p, segName) => { for (const k of ['shirt', 'pants']) { const gm = body.garments[k]; if (gm && gm.on && gm.region(p.x, p.y, p.z, segName)) return gm; } return null; };
+    // a big exit wound tears the cloth open over it
+    body.tearGarment = (gm, p, r) => {
+      const ix = gm.mesh.geometry.index.array, pa = gm.mesh.geometry.attributes.position.array; let n = 0;
+      for (let t = 0; t < ix.length; t += 3) { const a = ix[t] * 3; const d = Math.hypot(pa[a] - p.x, pa[a + 1] - p.y, pa[a + 2] - p.z); if (d < r * (0.85 + 0.5 * Math.abs(Math.sin(t * 0.37)))) { ix[t + 1] = ix[t + 2] = ix[t]; n++; } }
+      if (n) gm.mesh.geometry.index.needsUpdate = true; return n;
+    };
+    // a torn-off limb takes its part of the garment: the same split as the skin (side per source vertex)
+    body.cutGarments = (side) => {
+      const hm = body.human, SI = hm.geometry.attributes.skinIndex.array, SW = hm.geometry.attributes.skinWeight.array;
+      for (const k in body.garments) { const gm = body.garments[k], g = gm.mesh.geometry, ix = g.index.array, keep = [], si = g.attributes.skinIndex, sw = g.attributes.skinWeight;
+        for (let t = 0; t < ix.length; t += 3) { const a = side[gm.src[ix[t]]], b = side[gm.src[ix[t + 1]]], c = side[gm.src[ix[t + 2]]]; if (a === b && b === c) keep.push(ix[t], ix[t + 1], ix[t + 2]); }
+        g.setIndex(keep); gm.src.forEach((i, v) => { for (let q = 0; q < 4; q++) { si.array[v * 4 + q] = SI[i * 4 + q]; sw.array[v * 4 + q] = SW[i * 4 + q]; } }); si.needsUpdate = sw.needsUpdate = true; }
+    };
+    body.restoreGarments = () => { for (const k in body.garments) { const gm = body.garments[k], g = gm.mesh.geometry; g.setIndex(gm.idx0.slice()); g.attributes.skinIndex.array.set(gm.si0); g.attributes.skinWeight.array.set(gm.sw0); g.attributes.skinIndex.needsUpdate = g.attributes.skinWeight.needsUpdate = true; } };
+    // the hole in the cloth: a frayed, dark-centred hole a little smaller than the bullet for an entry (fibres pushed
+    // in), a ragged split with threads pulled outward for an exit
+    const fabHoleTex = (exit) => tex((x) => {
+      const n = exit ? 9 : 14; x.fillStyle = 'rgba(30,4,5,0.95)'; x.beginPath();
+      for (let i = 0; i <= n * 3; i++) { const a = i / (n * 3) * 6.283, r = (exit ? 26 : 15) * (1 + (exit ? 0.55 : 0.18) * Math.sin(a * n + 1.7) * Math.sin(a * 3.1)); i ? x.lineTo(Math.cos(a) * r, Math.sin(a) * r) : x.moveTo(Math.cos(a) * r, Math.sin(a) * r); } x.fill();
+      x.strokeStyle = 'rgba(235,228,215,0.6)'; x.lineWidth = 1; for (let i = 0; i < 40; i++) { const a = Math.random() * 6.283, r0 = (exit ? 20 : 13) + Math.random() * 6, L = 4 + Math.random() * (exit ? 16 : 7); x.beginPath(); x.moveTo(Math.cos(a) * r0, Math.sin(a) * r0); x.lineTo(Math.cos(a + (Math.random() - 0.5) * 0.4) * (r0 + L), Math.sin(a + (Math.random() - 0.5) * 0.4) * (r0 + L)); x.stroke(); }
+      const g = x.createRadialGradient(0, 0, exit ? 24 : 14, 0, 0, exit ? 44 : 30); g.addColorStop(0, 'rgba(60,6,8,0.55)'); g.addColorStop(1, 'rgba(60,6,8,0)'); x.fillStyle = g; x.beginPath(); x.arc(0, 0, 64, 0, 6.283); x.fill();
+    });
+    const fabHoleMats = [fabHoleTex(false), fabHoleTex(true)].map((t) => dmat(t, -6, 0.95));
     // ---- traumatic amputation. Every skin vertex near the cut is given wholly to one side (the separated part and
     // everything beyond it, or the body); triangles that would span the gap are removed; both open ends get a stump
     // face (skin, fat, muscle round the cut bone ends). Partial: the part hangs by a strip of tissue, so the skin is
@@ -672,7 +818,7 @@
         }
         const idx = geo.index.array, keep = [];
         for (let t = 0; t < idx.length; t += 3) { const a = side[idx[t]], b = side[idx[t + 1]], c = side[idx[t + 2]]; if (a === b && b === c) keep.push(idx[t], idx[t + 1], idx[t + 2]); }
-        geo.setIndex(keep); SIa.needsUpdate = SWa.needsUpdate = true; body.dirty = true;
+        geo.setIndex(keep); SIa.needsUpdate = SWa.needsUpdate = true; body.dirty = true; if (body.cutGarments) body.cutGarments(side);
         // the two raw ends
         const mat = new THREE.MeshStandardMaterial({ map: stumpTex(STUMP_BONES[segName.replace(/[LR]$/, '')] || [[0, 0, 12]]), normalMap: stumpN, roughness: 0.4, metalness: 0, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1 });
         const cap = (seg, sign) => { const m = new THREE.Mesh(new THREE.CircleGeometry(rad * 0.86, 28), mat); /* a little inside the skin, so no rim shows */ m.position.copy(o).sub(seg.origin).addScaledVector(dir, sign * 0.004); m.quaternion.setFromUnitVectors(new V3(0, 0, 1), dir.clone().multiplyScalar(sign)); m.renderOrder = 2; seg.g.add(m); (body.stumps = body.stumps || []).push(m); return m; };
@@ -716,7 +862,21 @@
     // palm about the three finger joints (knuckle, middle, end), from the tip in, so each bend carries the joints
     // beyond it. In the rest pose the hand hangs palm-in: the fingers run down from the knuckle line (y ~ 0.775) in a
     // row front to back, and close toward the body's midline. k: 0 open, ~0.2 relaxed, 1 a full grip round a handle.
-    const gripCache = {}, gripK = { L: 0, R: 0 };
+    // normals for just the part of the mesh that moved (the whole body has ~14k vertices: recomputing all of them
+    // every time the jaw moves with a breath would cost milliseconds a frame)
+    const localNormals = (geo, cache) => {
+      const ix = geo.index.array, pa = geo.attributes.position.array, na = geo.attributes.normal.array;
+      if (!cache.tris || cache.arr !== ix) { const vs = new Set(cache.verts); cache.tris = []; cache.arr = ix; for (let t = 0; t < ix.length; t += 3) if (vs.has(ix[t]) || vs.has(ix[t + 1]) || vs.has(ix[t + 2])) cache.tris.push(t); cache.inner = [...vs]; }
+      for (const i of cache.inner) na[i * 3] = na[i * 3 + 1] = na[i * 3 + 2] = 0;
+      for (const t of cache.tris) {
+        const a = ix[t] * 3, b = ix[t + 1] * 3, c = ix[t + 2] * 3, ux = pa[b] - pa[a], uy = pa[b + 1] - pa[a + 1], uz = pa[b + 2] - pa[a + 2], vx = pa[c] - pa[a], vy = pa[c + 1] - pa[a + 1], vz = pa[c + 2] - pa[a + 2];
+        const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+        for (const q of [a, b, c]) { na[q] += nx; na[q + 1] += ny; na[q + 2] += nz; }
+      }
+      for (const i of cache.inner) { const q = i * 3, l = Math.hypot(na[q], na[q + 1], na[q + 2]) || 1; na[q] /= l; na[q + 1] /= l; na[q + 2] /= l; }
+      geo.attributes.normal.needsUpdate = true;
+    };
+    const gripCache = {}, gripK = { L: 0, R: 0 }, gripN = {};
     const JOINTS = [[0, 1.0], [0.045, 1.35], [0.072, 0.85]]; // distance below the knuckle line, full-grip angle (rad)
     body.setGrip = (side, k) => {
       const hm = body.human; if (!hm) return;
@@ -736,8 +896,86 @@
         }
         Pa.array[i * 3] = x; Pa.array[i * 3 + 1] = y;
       }
-      Pa.needsUpdate = true; geo.computeVertexNormals(); body.gripDirty = false;
+      Pa.needsUpdate = true; if (!gripN[side]) gripN[side] = { verts: gripCache[side] }; localNormals(geo, gripN[side]); body.gripDirty = false;
     };
+    // ---- the mouth. The head mesh has no jaw bone and its lips are one closed surface, so: the strip of triangles
+    // joining the lips (along the line where they meet, y = LIP) is taken out while the mouth is open, and everything
+    // below the lips (lower lip, chin, the floor of the mouth, the lower cheeks fading out toward the ears and neck) is
+    // turned about the jaw hinge in the rest-pose mesh. Behind the lips: a dark mouth, the upper teeth fixed to the
+    // skull, and a jaw carrying the lower teeth and the tongue that swings with it. Teeth can be knocked out.
+    const LIP = 1.5777, HINGE_Y = 1.616, HINGE_Z = -0.006, sstep = (a, b, x) => { const u = Math.max(0, Math.min(1, (x - a) / (b - a))); return u * u * (3 - 2 * u); };
+    let jawList = null, jawA = 0, slit = null, slitOpen = false; const jawN = {};
+    const jawW = (x, y, z) => {
+      const ax = Math.abs(x); if (y > LIP + 0.012 || y < 1.5 || z < -0.04 || ax > 0.085) return 0;
+      let w = ax <= 0.022 ? (y < LIP ? 1 : 0) : sstep(LIP - (ax - 0.022) * 0.9 + 0.004, LIP - (ax - 0.022) * 0.9 - 0.004, y); // the lips part cleanly; beyond the corners the skin stretches
+      return w * sstep(1.5, 1.545, y + (z - 0.06) * 0.35) * sstep(-0.03, 0.03, z) * sstep(0.085, 0.062, ax);
+    };
+    const setSlit = (open) => {
+      const geo = body.human.geometry, ix = geo.index.array, R0 = body.skin0.pos;
+      if (!slit || slit.arr !== ix) { // (re)find the strip; amputation can replace the index buffer
+        slit = { arr: ix, tris: [] };
+        for (let t = 0; t < ix.length; t += 3) { let up = 0, lo = 0, ok = true; for (let k = 0; k < 3; k++) { const i = ix[t + k], y = R0[i * 3 + 1]; if (Math.abs(R0[i * 3]) > 0.0235 || R0[i * 3 + 2] < 0.08 || Math.abs(y - LIP) > 0.006) { ok = false; break; } if (y >= LIP) up++; else lo++; } if (ok && up && lo) slit.tris.push(t, ix[t], ix[t + 1], ix[t + 2]); }
+        slitOpen = false;
+      }
+      if (open === slitOpen) return; slitOpen = open;
+      for (let k = 0; k < slit.tris.length; k += 4) { const t = slit.tris[k]; if (open) { ix[t + 1] = ix[t + 2] = ix[t]; } else { ix[t] = slit.tris[k + 1]; ix[t + 1] = slit.tris[k + 2]; ix[t + 2] = slit.tris[k + 3]; } }
+      geo.index.needsUpdate = true;
+    };
+    // inside the mouth (head-segment space = mesh space minus the head's origin)
+    const hs = body.segs.head, ho = hs.origin, mouthG = new THREE.Group(); hs.g.add(mouthG); mouthG.position.set(-ho.x, -ho.y, -ho.z);
+    const cavity = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 14), new THREE.MeshBasicMaterial({ color: 0x140203, side: THREE.BackSide }) /* the back of the mouth is in shadow: unlit */);
+    cavity.scale.set(0.029, 0.021, 0.032); cavity.position.set(0, 1.574, 0.092); mouthG.add(cavity);
+    const toothMat = new THREE.MeshStandardMaterial({ color: 0xe9e2cf, roughness: 0.32, metalness: 0 }), toothCol0 = new THREE.Color(0xe9e2cf), toothBlood = new THREE.Color(0x6a1012);
+    const gumMat = new THREE.MeshStandardMaterial({ color: 0x5e2224, roughness: 0.5 }), tongueMat = new THREE.MeshStandardMaterial({ color: 0x6a2a2c, roughness: 0.45 }); // shadowed inside the mouth
+    const jawG = new THREE.Group(); jawG.position.set(0, HINGE_Y, HINGE_Z); mouthG.add(jawG);
+    const toothGeo = new THREE.BoxGeometry(1, 1, 1); { const pa = toothGeo.attributes.position; for (let i = 0; i < pa.count; i++) { const y = pa.getY(i); pa.setX(i, pa.getX(i) * (y < 0 ? 0.82 : 1)); } toothGeo.computeVertexNormals(); } // a little narrower at the cutting edge
+    body.teeth = [];
+    const row = (upper) => {
+      const par = upper ? mouthG : jawG, y0 = upper ? LIP + 0.0042 : LIP - 0.0042, cz = 0.0935, R = 0.0255;
+      for (let k = -7; k <= 7; k++) { if (!k) continue; const u = (Math.abs(k) - 0.5) * Math.sign(k), a = u * 0.155, front = Math.abs(k) <= 2, molar = Math.abs(k) >= 5;
+        const t = new THREE.Mesh(toothGeo, toothMat), w = front ? 0.0072 : molar ? 0.0085 : 0.0062, h = front ? 0.0095 : molar ? 0.0062 : 0.0082;
+        // biting edges: the upper incisors show a couple of millimetres below the upper lip; the lower row sits just behind them (overbite)
+        const edge = upper ? LIP - (front ? 0.004 : 0.0015) : LIP - (front ? 0.0028 : 0.003), Rr = upper ? R : R - 0.0022;
+        t.scale.set(w, h, molar ? 0.008 : 0.0045); t.position.set(Math.sin(a) * Rr, edge + (upper ? h / 2 : -h / 2), cz + Math.cos(a) * Rr - (molar ? 0.003 : 0)); t.rotation.y = a;
+        if (!upper) t.position.sub(jawG.position); t.rotation.x = upper ? 0.08 : -0.1;
+        t.castShadow = false; par.add(t); body.teeth.push({ m: t, upper, k }); }
+      const gum = new THREE.Mesh(new THREE.TorusGeometry(R + 0.001, 0.0035, 6, 18, 2.2), gumMat); gum.rotation.set(Math.PI / 2, 0, Math.PI / 2 - 1.1 + Math.PI); gum.rotation.order = 'YXZ';
+      gum.position.set(0, y0 + (upper ? 0.0075 : -0.0075), cz); if (!upper) gum.position.sub(jawG.position); par.add(gum);
+    };
+    row(true); row(false);
+    const tongue = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 10), tongueMat); tongue.scale.set(0.019, 0.0065, 0.026); tongue.position.set(0, LIP - 0.0085, 0.09).sub(jawG.position); jawG.add(tongue);
+    body.setJaw = (a) => {
+      const hm = body.human; if (!hm) return; a = Math.round(Math.max(0, Math.min(0.42, a)) * 60) / 60; if (a === jawA && !body.jawDirty) return; jawA = a;
+      const geo = hm.geometry, Pa = geo.attributes.position, R0 = body.skin0.pos;
+      if (!jawList) {
+        jawList = []; for (let i = 0; i < Pa.count; i++) { const w = jawW(R0[i * 3], R0[i * 3 + 1], R0[i * 3 + 2]); if (w > 0.005) jawList.push(i, w); }
+        // the mesh's own lining behind the lips (well behind the outer surface at the same spot) is the inside of the
+        // mouth: in shadow, dark red, not lip-coloured
+        const bin = (x, y) => Math.round(x / 0.003) + ',' + Math.round(y / 0.003), front = new Map(), box = (i) => Math.abs(R0[i * 3]) < 0.026 && Math.abs(R0[i * 3 + 1] - LIP) < 0.016 && R0[i * 3 + 2] > 0.08;
+        for (let i = 0; i < Pa.count; i++) if (box(i)) { const k = bin(R0[i * 3], R0[i * 3 + 1]); front.set(k, Math.max(front.get(k) || -1, R0[i * 3 + 2])); }
+        const C0 = body.skin0.col, ca = geo.attributes.color;
+        for (let i = 0; i < Pa.count; i++) if (box(i) && R0[i * 3 + 2] < front.get(bin(R0[i * 3], R0[i * 3 + 1])) - 0.0035) { for (let c = 0; c < 3; c++) C0[i * 3 + c] *= c === 0 ? 0.42 : 0.2; ca.setXYZ(i, C0[i * 3], C0[i * 3 + 1], C0[i * 3 + 2]); }
+        ca.needsUpdate = true;
+      }
+      for (let k = 0; k < jawList.length; k += 2) {
+        const i = jawList[k], ang = a * jawList[k + 1], c = Math.cos(ang), sn = Math.sin(ang), dy = R0[i * 3 + 1] - HINGE_Y, dz = R0[i * 3 + 2] - HINGE_Z;
+        Pa.array[i * 3 + 1] = HINGE_Y + dy * c - dz * sn; Pa.array[i * 3 + 2] = HINGE_Z + dy * sn + dz * c;
+      }
+      setSlit(a > 0.012); jawG.rotation.x = a;
+      if (!jawN.verts) { jawN.verts = []; for (let k = 0; k < jawList.length; k += 2) jawN.verts.push(jawList[k]); }
+      Pa.needsUpdate = true; localNormals(geo, jawN); body.jawDirty = false;
+    };
+    body.jaw = () => jawA;
+    // blood in the mouth stains the teeth
+    body.mouthBlood = (k) => { toothMat.color.copy(toothCol0).lerp(toothBlood, Math.min(0.85, k)); tongueMat.color.setHex(0x6a2a2c).lerp(toothBlood, Math.min(0.7, k)); };
+    // a blow to the mouth (a bullet through the jaw or teeth) knocks out the teeth near it: returns them, in world
+    // space, so the caller can drop them
+    body.knockTeeth = (worldPt, r) => {
+      const out = [], wp = new THREE.Vector3(); hs.g.updateMatrixWorld(true);
+      for (const t of body.teeth) { if (!t.m.visible) continue; t.m.getWorldPosition(wp); if (wp.distanceTo(worldPt) < r * (0.6 + Math.random() * 0.8)) { t.m.visible = false; const q = new THREE.Quaternion(); t.m.getWorldQuaternion(q); out.push({ pos: wp.clone(), q, scale: t.m.scale.clone() }); } }
+      return out;
+    };
+    body.resetMouth = () => { for (const t of body.teeth) t.m.visible = true; body.mouthBlood(0); body.setJaw(0); };
     // bruising round both eyes from a fractured skull base ("raccoon eyes"): painted into the skin, deepening with k
     let orb = null; const purple = new THREE.Color(0x3c1a30);
     body.periorbital = (k) => {
@@ -808,12 +1046,12 @@
     };
     body.woundWorld = (w, out) => out.copy(w.g.position).applyMatrix4(w.seg.g.matrixWorld);
     body.woundNormal = (w, out) => out.copy(w.n).transformDirection(w.seg.g.matrixWorld);
-    body.clearWounds = () => {
+    body.clearWounds = () => { if (body.resetMouth) { for (const t of body.teeth) t.m.visible = true; body.mouthBlood(0); body.jawDirty = true; }
       if (body.resetEyes) body.resetEyes();
       if (body.cut0 && body.human) { const g = body.human.geometry; g.attributes.skinIndex.array.set(body.cut0.si); g.attributes.skinWeight.array.set(body.cut0.sw); g.attributes.skinIndex.needsUpdate = g.attributes.skinWeight.needsUpdate = true; g.setIndex(new THREE.BufferAttribute(body.cut0.idx.slice(), 1)); body.cut0 = null; }
-      for (const m of body.stumps || []) m.parent && m.parent.remove(m); body.stumps = [];
+      for (const m of body.stumps || []) m.parent && m.parent.remove(m); body.stumps = []; if (body.restoreGarments) body.restoreGarments();
       for (const hm2 of body.hairs || []) if (hm2.userData.pos0) { hm2.geometry.attributes.position.array.set(hm2.userData.pos0); hm2.geometry.attributes.position.needsUpdate = true; }
-      if (body.human && body.dirty) { body.gripDirty = true; const g = body.human.geometry; g.attributes.position.array.set(body.skin0.pos); g.attributes.color.array.set(body.skin0.col); g.attributes.position.needsUpdate = g.attributes.color.needsUpdate = true; g.computeVertexNormals(); body.dirty = false; }
+      if (body.human && body.dirty) { body.gripDirty = true; body.jawDirty = true; const g = body.human.geometry; g.attributes.position.array.set(body.skin0.pos); g.attributes.color.array.set(body.skin0.col); g.attributes.position.needsUpdate = g.attributes.color.needsUpdate = true; g.computeVertexNormals(); body.dirty = false; }
       for (const sg of body.list) if (sg.dirty && sg.skin) { const g = sg.skin.geometry; g.attributes.position.array.set(sg.skin0.pos); g.attributes.color.array.set(sg.skin0.col); g.attributes.position.needsUpdate = g.attributes.color.needsUpdate = true; g.computeVertexNormals(); sg.dirty = false; } for (const w of body.wounds) { w.seg.g.remove(w.g); if (w.track) w.seg.g.remove(w.track); if (w.soak) { w.soak.parent.remove(w.soak); w.soak.geometry.dispose(); } } body.wounds.length = 0; if (body.clearBlood) body.clearBlood(); };
     body.updateMatrices();
     if (G.skinBlood) G.skinBlood(body);

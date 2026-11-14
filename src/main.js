@@ -58,6 +58,7 @@
   // the subject's own sounds and what comes with them
   const mouth = new V3(), mdir = new V3();
   function npcEvent(type, v) {
+    if (VOICE_JAW[type] && current) { const J = current.jaw || (current.jaw = { a: 0, voice: 0, vt: 0 }); J.voice = VOICE_JAW[type][0] * (0.8 + 0.3 * (v || 0.5)); J.vt = VOICE_JAW[type][1]; }
     const weak = Math.min(1, Math.max(0, (phys.frac() - 0.15) / 0.25)); // shock: quieter, weaker voice
     if (type === 'grunt') audio.grunt(v); else if (type === 'groan' || type === 'moan') audio.moan(v, weak); else if (type === 'gasp') audio.gasp();
     else if (type === 'yelp') audio.yelp(v, weak); else if (type === 'scream') audio.scream(v, weak); else if (type === 'cry') audio.cry(v, weak);
@@ -68,19 +69,36 @@
       const ml = 1 + Math.random() * 3; world.burst(mouth, mdir, 7, 1.8, 0.7, 0.003, ml); phys.bv -= ml; phys.lostExt += ml;
     }
   }
+  // small loose pieces (knocked-out teeth): thrown, they fall, bounce once or twice and lie on the floor
+  const debris = [];
+  function dropPiece(m, v) { scene.add(m); debris.push({ m, v: v.clone(), w: new V3(Math.random() * 30 - 15, Math.random() * 30 - 15, Math.random() * 30 - 15), rest: false }); }
+  function stepDebris(dt) {
+    for (const d of debris) {
+      if (d.rest) continue; d.v.y -= 9.81 * dt; d.m.position.addScaledVector(d.v, dt); d.m.rotation.x += d.w.x * dt; d.m.rotation.y += d.w.y * dt; d.m.rotation.z += d.w.z * dt;
+      const r = Math.max(d.m.scale.x, d.m.scale.y, d.m.scale.z) * 0.5;
+      if (d.m.position.y < r) { d.m.position.y = r; if (Math.abs(d.v.y) < 0.5) { d.rest = true; } else { d.v.y *= -0.3; d.v.x *= 0.5; d.v.z *= 0.5; d.w.multiplyScalar(0.4); } }
+    }
+  }
+  function clearDebris() { for (const d of debris) scene.remove(d.m); debris.length = 0; }
+  // the voice opens the mouth: a scream wide, a cry or a cough part way, a moan a little
+  const VOICE_JAW = { scream: [0.34, 1.3], yelp: [0.24, 0.45], cry: [0.2, 1.5], moan: [0.1, 1.1], groan: [0.1, 1.1], grunt: [0.06, 0.3], cough: [0.24, 0.35], gasp: [0.3, 0.6] };
   const pending = []; let simClock = 0; let duel = null;
   const projectiles = G.Projectiles(scene);
   for (const S of subjects) S.viscera = G.Viscera(scene, S.body, S.rag);
   viscera = primary.viscera; current = primary;
   const newSubject = () => { const S = makeSubject(); S.viscera = G.Viscera(scene, S.body, S.rag); return S; };
   function cycleTime() { state.ti = (state.ti + 1) % TIMES.length; ui.setTime(TIMES[state.ti]); }
+  // clothes: a T-shirt and trousers in everyday colours
+  const SHIRTS = [0x2b2b2b, 0x5a6a48, 0x7a7a78, 0x2c3a55, 0xd8d4c8, 0x8a7a5a, 0x6a2a2a, 0x3d5a6a], TROUSERS = [0x3a4a6a, 0x2a3348, 0x6a6048, 0x2a2a2a, 0x4a5038];
+  const pick = (a) => a[Math.floor(Math.random() * a.length)];
   function reset() {
     if (current !== primary) use(primary);
-    body.clearWounds(); world.clear(); rag.stop(); rag.clear(); projectiles.clear(); viscera.clear(); headFx.rk = headFx.rkMax = 0; headFx.mouth = false; handBlood.L = handBlood.R = 0;
+    body.clearWounds(); world.clear(); rag.stop(); rag.clear(); projectiles.clear(); viscera.clear(); headFx.rk = headFx.rkMax = 0; headFx.mouth = false; headFx.jawBroken = false; headFx.mouthK = 0; clearDebris(); handBlood.L = handBlood.R = 0;
     // each new subject is a different person (the first one is always the same, for a consistent start)
     if (body.setLook) { const first = reset.n == null; reset.n = (reset.n || 0) + 1;
       const tints = [0xffffff, 0x8a6a50, 0x5a4030, 0xd0b090, 0x404040];
-      body.setLook(first ? 0 : Math.floor(Math.random() * body.looks), first ? 0 : Math.floor(Math.random() * 3), first ? 0xffffff : tints[Math.floor(Math.random() * tints.length)]); }
+      body.setLook(first ? 0 : Math.floor(Math.random() * body.looks), first ? 0 : Math.floor(Math.random() * 3), first ? 0xffffff : tints[Math.floor(Math.random() * tints.length)]);
+      if (body.dress) { const r = Math.random(); body.dress(first || r < 0.3 ? {} : r < 0.55 ? { shirt: pick(SHIRTS) } : r < 0.7 ? { pants: pick(TROUSERS) } : { shirt: pick(SHIRTS), pants: pick(TROUSERS) }); } }
     phys = G.Physiology(G.ANATOMY.bloodVolume);
     npc = G.NPC(body, phys, rag, { threat: () => state.threat || state.pos, event: npcEvent }); pending.length = 0; primary.phys = phys; primary.npc = npc;
     npc.update(0.001); ui.report(null); G.state = { phys, npc, body, world, state };
@@ -277,6 +295,23 @@
   function headTrauma(results) {
     const viaHead = results.filter((r) => r.hitBody && r.marks.some((m) => m.seg && m.seg.name === 'head'));
     if (!viaHead.length || !body.eyes) return;
+    // through the mouth: teeth along the track are smashed out (and fly on with the bullet); a broken jaw hangs open
+    if (body.teeth) {
+      body.updateMatrices(); const tp = new V3();
+      for (const r of viaHead) {
+        const jaw = r.order.some((o) => o.bone === 'jaw'), t = r.track, dir = t.length > 1 ? new V3(t[t.length - 1].x - t[0].x, t[t.length - 1].y - t[0].y, t[t.length - 1].z - t[0].z).normalize() : new V3(0, 0, 1);
+        if (jaw) { headFx.jawBroken = true; phys.addInjury('mandible', 'Mandible fractured: the jaw hangs open', 1); }
+        let lo = 9; for (const tt of body.teeth) { if (!tt.m.visible) continue; tt.m.getWorldPosition(tp); for (let i = 0; i < t.length - 1; i++) lo = Math.min(lo, segD(tp, t[i], t[i + 1])); }
+        if (lo > 0.03) continue;
+        for (const tt of body.teeth) {
+          if (!tt.m.visible) continue; tt.m.getWorldPosition(tp); let dmin = 9; for (let i = 0; i < t.length - 1; i++) dmin = Math.min(dmin, segD(tp, t[i], t[i + 1]));
+          if (dmin > (jaw ? 0.0075 : 0.0055) * (0.7 + Math.random() * 0.6)) continue; // the bullet and the bone and tooth fragments it drives ahead
+          tt.m.visible = false; const m = new THREE.Mesh(tt.m.geometry, tt.m.material.clone()); m.material.color.lerp(new THREE.Color(0x7a1416), 0.5); tt.m.getWorldQuaternion(m.quaternion); m.scale.copy(tt.m.scale); m.position.copy(tp); m.castShadow = true;
+          dropPiece(m, dir.clone().multiplyScalar(1.5 + Math.random() * 3).add(new V3(Math.random() - 0.5, Math.random() * 0.8, Math.random() - 0.5)));
+        }
+        headFx.mouth = headFx.mouth || lo < 0.02;
+      }
+    }
     const brain = viaHead.filter((r) => r.order.some((o) => /cereb|brain/.test(o.kind))), E = brain.reduce((a, r) => a + r.Edep, 0);
     body.updateMatrices();
     const ec = new V3();
@@ -363,7 +398,17 @@
     let first = null;
     const head = res.order.some((p) => p.kind === 'cerebrum' || p.kind === 'cerebellum' || p.kind === 'brainstem'), bone = res.order.some((p) => p.kind === 'bone');
     const tr = res.track, t0 = tr[0], t1 = tr[tr.length - 1];
-    const entries = res.marks.filter((m) => m.type === 'entry'), exits = res.marks.filter((m) => m.type === 'exit');
+    let entries = res.marks.filter((m) => m.type === 'entry'), exits = res.marks.filter((m) => m.type === 'exit');
+    // a graze: in and out of the same part within a few centimetres, never more than a few millimetres under the
+    // skin. The skin between is torn open: one furrow along the track, not two holes.
+    if (entries.length === 1 && exits.length === 1 && res.depth < 0.06 && entries[0].seg && exits[0].seg && (entries[0].seg === exits[0].seg || res.depth < 0.035)) {
+      const a = entries[0].p, b = exits[0].p, len = Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z);
+      if (len < 0.09) {
+        const fm = { type: 'furrow', seg: entries[0].seg, p: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, z: (a.z + b.z) / 2 }, r: entries[0].r, dir: entries[0].dir, len };
+        res.marks = res.marks.map((m) => (m === entries[0] ? fm : m)).filter((m) => m !== exits[0]); res.graze = true;
+        entries = [fm]; exits = []; res.exitMark = b;
+      }
+    }
     for (const m of res.marks) {
       if (!m.seg) continue;
       const exit = m.type === 'exit', md = m.dir || d0;
@@ -751,9 +796,10 @@
     const clearDrops = () => { for (const d of D.drops) scene.remove(d.m); D.drops.length = 0; };
     function setupFighter(S, i, wi) {
       use(S); S.idx = i;
-      S.body.clearWounds(); S.rag.stop(); S.rag.clear(); S.viscera.clear(); S.headFx.rk = S.headFx.rkMax = 0; S.headFx.mouth = false; S.handBlood.L = S.handBlood.R = 0;
+      S.body.clearWounds(); S.rag.stop(); S.rag.clear(); S.viscera.clear(); S.headFx.rk = S.headFx.rkMax = 0; S.headFx.mouth = false; S.headFx.jawBroken = false; S.headFx.mouthK = 0; S.handBlood.L = S.handBlood.R = 0;
       if (S.body.setLook) S.body.setLook(Math.floor(Math.random() * S.body.looks), Math.floor(Math.random() * 3), [0xffffff, 0x8a6a50, 0x5a4030, 0x404040][Math.floor(Math.random() * 4)]);
       if (S.body.setShorts) S.body.setShorts(SHORTS[i]);
+      if (S.body.dress) S.body.dress({ shirt: pick(SHIRTS), pants: pick(TROUSERS) }); // dressed like anyone off the street
       S.body.root.visible = true; S.body.root.position.copy(spawn[i]); S.body.root.rotation.set(0, i ? Math.PI : 0, 0);
       S.phys = G.Physiology(G.ANATOMY.bloodVolume);
       S.ai = { state: 'engage', t: 0, aimT: 0, fireT: 0.8 + Math.random() * 0.6, strafeT: 2 + Math.random() * 3, strafe: null, downT: 0, canFight: true, lastSeen: 0, goal: null, peekT: 0, crouch: 0, lean: 0, clock: 0, seenT: 0, react: 0.5, burst: 0, reloadT: 0, ammo: WMAG[wi] };
@@ -912,7 +958,7 @@
     }
     // ---- rounds
     function startRound() {
-      D.round++; D.phase = 'ready'; D.t = 0; world.clear(); projectiles.clear(); pending.length = 0; clearDrops();
+      D.round++; D.phase = 'ready'; D.t = 0; world.clear(); projectiles.clear(); pending.length = 0; clearDrops(); clearDebris();
       const wi = DUEL_W[Math.floor(Math.random() * DUEL_W.length)];
       for (let i = 0; i < 2; i++) setupFighter(D.fighters[i], i, wi);
       layout(); D.weaponName = G.WEAPONS[wi].name; use(D.fighters[0]);
@@ -997,6 +1043,16 @@
       if (h && h.position.y < 0.06 && world.depthAt(h.position.x, h.position.z) > 0.03) add += dt * slow * 0.4;
       if (add > 0) handBlood[sd] = Math.min(1, handBlood[sd] + add);
     }
+    // the jaw: shut while calm; breathing through the mouth when working hard or hurt; slack when unconscious; dropped
+    // open in death; gaping with each agonal gasp; wide with a scream; hanging when broken
+    if (body.setJaw) {
+      const J = S.jaw || (S.jaw = { a: 0, voice: 0, vt: 0 }), br = Math.max(0, Math.sin(npc.breath || 0));
+      let tgt = phys.dead ? 0.22 : !phys.conscious ? (phys.agonal ? 0.12 + 0.18 * br : 0.1 + 0.025 * br) : (phys.rr > 24 || phys.frac() > 0.2 || phys.pain > 0.6 ? 0.03 + 0.07 * br : 0);
+      if (J.vt > 0 && !phys.dead) { J.vt -= dt * slow; tgt = Math.max(tgt, J.voice); }
+      if (headFx.jawBroken) tgt = Math.max(tgt, 0.3 + 0.05 * br);
+      J.a += (tgt - J.a) * Math.min(1, dt * slow * (tgt > J.a ? 14 : 5)); body.setJaw(J.a);
+      if (headFx.mouth) { headFx.mouthK = Math.min(0.85, (headFx.mouthK || 0) + dt * slow * 0.25); body.mouthBlood(headFx.mouthK); }
+    }
     handBlood.at += dt; if (handBlood.at > 0.3) { handBlood.at = 0; if (handBlood.L > 0) body.bloodyHand('L', handBlood.L); if (handBlood.R > 0) body.bloodyHand('R', handBlood.R); }
     // raccoon eyes come up over ~7 minutes while blood still circulates
     if (headFx.rkMax > headFx.rk && phys.hr > 20) { headFx.rk = Math.min(headFx.rkMax, headFx.rk + dt * slow * scale * headFx.rkMax / 420); headFx.at += dt; if (headFx.at > 0.25) { headFx.at = 0; body.periorbital(headFx.rk); } } body.bloodTick && body.bloodTick(dt * slow, phys.hr > 20);
@@ -1018,7 +1074,7 @@
     projectiles.update(simClock, dt * slow);
     const active = duel && duel.on ? duel.fighters : [primary];
     for (const S of active) simSubject(S, dt, scale, slow);
-    world.update(dt * slow);
+    world.update(dt * slow); stepDebris(dt * slow);
     if (duel && duel.on) duel.update(dt * slow, dt); else use(primary);
     if (state.started) {
       const dx = vent.x - state.pos.x, dz = vent.y - state.pos.z;

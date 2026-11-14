@@ -1,4 +1,4 @@
-# Port-Marlowe — Wound Ballistics Lab (v2.4)
+# Port-Marlowe — Wound Ballistics Lab (v2.5)
 
 A browser-based 3D simulator of gunshot wounds. A test subject stands in a chamber; every
 round is traced millimetre by millimetre through skin, bone, organs and vessels, and the
@@ -6,6 +6,18 @@ body then responds in real time (bleeding, blood pressure, breathing, consciousn
 
 **Run it:** serve this folder with any static server (`python3 -m http.server`) and open
 `index.html`. No build step. `node tools/build.js` bundles a single-file page into `dist/`.
+
+**v2.5 — mouth and teeth, grazes, clothing**: the jaw works. The lips part (the strip of skin joining them opens),
+the chin, lower lip and floor of the mouth swing down about the jaw hinge, and behind them are a dark mouth, upper
+teeth fixed to the skull, and lower teeth and a tongue that move with the jaw. The mouth is shut while calm, breathes
+open when the subject is working hard or hurt, gapes with screams, cries, coughs and agonal gasps, falls slack when
+unconscious, drops open in death, and hangs open when the mandible is broken. A bullet through the mouth knocks out
+the teeth along its track (they fly on and land on the floor) and blood in the mouth stains the teeth. A bullet that
+skims the body tears an open furrow along its path (raw gutter, torn skin tags toward the far end, scraped margins)
+instead of leaving two holes. Clothing: T-shirts and trousers are real skinned shells over the skin (cotton jersey
+and denim weaves), with straight hems and a crew neck; a bullet leaves a frayed hole in the cloth, blood wicks into
+the fabric round it, a big exit tears the cloth open, and a severed limb takes its sleeve or trouser leg with it.
+Duel fighters are dressed in everyday clothes; lab subjects after the first come in a random outfit.
 
 **v2.4 — gun handling**: fighters hold and move their guns the way trained people do. Long guns go in the shoulder
 pocket (bladed stance, head down toward the stock), firing hand on the pistol grip, support hand on the handguard or
