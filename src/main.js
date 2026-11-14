@@ -38,7 +38,7 @@
     }
     return false;
   }
-  function moveGrab() { if (rag.grabbed) { aimDir(gdir); rag.grabbed.target.copy(camera.position).addScaledVector(gdir, state.grabT); } }
+  function moveGrab() { if (rag.grabbed && state.grab) { aimDir(gdir); rag.grabbed.target.copy(camera.position).addScaledVector(gdir, state.grabT); } }
   // the subject's own sounds and what comes with them
   const mouth = new V3(), mdir = new V3();
   function npcEvent(type, v) {
@@ -198,6 +198,16 @@
         }
       }
       if (hits.length) audio.impact(hits.some((r) => r.order.some((p) => p.kind === 'bone')), hits.reduce((a, r) => a + r.Edep, 0));
+      // long-bone shafts that were hit break where the bullet crossed them (the limb then bends there)
+      for (const r of results) for (const pr of r.order) {
+        if (pr.kind !== 'bone' || /\(/.test(pr.name)) continue; // the shaft only (heads, condyles, plateaus are joints)
+        const seg = pr.bone === 'femur' ? 'thighX' : pr.bone === 'tibia' ? 'shinX' : pr.bone === 'humerus' ? 'uarmX' : pr.bone === 'forearm' ? 'farmX' : null;
+        if (!seg) continue;
+        // one forearm bone alone splints on the other: the forearm only folds when both go (or the hit is violent)
+        if (pr.bone === 'forearm' && !(r.order.filter((o) => o.bone === 'forearm' && o.side === pr.side).length > 1 || r.Edep > 900)) continue;
+        rag.fracture(seg + pr.side);
+      }
+      dismember(results, w, origin);
       headTrauma(results);
       ui.report(buildReport(results, w));
     } });
@@ -275,6 +285,50 @@
       world.chunks(tmp2, dd, Math.round(14 + 24 * s), 3 + 4 * s, 0.7, 'brain'); world.chunks(tmp2, dd, Math.round(5 + 10 * s), 3 + 3 * s, 0.8, 'bone');
       phys.addInjury('burst', 'Skull burst open: massive destruction of the brain', 2);
     } else if (ex.type === 'exit' && E > 250) viscera.spawn(sw, 0.012, 'brain'); // a little brain in a handgun exit
+  }
+  // ---- dismemberment, only where it really happens. A shotgun charge at close range strikes as one mass and can take
+  // off a hand or a foot, or leave a forearm or lower leg hanging by a strip of tissue; a slug does much the same to a
+  // hand or wrist; a high-energy rifle round can mangle a hand. Nothing here cuts through a thigh or an upper arm
+  // (except a contact shotgun blast, which can leave an arm hanging): handgun and rifle bullets do not amputate limbs.
+  const AMP = { hand: { L: 'Left hand', at: 'at the wrist', rate: 260 }, farm: { L: 'Left forearm', at: 'through the forearm', rate: 320 }, foot: { L: 'Left foot', at: 'at the ankle', rate: 280 }, shin: { L: 'Left lower leg', at: 'through the lower leg', rate: 650 }, uarm: { L: 'Left arm', at: 'through the upper arm', rate: 900 } };
+  function dismember(results, w, origin) {
+    const groups = {};
+    for (const r of results) {
+      const en = r.marks.find((m) => m.type === 'entry'); if (!en || !en.seg) continue;
+      const nm = en.seg.name, base = nm.replace(/X?[LR]$/, ''), side = nm.slice(-1);
+      if (!AMP[base]) continue;
+      const k = base + side, g = groups[k] || (groups[k] = { base, side, n: 0, E: 0, range: 9 });
+      g.n++; g.E += r.Edep; g.range = Math.min(g.range, origin.distanceTo(tmp2.set(en.p.x, en.p.y, en.p.z)));
+    }
+    const shot = w.pellets > 1, slug = !shot && w.bullet.m > 0.02;
+    for (const k in groups) {
+      const g = groups[k], r = g.range; let cut = null;
+      if (shot) {
+        if (g.base === 'hand' && g.n >= 4 && r < 1.5) cut = r < 0.9 ? 'full' : 'partial';
+        else if (g.base === 'foot' && g.n >= 5 && r < 1.2) cut = r < 0.6 ? 'full' : 'partial';
+        else if (g.base === 'farm' && g.n >= 6 && r < 1.0) cut = r < 0.5 ? 'full' : 'partial';
+        else if (g.base === 'shin' && g.n >= 7 && r < 0.6) cut = r < 0.3 ? 'full' : 'partial';
+        else if (g.base === 'uarm' && g.n >= 8 && r < 0.3) cut = 'partial';
+      } else if (slug) {
+        if (g.base === 'hand' && r < 2) cut = r < 0.8 ? 'full' : 'partial';
+        else if ((g.base === 'farm' && r < 0.8) || (g.base === 'foot' && r < 1)) cut = 'partial';
+      } else if (g.base === 'hand' && g.E > 700) cut = 'partial'; // a rifle round through the hand
+      if (!cut) continue;
+      const seg = g.base === 'farm' ? 'farmX' + g.side : g.base === 'shin' ? 'shinX' + g.side : g.base === 'uarm' ? 'uarmX' + g.side : g.base + g.side;
+      const partial = cut === 'partial', a = AMP[g.base], who = (g.side === 'L' ? 'Left' : 'Right') + a.L.slice(4);
+      const info = body.amputate(seg, partial); if (!info) continue;
+      rag.sever(seg, partial);
+      // the stump bleeds from its arteries; the wound on it is where the body can press
+      body.updateMatrices();
+      const ps = info.parent, wp = info.at.clone().sub(ps.origin).applyMatrix4(ps.g.matrixWorld), wn = info.dir.clone().negate().transformDirection(ps.g.matrixWorld);
+      const sw = body.addWound({ seg: ps, p: wp, r: 0.004, type: 'ooze' }, { x: -wn.x, y: -wn.y, z: -wn.z }, null); sw.rate = 0; sw.acc = 0; sw.buf = 0;
+      phys.addBleed(who + ' stump', a.rate * (partial ? 0.7 : 1), sw, true);
+      phys.addInjury('amp' + seg, who + (partial ? ' nearly severed ' + a.at + ', hanging by tissue' : ' traumatically amputated ' + a.at), 2);
+      if (/^(hand|farm|uarm)/.test(g.base)) phys.armBroken[g.side] = true; else phys.legBroken[g.side] = true;
+      phys.pain = Math.min(1, phys.pain + 0.5);
+      world.chunks(wp, { x: wn.x, y: wn.y, z: wn.z }, 14, 2.5, 0.8, 'tissue'); world.chunks(wp, { x: wn.x, y: wn.y, z: wn.z }, 5, 2.5, 0.8, 'bone');
+      world.burst(wp, { x: wn.x, y: wn.y, z: wn.z }, 30, 3, 0.55, 0.005, 12); phys.bv -= 12; phys.lostExt += 12;
+    }
   }
   function processShot(res, w, d0, origin) {
     const surfs = [];

@@ -30,7 +30,7 @@
       const w = { label, rate, clot: o.clot || 0, ext: o.ext == null ? 1 : o.ext, cavity: o.cavity || null, side: o.side || null, venous: !!o.venous, t0: S.t, lost: 0, surf: o.surf || null };
       // Onset of visible bleeding: a bullet hole first shows almost nothing - elastic skin closes over the track
       // and small vessels spasm - then blood wells up and starts to run. A cut artery spurts at once.
-      const art = !w.venous && rate >= 400;
+      const art = (!w.venous && rate >= 400) || !!o.arterial;
       w.onset = art ? [0.1 + Math.random() * 0.2, 0.4] : w.venous ? [0.6 + Math.random() * 1.2, 2.5 + Math.random() * 2] : [1.5 + Math.random() * 3, 4 + Math.random() * 6];
       S.wounds.push(w); return w;
     };
@@ -295,7 +295,7 @@
     };
     S.addInjury = (key, text, sev) => inj(key, text, sev);
     // an extra external bleed (nose, ears, an emptied eye socket), drawn from a surface point on the body
-    S.addBleed = (label, rate, surf) => wound(label, rate, { ext: 1, surf, venous: true, clot: 900 });
+    S.addBleed = (label, rate, surf, arterial) => wound(label, rate, { ext: 1, surf, venous: !arterial, arterial, clot: arterial ? 420 : 900 }); // torn arteries retract and spasm, so a stump bleeds less than a clean cut
     S.mainBleed = () => { let m = null; for (const w of S.wounds) if (!m || w.lost > m.lost) m = w; return m ? m.label.toLowerCase() : 'multiple wounds'; };
     S.frac = () => (S.total - S.bv) / S.total;
     S.hemClass = () => { const f = S.frac(); return f < 0.005 ? '—' : f < 0.15 ? 'Class I' : f < 0.3 ? 'Class II' : f < 0.4 ? 'Class III' : 'Class IV'; };

@@ -135,8 +135,52 @@
     return du ** Lf.n + dv ** Lf.n <= 1;
   }
 
+  // Each long bone (femur, tibia, humerus, forearm) is carried by two segments joined at mid-shaft: the proximal one
+  // keeps the original name, the distal one is '<name>X<side>' (thighXL...). While the bone is whole the two halves
+  // are locked rigid; a fracture frees the break so the limb angulates there, and an amputation separates them.
+  // Lofts (hit volumes), anatomy and skin weights below the break move to the distal half.
+  G.SPLIT = {};
+  function splitLimbs(A, H) {
+    if (A.splitDone) return; A.splitDone = true;
+    const order = Object.entries(A.segs), segs = {};
+    for (const [name, def] of order) {
+      segs[name] = def;
+      const m = /^(thigh|shin|uarm|farm)([LR])$/.exec(name); if (!m) continue;
+      const child = order.find(([, d]) => d[0] === name); if (!child) continue;
+      const o0 = def[1], o1 = child[1][1], mid = [(o0[0] + o1[0]) / 2, (o0[1] + o1[1]) / 2, (o0[2] + o1[2]) / 2], xn = m[1] + 'X' + m[2];
+      segs[xn] = [name, mid]; child[1] = [xn, o1]; G.SPLIT[name] = { distal: xn, y: mid[1], len: o0[1] - o1[1] }; A.segLabel[xn] = A.segLabel[name];
+    }
+    // children whose parent was changed above keep their place after their new parent
+    A.segs = {}; for (const [k, v] of Object.entries(segs)) A.segs[k] = v;
+    for (const [k, v] of order) if (A.segs[k]) A.segs[k] = v;
+    const splitLoft = (list) => {
+      for (let i = list.length - 1; i >= 0; i--) {
+        const L = list[i], sp = G.SPLIT[L.seg]; if (!sp || L.axis !== 'y') continue;
+        const R = L.rings, y = sp.y, lerpRing = (a, b) => { const f = (y - a[0]) / (b[0] - a[0] || 1); return a.map((v, k) => (k === 0 ? y : v + (b[k] - v) * f)); };
+        let k = R.findIndex((r) => r[0] >= y); if (k <= 0) continue;
+        const cut = lerpRing(R[k - 1], R[k]);
+        list.push(Object.assign({}, L, { seg: sp.distal, rings: R.slice(0, k).concat([cut]) }));
+        list[i] = Object.assign({}, L, { rings: [cut].concat(R.slice(k)) });
+      }
+    };
+    splitLoft(A.lofts); if (H && H.lofts) splitLoft(H.lofts);
+    for (let i = A.prims.length - 1; i >= 0; i--) {
+      const pr = A.prims[i], sp = G.SPLIT[pr.seg]; if (!sp) continue;
+      if (pr.type === 'cap') {
+        const ya = pr.a[1], yb = pr.b[1];
+        if (ya < sp.y && yb < sp.y) pr.seg = sp.distal;
+        else if ((ya - sp.y) * (yb - sp.y) < 0) {
+          const f = (sp.y - ya) / (yb - ya), m = pr.a.map((v, k) => v + (pr.b[k] - v) * f);
+          const lo = Object.assign({}, pr, { seg: sp.distal }); if (ya < yb) { lo.b = m; pr.a = m; } else { lo.a = m; pr.b = m; }
+          A.prims.push(lo);
+        }
+      } else if (pr.c && pr.c[1] < sp.y) pr.seg = sp.distal;
+    }
+  }
+
   G.buildBody = function (scene) {
     const A = G.ANATOMY, T = G.TISSUE;
+    splitLimbs(A, G.HUMAN);
     const body = { segs: {}, list: [], root: new THREE.Group(), xray: false, wounds: [], contacts: [] };
     scene.add(body.root);
     for (const [name, [parent, o]] of Object.entries(A.segs)) {
@@ -214,6 +258,18 @@
       const map = H.order.map((nm) => body.list.findIndex((sg) => sg.name === nm));
       let sI = new Uint16Array(n * 4), sW = new Float32Array(n * 4);
       for (let i = 0; i < n * 4; i++) { sI[i] = map[si[i]]; sW[i] = sw[i] / 255; }
+      for (let v = 0; v < n; v++) {
+        const y = pos[v * 3 + 1], inf = new Map();
+        for (let k = 0; k < 4; k++) {
+          const b = sI[v * 4 + k], w = sW[v * 4 + k]; if (!(w > 0)) continue;
+          const sp = G.SPLIT[body.list[b].name];
+          if (!sp) { inf.set(b, (inf.get(b) || 0) + w); continue; }
+          const t = Math.min(1, Math.max(0, (sp.y + 0.02 - y) / 0.04)), d = body.list.indexOf(body.segs[sp.distal]);
+          if (t < 1) inf.set(b, (inf.get(b) || 0) + w * (1 - t)); if (t > 0) inf.set(d, (inf.get(d) || 0) + w * t);
+        }
+        const top = [...inf].sort((a, c) => c[1] - a[1]).slice(0, 4), sum = top.reduce((a, c) => a + c[1], 0) || 1;
+        for (let k = 0; k < 4; k++) { sI[v * 4 + k] = top[k] ? top[k][0] : 0; sW[v * 4 + k] = top[k] ? top[k][1] / sum : 0; }
+      }
       const skin = new THREE.Color(0xc99878), cloth = new THREE.Color(TX ? 0x2e4466 : 0x262b33), hair = new THREE.Color(0x2c2018), c = new THREE.Color();
       for (let i = 0; i < n; i++) {
         const x = pos[i * 3], y = pos[i * 3 + 1], z = pos[i * 3 + 2], dom = H.order[si[i * 4]];
@@ -571,6 +627,54 @@
       else { w.soak = new THREE.SkinnedMesh(g, soakMat); w.soak.frustumCulled = false; w.soak.renderOrder = 4; w.soak.bind(hm.skeleton, hm.bindMatrix); hm.parent.add(w.soak); }
     }
     body.paintSoak = paintSoak;
+    // ---- traumatic amputation. Every skin vertex near the cut is given wholly to one side (the separated part and
+    // everything beyond it, or the body); triangles that would span the gap are removed; both open ends get a stump
+    // face (skin, fat, muscle round the cut bone ends). Partial: the part hangs by a strip of tissue, so the skin is
+    // left whole and only the wound region is torn and bloodied.
+    const stumpTex = (bones) => tex((x) => {
+      x.fillStyle = '#5a1810'; x.beginPath(); x.arc(0, 0, 63, 0, 7); x.fill(); // the cut skin edge, bloodied
+      x.fillStyle = '#d8b65a'; x.beginPath(); x.arc(0, 0, 58, 0, 7); x.fill(); // subcutaneous fat
+      x.fillStyle = '#7a1414'; x.beginPath(); x.arc(0, 0, 52, 0, 7); x.fill(); // muscle
+      for (let i = 0; i < 70; i++) { const a = Math.random() * 6.283, r = Math.random() * 50; x.fillStyle = 'rgba(' + (60 + Math.random() * 70) + ',8,10,0.6)'; x.beginPath(); x.ellipse(Math.cos(a) * r, Math.sin(a) * r, 3 + Math.random() * 6, 1.5 + Math.random() * 3, a, 0, 7); x.fill(); }
+      for (const [bx, by, br] of bones) { x.fillStyle = '#e8dcc0'; x.beginPath(); x.arc(bx, by, br, 0, 7); x.fill(); x.fillStyle = '#b07a5a'; x.beginPath(); x.arc(bx, by, br * 0.55, 0, 7); x.fill(); } // cortex and marrow
+      x.fillStyle = 'rgba(40,0,0,0.85)'; for (const [vx, vy] of [[18, 22], [-20, 18], [10, -24]]) { x.beginPath(); x.arc(vx, vy, 3.5, 0, 7); x.fill(); } // vessel ends
+    });
+    // torn tissue: irregular lumps (value noise), not a pattern; the cut skin edge rolls in a little
+    const hsh = (x, y) => { const h = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return h - Math.floor(h); };
+    const vnoise = (x, y) => { const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi, sx = xf * xf * (3 - 2 * xf), sy = yf * yf * (3 - 2 * yf); const a = hsh(xi, yi), b = hsh(xi + 1, yi), c = hsh(xi, yi + 1), d = hsh(xi + 1, yi + 1); return a + (b - a) * sx + (c - a) * sy + (a - b - c + d) * sx * sy; };
+    const stumpN = nmapOf((u, v) => { const r = Math.hypot(u, v); return (0.35 * vnoise(u * 9 + 3, v * 9 + 7) + 0.15 * vnoise(u * 23, v * 23)) * (1 - r * 0.6) - (r > 0.88 ? (r - 0.88) * 4 : 0); });
+    const STUMP_BONES = { hand: [[0, -6, 9], [0, 14, 7]], farmX: [[0, -12, 9], [2, 14, 8]], foot: [[0, 0, 13]], shinX: [[-4, 6, 15], [22, -14, 7]], uarmX: [[0, 0, 14]], thighX: [[0, 0, 17]] };
+    body.amputate = (segName, partial) => {
+      const hm = body.human, sg = body.segs[segName]; if (!hm || !sg) return null;
+      const geo = hm.geometry, P = geo.attributes.position, SIa = geo.attributes.skinIndex, SWa = geo.attributes.skinWeight;
+      if (!body.cut0) body.cut0 = { si: SIa.array.slice(), sw: SWa.array.slice(), idx: geo.index.array.slice() };
+      const sub = new Set(); const addSub = (s2) => { sub.add(body.list.indexOf(s2)); for (const c of body.list) if (c.parent === s2.name) addSub(c); }; addSub(sg);
+      const par = body.segs[sg.parent], dir = sg.origin.clone().sub(par.origin).normalize(), o = sg.origin;
+      // the stump's size: the hit volume (loft) of this limb at the cut
+      let rad = 0.035; for (const L of (G.HUMAN && G.HUMAN.lofts) || []) if ((L.seg === segName || L.seg === sg.parent) && L.axis === 'y') for (const r of L.rings) if (Math.abs(r[0] - o.y) < 0.03) rad = Math.max(0.02, Math.min(0.07, (r[3] + r[4]) / 2));
+      if (!partial) {
+        const side = new Int8Array(P.count);
+        for (let i = 0; i < P.count; i++) {
+          const SI4 = SIa.array, SW4 = SWa.array; let ws = 0; for (let k = 0; k < 4; k++) if (sub.has(SI4[i * 4 + k])) ws += SW4[i * 4 + k];
+          if (ws <= 0.0001) { side[i] = -1; continue; } if (ws >= 0.9999) { side[i] = 1; continue; }
+          const dist = (P.getX(i) - o.x) * dir.x + (P.getY(i) - o.y) * dir.y + (P.getZ(i) - o.z) * dir.z, mine = dist < 0 ? -1 : 1; side[i] = mine;
+          let sum = 0; const w = [0, 0, 0, 0]; for (let k = 0; k < 4; k++) { const inS = sub.has(SI4[i * 4 + k]); if ((mine > 0) === inS) { w[k] = SW4[i * 4 + k]; sum += w[k]; } }
+          if (sum < 1e-4) { SIa.setXYZW(i, mine > 0 ? body.list.indexOf(sg) : body.list.indexOf(par), 0, 0, 0); SWa.setXYZW(i, 1, 0, 0, 0); } else SWa.setXYZW(i, w[0] / sum, w[1] / sum, w[2] / sum, w[3] / sum);
+        }
+        const idx = geo.index.array, keep = [];
+        for (let t = 0; t < idx.length; t += 3) { const a = side[idx[t]], b = side[idx[t + 1]], c = side[idx[t + 2]]; if (a === b && b === c) keep.push(idx[t], idx[t + 1], idx[t + 2]); }
+        geo.setIndex(keep); SIa.needsUpdate = SWa.needsUpdate = true; body.dirty = true;
+        // the two raw ends
+        const mat = new THREE.MeshStandardMaterial({ map: stumpTex(STUMP_BONES[segName.replace(/[LR]$/, '')] || [[0, 0, 12]]), normalMap: stumpN, roughness: 0.4, metalness: 0, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1 });
+        const cap = (seg, sign) => { const m = new THREE.Mesh(new THREE.CircleGeometry(rad * 0.86, 28), mat); /* a little inside the skin, so no rim shows */ m.position.copy(o).sub(seg.origin).addScaledVector(dir, sign * 0.004); m.quaternion.setFromUnitVectors(new V3(0, 0, 1), dir.clone().multiplyScalar(sign)); m.renderOrder = 2; seg.g.add(m); (body.stumps = body.stumps || []).push(m); return m; };
+        cap(par, -1); cap(sg, 1);
+      }
+      // bloodied, torn tissue round the cut
+      const col = geo.attributes.color, red = new THREE.Color(0x3a0405);
+      for (let i = 0; i < P.count; i++) { const dx = P.getX(i) - o.x, dy = P.getY(i) - o.y, dz = P.getZ(i) - o.z, d = Math.abs(dx * dir.x + dy * dir.y + dz * dir.z), r = Math.hypot(dx, dy, dz); if (r < rad * 2.2 && d < (partial ? 0.05 : 0.04)) { const t = Math.min(1, Math.max(0, 1 - d / 0.05) * 1.1); col.setXYZ(i, col.getX(i) + (red.r - col.getX(i)) * t, col.getY(i) + (red.g - col.getY(i)) * t, col.getZ(i) + (red.b - col.getZ(i)) * t); } }
+      col.needsUpdate = true; body.dirty = true;
+      return { at: o.clone(), dir, rad, parent: par };
+    };
     // ---- eyes. A bullet through the globe ruptures it: it collapses, dark with blood. Passing close behind it, the
     // bleeding in the orbit pushes it forward (proptosis) and floods the white with blood. A powerful round through
     // the orbit can push it right out of the socket (then it is drawn by viscera.js, hanging by the optic nerve).
@@ -652,6 +756,8 @@
     body.woundNormal = (w, out) => out.copy(w.n).transformDirection(w.seg.g.matrixWorld);
     body.clearWounds = () => {
       if (body.resetEyes) body.resetEyes();
+      if (body.cut0 && body.human) { const g = body.human.geometry; g.attributes.skinIndex.array.set(body.cut0.si); g.attributes.skinWeight.array.set(body.cut0.sw); g.attributes.skinIndex.needsUpdate = g.attributes.skinWeight.needsUpdate = true; g.setIndex(new THREE.BufferAttribute(body.cut0.idx.slice(), 1)); body.cut0 = null; }
+      for (const m of body.stumps || []) m.parent && m.parent.remove(m); body.stumps = [];
       for (const hm2 of body.hairs || []) if (hm2.userData.pos0) { hm2.geometry.attributes.position.array.set(hm2.userData.pos0); hm2.geometry.attributes.position.needsUpdate = true; }
       if (body.human && body.dirty) { const g = body.human.geometry; g.attributes.position.array.set(body.skin0.pos); g.attributes.color.array.set(body.skin0.col); g.attributes.position.needsUpdate = g.attributes.color.needsUpdate = true; g.computeVertexNormals(); body.dirty = false; }
       for (const sg of body.list) if (sg.dirty && sg.skin) { const g = sg.skin.geometry; g.attributes.position.array.set(sg.skin0.pos); g.attributes.color.array.set(sg.skin0.col); g.attributes.position.needsUpdate = g.attributes.color.needsUpdate = true; g.computeVertexNormals(); sg.dirty = false; } for (const w of body.wounds) { w.seg.g.remove(w.g); if (w.track) w.seg.g.remove(w.track); if (w.soak) { w.soak.parent.remove(w.soak); w.soak.geometry.dispose(); } } body.wounds.length = 0; if (body.clearBlood) body.clearBlood(); };

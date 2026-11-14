@@ -1,4 +1,4 @@
-# Port-Marlowe — Wound Ballistics Lab (v1.9)
+# Port-Marlowe — Wound Ballistics Lab (v2.0)
 
 A browser-based 3D simulator of gunshot wounds. A test subject stands in a chamber; every
 round is traced millimetre by millimetre through skin, bone, organs and vessels, and the
@@ -7,6 +7,16 @@ body then responds in real time (bleeding, blood pressure, breathing, consciousn
 **Run it:** serve this folder with any static server (`python3 -m http.server`) and open
 `index.html`. No build step. `node tools/build.js` bundles a single-file page into `dist/`.
 
+**v2.0**: bones break and limbs come off. Each long bone (femur, tibia, humerus, forearm) is one rigid body while it
+is whole; a bullet through the shaft splits it into two, joined only by soft tissue, and the muscles spanning the
+break pull it into angulation and outward rotation, so the limb bends where it broke and flops when moved. Close-range
+buckshot can take off a hand or a foot or leave a forearm or lower leg hanging by tissue, a slug can sever a hand,
+and a rifle round can mangle one: the skin is cut cleanly, the open ends show skin, fat, muscle and bone, and the
+stump bleeds from its arteries. Handgun and rifle bullets never cut through a thigh or upper arm. Physics fix: every
+force and impulse (bullet hits, grabbing, hands pressing wounds, the knee lift) was applied with a false lever arm
+of about a metre (cannon.js takes a world point, not an offset), which made the body spin and flail on hits; the
+grab tool no longer tears limbs apart under a hard pull. Hands now press flat on a wound, the second hand on top of
+the first.
 **v1.9**: head wounds follow the energy left in the head. Handgun rounds (300-700 J) leave a modest exit, often
 with a little brain tissue in it. Rifle rounds and slugs (1000-3000 J) burst the skull open: a large ragged defect
 with brain and blood inside, torn scalp and bone pushed outward, radiating scalp tears, hair parted over the

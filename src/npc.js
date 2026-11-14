@@ -325,6 +325,8 @@
       const giving = N.posture === 'falling' && (N.giveT > 0 || pel.position.y > 0.5);
       for (const n of names) {
         const part = rag.parts[n], side = n.slice(-1), isLeg = /^(thigh|shin|foot)/.test(n), isArm = /^(uarm|farm|hand)/.test(n);
+        if (n.includes('X')) { part.tone = 0; part.target.set(0, 0, 0, 1); continue; } // mid-shaft of a long bone: no joint to drive
+        if (part.severed) { part.tone = 0; continue; } // no longer attached: no nerve, no muscle control
         let tone = rigid ? 1.5 : clonic ? 1.25 : base;
         if (giving && !rigid) tone *= isLeg ? 0.06 : isArm ? 1 : 0.35;
         if (N.tripped && N.posture === 'falling' && isLeg) tone *= 0.5;

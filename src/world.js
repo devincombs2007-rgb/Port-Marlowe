@@ -66,7 +66,7 @@
     for (let k = 0; k < GX * GZ; k++) { npx[k * 4] = 128; npx[k * 4 + 1] = 128; npx[k * 4 + 2] = 255; npx[k * 4 + 3] = 255; }
     const ntex = new THREE.DataTexture(npx, GX, GZ, THREE.RGBAFormat), rtex = new THREE.DataTexture(rpx, GX, GZ, THREE.RGBAFormat);
     for (const t of [ntex, rtex]) { t.magFilter = t.minFilter = THREE.LinearFilter; t.needsUpdate = true; }
-    const bmat = new THREE.MeshStandardMaterial({ map: btex, normalMap: ntex, normalScale: new THREE.Vector2(1.6, 1.6), roughnessMap: rtex, roughness: 1, metalness: 0.02, envMapIntensity: 1.4, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
+    const bmat = new THREE.MeshStandardMaterial({ map: btex, normalMap: ntex, normalScale: new THREE.Vector2(1.6, 1.6), roughnessMap: rtex, roughness: 1, metalness: 0.02, envMapIntensity: 0.55, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
     bmat.onBeforeCompile = (sh) => { sh.fragmentShader = sh.fragmentShader.replace('#include <map_fragment>', '#include <map_fragment>\n  diffuseColor.a = smoothstep(0.1, 0.32, diffuseColor.a) * 0.97;'); };
     const bmesh = new THREE.Mesh(new THREE.PlaneGeometry(w, d), bmat);
     bmesh.rotation.x = -Math.PI / 2; bmesh.position.set(0, 0.0022, cz); bmesh.renderOrder = 2; scene.add(bmesh);

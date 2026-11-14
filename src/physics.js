@@ -5,8 +5,10 @@
 (function () {
   const G = (window.GSW = window.GSW || {});
   const V3 = THREE.Vector3, Q = THREE.Quaternion, C = CANNON;
+  // NOTE: in cannon.js 0.6.2 Body.applyForce(force, point) and applyImpulse(impulse, point) take the point in WORLD
+  // space (they subtract the body's position themselves). Passing an offset instead adds a large false torque.
   // segment masses, kg (Dempster-style fractions of 77 kg)
-  const MASS = { head: 5.2, neck: 1.0, thorax: 16.5, abdomen: 10.7, pelvis: 11, uarm: 2.15, farm: 1.25, hand: 0.46, thigh: 7.7, shin: 3.6, foot: 1.1 };
+  const MASS = { head: 5.2, neck: 1.0, thorax: 16.5, abdomen: 10.7, pelvis: 11, uarm: 1.2, uarmX: 0.95, farm: 0.7, farmX: 0.55, hand: 0.46, thigh: 4.4, thighX: 3.3, shin: 1.95, shinX: 1.65, foot: 1.1 }; // long bones: proximal / distal half
   const n3 = (x, y, z) => { const l = Math.hypot(x, y, z); return new C.Vec3(x / l, y / l, z / l); };
   const DOWN = new C.Vec3(0, -1, 0), UP = new C.Vec3(0, 1, 0), XA = new C.Vec3(1, 0, 0);
   // joint: axisA = child's long axis at mid-range in the parent frame, cone = half range (rad)
@@ -19,10 +21,12 @@
       case 'head': return { aA: UP, aB: UP, cone: 0.5, twist: 0.6, gain: 2 };
       case 'uarm': return { aA: n3(0.55 * s, -0.7, 0.4), aB: DOWN, cone: 1.35, twist: 0.9, gain: 2.5 };
       case 'farm': return { aA: n3(0, -0.3, 0.95), aB: DOWN, cone: 1.25, twist: 0.5, hinge: true, gain: 2 };
-      case 'hand': return { aA: DOWN, aB: DOWN, cone: 1.15, twist: 0.3, gain: 1 }; // the wrist bends about 65-75 degrees each way
+      case 'hand': return { aA: DOWN, aB: DOWN, cone: 1.15, twist: 1.35, gain: 1 }; // the wrist bends about 65-75 degrees each way; the twist stands in for forearm pronation/supination (the elbow here is a pure hinge)
       case 'thigh': return { aA: n3(0.12 * s, -0.64, 0.77), aB: DOWN, cone: 1.2, twist: 0.4, gain: 3 }; // hip: about 120 deg flexion, 20 deg extension
       case 'shin': return { aA: n3(0, -0.3, -0.95), aB: DOWN, cone: 1.25, twist: 0.2, hinge: true, gain: 2.5 };
       case 'foot': return { aA: DOWN, aB: DOWN, cone: 0.5, twist: 0.25, gain: 1 };
+      // mid-shaft of a long bone: rigid while the bone is whole; once broken, the soft tissue alone holds the two ends
+      case 'thighX': case 'shinX': case 'uarmX': case 'farmX': return { aA: DOWN, aB: DOWN, cone: 1.25, twist: 0.8, gain: 0, shaft: true };
     }
   };
 
@@ -33,7 +37,7 @@
   function addShapes(b, name, he) {
     const base = name.replace(/[LR]$/, '');
     if (base === 'head') { b.addShape(new C.Sphere(Math.min(he.x, he.y, he.z) * 1.02)); return; }
-    if (/^(uarm|farm|thigh|shin|neck)$/.test(base)) {
+    if (/^(uarm|farm|thigh|shin)X?$|^neck$/.test(base)) {
       const r = Math.max(0.012, Math.min(he.x, he.z) * 0.95), half = Math.max(0.005, he.y - r);
       b.addShape(new C.Cylinder(r, r, half * 2, 10), new C.Vec3(0, 0, 0), Z2Y);
       b.addShape(new C.Sphere(r), new C.Vec3(0, half, 0)); b.addShape(new C.Sphere(r), new C.Vec3(0, -half, 0));
@@ -53,10 +57,10 @@
     const filter = (n) => {
       if (n === 'thorax' || n === 'head') return [CHEST, GROUND | LEGL | LEGR | ARML | ARMR];
       if (n === 'pelvis' || n === 'abdomen') return [TRUNK, GROUND | ARML | ARMR];
-      if (/^(thigh|shin|foot)L/.test(n)) return [LEGL, GROUND | CHEST | LEGR | ARML | ARMR];
-      if (/^(thigh|shin|foot)R/.test(n)) return [LEGR, GROUND | CHEST | LEGL | ARML | ARMR];
-      if (/^(farm|hand)L/.test(n)) return [ARML, GROUND | CHEST | TRUNK | LEGL | LEGR | ARMR];
-      if (/^(farm|hand)R/.test(n)) return [ARMR, GROUND | CHEST | TRUNK | LEGL | LEGR | ARML];
+      if (/^(thigh|shin|foot)X?L$/.test(n)) return [LEGL, GROUND | CHEST | LEGR | ARML | ARMR];
+      if (/^(thigh|shin|foot)X?R$/.test(n)) return [LEGR, GROUND | CHEST | LEGL | ARML | ARMR];
+      if (/^(farm|hand)X?L$/.test(n)) return [ARML, GROUND | CHEST | TRUNK | LEGL | LEGR | ARMR];
+      if (/^(farm|hand)X?R$/.test(n)) return [ARMR, GROUND | CHEST | TRUNK | LEGL | LEGR | ARML];
       return [BODY, GROUND];
     };
     // Friction is calibrated empirically: sliding the whole body across the floor and measuring its
@@ -76,50 +80,87 @@
     P.ctl = { s: 0, bal: 1, y0: 0.94, yRest: 0.94, push: new V3() };
     const MTOT = 77, GRAV = 9.81;
     // ---- ragdoll bodies
-    for (const s of body.list) {
-      const size = s.bbox.getSize(new V3()), c = s.bbox.getCenter(new V3());
-      const he = new C.Vec3(Math.max(0.014, size.x * 0.46), Math.max(0.014, size.y * 0.47), Math.max(0.014, size.z * 0.46));
-      const b = new C.Body({ mass: MASS[s.name.replace(/[LR]$/, '')], linearDamping: 0.04, angularDamping: 0.3 });
-      addShapes(b, s.name, he);
-      const halfLen = he.y;
-      if (s.name.startsWith('foot')) b.material = footMat;
-      [b.collisionFilterGroup, b.collisionFilterMask] = filter(s.name); b.sleepSpeedLimit = 0.12; b.sleepTimeLimit = 1.2;
-      const part = { seg: s, b, off: s.origin.clone().sub(c), center: c, tone: 0, target: new Q(), I: 0, slack: 0, half: halfLen, leg: /^(thigh|shin|foot)/.test(s.name) ? s.name.slice(-1) : null };
-      b.updateMassProperties(); part.I = Math.min(b.inertia.x, b.inertia.y, b.inertia.z);
+    // A long bone is one rigid body while it is whole (its two skin segments ride on it); it becomes two bodies only
+    // when it breaks (P.fracture), so an intact limb behaves exactly like a single bone in the solver.
+    const heOf = (box) => { const size = box.getSize(new V3()); return new C.Vec3(Math.max(0.014, size.x * 0.46), Math.max(0.014, size.y * 0.47), Math.max(0.014, size.z * 0.46)); };
+    const massOf = (n) => MASS[n.replace(/[LR]$/, '')];
+    const setShapes = (b, name, box, mass) => {
+      b.shapes.length = 0; b.shapeOffsets.length = 0; b.shapeOrientations.length = 0;
+      const he = heOf(box); addShapes(b, name, he); b.mass = mass; b.invMass = mass > 0 ? 1 / mass : 0; b.updateMassProperties(); b.updateBoundingRadius(); b.aabbNeedsUpdate = true; return he;
+    };
+    const mkBody = (s, name, box, mass) => {
+      const b = new C.Body({ mass, linearDamping: 0.04, angularDamping: 0.3 });
+      const he = setShapes(b, name, box, mass);
+      if (name.startsWith('foot')) b.material = footMat;
+      [b.collisionFilterGroup, b.collisionFilterMask] = filter(name); b.sleepSpeedLimit = 0.12; b.sleepTimeLimit = 1.2;
       b.addEventListener('collide', (e) => {
         const v = Math.abs(e.contact.getImpactVelocityAlongNormal());
         if (v > 1.1 && b.mass > 3 && P.t - P.lastThud > 0.25) { P.lastThud = P.t; audio.thud(Math.min(1, v / 4)); }
         // the head striking the floor: blunt injury scaled by impact speed
         if (s.name === 'head' && v > 2.2 && hooks.headImpact) hooks.headImpact(v);
       });
+      return { b, he };
+    };
+    const Imin = (b) => Math.min(b.inertia.x, b.inertia.y, b.inertia.z);
+    for (const s of body.list) {
+      const sp = G.SPLIT[s.name], xs = sp && body.segs[sp.distal];
+      const box = xs ? s.bbox.clone().union(xs.bbox) : s.bbox, c = box.getCenter(new V3());
+      const { b, he } = mkBody(s, s.name, box, massOf(s.name) + (xs ? massOf(xs.name) : 0));
+      const part = { seg: s, b, off: s.origin.clone().sub(c), center: c, tone: 0, target: new Q(), I: Imin(b), slack: 0, half: he.y, leg: /^(thigh|shin|foot)/.test(s.name) ? s.name.slice(-1) : null };
+      if (xs) part.split = { box, ownBox: s.bbox, union: c.clone(), unionHalf: he.y, mUnion: b.mass, mOwn: massOf(s.name), x: xs.name };
       P.parts[s.name] = part; s.part = part;
+    }
+    // the distal halves: their own body waits until the bone breaks; until then they ride on the whole bone
+    for (const s of body.list) {
+      if (!/X[LR]$/.test(s.name)) continue;
+      const pp = P.parts[s.parent], own = mkBody(s, s.name, s.bbox, massOf(s.name)), oc = s.bbox.getCenter(new V3());
+      const part = P.parts[s.name];
+      part.own = { b: own.b, c: oc, half: own.he.y }; part.virtual = true; part.b = pp.b; part.center = pp.split.union.clone(); part.off = s.origin.clone().sub(part.center); part.half = pp.split.unionHalf; part.I = pp.I;
     }
     P.ctl.yRest = P.ctl.y0 = P.parts.pelvis.center.y;
     // at rest the trunk sits slightly behind the middle of the feet; balance holds that, not zero
     const offZ = (P.parts.pelvis.center.z + P.parts.thorax.center.z) / 2 - (P.parts.footL.center.z + P.parts.footR.center.z) / 2, fw = new C.Vec3(), FWD = new C.Vec3(0, 0, 1);
-    for (const s of body.list) {
-      if (!s.parent) continue;
-      const a = P.parts[s.parent], b = P.parts[s.name], j = JOINT(s.name);
+    // (re)build a joint's constraints from the current bodies and centres of its two parts
+    function wire(j) {
+      const a = j.a, b = j.b, s = b.seg, d = j.def;
       const pA = new C.Vec3(s.origin.x - a.center.x, s.origin.y - a.center.y, s.origin.z - a.center.z);
       const pB = new C.Vec3(s.origin.x - b.center.x, s.origin.y - b.center.y, s.origin.z - b.center.z);
-      const cons = [new C.ConeTwistConstraint(a.b, b.b, { pivotA: pA, pivotB: pB, axisA: j.aA, axisB: j.aB, angle: j.cone, twistAngle: j.twist })];
-      if (j.hinge) cons.push(new C.HingeConstraint(a.b, b.b, { pivotA: pA, pivotB: pB, axisA: XA, axisB: XA }));
-      for (const c of cons) c.collideConnected = false;
-      // rigid posturing: an extra tight cone around the straight (rest) direction, switched on only while the brainstem holds the body in extension
-      const lock = /^(hand|foot)/.test(s.name) ? null : new C.ConeTwistConstraint(a.b, b.b, { pivotA: pA, pivotB: pB, axisA: j.aB, axisB: j.aB, angle: /^uarm/.test(s.name) ? 0.3 : 0.12, twistAngle: 0.25 });
-      if (lock) { lock.collideConnected = false; P.locks.push(lock); }
+      j.pA = pA; j.pB = pB; j.lock = null;
+      if (d.shaft) j.cons = b.virtual || j.severed ? [] : [new C.ConeTwistConstraint(a.b, b.b, { pivotA: pA, pivotB: pB, axisA: d.aA, axisB: d.aB, angle: d.cone, twistAngle: d.twist })];
+      else if (j.severed) j.cons = [];
+      else if (j.partial) j.cons = [new C.ConeTwistConstraint(a.b, b.b, { pivotA: pA, pivotB: pB, axisA: DOWN, axisB: DOWN, angle: 2.6, twistAngle: 1.6 })];
+      else {
+        j.cons = [new C.ConeTwistConstraint(a.b, b.b, { pivotA: pA, pivotB: pB, axisA: d.aA, axisB: d.aB, angle: d.cone, twistAngle: d.twist })];
+        if (d.hinge) j.cons.push(new C.HingeConstraint(a.b, b.b, { pivotA: pA, pivotB: pB, axisA: XA, axisB: XA }));
+        // rigid posturing: an extra tight cone around the straight (rest) direction, switched on only while the brainstem holds the body in extension
+        if (!/^(hand|foot)/.test(s.name)) { j.lock = new C.ConeTwistConstraint(a.b, b.b, { pivotA: pA, pivotB: pB, axisA: d.aB, axisB: d.aB, angle: /^uarm/.test(s.name) ? 0.3 : 0.12, twistAngle: 0.25 }); j.lock.collideConnected = false; }
+      }
+      for (const c of j.cons) c.collideConnected = false;
       // gains from the reduced inertia of the pair, so the explicit PD torque stays stable at 120 Hz
-      const Ir = (a.I * b.I) / (a.I + b.I);
-      P.joints.push({ a, b, cons, k: 290 * Ir * j.gain, d: 34 * Ir * j.gain, pd: 22 * Ir });
+      const Ir = (a.I * b.I) / (a.I + b.I); j.k = 290 * Ir * d.gain; j.d = 34 * Ir * d.gain; j.pd = 22 * Ir;
     }
+    for (const s of body.list) {
+      if (!s.parent) continue;
+      const j = { a: P.parts[s.parent], b: P.parts[s.name], def: JOINT(s.name), cons: [] }; j.shaft = !!j.def.shaft;
+      wire(j); P.joints.push(j);
+    }
+    const relock = () => { P.locks = P.joints.map((j) => j.lock).filter(Boolean); };
+    relock();
 
     const q1 = new Q(), q2 = new Q(), q3 = new Q(), v1 = new V3(), v2 = new V3();
     // ---- hand the body over from animation to physics
+    // put a long bone back together (on reset): one body again, its distal half riding on it
+    function unsplit(pp) {
+      const xp = P.parts[pp.split.x]; if (xp.virtual) return;
+      world.remove(xp.b); setShapes(pp.b, pp.seg.name, pp.split.box, pp.split.mUnion);
+      pp.center = pp.split.union.clone(); pp.off = pp.seg.origin.clone().sub(pp.center); pp.half = pp.split.unionHalf; pp.I = Imin(pp.b);
+      xp.virtual = true; xp.b = pp.b; xp.center = pp.center.clone(); xp.off = xp.seg.origin.clone().sub(xp.center); xp.half = pp.half; xp.I = pp.I;
+    }
     P.start = () => {
       if (P.active) return;
       P.active = true; body.updateMatrices();
       for (const k in P.parts) {
-        const p = P.parts[k], s = p.seg;
+        const p = P.parts[k], s = p.seg; if (p.virtual) continue;
         s.g.getWorldQuaternion(q1); s.g.getWorldPosition(v1); v2.copy(p.off).applyQuaternion(q1); v1.sub(v2);
         p.b.position.set(v1.x, v1.y, v1.z); p.b.quaternion.set(q1.x, q1.y, q1.z, q1.w);
         p.b.velocity.set(0, 0, 0); p.b.angularVelocity.set(0, 0, 0); p.b.force.set(0, 0, 0); p.b.torque.set(0, 0, 0);
@@ -127,20 +168,56 @@
       }
       for (const j of P.joints) for (const c of j.cons) world.addConstraint(c);
     };
+    const rewire = (list) => { for (const j of list) { for (const c of j.cons) world.removeConstraint(c); if (j.lock) world.removeConstraint(j.lock); wire(j); for (const c of j.cons) world.addConstraint(c); if (P.rigid && j.lock) world.addConstraint(j.lock); } relock(); };
+    // a broken shaft: the whole-bone body becomes two, joined only by soft tissue (a loose cone), so the limb bends there
+    P.fracture = (name) => {
+      const xp = P.parts[name]; if (!xp || !xp.virtual || !P.active) return false;
+      const pp = P.parts[xp.seg.parent], B = pp.b, qb = new Q(B.quaternion.x, B.quaternion.y, B.quaternion.z, B.quaternion.w);
+      const u = pp.split.union, oc = pp.split.ownBox.getCenter(new V3()), xc = xp.own.c, ob = xp.own.b;
+      const at = (rest) => { const r = rest.clone().sub(u).applyQuaternion(qb); return r; };
+      // the distal half: its own body exactly where that part of the bone is now, moving as it was
+      const rX = at(xc); ob.position.set(B.position.x + rX.x, B.position.y + rX.y, B.position.z + rX.z); ob.quaternion.copy(B.quaternion);
+      const w = B.angularVelocity; ob.velocity.set(B.velocity.x + w.y * rX.z - w.z * rX.y, B.velocity.y + w.z * rX.x - w.x * rX.z, B.velocity.z + w.x * rX.y - w.y * rX.x); ob.angularVelocity.copy(w);
+      ob.force.set(0, 0, 0); ob.torque.set(0, 0, 0); ob.wakeUp(); world.addBody(ob);
+      // the proximal half keeps the body, shrunk to its own part of the bone
+      const rP = at(oc); B.position.set(B.position.x + rP.x, B.position.y + rP.y, B.position.z + rP.z);
+      B.velocity.set(B.velocity.x + w.y * rP.z - w.z * rP.y, B.velocity.y + w.z * rP.x - w.x * rP.z, B.velocity.z + w.x * rP.y - w.y * rP.x);
+      const hp = setShapes(B, pp.seg.name, pp.split.ownBox, pp.split.mOwn); pp.center = oc; pp.off = pp.seg.origin.clone().sub(oc); pp.half = hp.y; pp.I = Imin(B);
+      xp.virtual = false; xp.b = ob; xp.center = xc.clone(); xp.off = xp.seg.origin.clone().sub(xc); xp.half = xp.own.half; xp.I = Imin(ob);
+      const jb = P.joints.find((q) => q.b === xp);
+      rewire(P.joints.filter((q) => q.b === pp || q.b === xp || q.a === xp));
+      // the muscles spanning the break go into spasm: the distal end is pulled into angulation and turned outward
+      const sg = name.endsWith('L') ? 1 : -1, leg = /^(thigh|shin)/.test(name);
+      jb.spasm = new Q().setFromEuler(new THREE.Euler((Math.random() < 0.6 ? -1 : 1) * (0.25 + Math.random() * 0.3), sg * (leg ? 0.55 : 0.25) * (0.7 + Math.random() * 0.6), (Math.random() - 0.5) * 0.4));
+      const Ir = (pp.I * xp.I) / (pp.I + xp.I); jb.ks = 290 * Ir * 0.22;
+      jb.broken = xp.broken = true; B.wakeUp(); return true;
+    };
+    // severed: nothing holds the part (and everything beyond it) to the body any more; partial: a strip of skin and
+    // muscle still does, so it hangs and swings almost freely
+    P.sever = (name, partial) => {
+      if (P.parts[name] && P.parts[name].virtual) P.fracture(name); // through the middle of a long bone
+      const j = P.joints.find((q) => q.b.seg.name === name); if (!j || j.severed || !P.active) return false;
+      j.broken = j.b.broken = true; j.spasm = null;
+      if (partial) j.partial = true; else { j.severed = true; const mark = (sg) => { P.parts[sg.name].severed = true; for (const s2 of body.list) if (s2.parent === sg.name) mark(s2); }; mark(j.b.seg); }
+      rewire([j]); j.a.b.wakeUp(); j.b.b.wakeUp(); return true;
+    };
     P.setRigid = (on) => { if (on === P.rigid || !P.active) return; P.rigid = on; for (const c of P.locks) on ? world.addConstraint(c) : world.removeConstraint(c); for (const k in P.parts) P.parts[k].b.wakeUp(); };
     P.stop = () => {
       if (!P.active) return;
       P.setRigid(false);
       P.active = false; P.stepping = null; P.lost = null; P.stepWin = 0; P.grabbed = null; P.clutch.L = P.clutch.R = null; P.reach.L = P.reach.R = null; P.ext = {}; P.ctl.s = 0; P.ctl.push.set(0, 0, 0);
-      for (const j of P.joints) for (const c of j.cons) world.removeConstraint(c);
+      for (const j of P.joints) { for (const c of j.cons) world.removeConstraint(c); if (j.lock) world.removeConstraint(j.lock); }
       for (const k in P.parts) world.remove(P.parts[k].b);
+      for (const k in P.parts) { const pp = P.parts[k]; pp.broken = pp.severed = false; if (pp.split) unsplit(pp); }
+      for (const j of P.joints) { j.broken = j.severed = j.partial = false; j.spasm = null; wire(j); }
+      relock();
       for (const s of body.list) { s.g.position.copy(s.rest); s.g.quaternion.set(0, 0, 0, 1); }
       body.root.position.set(0, 0, 0); body.root.rotation.set(0, 0, 0);
     };
     // impulse (kg·m/s) at a world point on a segment
     P.impulse = (seg, pt, imp) => {
       const b = seg.part.b; b.wakeUp();
-      b.applyImpulse(new C.Vec3(imp.x, imp.y, imp.z), new C.Vec3(pt.x - b.position.x, pt.y - b.position.y, pt.z - b.position.z));
+      b.applyImpulse(new C.Vec3(imp.x, imp.y, imp.z), new C.Vec3(pt.x, pt.y, pt.z)); // cannon 0.6: the point is in world space
     };
     // reflex on being hit: the struck segment (and the one below it) goes slack for a moment and is
     // jerked away from the shot. Strength 0..1 from the energy deposited.
@@ -158,6 +235,15 @@
     function muscles() {
       for (const j of P.joints) {
         const A = j.a.b, B = j.b.b;
+        if (j.severed) continue;
+        if (j.b.virtual) continue; // a whole bone: nothing between its two halves
+        if (j.spasm && !j.severed) {
+          // weak, steady pull toward the deformity (no voluntary control across a broken bone)
+          q1.set(A.quaternion.x, A.quaternion.y, A.quaternion.z, A.quaternion.w).multiply(j.spasm); q2.set(B.quaternion.x, B.quaternion.y, B.quaternion.z, B.quaternion.w).invert(); q3.multiplyQuaternions(q1, q2);
+          if (q3.w < 0) { q3.x = -q3.x; q3.y = -q3.y; q3.z = -q3.z; q3.w = -q3.w; } const sn = Math.hypot(q3.x, q3.y, q3.z);
+          if (sn > 1e-5) { const ang = Math.min(1.2, 2 * Math.atan2(sn, q3.w)), f = (j.ks * ang) / sn; A.wakeUp(); B.wakeUp(); B.torque.x += q3.x * f; B.torque.y += q3.y * f; B.torque.z += q3.z * f; A.torque.x -= q3.x * f; A.torque.y -= q3.y * f; A.torque.z -= q3.z * f; }
+        }
+        if (j.shaft || j.broken) { if (j.broken) { const d = j.pd * 0.4; B.torque.x -= d * (B.angularVelocity.x - A.angularVelocity.x); B.torque.y -= d * (B.angularVelocity.y - A.angularVelocity.y); B.torque.z -= d * (B.angularVelocity.z - A.angularVelocity.z); A.torque.x += d * (B.angularVelocity.x - A.angularVelocity.x); A.torque.y += d * (B.angularVelocity.y - A.angularVelocity.y); A.torque.z += d * (B.angularVelocity.z - A.angularVelocity.z); } continue; }
         let tone = j.b.tone;
         if (P.stepping && j.b.leg === P.stepping.side) tone *= 0.25; // the swinging leg is carried by the hip, not held stiff
         if (j.b.slack > 0) { tone *= 0.2; j.b.slack -= H; }
@@ -194,10 +280,10 @@
           sf.set(420 * (tx - f.position.x) - 40 * f.velocity.x, 0, 420 * (tz - f.position.z) - 40 * f.velocity.z);
           const m = sf.norm(), cap = 150 * k; if (m > cap) sf.scale(cap / m, sf);
           f.wakeUp(); f.force.vadd(sf, f.force); pel.force.vsub(sf, pel.force);
-          const part = P.parts['thigh' + sd], th = part.b; th.wakeUp();
+          const part = P.parts['thighX' + sd], th = part.b; th.wakeUp();
           th.quaternion.vmult(DOWN, kv); const half = part.half || 0.2; kp.set(th.position.x + kv.x * half, th.position.y + kv.y * half, th.position.z + kv.z * half);
           const lift = supine ? Math.min(120, Math.max(0, 0.42 - kp.y) * 600) * k : 0;
-          kf.set(0, lift, 0); kr.set(kp.x - th.position.x, kp.y - th.position.y, kp.z - th.position.z); th.applyForce(kf, kr); pel.force.y -= lift * 0.6; f.force.y -= lift * 0.4;
+          kf.set(0, lift, 0); th.applyForce(kf, kp); pel.force.y -= lift * 0.6; f.force.y -= lift * 0.4;
         }
       }
       if (c.draw > 0.01) {
@@ -214,10 +300,10 @@
         // the hip flexors lift each knee (the lower end of the thigh) while the heel stays on the floor and is drawn
         // in, so the leg folds at the knee instead of lifting as a straight strut
         for (const sd of ['L', 'R']) {
-          const part = P.parts['thigh' + sd], th = part.b, ft = P.parts['foot' + sd].b; th.wakeUp(); ft.wakeUp();
+          const part = P.parts['thighX' + sd], th = part.b, ft = P.parts['foot' + sd].b; th.wakeUp(); ft.wakeUp();
           th.quaternion.vmult(DOWN, kv); const half = part.half || 0.2; kp.set(th.position.x + kv.x * half, th.position.y + kv.y * half, th.position.z + kv.z * half);
           const lift = Math.min(160, Math.max(0, 0.45 - kp.y) * 700) * c.draw;
-          kf.set(0, lift, 0); kr.set(kp.x - th.position.x, kp.y - th.position.y, kp.z - th.position.z); th.applyForce(kf, kr);
+          kf.set(0, lift, 0); th.applyForce(kf, kp);
           pel.force.y -= lift * 0.6; ft.force.y -= lift * 0.4; // reaction through the pelvis and the heel
         }
       }
@@ -327,7 +413,7 @@
     // a hand holding a wound is in contact with its own body: the coarse chest/belly collision boxes would keep it
     // pushed away (they enclose the base of the neck), so while holding, that hand and forearm skip them
     const handMask = (side, holding) => {
-      for (const n of ['hand' + side, 'farm' + side]) {
+      for (const n of ['hand' + side, 'farmX' + side, 'farm' + side]) {
         const b = P.parts[n].b; if (b.mask0 == null) b.mask0 = b.collisionFilterMask;
         b.collisionFilterMask = holding ? (b.mask0 & ~(CHEST | TRUNK)) : b.mask0;
       }
@@ -343,7 +429,7 @@
     // the arm's pull on the hand comes back into the chest along the same line of action (applied at the hand's
     // position), so the pair carries no net torque either: an internal force cannot spin the body
     const pr = new C.Vec3(), nf = new C.Vec3();
-    const pushBack = (h, tho) => { h.force.vadd(cf, h.force); cf.negate(nf); h.position.vsub(tho.position, pr); tho.applyForce(nf, pr); };
+    const pushBack = (h, tho) => { h.force.vadd(cf, h.force); cf.negate(nf); tho.applyForce(nf, h.position); };
     function clutchForce() {
       const tho = P.parts.thorax.b;
       for (const sd of ['L', 'R']) {
@@ -379,33 +465,42 @@
         pushBack(h, tho);
         // the palm turns flat onto the wound (wrist muscles: torque on the hand, reacted by the forearm)
         if (c.nl && c.nl.norm() > 0) {
-          const fa = P.parts['farm' + sd].b, sg = sd === 'L' ? 1 : -1; b.quaternion.vmult(c.nl, an); h.quaternion.vmult(PALM[sd], pw);
-          const near = Math.max(0, 1 - Math.hypot(cp.x - h.position.x, cp.y - h.position.y, cp.z - h.position.z) / 0.3), K = 10 * near * (P.grip == null ? 1 : P.grip);
+          const fa = P.parts['farmX' + sd].b, sg = sd === 'L' ? 1 : -1; b.quaternion.vmult(c.nl, an); h.quaternion.vmult(PALM[sd], pw);
+          const near = Math.max(0, 1 - Math.hypot(cp.x - h.position.x, cp.y - h.position.y, cp.z - h.position.z) / 0.4), K = 22 * near * (P.grip == null ? 1 : P.grip);
           // want palm = -wound normal
           tq.set(pw.y * -an.z - pw.z * -an.y, pw.z * -an.x - pw.x * -an.z, pw.x * -an.y - pw.y * -an.x);
           tq.x = K * tq.x - 0.08 * (h.angularVelocity.x - fa.angularVelocity.x); tq.y = K * tq.y - 0.08 * (h.angularVelocity.y - fa.angularVelocity.y); tq.z = K * tq.z - 0.08 * (h.angularVelocity.z - fa.angularVelocity.z);
           h.torque.vadd(tq, h.torque); fa.torque.vsub(tq, fa.torque); void sg;
         }
-        b.quaternion.vmult(c.nl || (c.nl = new C.Vec3(0, 0, 0)), cn); if (c.nl.norm() > 0) { cn.scale(-12 * (P.grip == null ? 1 : P.grip), cn); b.applyForce(cn, cr); h.force.vsub(cn, h.force); } // the wound pushes back on the palm
+        b.quaternion.vmult(c.nl || (c.nl = new C.Vec3(0, 0, 0)), cn); if (c.nl.norm() > 0) { cn.scale(-12 * (P.grip == null ? 1 : P.grip), cn); cr.vadd(b.position, cr); b.applyForce(cn, cr); h.force.vsub(cn, h.force); } // the wound pushes back on the palm
       }
     }
     // grab tool: a damped spring between a point on a segment and the cursor
-    const gp = new C.Vec3(), gr = new C.Vec3(), gv = new C.Vec3(), gf = new C.Vec3();
-    P.grab = (seg, pt) => { const b = seg.part.b; const l = new C.Vec3(); b.pointToLocalFrame(new C.Vec3(pt.x, pt.y, pt.z), l); P.grabbed = { b, l, target: new V3(pt.x, pt.y, pt.z) }; };
+    const gp = new C.Vec3(), gr = new C.Vec3(), gv = new C.Vec3(), gf = new C.Vec3(), gf2 = new C.Vec3(), gs = new C.Vec3();
+    P.grab = (seg, pt) => { const b = seg.part.b; const l = new C.Vec3(); b.pointToLocalFrame(new C.Vec3(pt.x, pt.y, pt.z), l); P.grabbed = { b, l, part: seg.part, target: new V3(pt.x, pt.y, pt.z) }; };
     P.release = () => { P.grabbed = null; };
     function grabForce() {
       const g = P.grabbed; if (!g) return;
       const b = g.b; b.wakeUp();
       b.pointToWorldFrame(g.l, gp); gp.vsub(b.position, gr); b.angularVelocity.cross(gr, gv); gv.vadd(b.velocity, gv);
-      gf.set(2200 * (g.target.x - gp.x) - 160 * gv.x, 2200 * (g.target.y - gp.y) - 160 * gv.y, 2200 * (g.target.z - gp.z) - 160 * gv.z);
-      const m = gf.norm(); if (m > 1100) gf.scale(1100 / m, gf);
-      b.applyForce(gf, gr);
+      // spring toward the cursor (the pull) and damping on the grabbed point, kept separate: the grabbed part takes
+      // only as much of each as it can carry stably (~40 g of pull; damping under its own m/dt limit), and the rest
+      // is passed up the chain to the pelvis (as the joints would carry it), mass-weighted, each body once
+      gs.set(2200 * (g.target.x - gp.x), 2200 * (g.target.y - gp.y), 2200 * (g.target.z - gp.z));
+      const ms = gs.norm(); if (ms > 1100) gs.scale(1100 / ms, gs);
+      const mb = b.mass, own = Math.min(1, (mb * 400) / Math.max(1, gs.norm())), cOwn = Math.min(160, 0.7 * mb / H);
+      gf2.set(gs.x * own - cOwn * gv.x, gs.y * own - cOwn * gv.y, gs.z * own - cOwn * gv.z); b.applyForce(gf2, gp);
+      let seg = g.part.seg;
+      const chain = []; while (seg.parent) { const pp = P.parts[seg.parent]; const j = P.joints.find((q) => q.b.seg === seg); if (!pp || (j && j.severed)) break; if (!chain.includes(pp.b) && pp.b !== b) chain.push(pp.b); seg = pp.seg; }
+      const mt = chain.reduce((a2, c) => a2 + c.mass, 0) || 1, cRest = 160 - cOwn;
+      // each body up the chain: its share of the pull, damped by its own motion (stable for its mass)
+      for (const c of chain) { const k = c.mass / mt, cd = Math.min(cRest * k, 0.7 * c.mass / H); c.wakeUp(); c.force.x += gs.x * (1 - own) * k - cd * c.velocity.x; c.force.y += gs.y * (1 - own) * k - cd * c.velocity.y; c.force.z += gs.z * (1 - own) * k - cd * c.velocity.z; }
     }
     // the arms cannot pass through the trunk. The forearm and hand skip the chest/belly collision boxes while
     // holding a wound (the boxes are coarse), and the upper arm never had one, so a soft keep-out force does the
     // job instead: any arm point inside the trunk is pushed out through the nearest side or the front (from the back
     // half, out of the back), never through the body. The palm resting on the wound it holds is allowed.
-    const KEEP = ['thorax', 'abdomen', 'pelvis'], ARMS = ['uarmL', 'farmL', 'handL', 'uarmR', 'farmR', 'handR'];
+    const KEEP = ['thorax', 'abdomen', 'pelvis'], ARMS = ['uarmL', 'uarmXL', 'farmL', 'farmXL', 'handL', 'uarmR', 'uarmXR', 'farmR', 'farmXR', 'handR'];
     const kp2 = new C.Vec3(), kl = new C.Vec3(), kd = new C.Vec3(), kw = new C.Vec3(), kf2 = new C.Vec3(), kr1 = new C.Vec3(), kr2 = new C.Vec3(), kt = new C.Vec3(), kv1 = new C.Vec3(), kv2 = new C.Vec3();
     function keepOut() {
       for (const an of ARMS) {
@@ -413,7 +508,7 @@
         for (const e of hand ? [0] : an[0] === 'f' ? [0, 1] : [1]) {
           // test points: the hand's centre; the middle and wrist of the forearm; the elbow
           a.quaternion.vmult(DOWN, kd); kp2.set(a.position.x + kd.x * ap.half * e, a.position.y + kd.y * ap.half * e, a.position.z + kd.z * ap.half * e);
-          if (cl && an[0] !== 'u') { cl.b.pointToWorldFrame(cl.l, kt); const hp = P.parts['hand' + side].b.position; if (kt.distanceTo(hand ? kp2 : hp) < (hand ? 0.1 : 0.14)) continue; } // palm (and wrist) on the wound it holds
+          if (cl && an[0] !== 'u') { cl.b.pointToWorldFrame(cl.l, kt); const hp = P.parts['hand' + side].b.position, oc = P.clutch[side === 'L' ? 'R' : 'L'], oh = P.parts['hand' + (side === 'L' ? 'R' : 'L')].b.position; if (kt.distanceTo(hand ? kp2 : hp) < (hand ? 0.1 : 0.14) || (oc && oc.b === cl.b && oh.distanceTo(hp) < 0.16)) continue; } // palm (and wrist) on the wound, or on the other hand pressing it // palm (and wrist) on the wound it holds
           for (const tn of KEEP) {
             const t = P.parts[tn].b, he = t.shapes[0].halfExtents; if (!he) continue;
             t.pointToLocalFrame(kp2, kl);
@@ -428,7 +523,7 @@
             a.angularVelocity.cross(kr1, kv1); kv1.vadd(a.velocity, kv1); t.angularVelocity.cross(kr2, kv2); kv2.vadd(t.velocity, kv2);
             const rel = (kv1.x - kv2.x) * kw.x + (kv1.y - kv2.y) * kw.y + (kv1.z - kv2.z) * kw.z;
             const F = Math.max(0, Math.min(450, best * 4000 - rel * 60));
-            kf2.set(kw.x * F, kw.y * F, kw.z * F); a.wakeUp(); a.applyForce(kf2, kr1); kf2.negate(kf2); t.applyForce(kf2, kr2);
+            kf2.set(kw.x * F, kw.y * F, kw.z * F); a.wakeUp(); a.applyForce(kf2, kp2); kf2.negate(kf2); t.applyForce(kf2, kp2);
           }
         }
       }
