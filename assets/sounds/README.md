@@ -26,6 +26,7 @@ All CC0 1.0 (public domain). Trimmed, peak-normalised, mono MP3.
 | grunt_1..5 | "15 vocal male strain/hurt/pain/jump sounds" (opengameart.org) | qubodup | reaction when hit |
 | groan_1..3 | "Male Grunt/Yelling sounds" (opengameart.org) | haeldb | pain while down |
 | groan_4..5 | "Hurt / Death sound effect for character" (opengameart.org) | badre-eddine | pain while down |
+| cough_1..3, gasp_1..2 | "80 CC0 creature SFX" (opengameart.org), cough-01..03, breath, breath-02 | rubberduck | coughing up blood, agonal gasps |
 | flesh_1..3 | "8 wet squish, slurp impacts" (opengameart.org) | qubodup | bullet into the body |
 | drip_1..3 | "40 water / splash / slime SFX" (opengameart.org) | rubberduck | blood hitting the floor |
 | fall_1..4, thump_1..2 | Impact Sounds (kenney.nl) | Kenney | body and limbs hitting the floor, bone strike |
@@ -34,5 +35,4 @@ All CC0 1.0 (public domain). Trimmed, peak-normalised, mono MP3.
 | wall_1..3 | Impact Sounds (kenney.nl) | Kenney | bullet striking the wall |
 
 OpenGameArt packs were fetched from the mirror github.com/novincode/atomcut-library; Kenney's from
-github.com/Boyquotes/kenney-impact-sounds-for-godot. Breathing, coughing and agonal gasps have no
-recording and are still synthesized.
+github.com/Boyquotes/kenney-impact-sounds-for-godot. Coughs and agonal gasps are recordings; the continuous breathing bed is still synthesized.

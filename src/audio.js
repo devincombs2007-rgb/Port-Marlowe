@@ -142,9 +142,9 @@
     const said = { t: -9 };
     A.grunt = (pain) => { if (ok() && ctx.currentTime - said.t > 0.5 && one('grunt', (0.5 + 0.4 * pain) * near(), 1, 0.08)) { said.t = ctx.currentTime; return; } if (ok() && A.voice) voice(0.16 + 0.2 * pain, 150 + 60 * pain, 95, 0.5 + 0.4 * pain, pain > 0.6 ? AH : UH, 0.06 + Math.random() * 0.05, pain > 0.5); };
     A.groan = (pain) => { if (ok() && ctx.currentTime - said.t > 1.5 && one('groan', (0.4 + 0.35 * pain) * near(), 0.95)) { said.t = ctx.currentTime; return; } if (ok() && A.voice) voice(0.7 + Math.random() * 0.8, 120 + 40 * pain, 88, 0.3 + 0.3 * pain, OH, 0, true); };
-    A.cough = () => { if (!ok()) return; const k = 1 / (1 + A.dist * 0.35); for (const at of [0, 0.19]) { burst(0.11, 2600, 500, 0.5 * k, 'bandpass', 1.1, at); tone(0.09, 240, 110, 0.2 * k, at, 'sawtooth'); } burst(0.2, 500, 180, 0.12 * k, 'bandpass', 4, 0.05); };
+    A.cough = () => { if (!ok()) return; if (one('cough', 0.6 * near(), 0.95)) return; const k = 1 / (1 + A.dist * 0.35); for (const at of [0, 0.19]) { burst(0.11, 2600, 500, 0.5 * k, 'bandpass', 1.1, at); tone(0.09, 240, 110, 0.2 * k, at, 'sawtooth'); } burst(0.2, 500, 180, 0.12 * k, 'bandpass', 4, 0.05); };
     // agonal gasp: a slow, snoring inhalation
-    A.gasp = () => { if (!ok()) return; const k = 1 / (1 + A.dist * 0.35); burst(0.55, 500, 1500, 0.4 * k, 'bandpass', 2.2); tone(0.45, 70, 95, 0.12 * k, 0.03, 'sawtooth'); };
+    A.gasp = () => { if (!ok()) return; if (one('gasp', 0.55 * near(), 0.85)) return; const k = 1 / (1 + A.dist * 0.35); burst(0.55, 500, 1500, 0.4 * k, 'bandpass', 2.2); tone(0.45, 70, 95, 0.12 * k, 0.03, 'sawtooth'); };
     // per-frame: breathing loudness follows the breathing cycle and effort; gurgle when blood is in the airway
     A.breath = (phase, rate, effort, gurgle) => {
       if (!ctx || !breathG) return;

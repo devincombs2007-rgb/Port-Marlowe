@@ -11,6 +11,16 @@
   const camera = new THREE.PerspectiveCamera(62, 1, 0.05, 40);
   camera.rotation.order = 'YXZ'; scene.add(camera);
 
+  // image-based lighting: a blurred reflection of a tiled room with two bright ceiling panels, so wet blood,
+  // eyes, gun metal and skin catch soft reflections the way real surfaces do
+  {
+    const env = new THREE.Scene(), pm = new THREE.PMREMGenerator(renderer);
+    const room = new THREE.Mesh(new THREE.BoxGeometry(8, 3.2, 9.4), new THREE.MeshBasicMaterial({ color: 0x8a9294, side: THREE.BackSide }));
+    room.position.set(0, 1.6, 2.3); env.add(room);
+    const floorE = new THREE.Mesh(new THREE.PlaneGeometry(8, 9.4), new THREE.MeshBasicMaterial({ color: 0x5a6062 })); floorE.rotation.x = -Math.PI / 2; floorE.position.set(0, 0.01, 2.3); env.add(floorE);
+    for (const z of [0.5, 4.2]) { const l = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 0.16), new THREE.MeshBasicMaterial({ color: 0xffffff })); l.material.color.multiplyScalar(14); l.rotation.x = Math.PI / 2; l.position.set(0, 3.15, z); env.add(l); }
+    scene.environment = pm.fromScene(env, 0.04).texture; pm.dispose();
+  }
   const world = G.buildWorld(scene), body = G.buildBody(scene), gun = G.buildGun(camera), audio = G.Audio();
   const rag = G.buildPhysics(scene, body, audio, { headImpact: (v) => phys && npc && npc.posture === 'falling' && phys.headImpact(v), footstep: (k) => { audio.dist = Math.hypot(state.pos.x - npc.pos.x, state.pos.z - npc.pos.z); audio.step(k); } }); // only a real fall, not movement on the floor
   let phys, npc;

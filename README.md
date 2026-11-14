@@ -1,4 +1,4 @@
-# Port-Marlowe — Wound Ballistics Lab (v1.1)
+# Port-Marlowe — Wound Ballistics Lab (v1.2)
 
 A browser-based 3D simulator of gunshot wounds. A test subject stands in a chamber; every
 round is traced millimetre by millimetre through skin, bone, organs and vessels, and the
@@ -106,6 +106,8 @@ Untreated outcomes only. This is an educational model, not medical guidance.
   Output: `src/human.js`. Run: `python3 tools/build_human.py <makehuman data> <proxy and texture dir>`.
 - **Audio**: see `assets/sounds/README.md` (Still North Media firearm library, OpenGameArt
   packs by qubodup, haeldb, badre-eddine and rubberduck, Kenney Impact Sounds).
+- **Lighting**: filmic tone mapping plus an image-based reflection of the tiled room and its two
+  ceiling panels, so skin, eyes, wet blood and gun metal pick up soft reflections.
 - **Weapons**: modelled in code (`src/world.js`) from side-profile outlines.
 
 ## Testing
@@ -117,7 +119,7 @@ close-range and rifle wounds), not only from end-state numbers.
 ## Known limits
 
 - The .357 Magnum uses a .38 Special revolver recording and the .308 uses a .30-06 bolt action,
-  the closest matches in the library. Breathing, coughing and agonal gasps are still synthesized.
+  the closest matches in the library. The continuous breathing is still synthesized; coughs and agonal gasps are recordings.
 - One body type and one face. Eyes are modelled spheres with a painted iris, not MakeHuman's eye mesh.
 - Weapon models are simple profiled shapes, not scanned or sculpted assets.
 - The subject walks away but cannot run, and only flees from the shooter (no other goals).

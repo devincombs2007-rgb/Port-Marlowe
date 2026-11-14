@@ -39,7 +39,7 @@
     const scale = new THREE.Mesh(new THREE.PlaneGeometry(0.19, 2), new THREE.MeshStandardMaterial({ map: st, roughness: 0.9 }));
     scale.position.set(-0.75, 1, ROOM.z0 + 0.004); scene.add(scale);
     // lights
-    scene.add(new THREE.HemisphereLight(0xe9f1f4, 0x5a5f60, 0.75));
+    scene.add(new THREE.HemisphereLight(0xe9f1f4, 0x5a5f60, 0.3)); // most ambient light now comes from the room reflection map
     const key = new THREE.DirectionalLight(0xffffff, 0.85); key.position.set(1.8, 3.1, 3.2); key.target.position.set(0, 0.9, 0);
     key.castShadow = true; key.shadow.mapSize.set(1024, 1024);
     Object.assign(key.shadow.camera, { left: -2.5, right: 2.5, top: 2.5, bottom: -2.5, near: 0.5, far: 9 }); key.shadow.bias = -0.0015;
