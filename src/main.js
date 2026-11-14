@@ -600,7 +600,8 @@
     const rayProps = (o, d, maxT) => { let best = maxT == null ? Infinity : maxT, hit = null; const r = new THREE.Ray(o, d), pt = new V3(); for (const p of D.props) if (r.intersectBox(p.box, pt)) { const t = pt.distanceTo(o); if (t < best) { best = t; hit = { p, at: pt.clone() }; } } return hit ? { t: best, ...hit } : null; };
     const los = (a, b) => { const d = b.clone().sub(a), L = d.length(); d.divideScalar(L); return !rayProps(a, d, L - 0.05); };
     const partPos = (S, n) => { const b = S.rag.parts[n].b.position; return new V3(b.x, b.y, b.z); };
-    const out = (S) => S.phys.dead || S.phys.brainDestroyed || !S.phys.conscious || (S.ai && S.ai.downT > 2.5 && S.npc.posture !== 'stand' && !S.ai.canFight);
+    // out of the fight: dead, unconscious, down and unable to use a gun, or down so long he is not getting up again
+    const out = (S) => S.phys.dead || S.phys.brainDestroyed || !S.phys.conscious || (S.ai && S.npc.posture !== 'stand' && ((S.ai.downT > 2.5 && !S.ai.canFight) || S.ai.downT > 16));
     const hurtOf = (S) => S.phys.pain * 0.6 + S.phys.frac() * 2.5 + (S.npc.posture !== 'stand' ? 0.5 : 0) + (S.phys.armBroken.R && S.phys.armBroken.L ? 1 : 0);
     // a gun in each fighter's hand (a copy of the first-person models)
     function giveGun(S, wi) {
@@ -615,7 +616,7 @@
       if (S.body.setShorts) S.body.setShorts(SHORTS[i]);
       S.body.root.visible = true; S.body.root.position.copy(spawn[i]); S.body.root.rotation.set(0, i ? Math.PI : 0, 0);
       S.phys = G.Physiology(G.ANATOMY.bloodVolume);
-      S.ai = { state: 'engage', t: 0, aimT: 0, fireT: 0.8 + Math.random() * 0.6, strafeT: 2 + Math.random() * 3, strafe: null, downT: 0, canFight: true, lastSeen: 0, goal: null, peekT: 0, crouch: 0, lean: 0, clock: 0 };
+      S.ai = { state: 'engage', t: 0, aimT: 0, fireT: 0.8 + Math.random() * 0.6, strafeT: 2 + Math.random() * 3, strafe: null, downT: 0, canFight: true, lastSeen: 0, goal: null, peekT: 0, crouch: 0, lean: 0, clock: 0, seenT: 0, react: 0.5, burst: 0, reloadT: 0, ammo: WMAG[wi] };
       S.npc = G.NPC(S.body, S.phys, S.rag, { threat: () => partPos(D.fighters[1 - i], 'thorax'), event: npcEvent, fighter: true, ai: (N) => brain(S, N) });
       giveGun(S, wi);
     }
@@ -647,11 +648,13 @@
         else if ((myHurt > 0.45 || losing) && D.props.length && ai.state !== 'cover' && ai.t > 1.5) { ai.state = 'cover'; ai.goal = coverSpot(S, ep); ai.t = 0; }
         else if (ai.lastSeen > 1.8 && ai.state !== 'flank' && ai.state !== 'cover') { ai.state = 'flank'; ai.goal = flankSpot(S, E); ai.t = 0; }
         else if (vis && ai.state === 'flank') ai.state = 'engage';
-        const goTo = (g, run) => { if (!g) return false; const d = g.clone().sub(me); d.y = 0; if (d.length() < 0.35) return true; d.normalize(); intent.move = { x: d.x, z: d.z }; intent.run = run; if (!vis || run) intent.face = Math.atan2(d.x, d.z); return false; };
+        const goTo = (g, run) => { if (!g) return false; const d = g.clone().sub(me); d.y = 0; if (d.length() < 0.35) return true; d.normalize(); const st = steer(S, me, d, E); intent.move = { x: st.x, z: st.z }; intent.run = run && !st.tight; if (!vis || run) intent.face = Math.atan2(st.x, st.z); return false; };
         if (ai.state === 'engage') {
           ai.strafeT -= dt;
           if (ai.strafeT < 0) { ai.strafe = ai.strafe ? null : (Math.random() < 0.5 ? 1 : -1); ai.strafeT = ai.strafe ? 0.8 + Math.random() * 1.2 : 2 + Math.random() * 3; }
-          if (ai.strafe) intent.move = { x: -toE.z * ai.strafe, z: toE.x * ai.strafe };
+          // can see him but the muzzle line is blocked (low cover, a pillar edge): step out to get a shot, not stand there
+          if ((ai.blockT || 0) > 0.6) { if (!ai.strafe || ai.blockT > 1.8) { ai.strafe = ai.blockT > 1.8 ? -(ai.strafe || 1) : (Math.random() < 0.5 ? 1 : -1); ai.blockT = 0.61; } ai.strafeT = Math.max(ai.strafeT, 0.6); }
+          if (ai.strafe) { const st = steer(S, me, new V3(-toE.z * ai.strafe, 0, toE.x * ai.strafe), E); intent.move = { x: st.x, z: st.z }; }
         } else if (ai.state === 'cover') {
           const there = goTo(ai.goal, true);
           if (there) {
@@ -659,19 +662,52 @@
             ai.peekT -= dt; if (ai.peekT < 0) ai.peekT = ai.peeking ? 1.2 + Math.random() * 1.5 : 1.5 + Math.random() * 2;
             if (ai.peekT < 0.05) ai.peeking = !ai.peeking;
             const low = ai.goal.low;
-            if (!ai.peeking) { intent.crouch = low ? 1 : 0; intent.aim = null; } else { intent.crouch = low ? 0.2 : 0; intent.lean = low ? 0 : ai.goal.side; }
+            if (!ai.peeking) { intent.crouch = low ? 1 : 0; intent.aim = null; } else { intent.crouch = low && (ai.blockT || 0) < 0.5 ? 0.2 : 0; intent.lean = low ? 0 : ai.goal.side; if (!low && (ai.blockT || 0) > 1.2) ai.goal.side = -ai.goal.side; } // still no line: rise fully / try the other edge
             if (myHurt < 0.3 && ai.t > 8) ai.state = 'engage';
           }
         } else if (ai.state === 'flank') { if (goTo(ai.goal, false) || ai.t > 6) { ai.state = 'engage'; ai.t = 0; } }
-        else if (ai.state === 'push') { if (dist > 2.2) goTo(ep, true); }
+        else if (ai.state === 'push') { if (dist > 2.2) goTo(ep, !vis); } // rush in, but walk with the gun up once he can be seen
         else if (ai.state === 'finish') { if (dist > 1.4) goTo(ep, true); }
       }
-      // shoot: settle the aim, then fire at the weapon's practical rate
+      // shooting the way people do: notice the enemy (reaction time), bring the gun on, fire a pair or a short burst
+      // with the gun steady and the muzzle clear, pause to see what happened, reload when the magazine runs dry
       ai.fireT -= dt;
-      if (intent.aim && N.aiming) { ai.aimT += dt; } else ai.aimT = 0;
-      ai.wantFire = !!intent.aim && ai.canFight && ai.aimT > 0.35 && ai.fireT <= 0 && !(out(E) && E.phys.dead);
+      if (vis) { if (ai.seenT === 0) ai.react = 0.3 + Math.random() * 0.35 + 0.35 * P.pain + (S.npc.posture !== 'stand' ? 0.3 : 0); ai.seenT += dt; ai.lostT = 0; }
+      else { ai.lostT = (ai.lostT || 0) + dt; if (ai.lostT > 0.4) ai.seenT = 0; }
+      if (ai.reloadT > 0) { ai.reloadT -= dt; intent.aim = null; if (ai.reloadT <= 0) ai.ammo = WMAG[ai.wi]; }
+      else if (ai.ammo <= 0) { const w = G.WEAPONS[ai.wi]; ai.reloadT = w.cls === 'shotgun' ? 0.5 * WMAG[ai.wi] * 0.6 : w.model === 'bolt' ? 2.4 : w.model === 'revolver' ? 3.2 : 2.2; ai.burst = 0; intent.aim = null; if (vis && D.props.length && ai.state === 'engage') { ai.state = 'cover'; ai.goal = coverSpot(S, ep); ai.t = 0; } }
+      if (intent.aim && N.aiming) ai.aimT += dt; else ai.aimT = 0;
+      // steady: the hand is where the aim wants it and not swinging; lined up: the muzzle points at the target
+      const hb = S.rag.parts['hand' + (gh || 'R')].b, pv = S.rag.parts.pelvis.b.velocity, handErr = intent.aim ? hb.position.distanceTo(new CANNON.Vec3(intent.aim.x, intent.aim.y, intent.aim.z)) : 1, steady = intent.aim && (handErr < 0.09 || (ai.aimT > 1 && handErr < 0.22)) && Math.hypot(hb.velocity.x - pv.x, hb.velocity.y - pv.y, hb.velocity.z - pv.z) < 0.9; // steady relative to the body: he can fire on the move
+      let clear = false;
+      if (S.gunModel && intent.aim) {
+        S.gunModel.updateMatrixWorld(); const mz = new V3(0, S.gunModel.userData.fy || 0.03, S.gunModel.userData.muzzle || -0.2).applyMatrix4(S.gunModel.matrixWorld); clear = los(mz, ai.target);
+        // the body is behind cover but the head shows: take the head
+        if (!clear) { const hd = partPos(E, 'head'); if (los(mz, hd)) { ai.target = hd; clear = true; } }
+      }
+      if (vis && intent.aim && !clear && ai.reloadT <= 0) ai.blockT = (ai.blockT || 0) + dt; else ai.blockT = 0;
+      const ready = !!intent.aim && ai.canFight && ai.seenT > ai.react && ai.aimT > 0.25 && steady && clear && ai.fireT <= 0 && ai.ammo > 0 && !(out(E) && E.phys.dead);
+      ai.handErr = handErr;
+      if (ready && ai.burst <= 0) { const w = G.WEAPONS[ai.wi]; ai.burst = w.cls === 'shotgun' || w.model === 'bolt' ? 1 : w.cls === 'pistol' ? (Math.random() < 0.65 ? 2 : Math.random() < 0.5 ? 1 : 3) : 2 + Math.floor(Math.random() * 3); }
+      ai.wantFire = ready && ai.burst > 0;
       ai.intent = intent;
       return intent;
+    }
+    // find a way round: props (and the other man) push the heading away when close, and turn it along their side
+    // toward the goal, so a fighter runs round a crate instead of into it
+    function steer(S, me, d, E) {
+      const out = d.clone(); let tight = false;
+      const avoid = (cx, cz, dist, keep) => {
+        if (dist > keep) return; const ax = me.x - cx, az = me.z - cz, al = Math.hypot(ax, az) || 1, nx = ax / al, nz = az / al, w = (keep - dist) / keep;
+        const into = -(d.x * nx + d.z * nz); if (into < -0.2 && dist > keep * 0.5) return; // already heading away
+        const tx = -nz, tz = nx, sgn = tx * d.x + tz * d.z >= 0 ? 1 : -1; // slide along the side nearer the goal
+        out.x += nx * w * 1.6 + tx * sgn * w * 1.4; out.z += nz * w * 1.6 + tz * sgn * w * 1.4; if (dist < keep * 0.6) tight = true;
+      };
+      for (const p of D.props) { const b = p.box, cx = Math.max(b.min.x, Math.min(me.x, b.max.x)), cz = Math.max(b.min.z, Math.min(me.z, b.max.z)); avoid(cx, cz, Math.hypot(me.x - cx, me.z - cz), 0.75); }
+      const ep = partPos(E, 'pelvis'); avoid(ep.x, ep.z, Math.hypot(me.x - ep.x, me.z - ep.z) - 0.2, 0.7);
+      // and the walls
+      if (me.x < ROOM.x0 + 0.6) out.x += 1.2; if (me.x > ROOM.x1 - 0.6) out.x -= 1.2; if (me.z < ROOM.z0 + 0.6) out.z += 1.2; if (me.z > ROOM.z1 - 0.6) out.z -= 1.2;
+      out.y = 0; const l = Math.hypot(out.x, out.z) || 1; out.x /= l; out.z /= l; out.tight = tight; return out;
     }
     function coverSpot(S, ep) {
       let best = null, bd = 1e9; const me = partPos(S, 'thorax');
@@ -693,10 +729,12 @@
     const mzl = new V3(), dd = new V3();
     function aiFire(S) {
       const E = D.fighters[1 - S.idx], ai = S.ai, w = G.WEAPONS[ai.wi], P = S.phys, m = S.gunModel;
-      ai.fireT = Math.max(60 / w.rpm, w.cls === 'pistol' ? 0.28 : 0.2) * (1 + Math.random() * 0.8) + (P.pain > 0.5 ? 0.2 : 0);
+      ai.ammo--; ai.burst--; ai.shots = (ai.shots || 0) + 1;
+      const gap = Math.max(60 / w.rpm, w.cls === 'pistol' ? 0.24 : 0.14) * (1 + Math.random() * 0.4) + (P.pain > 0.5 ? 0.1 : 0);
+      ai.fireT = ai.burst > 0 ? gap : gap + 0.55 + Math.random() * 0.9; // between bursts: a look at what happened
       m.updateMatrixWorld(); mzl.set(0, m.userData.fy || 0.03, m.userData.muzzle || -0.2).applyMatrix4(m.matrixWorld);
       // aim error: the weapon, the person (pain, blood loss, which hand, lying down, moving), and the range
-      const sig = 0.008 + w.spread * 0.5 + 0.03 * P.pain + 0.05 * P.frac() + (S.npc.gunHand === 'L' ? 0.015 : 0) + (S.npc.posture !== 'stand' ? 0.025 : 0) + (ai.intent && ai.intent.move ? 0.02 : 0);
+      const sig = 0.008 + w.spread * 0.5 + 0.03 * P.pain + 0.05 * P.frac() + (S.npc.gunHand === 'L' ? 0.015 : 0) + (S.npc.posture !== 'stand' ? 0.025 : 0) + (ai.intent && ai.intent.move ? 0.02 : 0) + 0.25 * Math.max(0, (ai.handErr || 0) - 0.06); // the gun is not quite where he wants it
       audio.shot(w); world.smoke(mzl, dd.copy(ai.target).sub(mzl).normalize(), Math.round(2 + w.recoil * 2), 0.8);
       ai.flash.position.copy(mzl); ai.flash.intensity = 3 + w.recoil * 1.5; ai.flashN = 1;
       S.rag.impulse(S.body.segs['hand' + S.npc.gunHand], partPos(S, 'hand' + S.npc.gunHand), { x: -dd.x * w.recoil * 0.6, y: 0.4 * w.recoil, z: -dd.z * w.recoil * 0.6 }); // recoil kicks the hand
@@ -738,6 +776,8 @@
       layout(); D.weaponName = G.WEAPONS[wi].name; use(D.fighters[0]);
     }
     const DUEL_W = [1, 2, 3, 4, 5, 6, 8];
+    // magazine capacity by weapon index (Glock 17, 1911 7+1, .357 revolver 6, AR/AK 30, bolt 5, pump 7)
+    const WMAG = { 0: 10, 1: 17, 2: 17, 3: 8, 4: 6, 5: 30, 6: 30, 7: 5, 8: 7, 9: 7 };
     D.start = () => {
       if (D.fighters.length < 2) { D.fighters = [primary, subjects[1] || newSubject()]; }
       D.on = true; D.score = [0, 0]; D.round = 0; D.cam = 1; state.threat = null; gun.raise = 0; ui.report(null);
@@ -771,7 +811,7 @@
       if (D.phase === 'ready' && D.t > 2.5) { D.phase = 'fight'; D.t = 0; }
       if (D.phase === 'fight') {
         const oa = out(A), ob = out(B);
-        if (oa || ob || D.t > 150) { D.phase = 'over'; D.t = 0; D.winner = oa && ob ? -1 : oa ? 1 : ob ? 0 : -1; if (D.winner >= 0) D.score[D.winner]++; }
+        if (oa || ob || D.t > 120) { D.phase = 'over'; D.t = 0; D.winner = oa && ob ? -1 : oa ? 1 : ob ? 0 : Math.abs(hurtOf(A) - hurtOf(B)) > 0.3 ? (hurtOf(A) < hurtOf(B) ? 0 : 1) : -1; /* time: the less hurt takes it */ if (D.winner >= 0) D.score[D.winner]++; }
       } else if (D.phase === 'over' && D.t > 5) {
         if (D.score[0] >= 3 || D.score[1] >= 3) { D.phase = 'match'; D.t = 0; } else startRound();
       } else if (D.phase === 'match' && D.t > 8) { D.score = [0, 0]; D.round = 0; startRound(); }

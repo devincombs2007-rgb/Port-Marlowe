@@ -32,7 +32,7 @@
     const collapse = (rigid, tripped) => {
       if (N.posture !== 'stand') return;
       rag.lost = null;
-      N.posture = 'falling'; N.ragT = 0; ctl.s = 0; ctl.lead = null; ctl.face = null; ctl.push.set(0, 0, 0); N.giveT = tripped ? 0 : 1.4; N.lowering = 0; N.tripped = !!tripped;
+      N.posture = 'falling'; N.ragT = 0; ctl.s = 0; ctl.lead = null; ctl.vel = null; ctl.face = null; ctl.push.set(0, 0, 0); N.giveT = tripped ? 0 : 1.4; N.lowering = 0; N.tripped = !!tripped;
       if (tripped) return; // already moving: momentum decides the fall, the legs stay under tone
       const a = Math.random() * 6.283, v = 0.25 + Math.random() * 0.3;
       rag.push('thorax', Math.cos(a) * v, 0, Math.sin(a) * v);
@@ -173,8 +173,9 @@
       const pel = rag.parts.pelvis.b, tho = rag.parts.thorax.b;
       let target = POSES.curl;
       // ---- getting back up after a fall that did not disable: a shove, or coming round from a knockout
-      const fit = aware && !legsOut && !P.legsPara && P.brainE > 0.85 && P.map > 70 && P.pain < 0.55 && !N.chose;
-      if (N.posture === 'down') { N.downT += dt; if (fit && N.riseTries < 3 && N.downT > 2.5 + N.riseTries * 2) { N.posture = 'rising'; N.riseT = 0; N.riseTries++; } }
+      const fighter = !!hooks.fighter; // adrenaline: someone in a fight gets back up through pain that would keep a bystander down
+      const fit = aware && !legsOut && !P.legsPara && P.brainE > (fighter ? 0.8 : 0.85) && P.map > (fighter ? 62 : 70) && P.pain < (fighter ? 0.82 : 0.55) && !N.chose;
+      if (N.posture === 'down') { N.downT += dt; if (fit && N.riseTries < (fighter ? 5 : 3) && N.downT > (fighter ? 1.2 : 2.5) + N.riseTries * 2) { N.posture = 'rising'; N.riseT = 0; N.riseTries++; } }
       if (N.posture === 'rising') {
         N.riseT += dt; const t = N.riseT;
         if (!fit) { N.posture = 'down'; N.downT = 0; ctl.s = 0; ctl.trunk = 0; ctl.draw = 0; }
@@ -198,10 +199,10 @@
       if (N.posture === 'stand') {
         const dizzy = Math.max(0, 0.9 - P.brainE) + Math.max(0, (72 - P.map) / 50);
         tho.quaternion.vmult(UP, upv);
-        if (rigid || clonic) collapse(rigid);
-        else if (limp || legsOut || P.brainE < 0.55 || P.map < 48) collapse();
-        else if ((pel.position.y < ctl.yRest * 0.74 && !N.lowering) || upv.y < 0.55) collapse(); // past the tipping point
-        else if (rag.lost) collapse(false, true); // pushed or pulled further than a step can recover
+        if (rigid || clonic) { N.why = 'motor'; collapse(rigid); }
+        else if (limp || legsOut || P.brainE < 0.55 || P.map < 48) { N.why = limp ? 'limp' : legsOut ? 'legs' : P.brainE < 0.55 ? 'brain' : 'map'; collapse(); }
+        else if ((pel.position.y < ctl.yRest * (ctl.vel || N.crouch > 0.2 ? 0.6 : 0.74) && !N.lowering) || upv.y < 0.55) { N.why = 'tip y=' + pel.position.y.toFixed(2) + ' up=' + upv.y.toFixed(2); collapse(); } // past the tipping point
+        else if (rag.lost) { N.why = 'lost'; collapse(false, true); } // pushed or pulled further than a step can recover
         else {
           if (N.decideT >= 0) {
             N.decideT -= dt;
@@ -242,9 +243,12 @@
           const ai = N.ai;
           if (ai && N.stagger < 0.4) {
             if (ai.face != null) ctl.face = ai.face;
-            if (ai.move) { const sp = 0.11 * Math.min(1, P.brainE) * (P.map > 60 ? 1 : 0.6) * (ai.run ? 1.45 : 1) * (1 - 0.4 * (ai.crouch || 0)); ctl.lead = { x: ai.move.x * sp, z: ai.move.z * sp }; }
+            // walking speed: 1.3 m/s, running 2.6; slowed by pain, blood loss, a bad leg, crouching
+            if (ai.move) { const legHurt = P.legBroken.L || P.legBroken.R ? 0.35 : 1, sp = (ai.run ? 2.6 : 1.3) * Math.min(1, P.brainE) * (P.map > 60 ? 1 : 0.55) * (1 - 0.35 * P.pain) * legHurt * (1 - 0.45 * (ai.crouch || 0)); const tvx = ai.move.x * sp, tvz = ai.move.z * sp, cv = ctl.vel || { x: 0, z: 0 }, dvx = tvx - cv.x, dvz = tvz - cv.z, dm = Math.hypot(dvx, dvz), acc = 2.4 * dt; // people speed up over about a second
+              ctl.vel = dm > acc ? { x: cv.x + dvx / dm * acc, z: cv.z + dvz / dm * acc } : { x: tvx, z: tvz }; ctl.lead = null; N.retreating = !N.aiming; }
+            else if (ctl.vel) { const m = Math.hypot(ctl.vel.x, ctl.vel.z), k = Math.max(0, m - 2.5 * dt); ctl.vel = k > 0.05 ? { x: ctl.vel.x / m * k, z: ctl.vel.z / m * k } : null; } // and slow to a stop
             N.crouch += ((ai.crouch || 0) - N.crouch) * Math.min(1, dt * 3);
-          } else N.crouch = Math.max(0, N.crouch - dt * 2);
+          } else { N.crouch = Math.max(0, N.crouch - dt * 2); ctl.vel = null; }
           ctl.y0 -= ctl.yRest * 0.3 * N.crouch;
           N.flinchT = Math.max(0, N.flinchT - dt);
           target = N.lowering > 0 ? POSES.brace : N.flinchT > 0 ? POSES.guard : POSES[N.pose];

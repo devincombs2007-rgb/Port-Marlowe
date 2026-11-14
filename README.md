@@ -1,4 +1,4 @@
-# Port-Marlowe — Wound Ballistics Lab (v2.2)
+# Port-Marlowe — Wound Ballistics Lab (v2.3)
 
 A browser-based 3D simulator of gunshot wounds. A test subject stands in a chamber; every
 round is traced millimetre by millimetre through skin, bone, organs and vessels, and the
@@ -6,6 +6,14 @@ body then responds in real time (bleeding, blood pressure, breathing, consciousn
 
 **Run it:** serve this folder with any static server (`python3 -m http.server`) and open
 `index.html`. No build step. `node tools/build.js` bundles a single-file page into `dist/`.
+
+**v2.3 — 1v1 movement and fire discipline**: fighters walk (~1.3 m/s) and run (~2 m/s) with a real alternating
+stride — each foot planted under the moving body's capture point — and stop without stumbling; they steer round
+crates, pillars, walls and each other instead of running into them. They fire like people: a reaction time on
+first sight, the gun brought on target and held steady, the muzzle line checked (stepping out or rising from cover
+when it is blocked, taking the head when only the head shows), then a pair or a short burst and a pause; magazines
+run dry and get reloaded. Wounded fighters get back up through pain if they can; a round with both men down and out
+of sight ends after a while, and at the time limit the less-hurt fighter takes it.
 
 **v2.2 — AI 1v1** (start screen button, or **O**): two armed fighters, random cover every round, first to three
 rounds. Each fighter is a full subject (same wounds, bleeding, physiology and ragdoll as the test subject): it aims

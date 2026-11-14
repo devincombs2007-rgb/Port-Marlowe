@@ -335,7 +335,9 @@
       // leaning and the stepping keeps having to catch it
       const lx = c.lead ? c.lead.x : 0, lz = c.lead ? c.lead.z : 0;
       let Fx = 2600 * (mx + lx - cx) - 520 * (pel.velocity.x + tho.velocity.x) / 2, Fz = 2600 * (mz + lz - cz) - 520 * (pel.velocity.z + tho.velocity.z) / 2;
-      const cap = 0.24 * MTOT * GRAV * c.s * c.bal, m = Math.hypot(Fx, Fz);
+      // walking with purpose: the legs drive the body at a chosen speed and the steps keep the feet under it
+      if (c.vel) { const vx0 = (pel.velocity.x + tho.velocity.x) / 2, vz0 = (pel.velocity.z + tho.velocity.z) / 2; Fx = 700 * (c.vel.x - vx0) + 2600 * (mx + c.vel.x * 0.25 - cx) * 0.35; Fz = 700 * (c.vel.z - vz0) + 2600 * (mz + c.vel.z * 0.25 - cz) * 0.35; }
+      const cap = (c.vel ? 0.3 : 0.24) * MTOT * GRAV * c.s * c.bal, m = Math.hypot(Fx, Fz);
       if (m > cap) { Fx *= cap / m; Fz *= cap / m; }
       Fx += c.push.x; Fz += c.push.z;
       pel.force.y += Fy; pel.force.x += Fx / 2; pel.force.z += Fz / 2; tho.force.x += Fx / 2; tho.force.z += Fz / 2;
@@ -345,9 +347,11 @@
       P.stepCool -= H;
       // past recovery: the capture point is further than a step can reach, or a run of steps has not caught it
       P.stepWin = Math.max(0, (P.stepWin || 0) - H);
-      const lex = ex - (c.lead ? c.lead.x : 0), lez = ez - (c.lead ? c.lead.z : 0), lem = Math.hypot(lex, lez);
-      if (c.s > 0.6 && c.canStep !== false && (lem > 0.5 || (P.stepWin > 2.4 && lem > 0.16))) { P.lost = { x: ex / (em || 1), z: ez / (em || 1), t: P.t }; }
-      if (!P.stepping && c.s > 0.6 && c.canStep !== false && (em > 0.075 || Math.abs(P.turnErr || 0) > 0.35) && P.stepCool <= 0) {
+      const lex = ex - (c.lead ? c.lead.x : 0) - (c.vel ? c.vel.x * 0.31 : 0), lez = ez - (c.lead ? c.lead.z : 0) - (c.vel ? c.vel.z * 0.31 : 0), lem = Math.hypot(lex, lez);
+      const cmdWalk = !!c.vel && Math.hypot(c.vel.x, c.vel.z) > 0.15, walking = cmdWalk || (c.s > 0.6 && Math.hypot(vx, vz) > 0.45); // still moving after the command stops: keep stepping it out
+      P.overT = walking && lem > 0.9 ? (P.overT || 0) + H : 0; // walking, a stride or two can still catch a big error: only give up when it lasts
+      if (c.s > 0.6 && c.canStep !== false && ((walking ? P.overT > 0.3 || lem > 1.5 : lem > 0.5) || (!walking && P.stepWin > 2.4 && lem > 0.16))) { P.lost = { x: ex / (em || 1), z: ez / (em || 1), t: P.t }; }
+      if (!P.stepping && c.s > 0.6 && c.canStep !== false && (em > 0.075 || Math.abs(P.turnErr || 0) > 0.35 || walking) && P.stepCool <= 0) {
         let side;
         pel.quaternion.vmult(LEFT, lv);
         if (em > 0.075) {
@@ -360,12 +364,16 @@
           const eL = Math.hypot(fl.position.x - (cx + lv.x * 0.1), fl.position.z - (cz + lv.z * 0.1)), eR = Math.hypot(fr.position.x - (cx - lv.x * 0.1), fr.position.z - (cz - lv.z * 0.1));
           side = eL > eR ? 'L' : 'R';
         }
+        if (walking) side = P.lastSide === 'L' ? 'R' : 'L'; // a gait: left, right, left...
         const ux = em > 1e-4 ? ex / em : 0, uz = em > 1e-4 ? ez / em : 0, foot = side === 'L' ? fl : fr, sg = side === 'L' ? 1 : -1;
         let tx = capx + ux * 0.04 * Math.min(1, em / 0.075) + lv.x * 0.095 * sg, tz = capz + uz * 0.04 * Math.min(1, em / 0.075) + lv.z * 0.095 * sg;
-        const sx = tx - foot.position.x, sz = tz - foot.position.z, sl = Math.hypot(sx, sz), maxL = 0.5;
+        // walking: plant the foot ahead along the way we are going, beside the line of travel
+        if (cmdWalk) { const vm = Math.hypot(c.vel.x, c.vel.z), lx2 = -c.vel.z / vm, lz2 = c.vel.x / vm, sd2 = (lv.x * lx2 + lv.z * lz2) >= 0 ? sg : -sg; tx = capx + c.vel.x * 0.1 + lx2 * 0.1 * sd2; tz = capz + c.vel.z * 0.1 + lz2 * 0.1 * sd2; } // under where the body is really going (the capture point), a little toward where it is told to go
+        P.lastSide = side;
+        const sx = tx - foot.position.x, sz = tz - foot.position.z, sl = Math.hypot(sx, sz), vmag = c.vel ? Math.hypot(c.vel.x, c.vel.z) : 0, maxL = 0.5 + vmag * 0.16;
         if (sl > maxL) { tx = foot.position.x + sx / sl * maxL; tz = foot.position.z + sz / sl * maxL; }
-        P.stepping = { side, foot, t: 0, dur: 0.24 + Math.min(0.12, sl * 0.25), fx: foot.position.x, fz: foot.position.z, fy: foot.position.y, tx, tz };
-        P.steps++; if (em > 0.075 && !c.lead) P.stepWin += 0.8;
+        P.stepping = { side, foot, t: 0, dur: (0.24 + Math.min(0.12, sl * 0.25)) * (vmag > 1.8 ? 0.8 : 1), fx: foot.position.x, fz: foot.position.z, fy: foot.position.y, tx, tz };
+        P.steps++; if (em > 0.075 && !c.lead && !cmdWalk) P.stepWin += 0.8; // a gait's strides are not a struggle to keep balance
       }
       // once steady again, bring the feet back to a normal stance with a small step
       if (!P.stepping && c.s > 0.6 && c.canStep !== false && P.stepCool <= 0 && em < 0.04 && Math.hypot(vx, vz) < 0.12) {
@@ -388,12 +396,13 @@
         const f = st.foot;
         sf.set(1900 * (dx - f.position.x) - 70 * f.velocity.x, 1900 * (dy - f.position.y) - 70 * f.velocity.y + 120, 1900 * (dz - f.position.z) - 70 * f.velocity.z);
         const m2 = sf.norm(); if (m2 > 450) sf.scale(450 / m2, sf);
-        f.force.vadd(sf, f.force); pel.force.vsub(sf, pel.force); // the hip muscles swing the leg: internal force
+        const stanceF = f === fl ? fr : fl;
+        f.force.vadd(sf, f.force); if (c.vel) stanceF.force.vsub(sf, stanceF.force); else pel.force.vsub(sf, pel.force); // the hip muscles swing the leg; walking, the planted foot takes it into the floor
         // when turning, the swinging foot is rotated to the new heading before it is planted
         if (c.face != null) { f.quaternion.vmult(FWD, fw); let e = c.face - Math.atan2(fw.x, fw.z); e = Math.atan2(Math.sin(e), Math.cos(e)); f.torque.y += 6 * e - 0.4 * f.angularVelocity.y; }
         const stance = f === fl ? fr : fl;
         stance.force.y -= Fy; stance.force.x -= Fx; stance.force.z -= Fz;
-        if (u >= 1) { if (hooks.footstep) hooks.footstep(Math.min(1, Math.hypot(vx, vz) / 0.8)); P.stepping = null; P.stepCool = 0.1; }
+        if (u >= 1) { if (hooks.footstep) hooks.footstep(Math.min(1, Math.hypot(vx, vz) / 0.8)); P.stepping = null; P.stepCool = c.vel && Math.hypot(c.vel.x, c.vel.z) > 0.15 ? 0.02 : 0.1; }
       } else for (const f of [fl, fr]) { f.force.y -= Fy / 2; f.force.x -= Fx / 2; f.force.z -= Fz / 2; }
       // turning toward a heading: yaw torque on pelvis and trunk; the planted feet resist it until a step frees one
       if (c.face != null) {
