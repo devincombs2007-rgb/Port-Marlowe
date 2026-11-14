@@ -57,7 +57,7 @@
       $('vSplit').textContent = Math.round(P.lostExt) + ' / ' + Math.round(P.lostInt) + ' mL';
       $('vRate').textContent = P.bleedRate < 1 ? '0 mL/min' : P.bleedRate < 20 ? P.bleedRate.toFixed(1) + ' mL/min' : Math.round(P.bleedRate) + ' mL/min';
       $('vClass').textContent = P.hemClass(); $('vAvpu').textContent = P.avpu();
-      let post = N.posture === 'stand' ? (N.stagger > 0.3 ? 'Staggering' : N.pose === 'guard' ? 'Standing — guarding wound' : 'Standing') : N.posture === 'falling' ? 'Collapsing' : N.crawling ? 'Down — dragging away' : P.conscious ? 'Down — conscious' : 'Down — motionless';
+      let post = N.posture === 'rising' ? 'Getting up' : N.posture === 'stand' ? (N.stagger > 0.3 ? 'Staggering' : N.retreating ? 'Backing away' : N.pose === 'guard' ? 'Standing — guarding wound' : 'Standing') : N.posture === 'falling' ? 'Collapsing' : N.crawling ? 'Down — dragging away' : P.conscious ? 'Down — conscious' : 'Down — motionless';
       if (P.armsPara) post += ' · quadriplegic'; else if (P.legsPara) post += ' · paraplegic';
       $('vPost').textContent = post;
       $('vTime').textContent = P.tFirst == null ? '—' : fmtT(P.t - P.tFirst);

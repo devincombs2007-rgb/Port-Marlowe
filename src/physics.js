@@ -218,7 +218,10 @@
       pel.quaternion.vmult(FWD, fw);
       const mx = (fl.position.x + fr.position.x) / 2 + fw.x * offZ, mz = (fl.position.z + fr.position.z) / 2 + fw.z * offZ;
       const cx = (pel.position.x + tho.position.x) / 2, cz = (pel.position.z + tho.position.z) / 2;
-      let Fx = 2600 * (mx - cx) - 520 * (pel.velocity.x + tho.velocity.x) / 2, Fz = 2600 * (mz - cz) - 520 * (pel.velocity.z + tho.velocity.z) / 2;
+      // walking: the balance target sits a little ahead of the feet in the walking direction, so the body is held
+      // leaning and the stepping keeps having to catch it
+      const lx = c.lead ? c.lead.x : 0, lz = c.lead ? c.lead.z : 0;
+      let Fx = 2600 * (mx + lx - cx) - 520 * (pel.velocity.x + tho.velocity.x) / 2, Fz = 2600 * (mz + lz - cz) - 520 * (pel.velocity.z + tho.velocity.z) / 2;
       const cap = 0.24 * MTOT * GRAV * c.s * c.bal, m = Math.hypot(Fx, Fz);
       if (m > cap) { Fx *= cap / m; Fz *= cap / m; }
       Fx += c.push.x; Fz += c.push.z;
@@ -229,7 +232,7 @@
       P.stepCool -= H;
       // past recovery: the capture point is further than a step can reach, or a run of steps has not caught it
       P.stepWin = Math.max(0, (P.stepWin || 0) - H);
-      if (c.s > 0.6 && (em > 0.5 || (P.stepWin > 2.4 && em > 0.16))) { P.lost = { x: ex / (em || 1), z: ez / (em || 1), t: P.t }; }
+      if (c.s > 0.6 && c.canStep !== false && (em > 0.5 || (P.stepWin > 2.4 && em > 0.16))) { P.lost = { x: ex / (em || 1), z: ez / (em || 1), t: P.t }; }
       if (!P.stepping && c.s > 0.6 && c.canStep !== false && em > 0.075 && P.stepCool <= 0) {
         const ux = ex / em, uz = ez / em;
         // the foot that is furthest behind the direction of fall makes the step
