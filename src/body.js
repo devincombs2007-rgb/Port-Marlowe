@@ -712,6 +712,32 @@
       for (const [i, wgt, r, g, b] of handCache[side]) { const t = Math.min(0.92, k * wgt * 1.2); col.setXYZ(i, r + (bloodC2.r - r) * t, g + (bloodC2.g - g) * t, b + (bloodC2.b - b) * t); }
       col.needsUpdate = true; body.dirty = true;
     };
+    // fingers closing: the skin has no finger bones, so the finger vertices of the rest-pose mesh are bent toward the
+    // palm about the three finger joints (knuckle, middle, end), from the tip in, so each bend carries the joints
+    // beyond it. In the rest pose the hand hangs palm-in: the fingers run down from the knuckle line (y ~ 0.775) in a
+    // row front to back, and close toward the body's midline. k: 0 open, ~0.2 relaxed, 1 a full grip round a handle.
+    const gripCache = {}, gripK = { L: 0, R: 0 };
+    const JOINTS = [[0, 1.0], [0.045, 1.35], [0.072, 0.85]]; // distance below the knuckle line, full-grip angle (rad)
+    body.setGrip = (side, k) => {
+      const hm = body.human; if (!hm) return;
+      k = Math.round(Math.max(0, Math.min(1, k)) * 10) / 10; if (k === gripK[side] && !body.gripDirty) return; gripK[side] = k;
+      const geo = hm.geometry, Pa = geo.attributes.position, R0 = body.skin0.pos, sg = side === 'L' ? 1 : -1, yK = 0.776;
+      if (!gripCache[side]) {
+        const SI4 = geo.attributes.skinIndex.array, SW4 = geo.attributes.skinWeight.array, hi = body.list.indexOf(body.segs['hand' + side]), lst = [];
+        for (let i = 0; i < Pa.count; i++) { let wh = 0; for (let q = 0; q < 4; q++) if (SI4[i * 4 + q] === hi) wh += SW4[i * 4 + q]; if (wh < 0.5) continue; const x = R0[i * 3] * sg, y = R0[i * 3 + 1]; if (y < yK + 0.004 && x > 0.163) lst.push(i); } // the four fingers, not the thumb (it sits further in and higher)
+        gripCache[side] = lst;
+      }
+      const cx = 0.2 * sg, th = sg * -1; // bend toward the midline: about +z for the right hand, -z for the left
+      for (const i of gripCache[side]) {
+        let x = R0[i * 3], y = R0[i * 3 + 1]; const s = yK - y;
+        for (let j = JOINTS.length - 1; j >= 0; j--) {
+          const [d, A] = JOINTS[j]; if (s <= d) continue; const a = th * A * k * Math.min(1, (s - d) / 0.012), py = yK - d, c = Math.cos(a), sn = Math.sin(a), dx = x - cx, dy = y - py;
+          x = cx + dx * c - dy * sn; y = py + dx * sn + dy * c;
+        }
+        Pa.array[i * 3] = x; Pa.array[i * 3 + 1] = y;
+      }
+      Pa.needsUpdate = true; geo.computeVertexNormals(); body.gripDirty = false;
+    };
     // bruising round both eyes from a fractured skull base ("raccoon eyes"): painted into the skin, deepening with k
     let orb = null; const purple = new THREE.Color(0x3c1a30);
     body.periorbital = (k) => {
@@ -787,7 +813,7 @@
       if (body.cut0 && body.human) { const g = body.human.geometry; g.attributes.skinIndex.array.set(body.cut0.si); g.attributes.skinWeight.array.set(body.cut0.sw); g.attributes.skinIndex.needsUpdate = g.attributes.skinWeight.needsUpdate = true; g.setIndex(new THREE.BufferAttribute(body.cut0.idx.slice(), 1)); body.cut0 = null; }
       for (const m of body.stumps || []) m.parent && m.parent.remove(m); body.stumps = [];
       for (const hm2 of body.hairs || []) if (hm2.userData.pos0) { hm2.geometry.attributes.position.array.set(hm2.userData.pos0); hm2.geometry.attributes.position.needsUpdate = true; }
-      if (body.human && body.dirty) { const g = body.human.geometry; g.attributes.position.array.set(body.skin0.pos); g.attributes.color.array.set(body.skin0.col); g.attributes.position.needsUpdate = g.attributes.color.needsUpdate = true; g.computeVertexNormals(); body.dirty = false; }
+      if (body.human && body.dirty) { body.gripDirty = true; const g = body.human.geometry; g.attributes.position.array.set(body.skin0.pos); g.attributes.color.array.set(body.skin0.col); g.attributes.position.needsUpdate = g.attributes.color.needsUpdate = true; g.computeVertexNormals(); body.dirty = false; }
       for (const sg of body.list) if (sg.dirty && sg.skin) { const g = sg.skin.geometry; g.attributes.position.array.set(sg.skin0.pos); g.attributes.color.array.set(sg.skin0.col); g.attributes.position.needsUpdate = g.attributes.color.needsUpdate = true; g.computeVertexNormals(); sg.dirty = false; } for (const w of body.wounds) { w.seg.g.remove(w.g); if (w.track) w.seg.g.remove(w.track); if (w.soak) { w.soak.parent.remove(w.soak); w.soak.geometry.dispose(); } } body.wounds.length = 0; if (body.clearBlood) body.clearBlood(); };
     body.updateMatrices();
     if (G.skinBlood) G.skinBlood(body);

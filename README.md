@@ -1,4 +1,4 @@
-# Port-Marlowe — Wound Ballistics Lab (v2.3)
+# Port-Marlowe — Wound Ballistics Lab (v2.4)
 
 A browser-based 3D simulator of gunshot wounds. A test subject stands in a chamber; every
 round is traced millimetre by millimetre through skin, bone, organs and vessels, and the
@@ -6,6 +6,17 @@ body then responds in real time (bleeding, blood pressure, breathing, consciousn
 
 **Run it:** serve this folder with any static server (`python3 -m http.server`) and open
 `index.html`. No build step. `node tools/build.js` bundles a single-file page into `dist/`.
+
+**v2.4 — gun handling**: fighters hold and move their guns the way trained people do. Long guns go in the shoulder
+pocket (bladed stance, head down toward the stock), firing hand on the pistol grip, support hand on the handguard or
+pump; low ready (stock in the shoulder, muzzle down toward the threat) when nobody is in sight, carried across the
+chest muzzle-down when running. Pistols: two-handed isosceles grip with the sights brought up to the eye,
+compressed ready close to the chest, muzzle straight down when running, one-handed and canted when the other hand is
+busy. Raising and lowering take a fraction of a second; recoil flips the muzzle (more with one hand) and drives the
+gun back. Reloads: the empty magazine falls out and lands on the floor, the support hand goes to the belt and back to
+the magazine well, then works the charging handle / slide; shotguns and the bolt rifle are loaded a round at a time;
+the pump is racked and the bolt worked after every shot. Fingers close round the grip and the forend. A fighter keeps
+both hands on the gun through lesser wounds and only takes one off for a serious one.
 
 **v2.3 — 1v1 movement and fire discipline**: fighters walk (~1.3 m/s) and run (~2 m/s) with a real alternating
 stride — each foot planted under the moving body's capture point — and stop without stumbling; they steer round

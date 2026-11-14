@@ -19,7 +19,7 @@
     jerk: { abdomen: [0.25, 0, 0], thorax: [0.2, 0, 0], uarmL: [-0.8, 0, 0.1], uarmR: [-0.8, 0, -0.1], farmL: [-1.2, 0, 0], farmR: [-1.2, 0, 0], thighL: [-0.5, 0, 0], thighR: [-0.5, 0, 0], shinL: [0.7, 0, 0], shinR: [0.7, 0, 0] },
   };
   const PRIO = { neck: 5, thorax: 4, abdomen: 4, head: 3, pelvis: 3, thighL: 2, thighR: 2 };
-  const eul = new THREE.Euler(), upv = new CANNON.Vec3(), UP = new CANNON.Vec3(0, 1, 0), LONG = new CANNON.Vec3(0, 1, 0), lax = new CANNON.Vec3();
+  const shP = new THREE.Vector3(), eul = new THREE.Euler(), upv = new CANNON.Vec3(), UP = new CANNON.Vec3(0, 1, 0), LONG = new CANNON.Vec3(0, 1, 0), lax = new CANNON.Vec3();
   const v1 = new THREE.Vector3(), v2 = new THREE.Vector3(), v3 = new THREE.Vector3();
   G.NPC = function (body, phys, rag, hooks) {
     const names = body.list.map((s) => s.name).filter((n) => n !== 'pelvis');
@@ -111,6 +111,8 @@
             // a hanging hand already reaches the upper thigh; a hand already on a wound keeps it (hysteresis)
             const d = v2.distanceTo(v1), lim = N.posture === 'down' ? 1.15 : 0.8; if (d > (N.clutching[sd] === w ? lim + 0.2 : lim)) continue; // on the floor he curls up to get a hand to a leg wound
             const other = pick[sd === 'L' ? 'R' : 'L'], sev = severity(w);
+            // in a fight the hand stays on the gun unless the wound is serious (a chest, belly or neck wound bleeding hard)
+            if (hooks.fighter && N.aiming && N.clutching[sd] !== w && sev < 9.3 && P.pain < 0.65) continue;
             // both hands go to one wound when it is clearly the worst (a neck or chest wound pumping blood)
             const share = other === w ? (sev >= 8 ? -0.5 : -2.5) : 0;
             const sc = sev - d + share + (N.clutching[sd] === w ? 1 : 0);
@@ -287,14 +289,18 @@
         }
         N.clutching.L = N.clutching.R = null; rag.setClutch('L', null); rag.setClutch('R', null);
       } else if (rag.reach.L || rag.reach.R) { rag.reach.L = rag.reach.R = null; }
-      N.aiming = false; rag.reachCap = 130;
-      if (!N.protect && N.ai && N.ai.aim && aware && !P.armsPara) {
-        const gh = N.ai.gunHand || 'R';
+      N.aiming = false; N.supHand = null; rag.reachCap = 130;
+      const holdPt = N.ai && (N.ai.hold || N.ai.aim);
+      if (!N.protect && holdPt && aware && !P.armsPara) {
+        const gh = N.ai.gunHand || 'R', sd = gh === 'R' ? 'L' : 'R';
         if (!P.armBroken[gh] && !(rag.parts['hand' + gh] && rag.parts['hand' + gh].severed)) {
-          N.gunHand = gh; N.aiming = true; rag.reach[gh] = N.ai.aim; rag.reachCap = 300 * Math.min(1, P.brainE) * (1 - 0.35 * P.pain); // the shoulder holds a gun up at arm's length
+          N.gunHand = gh; N.aiming = true; rag.reach[gh] = holdPt; rag.reachCap = 300 * Math.min(1, P.brainE) * (1 - 0.35 * P.pain); // the shoulder holds a gun up at arm's length
           if (N.clutching[gh]) { N.clutching[gh] = null; rag.setClutch(gh, null); }
+          // the other hand on the gun too (the forend, or wrapped round the firing hand), unless it is holding a wound
+          if (N.ai.support && !N.clutching[sd] && !P.armBroken[sd] && !(rag.parts['hand' + sd] && rag.parts['hand' + sd].severed)) { rag.reach[sd] = N.ai.support; N.supHand = sd; }
         }
       }
+      if (rag.setGunArms) { const gL = N.aiming && (N.gunHand === 'L' || N.supHand === 'L'), gR = N.aiming && (N.gunHand === 'R' || N.supHand === 'R'); rag.setGunArms(gL, gR, !!N.supHand); }
       // ---- a hand goes to the wound: neck, chest, belly, thigh, whatever it can reach
       // grip strength follows the brain: hands weaken, then fall away, as consciousness fades
       const grip = Math.max(0, Math.min(1, (P.brainE - 0.45) / 0.4)) * (P.conscious ? 1 : 0);
@@ -386,12 +392,21 @@
         if (N.posture === 'down' && aware && tone > 0 && !(isArm && N.clutching[side])) tone = Math.max(tone, 0.5 * (1 - 0.5 * shock));
         if (N.crawling && n.startsWith('uarm')) x = -1.6 + Math.sin(c * 2.4 + (side === 'L' ? 0 : Math.PI)) * 0.9;
         if (isArm && N.protect) { tone *= 0.25; }
-        if (isArm && N.aiming && side === N.gunHand) { tone *= 0.3; if (n.startsWith('farm')) x = -0.25; } // arm out toward the target
+        if (isArm && N.aiming && (side === N.gunHand || side === N.supHand)) {
+          // holding the gun: the shoulder lets the hand be placed; the elbow bends to the angle that puts the hand at the
+          // grip (two-segment arm, law of cosines): nearly straight for a pistol at arm's length, well bent for a stock
+          // in the shoulder or a gun held in close
+          const tgt = side === N.gunHand ? (N.ai.hold || N.ai.aim) : N.ai.support;
+          tone *= n.startsWith('uarm') ? 0.15 : 0.45;
+          if (n.startsWith('farm') && tgt) { body.segs['uarm' + side].g.getWorldPosition(shP); const dd = Math.min(0.6, shP.distanceTo(tgt)), L1 = 0.29, L2 = 0.32, cs = (L1 * L1 + L2 * L2 - dd * dd) / (2 * L1 * L2); x = -(Math.PI - Math.acos(Math.max(-1, Math.min(1, cs)))); }
+          else if (n.startsWith('farm')) x = -0.25;
+        }
         if (N.crouch > 0.01 && N.posture === 'stand') { const cr = N.crouch; if (n.startsWith('thigh')) x -= 1.0 * cr; else if (n.startsWith('shin')) x += 1.55 * cr; else if (n.startsWith('foot')) x -= 0.5 * cr; else if (n === 'abdomen') x += 0.25 * cr; }
         if (N.ai && N.ai.lean && (n === 'abdomen' || n === 'thorax')) z += 0.22 * N.ai.lean; // leaning out from cover
+        if (N.aiming && N.ai && N.ai.cheek && (n === 'neck' || n === 'head')) x += 0.18; // head down onto the stock
         // walking: each arm swings forward as the opposite leg steps
         if (n.startsWith('uarm')) {
-          const st = rag.stepping, want = N.retreating && st && !N.clutching[side] ? (st.side === side ? 0.32 : -0.38) : 0;
+          const st = rag.stepping, want = N.retreating && st && !N.clutching[side] && !(N.aiming && (side === N.gunHand || side === N.supHand)) ? (st.side === side ? 0.32 : -0.38) : 0;
           N.armSw[side] += (want - N.armSw[side]) * Math.min(1, dt * 7); x += N.armSw[side];
         }
         if (n.startsWith('farm') && N.retreating && !N.clutching[side]) x -= 0.35; // elbows a little bent while walking

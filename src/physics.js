@@ -430,12 +430,19 @@
     P.clutch = { L: null, R: null }; P.reach = { L: null, R: null };
     // a hand holding a wound is in contact with its own body: the coarse chest/belly collision boxes would keep it
     // pushed away (they enclose the base of the neck), so while holding, that hand and forearm skip them
+    // and two hands on one gun overlap (a pistol grip, a hand cupping the other): then the forearms and hands of the
+    // two arms pass through each other instead of shoving apart
+    // An arm holding a gun works close in front of the chest, where the boxes' square corners stick out: it skips
+    // them too (keepOut still keeps it from sinking into the body)
+    P.twoHand = false; P.gunArm = { L: false, R: false };
     const handMask = (side, holding) => {
       for (const n of ['hand' + side, 'farmX' + side, 'farm' + side]) {
         const b = P.parts[n].b; if (b.mask0 == null) b.mask0 = b.collisionFilterMask;
-        b.collisionFilterMask = holding ? (b.mask0 & ~(CHEST | TRUNK)) : b.mask0;
+        let m = holding || P.gunArm[side] ? (b.mask0 & ~(CHEST | TRUNK)) : b.mask0; if (P.twoHand) m &= ~(side === 'L' ? ARMR : ARML);
+        b.collisionFilterMask = m;
       }
     };
+    P.setGunArms = (L, R, two) => { L = !!L; R = !!R; two = !!two; if (P.twoHand === two && P.gunArm.L === L && P.gunArm.R === R) return; P.twoHand = two; P.gunArm.L = L; P.gunArm.R = R; handMask('L', !!P.clutch.L); handMask('R', !!P.clutch.R); };
     P.setClutch = (side, seg, wpt) => {
       handMask(side, !!seg);
       if (!seg) { P.clutch[side] = null; return; }

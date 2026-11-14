@@ -571,7 +571,7 @@
   // while it physically can (from the floor too, holding a wound with the free hand), goes to cover when hurt,
   // pushes when winning and finishes a downed enemy.
   function Duel() {
-    const D = { on: false, fighters: [], score: [0, 0], round: 0, phase: 'idle', t: 0, props: [], cam: 1, clock: 0 };
+    const D = { on: false, fighters: [], score: [0, 0], round: 0, phase: 'idle', t: 0, props: [], cam: 1, clock: 0, drops: [] };
     const NAMES = ['RED', 'BLUE'], SHORTS = [0x7a2020, 0x203c7a];
     const spawn = [new V3(0, 0, -1.6), new V3(0, 0, 6.1)];
     const mats = { crate: new THREE.MeshStandardMaterial({ color: 0x6e5236, roughness: 0.85 }), concrete: new THREE.MeshStandardMaterial({ color: 0x8b8a84, roughness: 0.95 }), metal: new THREE.MeshStandardMaterial({ color: 0x4b545a, roughness: 0.5, metalness: 0.6 }) };
@@ -608,7 +608,147 @@
       if (S.gunModel) scene.remove(S.gunModel);
       const w = G.WEAPONS[wi], src = gun.models[w.model] || gun.models.glock, m = src.clone(true); m.visible = true; m.traverse((o) => { o.visible = true; o.castShadow = true; }); scene.add(m);
       S.gunModel = m; S.ai.wi = wi; S.ai.flash = new THREE.PointLight(0xffc878, 0, 7, 2); scene.add(S.ai.flash);
+      // the magazine (a separate part on magazine-fed guns) and the pump's forend, for reloads and racking
+      let mag = null, fore = null; m.children.forEach((c) => { if (c.material && c.material.color && c.material.color.getHex() === 0x33373b && !mag) mag = c; });
+      if (w.model === 'pump') fore = m.children[3];
+      S.gs = { pos: null, q: new THREE.Quaternion(), mode: 'ready', kick: 0, back: 0, cyc: 0, mag, fore, fore0: fore ? fore.position.z : 0, dropped: false, modeT: 0 };
     }
+    // ---- handling the gun the way a trained person does. Each gun's geometry (model space: forward -Z, up +Y,
+    // the shooter's right +X): butt = stock length behind the origin, buttY its height; sight = height of the sight
+    // line; grip = where the firing hand's palm sits; sup = where the support hand sits; load = magazine well / port;
+    // rack = what the support hand pulls to charge it.
+    const HOLD = {
+      glock: { grip: [0, -0.06, 0.025], sup: [-0.03, -0.068, 0.012], sight: 0.043, load: [0, -0.12, 0.025], rack: [0, 0.028, 0.03] },
+      m1911: { grip: [0, -0.06, 0.03], sup: [-0.03, -0.068, 0.016], sight: 0.043, load: [0, -0.12, 0.03], rack: [0, 0.028, 0.035] },
+      target22: { grip: [0, -0.055, 0.035], sup: [-0.03, -0.065, 0.02], sight: 0.046, load: [0, -0.115, 0.04], rack: [0, 0.03, 0.04] },
+      revolver: { grip: [0, -0.05, 0.03], sup: [-0.03, -0.06, 0.015], sight: 0.049, load: [-0.01, 0.026, -0.03], rack: [-0.01, 0.026, -0.03], tube: true },
+      ar15: { long: true, butt: 0.31, buttY: 0.0, sight: 0.082, grip: [0, -0.055, 0.045], sup: [0, 0.008, -0.17], load: [0, -0.07, -0.08], rack: [0, 0.075, 0.2] },
+      ak: { long: true, butt: 0.36, buttY: -0.01, sight: 0.062, grip: [0, -0.05, 0.043], sup: [0, 0.012, -0.17], load: [0, -0.04, -0.08], rack: [0.035, 0.04, -0.07] },
+      bolt: { long: true, butt: 0.37, buttY: -0.015, sight: 0.098, grip: [0, -0.045, 0.06], sup: [0, -0.012, -0.16], load: [0.01, 0.05, 0.0], rack: [0.035, 0.036, 0.03], tube: true },
+      pump: { long: true, butt: 0.39, buttY: -0.016, sight: 0.058, grip: [0, -0.022, 0.13], sup: [0, -0.012, -0.28], load: [0, -0.012, -0.03], rack: [0, -0.012, -0.2], tube: true },
+    };
+    const _m4 = new THREE.Matrix4(), WUP = new V3(0, 1, 0);
+    const gunQ = (d, roll) => { // a gun frame looking along d, kept upright, canted by `roll` about the bore
+      const z = d.clone().negate(), up0 = Math.abs(d.y) > 0.97 ? new V3(0, 0, 1) : WUP, x = new V3().crossVectors(up0, z).normalize(), y = new V3().crossVectors(z, x);
+      const q = new THREE.Quaternion().setFromRotationMatrix(_m4.makeBasis(x, y, z)); if (roll) q.multiply(new THREE.Quaternion().setFromAxisAngle(new V3(0, 0, 1), roll)); return q;
+    };
+    const mp = (O, q, p) => new V3(p[0], p[1], p[2]).applyQuaternion(q).add(O); // model point -> world
+    const lerp3 = (a, b, u) => a.clone().lerp(b, Math.max(0, Math.min(1, u)));
+    function holdGun(S, N, intent, dt, ep, vis) {
+      const ai = S.ai, gs = S.gs, P = S.phys; if (!gs || !S.gunModel) return;
+      const w = G.WEAPONS[ai.wi], H = HOLD[w.model] || HOLD.glock, gh = intent.gunHand || 'R', side = gh === 'L' ? -1 : 1;
+      const standing = N.posture === 'stand' && P.conscious && ai.canFight;
+      if (vis) ai.lastKnown = ep.clone();
+      // the stance decides the carry: sprinting (no shooting), searching (low/compressed ready), on target, reloading
+      let mode = !standing ? 'ground' : ai.reloadT > 0 ? 'reload' : intent.run && intent.move ? 'carry' : intent.aim ? 'aim' : 'ready';
+      if (mode === 'carry') intent.aim = null;
+      if (mode !== gs.mode) { gs.mode = mode; gs.modeT = 0; } gs.modeT += dt;
+      gs.kick *= Math.exp(-dt / 0.075); gs.back *= Math.exp(-dt / 0.09); gs.cyc = Math.max(0, gs.cyc - dt);
+      if (mode === 'ground') { intent.hold = null; intent.support = null; gs.pos = null; return; }
+      // body frame
+      const tb = S.rag.parts.thorax.b, tq = new THREE.Quaternion(tb.quaternion.x, tb.quaternion.y, tb.quaternion.z, tb.quaternion.w), T = partPos(S, 'thorax');
+      const fw = new V3(0, 0, 1).applyQuaternion(tq); fw.y = 0; fw.normalize(); const rv = new V3(-fw.z, 0, fw.x).multiplyScalar(-side); // toward the gun side
+      const hb = S.rag.parts.head.b, hq = new THREE.Quaternion(hb.quaternion.x, hb.quaternion.y, hb.quaternion.z, hb.quaternion.w), hf = new V3(0, 0, 1).applyQuaternion(hq);
+      const sh = new V3(); S.body.segs['uarm' + gh].g.getWorldPosition(sh);
+      if (new V3().subVectors(sh, T).dot(rv) < 0) rv.negate(); // make sure "gun side" really is the side of the gun shoulder
+      const eye = partPos(S, 'head').addScaledVector(hf, 0.085).addScaledVector(WUP, 0.03).addScaledVector(rv, 0.03);
+      // the shoulder pocket: the hollow on the front of the shoulder inside the joint, at collarbone height, on the chest's
+      // surface (thorax frame: +x left, +y up, +z forward; the chest is 0.15 m deep from its centre)
+      const lx = sh.clone().sub(T).applyQuaternion(tq.clone().invert()).x > 0 ? 1 : -1, pocket = new V3(lx * 0.13, 0.15, 0.15).applyQuaternion(tq).add(T);
+      const lk = ai.lastKnown || ep, dh = lk.clone().sub(T); dh.y = 0; if (dh.lengthSq() < 1e-4) dh.copy(fw); dh.normalize();
+      const sd = gh === 'R' ? 'L' : 'R', two = !(N.clutching && N.clutching[sd]) && !P.armBroken[sd] && !S.rag.parts['hand' + sd].severed;
+      let O, q, sup = null, grip = H.grip;
+      const fromButt = (B, d, roll) => { const qq = gunQ(d, roll), u = new V3(0, 1, 0).applyQuaternion(qq); return { O: B.clone().addScaledVector(u, -H.buttY).addScaledVector(d, H.butt - 0.03), q: qq }; }; // the recoil pad sinks into the pocket
+      if (H.long) {
+        if (mode === 'aim') {
+          // stock in the shoulder pocket, head down on the stock (the neck flexes: cheek weld), sights on the target
+          const B = pocket.clone().addScaledVector(WUP, 0.02), d = ai.target.clone().sub(B.clone().addScaledVector(WUP, H.sight - H.buttY)).normalize();
+          ({ O, q } = fromButt(B, d, 0));
+        } else if (mode === 'ready') {
+          // low ready: stock still in the shoulder, muzzle down about 35 degrees toward where the threat is
+          const d = dh.clone().multiplyScalar(Math.cos(0.6)).addScaledVector(WUP, -Math.sin(0.6)).normalize();
+          ({ O, q } = fromButt(pocket.clone().addScaledVector(WUP, -0.03), d, 0));
+        } else if (mode === 'carry') {
+          // moving fast: across the chest, muzzle down toward the off side
+          const d = fw.clone().multiplyScalar(0.72).addScaledVector(WUP, -0.48).addScaledVector(rv, -0.5).normalize();
+          ({ O, q } = fromButt(pocket.clone().addScaledVector(WUP, -0.12).addScaledVector(rv, 0.03), d, -0.45 * side));
+        } else { // reload: off the shoulder, in close, canted so the magazine well faces the support hand, muzzle up a little
+          const d = dh.clone().multiplyScalar(0.92).addScaledVector(WUP, 0.3).addScaledVector(rv, -0.12).normalize();
+          q = gunQ(d, 0.5 * side); O = T.clone().addScaledVector(fw, 0.3).addScaledVector(WUP, 0.04).addScaledVector(rv, 0.03);
+        }
+      } else {
+        if (mode === 'aim') {
+          // pistol: arms pushed out, sights brought up to the eye (two hands), or one arm out to the side when the other is busy
+          const d = ai.target.clone().sub(eye).normalize(); q = gunQ(d, two ? 0 : 0.12 * side);
+          const u = new V3(0, 1, 0).applyQuaternion(q); O = eye.clone().addScaledVector(d, two ? 0.5 : 0.6).addScaledVector(u, -H.sight).addScaledVector(rv, two ? 0 : 0.05);
+        } else if (mode === 'ready') {
+          // compressed ready: gun close in at the chest, both hands on it, muzzle toward the threat and a little down
+          const d = dh.clone().addScaledVector(WUP, -0.32).normalize(); q = gunQ(d, 0); O = T.clone().addScaledVector(WUP, 0.14).addScaledVector(fw, 0.24).addScaledVector(rv, 0.02);
+        } else if (mode === 'carry') {
+          // running: muzzle straight down in front of the stomach, support hand flat on the chest
+          const d = dh.clone().multiplyScalar(0.3).addScaledVector(WUP, -0.95).normalize(); q = gunQ(d, 0); O = T.clone().addScaledVector(fw, 0.2).addScaledVector(WUP, -0.02).addScaledVector(rv, 0.03);
+          sup = T.clone().addScaledVector(fw, 0.17).addScaledVector(WUP, 0.08).addScaledVector(rv, -0.03);
+        } else { // reload: in the workspace in front of the chest, canted, muzzle a little up
+          const d = dh.clone().addScaledVector(WUP, 0.3).normalize(); q = gunQ(d, 0.45 * side); O = T.clone().addScaledVector(fw, 0.3).addScaledVector(WUP, 0.12).addScaledVector(rv, 0.02);
+        }
+      }
+      // smooth: bringing a gun up or down takes a quarter of a second, not a frame
+      const a = 1 - Math.exp(-dt * (mode === 'aim' ? 14 : 9));
+      if (!gs.pos) { gs.pos = O.clone(); gs.q.copy(q); } else { gs.pos.lerp(O, a); gs.q.slerp(q, a); }
+      // recoil: muzzle flip about the grip (pistol) or the butt (long gun), and the gun driven back into the hands/shoulder
+      const piv = H.long ? [0, H.buttY, H.butt] : grip, pv = new V3(...piv), Pw = pv.clone().applyQuaternion(gs.q).add(gs.pos);
+      const qk = gs.q.clone().multiply(new THREE.Quaternion().setFromAxisAngle(new V3(1, 0, 0), gs.kick));
+      const Ok = Pw.clone().sub(pv.clone().applyQuaternion(qk)).addScaledVector(new V3(0, 0, 1).applyQuaternion(qk), gs.back);
+      gs.rq = qk; gs.ro = Ok;
+      // the hands: firing hand on the grip; support hand on the forend / round the firing hand, or busy reloading
+      let gp = grip;
+      if (w.model === 'bolt' && gs.cyc > 0) { const u = 1 - gs.cyc / 0.7; gp = u < 0.25 ? lerpA(grip, H.rack, u / 0.25) : u < 0.75 ? H.rack.map((v, i) => v + (i === 2 ? 0.07 * Math.sin((u - 0.25) / 0.5 * Math.PI) : 0)) : lerpA(H.rack, grip, (u - 0.75) / 0.25); } // work the bolt
+      intent.hold = mp(Ok, qk, gp);
+      let sp = H.sup, foreOff = 0;
+      if (w.model === 'pump' && gs.cyc > 0) { const u = 1 - gs.cyc / 0.45; foreOff = 0.085 * Math.sin(Math.min(1, u) * Math.PI); sp = [H.sup[0], H.sup[1], H.sup[2] + foreOff]; } // rack the pump
+      if (gs.fore) gs.fore.position.z = gs.fore0 + foreOff;
+      if (mode === 'reload') {
+        const tot = ai.reloadTot || 2, u = 1 - ai.reloadT / tot, belt = partPos(S, 'pelvis').addScaledVector(fw, 0.12).addScaledVector(rv, -0.13).addScaledVector(WUP, 0.06);
+        const load = mp(Ok, qk, H.load), rack = mp(Ok, qk, H.rack), home = mp(Ok, qk, H.sup);
+        if (H.tube) { const n = Math.max(1, Math.round(tot / 0.6)), k = (u * n) % 1; sup = k < 0.5 ? lerp3(load, belt, k / 0.25) : lerp3(belt, load, (k - 0.5) / 0.3); } // a round at a time: pouch, port
+        else {
+          if (u > 0.06 && !gs.dropped && gs.mag) dropMag(S);
+          if (gs.mag) gs.mag.visible = u > 0.55;
+          sup = u < 0.1 ? load : u < 0.45 ? lerp3(load, belt, (u - 0.1) / 0.18) : u < 0.72 ? lerp3(belt, load, (u - 0.45) / 0.2) : u < 0.9 ? lerp3(load, rack, (u - 0.72) / 0.08) : lerp3(rack, home, (u - 0.9) / 0.08);
+        }
+      } else if (gs.mag) { gs.mag.visible = true; gs.dropped = false; }
+      if (!sup && two) sup = mp(Ok, qk, sp);
+      intent.support = two ? sup : null; intent.cheek = H.long && mode === 'aim';
+      // a hand far from its place on the gun comes round the front, not straight through its own belly; and no target
+      // is ever put beyond the reach of its arm (an arm pulled straight at a point it cannot reach twists the whole chest)
+      for (const [k, hs] of [['hold', gh], ['support', sd]]) {
+        let t = intent[k]; if (!t) continue; const hp = partPos(S, 'hand' + hs), dd = hp.distanceTo(t);
+        if (dd > 0.12) { const out = Math.min(0.2, (dd - 0.12) * 0.9); t = t.clone().addScaledVector(fw, out).addScaledVector(WUP, -out * 0.2); }
+        const shp = new V3(); S.body.segs['uarm' + hs].g.getWorldPosition(shp); const v = t.clone().sub(shp), L = v.length(); if (L > 0.58) t = shp.addScaledVector(v, 0.58 / L);
+        intent[k] = t;
+      }
+      // long guns are fired from a bladed stance: turned a little toward the gun side, which brings the support shoulder
+      // forward under the forend
+      if (H.long && (mode === 'aim' || mode === 'ready') && intent.face != null) intent.face += 0.35 * Math.sign(rv.x * fw.z - rv.z * fw.x || 1); // +angle turns the heading toward (fw.z, -fw.x)
+      // how far the gun's line is off the target (for the decision to fire)
+      const mz = mp(Ok, qk, [0, S.gunModel.userData.fy || 0.03, S.gunModel.userData.muzzle || -0.2]), gd = new V3(0, 0, -1).applyQuaternion(qk);
+      gs.err = mode === 'aim' && ai.target ? gd.angleTo(ai.target.clone().sub(mz)) : 9;
+    }
+    const lerpA = (a, b, u) => a.map((v, i) => v + (b[i] - v) * Math.max(0, Math.min(1, u)));
+    // the empty magazine falls out of the gun and lies on the floor
+    function dropMag(S) {
+      const gs = S.gs; gs.dropped = true; const m = gs.mag.clone(); S.gunModel.updateMatrixWorld();
+      m.applyMatrix4(S.gunModel.matrixWorld); scene.add(m); m.castShadow = true;
+      D.drops.push({ m, v: new V3((Math.random() - 0.5) * 0.4, -0.5, (Math.random() - 0.5) * 0.4), w: new V3(Math.random() * 6 - 3, Math.random() * 6 - 3, Math.random() * 6 - 3), rest: false });
+    }
+    function stepDrops(dt) {
+      for (const d of D.drops) {
+        if (d.rest) continue; d.v.y -= 9.81 * dt; d.m.position.addScaledVector(d.v, dt);
+        d.m.rotation.x += d.w.x * dt; d.m.rotation.y += d.w.y * dt; d.m.rotation.z += d.w.z * dt;
+        if (d.m.position.y < 0.012) { d.m.position.y = 0.012; if (Math.abs(d.v.y) < 0.6) { d.rest = true; d.m.rotation.x = Math.round(d.m.rotation.x / (Math.PI / 2)) * (Math.PI / 2); d.m.rotation.z = Math.round(d.m.rotation.z / (Math.PI / 2)) * (Math.PI / 2); } else { d.v.y *= -0.25; d.v.x *= 0.5; d.v.z *= 0.5; d.w.multiplyScalar(0.4); } }
+      }
+    }
+    const clearDrops = () => { for (const d of D.drops) scene.remove(d.m); D.drops.length = 0; };
     function setupFighter(S, i, wi) {
       use(S); S.idx = i;
       S.body.clearWounds(); S.rag.stop(); S.rag.clear(); S.viscera.clear(); S.headFx.rk = S.headFx.rkMax = 0; S.headFx.mouth = false; S.handBlood.L = S.handBlood.R = 0;
@@ -626,7 +766,7 @@
       const E = D.fighters[1 - S.idx], ai = S.ai, P = S.phys, dt = Math.max(0, N.clock - (ai.clock || N.clock)); ai.clock = N.clock;
       const me = partPos(S, 'thorax'), ep = partPos(E, 'thorax'), toE = ep.clone().sub(me); toE.y = 0; const dist = toE.length(); toE.normalize();
       const face = Math.atan2(toE.x, toE.z);
-      if (D.phase !== 'fight') return { face };
+      if (D.phase !== 'fight') { const it = { face, gunHand: 'R' }; holdGun(S, N, it, dt, ep, false); ai.intent = it; return it; } // waiting: gun at the ready
       const eye = partPos(S, 'head'), seeTarget = partPos(E, E.npc.posture === 'stand' ? 'thorax' : 'abdomen');
       const vis = los(eye, seeTarget) || los(eye, partPos(E, 'head'));
       if (vis) ai.lastSeen = 0; else ai.lastSeen += dt;
@@ -675,10 +815,11 @@
       if (vis) { if (ai.seenT === 0) ai.react = 0.3 + Math.random() * 0.35 + 0.35 * P.pain + (S.npc.posture !== 'stand' ? 0.3 : 0); ai.seenT += dt; ai.lostT = 0; }
       else { ai.lostT = (ai.lostT || 0) + dt; if (ai.lostT > 0.4) ai.seenT = 0; }
       if (ai.reloadT > 0) { ai.reloadT -= dt; intent.aim = null; if (ai.reloadT <= 0) ai.ammo = WMAG[ai.wi]; }
-      else if (ai.ammo <= 0) { const w = G.WEAPONS[ai.wi]; ai.reloadT = w.cls === 'shotgun' ? 0.5 * WMAG[ai.wi] * 0.6 : w.model === 'bolt' ? 2.4 : w.model === 'revolver' ? 3.2 : 2.2; ai.burst = 0; intent.aim = null; if (vis && D.props.length && ai.state === 'engage') { ai.state = 'cover'; ai.goal = coverSpot(S, ep); ai.t = 0; } }
+      else if (ai.ammo <= 0) { const w = G.WEAPONS[ai.wi]; ai.reloadT = w.cls === 'shotgun' ? 0.5 * WMAG[ai.wi] * 0.6 : w.model === 'bolt' ? 2.4 : w.model === 'revolver' ? 3.2 : 2.2; ai.reloadTot = ai.reloadT; ai.burst = 0; intent.aim = null; if (vis && D.props.length && ai.state === 'engage') { ai.state = 'cover'; ai.goal = coverSpot(S, ep); ai.t = 0; } }
       if (intent.aim && N.aiming) ai.aimT += dt; else ai.aimT = 0;
-      // steady: the hand is where the aim wants it and not swinging; lined up: the muzzle points at the target
-      const hb = S.rag.parts['hand' + (gh || 'R')].b, pv = S.rag.parts.pelvis.b.velocity, handErr = intent.aim ? hb.position.distanceTo(new CANNON.Vec3(intent.aim.x, intent.aim.y, intent.aim.z)) : 1, steady = intent.aim && (handErr < 0.09 || (ai.aimT > 1 && handErr < 0.22)) && Math.hypot(hb.velocity.x - pv.x, hb.velocity.y - pv.y, hb.velocity.z - pv.z) < 0.9; // steady relative to the body: he can fire on the move
+      holdGun(S, N, intent, dt, ep, vis);
+      // steady: the gun is up on the target, the hand is on the grip and not swinging (relative to the body)
+      const hb = S.rag.parts['hand' + (gh || 'R')].b, pv = S.rag.parts.pelvis.b.velocity, hp0 = intent.hold || intent.aim, handErr = hp0 ? hb.position.distanceTo(new CANNON.Vec3(hp0.x, hp0.y, hp0.z)) : 1, onGun = S.gs && S.gs.mode === 'aim' ? S.gs.err < 0.06 && S.gs.modeT > 0.2 : true, steady = intent.aim && onGun && (handErr < 0.1 || (ai.aimT > 1 && handErr < 0.22)) && Math.hypot(hb.velocity.x - pv.x, hb.velocity.y - pv.y, hb.velocity.z - pv.z) < 0.9; // steady relative to the body: he can fire on the move
       let clear = false;
       if (S.gunModel && intent.aim) {
         S.gunModel.updateMatrixWorld(); const mz = new V3(0, S.gunModel.userData.fy || 0.03, S.gunModel.userData.muzzle || -0.2).applyMatrix4(S.gunModel.matrixWorld); clear = los(mz, ai.target);
@@ -730,6 +871,7 @@
     function aiFire(S) {
       const E = D.fighters[1 - S.idx], ai = S.ai, w = G.WEAPONS[ai.wi], P = S.phys, m = S.gunModel;
       ai.ammo--; ai.burst--; ai.shots = (ai.shots || 0) + 1;
+      if (S.gs) { const long = w.cls === 'rifle' || w.cls === 'shotgun'; S.gs.kick += (long ? 0.06 : 0.2) * w.recoil * (0.8 + Math.random() * 0.4) * (S.npc.supHand ? 1 : 1.5); S.gs.back += 0.018 * w.recoil; if (w.model === 'pump') S.gs.cyc = 0.45; else if (w.model === 'bolt') S.gs.cyc = 0.7; } // muzzle flip, worse one-handed; rack the pump / work the bolt
       const gap = Math.max(60 / w.rpm, w.cls === 'pistol' ? 0.24 : 0.14) * (1 + Math.random() * 0.4) + (P.pain > 0.5 ? 0.1 : 0);
       ai.fireT = ai.burst > 0 ? gap : gap + 0.55 + Math.random() * 0.9; // between bursts: a look at what happened
       m.updateMatrixWorld(); mzl.set(0, m.userData.fy || 0.03, m.userData.muzzle || -0.2).applyMatrix4(m.matrixWorld);
@@ -770,12 +912,13 @@
     }
     // ---- rounds
     function startRound() {
-      D.round++; D.phase = 'ready'; D.t = 0; world.clear(); projectiles.clear(); pending.length = 0;
+      D.round++; D.phase = 'ready'; D.t = 0; world.clear(); projectiles.clear(); pending.length = 0; clearDrops();
       const wi = DUEL_W[Math.floor(Math.random() * DUEL_W.length)];
       for (let i = 0; i < 2; i++) setupFighter(D.fighters[i], i, wi);
       layout(); D.weaponName = G.WEAPONS[wi].name; use(D.fighters[0]);
     }
     const DUEL_W = [1, 2, 3, 4, 5, 6, 8];
+    D.arm = (wi) => { for (const S of D.fighters) { giveGun(S, wi); S.ai.ammo = WMAG[wi]; } D.weaponName = G.WEAPONS[wi].name; }; // tests / a fixed weapon
     // magazine capacity by weapon index (Glock 17, 1911 7+1, .357 revolver 6, AR/AK 30, bolt 5, pump 7)
     const WMAG = { 0: 10, 1: 17, 2: 17, 3: 8, 4: 6, 5: 30, 6: 30, 7: 5, 8: 7, 9: 7 };
     D.start = () => {
@@ -784,7 +927,7 @@
       document.body.classList.add('duel'); startRound(); hudEl.hidden = false;
     };
     D.stop = () => {
-      D.on = false; clearProps(); for (const S of D.fighters) { if (S.gunModel) { scene.remove(S.gunModel); S.gunModel = null; } if (S.ai && S.ai.flash) scene.remove(S.ai.flash); S.ai = null; if (S !== primary) { use(S); S.rag.stop(); S.body.clearWounds(); S.body.root.visible = false; } }
+      D.on = false; clearProps(); clearDrops(); for (const S of D.fighters) if (S.body.setGrip) { S.body.setGrip('L', 0); S.body.setGrip('R', 0); } for (const S of D.fighters) { if (S.gunModel) { scene.remove(S.gunModel); S.gunModel = null; } if (S.ai && S.ai.flash) scene.remove(S.ai.flash); S.ai = null; if (S !== primary) { use(S); S.rag.stop(); S.body.clearWounds(); S.body.root.visible = false; } }
       primary.body.root.position.set(0, 0, 0); primary.body.root.rotation.set(0, 0, 0); gun.raise = 1; document.body.classList.remove('duel'); hudEl.hidden = true; use(primary); reset();
     };
     // security cameras in the top corners (and the free view)
@@ -793,19 +936,29 @@
     D.cycleCam = () => { D.cam = (D.cam + 1) % CAMS.length; };
     const hudEl = document.createElement('div'); hudEl.id = 'duelHud'; hudEl.hidden = true; document.getElementById('app').appendChild(hudEl);
     D.update = (dt, rdt) => {
-      D.t += rdt; D.clock += dt;
+      D.t += rdt; D.clock += dt; stepDrops(dt);
       const [A, B] = D.fighters;
       // guns in hand: aimed along the arm toward the target, or carried in the hand; dropped when the hand lets go
       for (const S of D.fighters) {
         if (!S.ai || !S.gunModel) continue;
         if (S.ai.flashN > 0) S.ai.flashN--; else S.ai.flash.intensity = 0;
         const gh = S.npc.gunHand || 'R', hb = S.rag.parts['hand' + gh].b, hp = new V3(hb.position.x, hb.position.y, hb.position.z);
-        if (S.npc.aiming && S.ai.target) { const m4 = new THREE.Matrix4().lookAt(hp, S.ai.target, new V3(0, 1, 0)); S.gunModel.quaternion.setFromRotationMatrix(m4); S.gunModel.position.copy(hp).add(new V3(0, 0.035, 0).applyQuaternion(S.gunModel.quaternion)); }
+        if (S.gs && S.gs.ro && S.gs.mode !== 'ground') {
+          // held: the gun sits where the body puts it; if the hand has not got there (shoved, staggering) the gun goes with the hand
+          const gp = S.ai.intent && S.ai.intent.hold; S.gunModel.quaternion.copy(S.gs.rq); S.gunModel.position.copy(S.gs.ro);
+          if (gp) { const err = hp.distanceTo(gp), k = Math.max(0, Math.min(1, (err - 0.05) / 0.12)); if (k > 0) S.gunModel.position.addScaledVector(hp.clone().sub(gp), k); }
+        } else if (S.npc.aiming && S.ai.target) { const m4 = new THREE.Matrix4().lookAt(hp, S.ai.target, new V3(0, 1, 0)); S.gunModel.quaternion.setFromRotationMatrix(m4); S.gunModel.position.copy(hp).add(new V3(0, 0.035, 0).applyQuaternion(S.gunModel.quaternion)); }
         else if (S.npc.posture === 'stand' && S.phys.conscious) {
           // low ready: muzzle forward and down, carried in the hand
           const tq = S.rag.parts.thorax.b.quaternion, fw = new V3(0, 0, 1).applyQuaternion(new THREE.Quaternion(tq.x, tq.y, tq.z, tq.w)); fw.y = 0; fw.normalize();
           const m4 = new THREE.Matrix4().lookAt(hp, hp.clone().addScaledVector(fw, 1).add(new V3(0, -0.8, 0)), new V3(0, 1, 0)); S.gunModel.quaternion.setFromRotationMatrix(m4); S.gunModel.position.copy(hp);
         } else { const q = new THREE.Quaternion(hb.quaternion.x, hb.quaternion.y, hb.quaternion.z, hb.quaternion.w); S.gunModel.quaternion.copy(q).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0))); S.gunModel.position.copy(hp); }
+        // fingers: closed round the grip / forend, half closed pressing on a wound, otherwise relaxed
+        if (S.body.setGrip) for (const sd of ['L', 'R']) {
+          const N = S.npc, it = S.ai.intent || {}, tgt = sd === N.gunHand && N.aiming ? it.hold : sd === N.supHand ? it.support : null, hpos = partPos(S, 'hand' + sd);
+          const k = tgt && hpos.distanceTo(tgt) < 0.1 ? (sd === N.gunHand ? 1 : 0.8) : N.clutching && N.clutching[sd] ? 0.4 : S.phys.conscious ? 0.22 : 0.3;
+          S.body.setGrip(sd, k);
+        }
         if (D.phase === 'fight' && S.ai.wantFire) aiFire(S);
       }
       if (D.phase === 'ready' && D.t > 2.5) { D.phase = 'fight'; D.t = 0; }
@@ -891,6 +1044,7 @@
       }
       use(duel && duel.on ? duel.fighters[0] : primary);
       ui.update(phys, npc); ui.setRange(Math.hypot(state.pos.x - npc.pos.x, state.pos.z - npc.pos.z)); }
+    if (G.debug && G.debug.camHook) G.debug.camHook(camera); // tests: a close look
     if (!noRender) renderer.render(scene, camera);
   }
   requestAnimationFrame(frame);
