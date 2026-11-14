@@ -25,7 +25,7 @@
     const names = body.list.map((s) => s.name).filter((n) => n !== 'pelvis');
     const cur = {};
     for (const k of names) cur[k] = (POSES.stand[k] || [0, 0, 0]).slice();
-    const N = { fleeT: 0, flees: false, retreatT: 0, riseT: 0, riseTries: 0, chose: false, flinchT: 0, dip: 0, posture: 'stand', pose: 'stand', pos: new THREE.Vector3(), decideT: -1, wantDown: false, clock: 0, breath: 0, ragT: 0, stillT: 0, stagger: 0, stagDir: [0, 0], crawling: false, downT: 0,
+    const N = { armSw: { L: 0, R: 0 }, fleeT: 0, flees: false, retreatT: 0, riseT: 0, riseTries: 0, chose: false, flinchT: 0, dip: 0, posture: 'stand', pose: 'stand', pos: new THREE.Vector3(), decideT: -1, wantDown: false, clock: 0, breath: 0, ragT: 0, stillT: 0, stagger: 0, stagDir: [0, 0], crawling: false, downT: 0,
       lowering: 0, giveT: 0, clutchT: 0, clutching: { L: null, R: null }, gasp: 0, cough: 0, coughAt: 4 + Math.random() * 6, groanAt: 3 + Math.random() * 5, lastBreath: 0, motor: 'normal' };
     const ctl = rag.ctl, ev = (t, d) => hooks.event && hooks.event(t, d);
     rag.start(); ctl.s = 1; ctl.bal = 1; ctl.y0 = ctl.yRest; ctl.canStep = true; ctl.trunk = 0; ctl.draw = 0; ctl.lead = null; ctl.face = null; rag.lost = null; rag.stepWin = 0;
@@ -234,6 +234,12 @@
         if (writhe && tone > 0) { const ph = c * (1.1 + (n.length % 3) * 0.4) + n.charCodeAt(0); x += Math.sin(ph) * writhe; z += Math.sin(ph * 0.7) * writhe * 0.4; }
         if (N.crawling && n.startsWith('uarm')) x = -1.6 + Math.sin(c * 2.4 + (side === 'L' ? 0 : Math.PI)) * 0.9;
         if (isArm && N.protect) { tone *= 0.25; }
+        // walking: each arm swings forward as the opposite leg steps
+        if (n.startsWith('uarm')) {
+          const st = rag.stepping, want = N.retreating && st && !N.clutching[side] ? (st.side === side ? 0.32 : -0.38) : 0;
+          N.armSw[side] += (want - N.armSw[side]) * Math.min(1, dt * 7); x += N.armSw[side];
+        }
+        if (n.startsWith('farm') && N.retreating && !N.clutching[side]) x -= 0.35; // elbows a little bent while walking
         if (isArm && N.clutching[side]) { tone *= 0.12; if (n.startsWith('farm')) x = -1.3; } // let the reaching force place the hand
         if (n === 'thorax') {
           // breathing is involuntary: the chest keeps moving while the brainstem drives it

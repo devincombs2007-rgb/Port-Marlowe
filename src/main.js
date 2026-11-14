@@ -4,6 +4,8 @@
   const canvas = document.getElementById('view');
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   renderer.outputEncoding = THREE.sRGBEncoding;
+  // filmic tone mapping: highlights roll off like a camera instead of clipping, which reads far more natural on skin
+  renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   const scene = new THREE.Scene(); scene.background = new THREE.Color(0x0b0f11);
   const camera = new THREE.PerspectiveCamera(62, 1, 0.05, 40);
@@ -52,7 +54,7 @@
   function reset() {
     body.clearWounds(); world.clear(); rag.stop(); rag.clear();
     phys = G.Physiology(G.ANATOMY.bloodVolume);
-    npc = G.NPC(body, phys, rag, { threat: () => state.pos, event: npcEvent }); pending.length = 0;
+    npc = G.NPC(body, phys, rag, { threat: () => state.threat || state.pos, event: npcEvent }); pending.length = 0;
     npc.update(0.001); ui.report(null); G.state = { phys, npc, body, world, state };
   }
   reset(); setWeapon(1); ui.setTime(1);

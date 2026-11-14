@@ -1,4 +1,4 @@
-# Port-Marlowe — Wound Ballistics Lab (v0.9)
+# Port-Marlowe — Wound Ballistics Lab (v1.0)
 
 A browser-based 3D simulator of gunshot wounds. A test subject stands in a chamber; every
 round is traced millimetre by millimetre through skin, bone, organs and vessels, and the
@@ -92,7 +92,12 @@ Untreated outcomes only. This is an educational model, not medical guidance.
 - **Character**: MakeHuman base mesh, skeleton weights and morph targets
   (github.com/makehumancommunity/makehuman, assets CC0). `tools/build_human.py` re-poses it onto
   the simulator skeleton, maps its 163 bones to the 17 ragdoll segments, and fits the hit
-  volumes to the skin. Output: `src/human.js`.
+  volumes to the skin. It also carries the base mesh UVs (vertices split at texture seams) for the
+  photographic `young_caucasian_male` skin, and fits the `short02` hair and `eyebrow001` proxy meshes
+  (MakeHuman .mhclo fitting: each proxy vertex is a weighted sum of three body vertices plus a scaled
+  offset) and skins them to the same skeleton. Skin, hair and eyebrow assets are MakeHuman system
+  assets, released as CC0 in September 2020 (fetched from a public copy of MakeHuman's data folder).
+  Output: `src/human.js`. Run: `python3 tools/build_human.py <makehuman data> <proxy and texture dir>`.
 - **Audio**: see `assets/sounds/README.md` (Still North Media firearm library, OpenGameArt
   packs by qubodup, haeldb, badre-eddine and rubberduck, Kenney Impact Sounds).
 - **Weapons**: modelled in code (`src/world.js`) from side-profile outlines.
@@ -107,7 +112,7 @@ close-range and rifle wounds), not only from end-state numbers.
 
 - The .357 Magnum uses a .38 Special revolver recording and the .308 uses a .30-06 bolt action,
   the closest matches in the library. Breathing, coughing and agonal gasps are still synthesized.
-- The character has no skin texture (flat vertex colour), no hair mesh, and one body type.
+- One body type and one face. Eyes are modelled spheres with a painted iris, not MakeHuman's eye mesh.
 - Weapon models are simple profiled shapes, not scanned or sculpted assets.
 - The subject walks away but cannot run, and only flees from the shooter (no other goals).
 - The physiology numbers are plausible textbook-style estimates, not validated medical data.

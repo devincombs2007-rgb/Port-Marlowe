@@ -271,7 +271,7 @@
       const st = P.stepping;
       if (st) {
         st.t += H; const u = Math.min(1, st.t / st.dur), e = u * u * (3 - 2 * u);
-        const dx = st.fx + (st.tx - st.fx) * e, dz = st.fz + (st.tz - st.fz) * e, dy = st.fy + 0.075 * Math.sin(Math.PI * u);
+        const dx = st.fx + (st.tx - st.fx) * e, dz = st.fz + (st.tz - st.fz) * e, dy = st.fy + (c.lead ? 0.11 : 0.075) * Math.sin(Math.PI * u); // walking steps clear the floor with a bent knee
         const f = st.foot;
         sf.set(1900 * (dx - f.position.x) - 70 * f.velocity.x, 1900 * (dy - f.position.y) - 70 * f.velocity.y + 120, 1900 * (dz - f.position.z) - 70 * f.velocity.z);
         const m2 = sf.norm(); if (m2 > 450) sf.scale(450 / m2, sf);

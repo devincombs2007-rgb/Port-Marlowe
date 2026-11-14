@@ -208,35 +208,76 @@
 
     if (H) {
       const dec = (b64, T) => { const bin = atob(b64), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return new T(u.buffer); };
-      const p16 = dec(H.pos, Int16Array), n = H.nv, pos = new Float32Array(n * 3), col = new Float32Array(n * 3), si = dec(H.si, Uint8Array), sw = dec(H.sw, Uint8Array);
+      const p16 = dec(H.pos, Int16Array), n = H.nv, si = dec(H.si, Uint8Array), sw = dec(H.sw, Uint8Array), TX = !!H.render;
+      let pos = new Float32Array(n * 3), col = new Float32Array(n * 3);
       for (let i = 0; i < n * 3; i++) pos[i] = p16[i] / 10000;
-      const map = H.order.map((nm) => body.list.findIndex((sg) => sg.name === nm)), sI = new Uint16Array(n * 4), sW = new Float32Array(n * 4);
+      const map = H.order.map((nm) => body.list.findIndex((sg) => sg.name === nm));
+      let sI = new Uint16Array(n * 4), sW = new Float32Array(n * 4);
       for (let i = 0; i < n * 4; i++) { sI[i] = map[si[i]]; sW[i] = sw[i] / 255; }
-      const skin = new THREE.Color(0xc99878), cloth = new THREE.Color(0x262b33), hair = new THREE.Color(0x2c2018), c = new THREE.Color();
+      const skin = new THREE.Color(0xc99878), cloth = new THREE.Color(TX ? 0x2e4466 : 0x262b33), hair = new THREE.Color(0x2c2018), c = new THREE.Color();
       for (let i = 0; i < n; i++) {
         const x = pos[i * 3], y = pos[i * 3 + 1], z = pos[i * 3 + 2], dom = H.order[si[i * 4]];
-        c.copy(skin);
+        if (TX) c.setRGB(1, 1, 1); else c.copy(skin); // with the photographic skin texture the vertex colour is only a tint
         // slight natural variation: redder at joints and extremities, paler on the trunk
-        const v = 0.035 * Math.sin(x * 40 + y * 31) * Math.sin(z * 37 + y * 17); c.r += v; c.g += v * 0.8; c.b += v * 0.7;
+        if (!TX) { const v = 0.035 * Math.sin(x * 40 + y * 31) * Math.sin(z * 37 + y * 17); c.r += v; c.g += v * 0.8; c.b += v * 0.7; }
         if (!/^(uarm|farm|hand)/.test(dom) && y > 0.74 && y < 1.03) c.lerp(cloth, Math.min(1, Math.min(y - 0.74, 1.03 - y) / 0.008)); // shorts
-        if (dom === 'head') { const line = 1.712 + 0.42 * Math.max(-0.05, z) - 0.9 * Math.max(0, Math.abs(x) - 0.045); if (y > line) c.lerp(hair, Math.min(0.9, (y - line) / 0.01)); } // cropped hair
+        if (!TX && dom === 'head') { const line = 1.712 + 0.42 * Math.max(-0.05, z) - 0.9 * Math.max(0, Math.abs(x) - 0.045); if (y > line) c.lerp(hair, Math.min(0.9, (y - line) / 0.01)); } // cropped hair
         col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
       }
       const geo = new THREE.BufferGeometry();
+      let index = dec(H.idx, Uint16Array);
+      const loader = new THREE.TextureLoader(), texOf = (uri, srgb) => { const t = loader.load(uri); if (srgb) t.encoding = THREE.sRGBEncoding; t.flipY = true; t.anisotropy = 4; return t; };
+      if (TX) {
+        // split along UV seams: every render vertex copies its source vertex
+        const R = H.render, src = dec(R.src, Uint16Array), uv16 = dec(R.uv, Uint16Array), m = src.length;
+        const p2 = new Float32Array(m * 3), c2 = new Float32Array(m * 3), i2 = new Uint16Array(m * 4), w2 = new Float32Array(m * 4), uv = new Float32Array(m * 2);
+        for (let i = 0; i < m; i++) { const k = src[i]; for (let a = 0; a < 3; a++) { p2[i * 3 + a] = pos[k * 3 + a]; c2[i * 3 + a] = col[k * 3 + a]; } for (let a = 0; a < 4; a++) { i2[i * 4 + a] = sI[k * 4 + a]; w2[i * 4 + a] = sW[k * 4 + a]; } uv[i * 2] = uv16[i * 2] / 65535; uv[i * 2 + 1] = uv16[i * 2 + 1] / 65535; }
+        pos = p2; col = c2; sI = i2; sW = w2; index = dec(R.idx, Uint16Array);
+        geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+        body.skinMat.map = texOf(R.skin, true);
+      }
       geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
       geo.setAttribute('skinIndex', new THREE.BufferAttribute(sI, 4)); geo.setAttribute('skinWeight', new THREE.BufferAttribute(sW, 4));
-      geo.setIndex(new THREE.BufferAttribute(dec(H.idx, Uint16Array), 1)); geo.computeVertexNormals();
-      body.skinMat.skinning = true; body.skinMat.roughness = 0.58;
+      geo.setIndex(new THREE.BufferAttribute(index, 1)); geo.computeVertexNormals();
+      body.skinMat.skinning = true; body.skinMat.roughness = 0.55;
       const mesh = new THREE.SkinnedMesh(geo, body.skinMat); mesh.frustumCulled = false; mesh.castShadow = true; mesh.receiveShadow = true; mesh.renderOrder = 3;
       scene.add(mesh);
       mesh.bind(new THREE.Skeleton(body.list.map((sg) => sg.g), body.list.map((sg) => new THREE.Matrix4().makeTranslation(-sg.origin.x, -sg.origin.y, -sg.origin.z))), new THREE.Matrix4());
       body.human = mesh; body.skinMeshes.push(mesh); body.skin0 = { pos: pos.slice(), col: col.slice() };
+      // hair and eyebrows: fitted MakeHuman proxy meshes, skinned to the same skeleton
+      const skel = mesh.skeleton;
+      for (const [key, rough] of [['hair', 0.75], ['brows', 0.9]]) {
+        const Hp = H[key]; if (!Hp) continue;
+        const q16 = dec(Hp.pos, Int16Array), u16 = dec(Hp.uv, Uint16Array), s8 = dec(Hp.si, Uint8Array), w8 = dec(Hp.sw, Uint8Array), k = Hp.nv;
+        const pp = new Float32Array(k * 3), uu = new Float32Array(k * 2), ii = new Uint16Array(k * 4), ww = new Float32Array(k * 4);
+        for (let i = 0; i < k * 3; i++) pp[i] = q16[i] / 10000;
+        for (let i = 0; i < k * 2; i++) uu[i] = u16[i] / 65535;
+        for (let i = 0; i < k * 4; i++) { ii[i] = map[s8[i]]; ww[i] = w8[i] / 255; }
+        const g2 = new THREE.BufferGeometry();
+        g2.setAttribute('position', new THREE.BufferAttribute(pp, 3)); g2.setAttribute('uv', new THREE.BufferAttribute(uu, 2));
+        g2.setAttribute('skinIndex', new THREE.BufferAttribute(ii, 4)); g2.setAttribute('skinWeight', new THREE.BufferAttribute(ww, 4));
+        g2.setIndex(new THREE.BufferAttribute(dec(Hp.idx, Uint16Array), 1)); g2.computeVertexNormals();
+        const m2 = new THREE.MeshStandardMaterial({ map: texOf(Hp.tex, true), skinning: true, transparent: true, alphaTest: 0.35, roughness: rough, side: THREE.DoubleSide, depthWrite: true });
+        const sm = new THREE.SkinnedMesh(g2, m2); sm.frustumCulled = false; sm.castShadow = key === 'hair'; sm.renderOrder = 4;
+        scene.add(sm); sm.bind(skel, new THREE.Matrix4()); body.decoMeshes.push(sm);
+      }
       // eyes
-      const hd = body.segs.head, white = new THREE.MeshStandardMaterial({ color: 0xece8e0, roughness: 0.25 }), iris = new THREE.MeshStandardMaterial({ color: 0x3a2a1c, roughness: 0.2 }), pupil = new THREE.MeshBasicMaterial({ color: 0x050505 });
+      const irisTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'); x.translate(64, 64);
+        let g = x.createRadialGradient(0, 0, 10, 0, 0, 64); g.addColorStop(0, '#2a1a10'); g.addColorStop(0.35, '#5a3a20'); g.addColorStop(0.8, '#3d2715'); g.addColorStop(1, '#120b06');
+        x.fillStyle = g; x.beginPath(); x.arc(0, 0, 63, 0, 7); x.fill();
+        for (let i = 0; i < 160; i++) { const a = Math.random() * 6.283, r0 = 18 + Math.random() * 10, r1 = 40 + Math.random() * 20; x.strokeStyle = 'rgba(' + (120 + Math.random() * 60) + ',' + (80 + Math.random() * 40) + ',40,0.35)'; x.lineWidth = 1; x.beginPath(); x.moveTo(Math.cos(a) * r0, Math.sin(a) * r0); x.lineTo(Math.cos(a) * r1, Math.sin(a) * r1); x.stroke(); }
+        x.fillStyle = '#050403'; x.beginPath(); x.arc(0, 0, 20, 0, 7); x.fill();
+        const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t; })();
+      const irisMat = new THREE.MeshStandardMaterial({ map: irisTex, roughness: 0.4, polygonOffset: true, polygonOffsetFactor: -2 });
+      const corneaMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.02, metalness: 0, transparent: true, opacity: 0.12 });
+      const hd = body.segs.head, white = new THREE.MeshStandardMaterial({ color: 0xe6e0d8, roughness: 0.3 }), iris = new THREE.MeshStandardMaterial({ color: 0x3a2a1c, roughness: 0.2 }), pupil = new THREE.MeshBasicMaterial({ color: 0x050505 });
       for (const e of H.eyes) {
-        const g = new THREE.Group(); g.position.set(e.c[0] - hd.origin.x, e.c[1] - hd.origin.y, e.c[2] - hd.origin.z - 0.04);
-        const ball = new THREE.Mesh(new THREE.SphereGeometry(e.r, 16, 12), white), ir = new THREE.Mesh(new THREE.SphereGeometry(e.r * 0.52, 12, 10), iris), pu = new THREE.Mesh(new THREE.SphereGeometry(e.r * 0.26, 10, 8), pupil);
-        ir.position.z = e.r * 0.62; ir.scale.z = 0.5; pu.position.z = e.r * 0.86; pu.scale.z = 0.4; g.add(ball, ir, pu); hd.g.add(g); body.decoMeshes.push(g);
+        const g = new THREE.Group(); g.position.set(e.c[0] - hd.origin.x, e.c[1] - hd.origin.y, e.c[2] - hd.origin.z - e.r * 0.15);
+        // eyeball plus a painted iris disc (radial fibres, darker limbal ring, pupil) on its front surface
+        const ball = new THREE.Mesh(new THREE.SphereGeometry(e.r, 20, 14), white);
+        const disc = new THREE.Mesh(new THREE.CircleGeometry(e.r * 0.5, 24), irisMat); disc.position.z = e.r * 0.94; disc.renderOrder = 2;
+        const cornea = new THREE.Mesh(new THREE.SphereGeometry(e.r * 0.52, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), corneaMat); cornea.rotation.x = Math.PI / 2; cornea.position.z = e.r * 0.86; cornea.scale.y = 0.35;
+        g.add(ball, disc, cornea); hd.g.add(g); body.decoMeshes.push(g);
       }
       // nearest point of the real skin along a wound's normal (rest pose), so decals sit on the mesh, not the hit volume
       const ia = geo.index.array, e1 = new V3(), e2 = new V3(), pv = new V3(), tv = new V3(), qv = new V3(), a = new V3(), o = new V3(), d = new V3();

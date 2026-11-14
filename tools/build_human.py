@@ -13,6 +13,7 @@ Usage: python3 tools/build_human.py <dir with the three input files>
 import sys, json, math, base64, struct, collections
 
 src = sys.argv[1]
+src2 = sys.argv[2] if len(sys.argv) > 2 else None  # hair / eyebrow proxies and textures
 SEG = {  # simulator rest pose: segment -> (proximal joint, distal point)
     'pelvis': ((0, .95, 0), (0, 1.05, -.03)), 'abdomen': ((0, 1.05, -.03), (0, 1.2, -.04)), 'thorax': ((0, 1.2, -.04), (0, 1.48, -.03)),
     'neck': ((0, 1.48, -.03), (0, 1.585, -.01)), 'head': ((0, 1.585, -.01), (0, 1.79, -.006)),
@@ -40,11 +41,15 @@ def seg_of(bone):
 
 # ---- read mesh
 V, F, cur = [], [], None
-groups = collections.defaultdict(list)
+VT = []
+groups = collections.defaultdict(list); guv = collections.defaultdict(list)
 for l in open(src + '/base.obj'):
     if l.startswith('v '): V.append([float(x) * 0.1 for x in l.split()[1:4]])  # decimetres -> metres
     elif l.startswith('g '): cur = l.split()[1]
-    elif l.startswith('f '): groups[cur].append([int(t.split('/')[0]) - 1 for t in l.split()[1:]])
+    elif l.startswith('vt '): VT.append([float(x) for x in l.split()[1:3]])
+    elif l.startswith('f '):
+        groups[cur].append([int(t.split('/')[0]) - 1 for t in l.split()[1:]])
+        guv[cur].append([int(t.split('/')[1]) - 1 if '/' in t and t.split('/')[1] else -1 for t in l.split()[1:]])
 # MakeHuman morph targets (vertex offsets in decimetres): add muscle so the build matches an adult male
 import os
 for name, amt in (('caucasian-male-young', 1.0), ('universal-male-young-maxmuscle-averageweight', 0.3), ('universal-male-young-averagemuscle-maxweight', 0.1)):
@@ -139,6 +144,64 @@ for f in body:
     tris.append((f[0], f[1], f[2]))
     if len(f) == 4: tris.append((f[0], f[2], f[3]))
 
+# ---- textured mesh: split vertices along UV seams so each (vertex, uv) pair is one render vertex
+key, R_src, R_uv, Rtri = {}, [], [], []
+for f, fu in zip(body, guv['body']):
+    ids = []
+    for v, t in zip(f, fu):
+        k = (v, t)
+        if k not in key: key[k] = len(R_src); R_src.append(v); R_uv.append(VT[t] if t >= 0 else [0, 0])
+        ids.append(key[k])
+    Rtri.append((ids[0], ids[1], ids[2]))
+    if len(ids) == 4: Rtri.append((ids[0], ids[2], ids[3]))
+print('render verts', len(R_src), 'from', NV)
+
+# ---- proxies (hair, eyebrows): MakeHuman .mhclo fitting. Each proxy vertex is a weighted sum of three base
+# vertices plus an offset scaled by reference distances on the (morphed) body. Skin weights blend the same way.
+def proxy(name):
+    lines = open(src2 + '/' + name + '.mhclo').read().split('\n'); sc = {}; refs = []; mode = None
+    for l in lines:
+        t = l.split()
+        if not t or t[0].startswith('#'): continue
+        if t[0] in ('x_scale', 'y_scale', 'z_scale'): sc[t[0][0]] = (int(t[1]), int(t[2]), float(t[3])); continue
+        if t[0] == 'verts': mode = 'v'; continue
+        if t[0] in ('delete_verts',): mode = None; continue
+        if mode == 'v' and len(t) == 9:
+            try: refs.append(([int(t[0]), int(t[1]), int(t[2])], [float(x) for x in t[3:6]], [float(x) for x in t[6:9]]))
+            except ValueError: mode = None
+    fac = [abs(V[sc[a][0]][i] - V[sc[a][1]][i]) / sc[a][2] if a in sc else 0.1 for i, a in enumerate('xyz')]
+    pv, pt, puv, pf, pfu = [], [], [], [], []
+    for l in open(src2 + '/' + name + '.obj'):
+        if l.startswith('vt '): puv.append([float(x) for x in l.split()[1:3]])
+        elif l.startswith('f '):
+            tt = l.split()[1:]; pf.append([int(x.split('/')[0]) - 1 for x in tt]); pfu.append([int(x.split('/')[1]) - 1 for x in tt])
+    out_p, out_si, out_sw, out_uv, out_t, kk = [], [], [], [], [], {}
+    fitted = []
+    for (ix, w, off) in refs:
+        p = [sum(w[k] * V[ix[k]][a] for k in range(3)) + off[a] * fac[a] for a in range(3)]
+        ww = collections.defaultdict(float)
+        for k in range(3):
+            for sname, x in W[ix[k]].items(): ww[sname] += w[k] * x
+        ws = sorted([(sname, x) for sname, x in ww.items() if x > 0], key=lambda q: -q[1])[:4] or [('head', 1.0)]
+        tot = sum(x for _, x in ws); ws = [(sname, x / tot) for sname, x in ws]
+        q = [0, 0, 0]
+        for sname, x in ws:
+            tq = xform(sname, p); q = [q[a] + x * tq[a] for a in range(3)]
+        fitted.append((q, ws))
+    for f, fu in zip(pf, pfu):
+        ids = []
+        for v, t in zip(f, fu):
+            k = (v, t)
+            if k not in kk:
+                kk[k] = len(out_p); q, ws = fitted[v]; out_p.append([q[0], q[1] - low, q[2]]); out_uv.append(puv[t])
+                qq = [int(round(x * 255)) for _, x in ws]; qq[0] += 255 - sum(qq)
+                out_si.append([ORDER.index(sname) for sname, _ in ws] + [0] * (4 - len(ws))); out_sw.append(qq + [0] * (4 - len(ws)))
+            ids.append(kk[k])
+        out_t.append((ids[0], ids[1], ids[2]))
+        if len(ids) == 4: out_t.append((ids[0], ids[2], ids[3]))
+    print('proxy', name, len(out_p), 'verts', len(out_t), 'tris')
+    return out_p, out_uv, out_si, out_sw, out_t
+
 # ---- hit volumes: slice each segment into rings fitted to the skin (same loft format the simulator uses)
 dom = [max(W[i].items(), key=lambda t: t[1])[0] if W[i] else 'pelvis' for i in range(NV)]
 lofts = []
@@ -166,6 +229,20 @@ b64 = lambda fmt, data: base64.b64encode(struct.pack('<%d%s' % (len(data), fmt),
 pos = [int(round(c * 10000)) for p in P for c in p]  # 0.1 mm units
 out = {'order': ORDER, 'nv': NV, 'pos': b64('h', pos), 'idx': b64('H', [i for t in tris for i in t]), 'si': b64('B', [x for r in SI for x in r]), 'sw': b64('B', [x for r in SW for x in r]),
        'lofts': lofts, 'eyes': eyes}
+import subprocess, os, tempfile
+def img(path, size, fmt):
+    tmp = tempfile.mktemp(suffix='.' + fmt)
+    args = ['ffmpeg', '-v', 'error', '-y', '-i', path, '-vf', 'scale=%d:%d' % (size, size)] + (['-q:v', '4'] if fmt == 'jpg' else ['-pix_fmt', 'rgba']) + [tmp]
+    subprocess.run(args, check=True); d = open(tmp, 'rb').read(); os.remove(tmp)
+    return 'data:image/%s;base64,' % ('jpeg' if fmt == 'jpg' else 'png') + base64.b64encode(d).decode()
+if src2:
+    # textured render mesh (replaces the per-vertex body for drawing; NV-indexed data above stays for the hit test)
+    out['render'] = {'src': b64('H', R_src), 'uv': b64('H', [int(round(min(1, max(0, c)) * 65535)) for u in R_uv for c in u]), 'idx': b64('H', [i for t in Rtri for i in t]),
+                     'skin': img(src2 + '/young_lightskinned_male_diffuse.png', 1024, 'jpg')}
+    for name, key2, tex, sz in (('short02', 'hair', 'short02_diffuse.png', 512), ('eyebrow001', 'brows', 'eyebrow001.png', 256)):
+        pp, uu, si2, sw2, tt = proxy(name)
+        out[key2] = {'nv': len(pp), 'pos': b64('h', [int(round(c * 10000)) for p in pp for c in p]), 'uv': b64('H', [int(round(min(1, max(0, c)) * 65535)) for u in uu for c in u]),
+                     'si': b64('B', [x for r in si2 for x in r]), 'sw': b64('B', [x for r in sw2 for x in r]), 'idx': b64('H', [i for t in tt for i in t]), 'tex': img(src2 + '/' + tex, sz, 'png')}
 open('src/human.js', 'w').write('// Character mesh: MakeHuman base mesh (CC0), re-posed and re-weighted for this simulator by tools/build_human.py.\n(function () {\n  const G = (window.GSW = window.GSW || {});\n  G.HUMAN = ' + json.dumps(out, separators=(',', ':')) + ';\n})();\n')
 def at(y, tol=0.012): return [P[i] for i in range(NV) if abs(P[i][1] - y) < tol and dom[i] in TRUNK]
 for y in (0.95, 1.1, 1.3, 1.42, 1.53, 1.69):
