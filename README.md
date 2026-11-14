@@ -1,4 +1,4 @@
-# Port-Marlowe — Wound Ballistics Lab (v0.8)
+# Port-Marlowe — Wound Ballistics Lab (v0.9)
 
 A browser-based 3D simulator of gunshot wounds. A test subject stands in a chamber; every
 round is traced millimetre by millimetre through skin, bone, organs and vessels, and the
@@ -51,7 +51,10 @@ body then responds in real time (bleeding, blood pressure, breathing, consciousn
   leg injury stays down; it gets up from its back (sit up, knees in, stand) or from its front (push up,
   kneel, stand). The hip has its anatomical range (about 120° flexion, 20° extension). After being hit,
   someone who stays on their feet usually backs away from the shooter: the balance target is held a
-  little ahead of the feet, so the body keeps leaning and the stepping carries it, staggering. A hit makes the struck part go slack and jerk away
+  little ahead of the feet, so the body keeps leaning and the stepping carries it, staggering. Most
+  of them then turn their back and walk off: a yaw torque on the trunk and re-planted feet turn the
+  body over a few steps (committing to one direction, so a half turn does not dither), and it walks
+  away at roughly 0.3 to 0.5 m/s, stopping short of the walls. A hit makes the struck part go slack and jerk away
   from the shot; a leg hit buckles the knee. A head striking the floor during a fall can concuss (unconscious for
   tens of seconds to minutes, likelier above ~4 m/s) or, above ~6.5 m/s, fracture the skull. Muscle tone is set by the nervous system:
   unconscious = limp, cord injury = no tone below the level, a fractured limb cannot brace.
@@ -106,7 +109,7 @@ close-range and rifle wounds), not only from end-state numbers.
   the closest matches in the library. Breathing, coughing and agonal gasps are still synthesized.
 - The character has no skin texture (flat vertex colour), no hair mesh, and one body type.
 - Weapon models are simple profiled shapes, not scanned or sculpted assets.
-- The subject can stagger backwards away from the shooter but does not turn and walk or run.
+- The subject walks away but cannot run, and only flees from the shooter (no other goals).
 - The physiology numbers are plausible textbook-style estimates, not validated medical data.
 
 ## Ideas for v0.6

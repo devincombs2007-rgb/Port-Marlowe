@@ -25,14 +25,14 @@
     const names = body.list.map((s) => s.name).filter((n) => n !== 'pelvis');
     const cur = {};
     for (const k of names) cur[k] = (POSES.stand[k] || [0, 0, 0]).slice();
-    const N = { retreatT: 0, riseT: 0, riseTries: 0, chose: false, flinchT: 0, dip: 0, posture: 'stand', pose: 'stand', pos: new THREE.Vector3(), decideT: -1, wantDown: false, clock: 0, breath: 0, ragT: 0, stillT: 0, stagger: 0, stagDir: [0, 0], crawling: false, downT: 0,
+    const N = { fleeT: 0, flees: false, retreatT: 0, riseT: 0, riseTries: 0, chose: false, flinchT: 0, dip: 0, posture: 'stand', pose: 'stand', pos: new THREE.Vector3(), decideT: -1, wantDown: false, clock: 0, breath: 0, ragT: 0, stillT: 0, stagger: 0, stagDir: [0, 0], crawling: false, downT: 0,
       lowering: 0, giveT: 0, clutchT: 0, clutching: { L: null, R: null }, gasp: 0, cough: 0, coughAt: 4 + Math.random() * 6, groanAt: 3 + Math.random() * 5, lastBreath: 0, motor: 'normal' };
     const ctl = rag.ctl, ev = (t, d) => hooks.event && hooks.event(t, d);
-    rag.start(); ctl.s = 1; ctl.bal = 1; ctl.y0 = ctl.yRest; ctl.canStep = true; ctl.trunk = 0; ctl.draw = 0; ctl.lead = null; rag.lost = null; rag.stepWin = 0;
+    rag.start(); ctl.s = 1; ctl.bal = 1; ctl.y0 = ctl.yRest; ctl.canStep = true; ctl.trunk = 0; ctl.draw = 0; ctl.lead = null; ctl.face = null; rag.lost = null; rag.stepWin = 0;
     const collapse = (rigid, tripped) => {
       if (N.posture !== 'stand') return;
       rag.lost = null;
-      N.posture = 'falling'; N.ragT = 0; ctl.s = 0; ctl.lead = null; ctl.push.set(0, 0, 0); N.giveT = tripped ? 0 : 1.4; N.lowering = 0; N.tripped = !!tripped;
+      N.posture = 'falling'; N.ragT = 0; ctl.s = 0; ctl.lead = null; ctl.face = null; ctl.push.set(0, 0, 0); N.giveT = tripped ? 0 : 1.4; N.lowering = 0; N.tripped = !!tripped;
       if (tripped) return; // already moving: momentum decides the fall, the legs stay under tone
       const a = Math.random() * 6.283, v = 0.25 + Math.random() * 0.3;
       rag.push('thorax', Math.cos(a) * v, 0, Math.sin(a) * v);
@@ -64,7 +64,7 @@
         // many gunshot victims go down even when physically able to stand
         N.wantDown = phys.pain > 0.5 || Math.random() < 0.3 + phys.pain * 0.5;
         // those who stay on their feet usually back away from where the shot came from
-        if (!N.wantDown && Math.random() < 0.75) N.retreatT = 1.5 + Math.random() * 3;
+        if (!N.wantDown && Math.random() < 0.75) { N.retreatT = 2.5 + Math.random() * 3.5; N.flees = Math.random() < 0.65; N.fleeT = 0; }
       }
     };
     // pick, for each usable arm, the most serious wound that hand can physically reach
@@ -159,14 +159,19 @@
           const sw = 6 + dizzy * 150, st = N.stagger * N.stagger * 230;
           ctl.push.set(Math.sin(c * 0.9) * sw + Math.sin(c * 2.3 + 1) * sw * 0.4 + N.stagDir[0] * st, 0, Math.sin(c * 0.7 + 2) * sw + N.stagDir[1] * st);
           // backing away: lean away from the shooter and let the balance steps carry the body (stops at the walls)
-          N.retreatT = Math.max(0, N.retreatT - dt); N.retreating = false; ctl.lead = null;
+          N.retreatT = Math.max(0, N.retreatT - dt); N.retreating = false; ctl.lead = null; if (N.retreatT <= 0) { ctl.face = null; N.fleeT = 0; }
           const th = hooks.threat ? hooks.threat() : null;
           if (N.retreatT > 0 && th && N.stagger < 0.3) {
             let dx = pel.position.x - th.x, dz = pel.position.z - th.z; const d = Math.hypot(dx, dz) || 1; dx /= d; dz /= d;
             const R = G.ROOM, nx = pel.position.x + dx * 0.7, nz = pel.position.z + dz * 0.7;
             if (nx > R.x0 && nx < R.x1 && nz > R.z0 && nz < R.z1 && d < 7) {
               N.retreating = true; const l = 0.11 * Math.min(1, P.brainE) * (P.map > 60 ? 1 : 0.6);
-              ctl.lead = { x: dx * l, z: dz * l };
+              // first a step or two backwards, then turn away and walk off (fleeing), faster while fit
+              N.fleeT += dt;
+              if (N.fleeT > 0.9 && N.flees) { ctl.face = Math.atan2(dx, dz); }
+              const turned = ctl.face != null && Math.abs(rag.turnErr || 0) < 0.6;
+              const ll = turned ? l * (P.pain < 0.5 ? 1.45 : 1.1) : l;
+              ctl.lead = { x: dx * ll, z: dz * ll };
             }
           }
           N.flinchT = Math.max(0, N.flinchT - dt);

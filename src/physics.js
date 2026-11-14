@@ -232,18 +232,27 @@
       P.stepCool -= H;
       // past recovery: the capture point is further than a step can reach, or a run of steps has not caught it
       P.stepWin = Math.max(0, (P.stepWin || 0) - H);
-      if (c.s > 0.6 && c.canStep !== false && (em > 0.5 || (P.stepWin > 2.4 && em > 0.16))) { P.lost = { x: ex / (em || 1), z: ez / (em || 1), t: P.t }; }
-      if (!P.stepping && c.s > 0.6 && c.canStep !== false && em > 0.075 && P.stepCool <= 0) {
-        const ux = ex / em, uz = ez / em;
-        // the foot that is furthest behind the direction of fall makes the step
-        const dl = (fl.position.x - mx) * ux + (fl.position.z - mz) * uz, dr = (fr.position.x - mx) * ux + (fr.position.z - mz) * uz;
-        const side = dl < dr ? 'L' : 'R', foot = side === 'L' ? fl : fr;
-        pel.quaternion.vmult(LEFT, lv); const sg = side === 'L' ? 1 : -1;
-        let tx = capx + ux * 0.04 + lv.x * 0.095 * sg, tz = capz + uz * 0.04 + lv.z * 0.095 * sg;
+      const lex = ex - (c.lead ? c.lead.x : 0), lez = ez - (c.lead ? c.lead.z : 0), lem = Math.hypot(lex, lez);
+      if (c.s > 0.6 && c.canStep !== false && (lem > 0.5 || (P.stepWin > 2.4 && lem > 0.16))) { P.lost = { x: ex / (em || 1), z: ez / (em || 1), t: P.t }; }
+      if (!P.stepping && c.s > 0.6 && c.canStep !== false && (em > 0.075 || Math.abs(P.turnErr || 0) > 0.35) && P.stepCool <= 0) {
+        let side;
+        pel.quaternion.vmult(LEFT, lv);
+        if (em > 0.075) {
+          const ux0 = ex / em, uz0 = ez / em;
+          // the foot that is furthest behind the direction of fall makes the step
+          const dl = (fl.position.x - mx) * ux0 + (fl.position.z - mz) * uz0, dr = (fr.position.x - mx) * ux0 + (fr.position.z - mz) * uz0;
+          side = dl < dr ? 'L' : 'R';
+        } else {
+          // a turning step: move the foot that is furthest from where the new heading puts it
+          const eL = Math.hypot(fl.position.x - (cx + lv.x * 0.1), fl.position.z - (cz + lv.z * 0.1)), eR = Math.hypot(fr.position.x - (cx - lv.x * 0.1), fr.position.z - (cz - lv.z * 0.1));
+          side = eL > eR ? 'L' : 'R';
+        }
+        const ux = em > 1e-4 ? ex / em : 0, uz = em > 1e-4 ? ez / em : 0, foot = side === 'L' ? fl : fr, sg = side === 'L' ? 1 : -1;
+        let tx = capx + ux * 0.04 * Math.min(1, em / 0.075) + lv.x * 0.095 * sg, tz = capz + uz * 0.04 * Math.min(1, em / 0.075) + lv.z * 0.095 * sg;
         const sx = tx - foot.position.x, sz = tz - foot.position.z, sl = Math.hypot(sx, sz), maxL = 0.5;
         if (sl > maxL) { tx = foot.position.x + sx / sl * maxL; tz = foot.position.z + sz / sl * maxL; }
         P.stepping = { side, foot, t: 0, dur: 0.24 + Math.min(0.12, sl * 0.25), fx: foot.position.x, fz: foot.position.z, fy: foot.position.y, tx, tz };
-        P.steps++; P.stepWin += 0.8;
+        P.steps++; if (em > 0.075 && !c.lead) P.stepWin += 0.8;
       }
       // once steady again, bring the feet back to a normal stance with a small step
       if (!P.stepping && c.s > 0.6 && c.canStep !== false && P.stepCool <= 0 && em < 0.04 && Math.hypot(vx, vz) < 0.12) {
@@ -267,10 +276,24 @@
         sf.set(1900 * (dx - f.position.x) - 70 * f.velocity.x, 1900 * (dy - f.position.y) - 70 * f.velocity.y + 120, 1900 * (dz - f.position.z) - 70 * f.velocity.z);
         const m2 = sf.norm(); if (m2 > 450) sf.scale(450 / m2, sf);
         f.force.vadd(sf, f.force); pel.force.vsub(sf, pel.force); // the hip muscles swing the leg: internal force
+        // when turning, the swinging foot is rotated to the new heading before it is planted
+        if (c.face != null) { f.quaternion.vmult(FWD, fw); let e = c.face - Math.atan2(fw.x, fw.z); e = Math.atan2(Math.sin(e), Math.cos(e)); f.torque.y += 6 * e - 0.4 * f.angularVelocity.y; }
         const stance = f === fl ? fr : fl;
         stance.force.y -= Fy; stance.force.x -= Fx; stance.force.z -= Fz;
         if (u >= 1) { P.stepping = null; P.stepCool = 0.1; }
       } else for (const f of [fl, fr]) { f.force.y -= Fy / 2; f.force.x -= Fx / 2; f.force.z -= Fz / 2; }
+      // turning toward a heading: yaw torque on pelvis and trunk; the planted feet resist it until a step frees one
+      if (c.face != null) {
+        // commit to one turning direction (otherwise a half-turn dithers between left and right)
+        const herr = (b) => { b.quaternion.vmult(FWD, fw); let e = c.face - Math.atan2(fw.x, fw.z); e = Math.atan2(Math.sin(e), Math.cos(e)); if (P.turnDir && Math.sign(e) !== P.turnDir && Math.abs(e) > 1.2) e += 2 * Math.PI * P.turnDir; return e; };
+        if (P.lastFace == null || Math.abs(Math.atan2(Math.sin(c.face - P.lastFace), Math.cos(c.face - P.lastFace))) > 0.5) { P.lastFace = c.face; P.turnDir = 0; const e0 = herr(pel); P.turnDir = Math.abs(e0) > 2.9 ? (Math.random() < 0.5 ? 1 : -1) : Math.sign(e0) || 1; }
+        for (const [b, k] of [[pel, 1], [tho, 0.7]]) {
+          const e = herr(b);
+          b.torque.y += (70 * k * Math.max(-0.6, Math.min(0.6, e)) - 10 * k * b.angularVelocity.y) * c.s;
+        }
+        // a large heading error forces small turning steps even when balanced
+        P.turnErr = herr(pel);
+      } else { P.turnErr = 0; P.lastFace = null; }
       // trunk muscles hold the spine upright (N·m per rad of lean, and damping), sized against the weight above each joint
       for (const n in TRUNKK) {
         const b = P.parts[n].b, [K, D] = TRUNKK[n], g = Math.max(c.s * c.bal, c.trunk || 0);
