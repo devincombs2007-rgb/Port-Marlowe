@@ -1,4 +1,4 @@
-# Port-Marlowe — Wound Ballistics Lab (v2.5)
+# Port-Marlowe — Wound Ballistics Lab (v2.6)
 
 A browser-based 3D simulator of gunshot wounds. A test subject stands in a chamber; every
 round is traced millimetre by millimetre through skin, bone, organs and vessels, and the
@@ -6,6 +6,16 @@ body then responds in real time (bleeding, blood pressure, breathing, consciousn
 
 **Run it:** serve this folder with any static server (`python3 -m http.server`) and open
 `index.html`. No build step. `node tools/build.js` bundles a single-file page into `dist/`.
+
+**v2.6 — clothing rebuilt**: garments are welded, subdivided cloth shells cut cleanly along their hem lines (a smooth
+crew neck, straight sleeve ends, shirt hem, cuffs and waistband), with real cloth thickness at every edge and a ribbed
+collar. They are shaped like clothes rather than painted on: the cloth bridges the body's hollows and smooths over
+its bumps, a T-shirt hangs straight from the chest and shoulder blades with ease round the belly and an untucked hem
+standing off the waistband (that slack follows gravity, so it settles back onto the body when he lies down), sleeves
+flare at the opening, trousers fall straighter below the knee and bunch on the shoes, with drape folds and creases
+where cloth gathers. Loose hems swing and lag with movement and hits. Short- or long-sleeved tops, jeans or chinos,
+and built shoes (upper, sole, heel cup, toe box). Bullet holes and blood soak are cut from the cloth itself so they
+follow the drape; blood wicks further downward and, once the cloth is saturated, drips from the hem or cuff below.
 
 **v2.5 — mouth and teeth, grazes, clothing**: the jaw works. The lips part (the strip of skin joining them opens),
 the chin, lower lip and floor of the mouth swing down about the jaw hinge, and behind them are a dark mouth, upper

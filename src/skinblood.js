@@ -53,7 +53,7 @@
     let lastSkin = null;
     const domBone = () => lastSkin.b;
     const chain = (b) => { const n = body.list[b].name; return /^(uarm|farm|hand)/.test(n) ? 'arm' + n.slice(-1) : /^(thigh|shin|foot)/.test(n) ? 'leg' + n.slice(-1) : 'trunk'; };
-    const armRe = /^(uarm|farm|hand)/, fabric = (p, b) => p.y > 0.745 && p.y < 1.025 && !armRe.test(body.list[b].name);
+    const armRe = /^(uarm|farm|hand)/, fabric = (p, b) => (p.y > 0.745 && p.y < 1.025 && !armRe.test(body.list[b].name)) || !!(body.garmentAt && body.garmentAt(p, body.list[b].name)); // shorts, or any garment the trail runs under
 
     // gravity expressed in each bone's rest frame (the frame the mesh and the rivulets live in)
     const grav = [...Array(nb)].map(() => new V3()), qq = new THREE.Quaternion();
@@ -120,7 +120,7 @@
       // a trail cannot cross from one body part to another (an arm lying against the side, a thigh against the
       // other): it drips there instead, or it would stretch through the air when they move apart
       if (chain(b) !== chain(L.b)) { R.end = 'drip'; return false; }
-      if (fabric(np, b)) { addPoint(R, np, nn, v, b); R.end = 'soak'; R.sk = { c: np.clone(), n: nn.clone(), ml: 0, soakR: 0, soak: null }; writePair(R, R.n - 1); return false; }
+      if (fabric(np, b)) { addPoint(R, np, nn, v, b); R.end = 'soak'; R.sk = { c: np.clone(), n: nn.clone(), ml: 0, soakR: 0, soak: null, garment: body.garmentAt ? body.garmentAt(np, body.list[b].name) : null }; writePair(R, R.n - 1); return false; }
       addPoint(R, np, nn, v, b);
       return true;
     }

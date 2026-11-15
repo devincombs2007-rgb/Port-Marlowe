@@ -89,8 +89,10 @@
   const newSubject = () => { const S = makeSubject(); S.viscera = G.Viscera(scene, S.body, S.rag); return S; };
   function cycleTime() { state.ti = (state.ti + 1) % TIMES.length; ui.setTime(TIMES[state.ti]); }
   // clothes: a T-shirt and trousers in everyday colours
-  const SHIRTS = [0x2b2b2b, 0x5a6a48, 0x7a7a78, 0x2c3a55, 0xd8d4c8, 0x8a7a5a, 0x6a2a2a, 0x3d5a6a], TROUSERS = [0x3a4a6a, 0x2a3348, 0x6a6048, 0x2a2a2a, 0x4a5038];
+  const SHIRTS = [0x2b2b2b, 0x5a6a48, 0x7a7a78, 0x2c3a55, 0xd8d4c8, 0x8a7a5a, 0x6a2a2a, 0x3d5a6a], TROUSERS = [0x3a4a6a, 0x2a3348, 0x4a5a7a, 0x6a6048, 0x2a2a2a, 0x4a5038];
+  const SHOES = [[0x1c1c1c, 0x1c1c1c], [0xe8e8e4, 0xf2f2ee], [0x3a2a1e, 0x2a1e16], [0x2a2e38, 0xe6e6e0], [0x6a6a66, 0xdedad0]];
   const pick = (a) => a[Math.floor(Math.random() * a.length)];
+  const outfit = (o) => ({ top: o.top ? pick(SHIRTS) : null, sleeves: Math.random() < 0.35 ? 'long' : 'short', pants: o.pants ? pick(TROUSERS) : null, shoes: o.shoes ? pick(SHOES) : null });
   function reset() {
     if (current !== primary) use(primary);
     body.clearWounds(); world.clear(); rag.stop(); rag.clear(); projectiles.clear(); viscera.clear(); headFx.rk = headFx.rkMax = 0; headFx.mouth = false; headFx.jawBroken = false; headFx.mouthK = 0; clearDebris(); handBlood.L = handBlood.R = 0;
@@ -98,7 +100,7 @@
     if (body.setLook) { const first = reset.n == null; reset.n = (reset.n || 0) + 1;
       const tints = [0xffffff, 0x8a6a50, 0x5a4030, 0xd0b090, 0x404040];
       body.setLook(first ? 0 : Math.floor(Math.random() * body.looks), first ? 0 : Math.floor(Math.random() * 3), first ? 0xffffff : tints[Math.floor(Math.random() * tints.length)]);
-      if (body.dress) { const r = Math.random(); body.dress(first || r < 0.3 ? {} : r < 0.55 ? { shirt: pick(SHIRTS) } : r < 0.7 ? { pants: pick(TROUSERS) } : { shirt: pick(SHIRTS), pants: pick(TROUSERS) }); } }
+      if (body.dress) { const r = Math.random(); body.dress(first || r < 0.3 ? {} : outfit(r < 0.5 ? { top: 1 } : r < 0.62 ? { pants: 1, shoes: 1 } : { top: 1, pants: 1, shoes: 1 })); } }
     phys = G.Physiology(G.ANATOMY.bloodVolume);
     npc = G.NPC(body, phys, rag, { threat: () => state.threat || state.pos, event: npcEvent }); pending.length = 0; primary.phys = phys; primary.npc = npc;
     npc.update(0.001); ui.report(null); G.state = { phys, npc, body, world, state };
@@ -523,8 +525,10 @@
       if (wp.y < 0.09 || !visual) { world.addBlood(wp.x, wp.z, s.buf); s.buf = 0; continue; }
       // slow bleeding runs down the skin first and only drips from where the trail leaves the body
       const jet = s.rate > 140;
-      if (!jet && body.holdDrops && body.holdDrops(s)) continue;
-      const drip = !jet && body.dripPoint && body.dripPoint(s, dp);
+      // under clothes the cloth soaks it up; once saturated it runs down inside and drips from the hem or cuff below
+      if (s.garment && !jet) { if (s.ext < (s.garment.kind === 'pants' ? 28 : 16)) continue; }
+      if (!s.garment && !jet && body.holdDrops && body.holdDrops(s)) continue;
+      const drip = !jet && (s.garment ? body.hemPoint(s, dp) : body.dripPoint && body.dripPoint(s, dp));
       if (drip && dp.y < 0.09) { world.addBlood(dp.x, dp.z, s.buf); s.buf = 0; continue; }
       // drip count follows flow, capped; each drop carries its share of the buffered volume
       s.acc += dt * Math.min(40, 0.5 + s.rate / 10);
@@ -799,7 +803,7 @@
       S.body.clearWounds(); S.rag.stop(); S.rag.clear(); S.viscera.clear(); S.headFx.rk = S.headFx.rkMax = 0; S.headFx.mouth = false; S.headFx.jawBroken = false; S.headFx.mouthK = 0; S.handBlood.L = S.handBlood.R = 0;
       if (S.body.setLook) S.body.setLook(Math.floor(Math.random() * S.body.looks), Math.floor(Math.random() * 3), [0xffffff, 0x8a6a50, 0x5a4030, 0x404040][Math.floor(Math.random() * 4)]);
       if (S.body.setShorts) S.body.setShorts(SHORTS[i]);
-      if (S.body.dress) S.body.dress({ shirt: pick(SHIRTS), pants: pick(TROUSERS) }); // dressed like anyone off the street
+      if (S.body.dress) S.body.dress(outfit({ top: 1, pants: 1, shoes: 1 })); // dressed like anyone off the street
       S.body.root.visible = true; S.body.root.position.copy(spawn[i]); S.body.root.rotation.set(0, i ? Math.PI : 0, 0);
       S.phys = G.Physiology(G.ANATOMY.bloodVolume);
       S.ai = { state: 'engage', t: 0, aimT: 0, fireT: 0.8 + Math.random() * 0.6, strafeT: 2 + Math.random() * 3, strafe: null, downT: 0, canFight: true, lastSeen: 0, goal: null, peekT: 0, crouch: 0, lean: 0, clock: 0, seenT: 0, react: 0.5, burst: 0, reloadT: 0, ammo: WMAG[wi] };
@@ -1034,7 +1038,7 @@
       for (let i = 0; i < sub; i++) { phys.step(simDt / sub); bleed(simDt / sub, i === sub - 1); }
       npc.update(dt * Math.min(scale, 3) * slow);
     } else npc.update(dt);
-    viscera.update(dt * slow); smearBody();
+    viscera.update(dt * slow); smearBody(); if (body.clothTick) body.clothTick(dt * slow);
     // hands get bloody: pressing a bleeding wound coats the palm and fingers within seconds; touching a pool on the
     // floor (crawling, pushing up) smears them too. It stays on (it dries, it does not go away).
     for (const sd of ['L', 'R']) {
