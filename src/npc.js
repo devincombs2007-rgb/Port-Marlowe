@@ -294,12 +294,15 @@
       const holdPt = N.ai && (N.ai.hold || N.ai.aim);
       if (!N.protect && holdPt && aware && !P.armsPara) {
         const gh = N.ai.gunHand || 'R', sd = gh === 'R' ? 'L' : 'R';
-        if (!P.armBroken[gh] && !(P.gripLost && P.gripLost[gh]) && !(P.armExtLost && P.armExtLost[gh]) && !(rag.parts['hand' + gh] && rag.parts['hand' + gh].severed)) {
-          N.gunHand = gh; N.aiming = true; rag.reach[gh] = holdPt; rag.reachCap = 300 * Math.min(1, P.brainE) * (1 - 0.35 * P.pain) * (1 - 0.6 * (W['arm' + gh] || 0)); // the shoulder holds a gun up at arm's length
+        if (!P.armBroken[gh] && !(!N.ai.melee && P.gripLost && P.gripLost[gh]) && !(P.armExtLost && P.armExtLost[gh]) && !(rag.parts['hand' + gh] && rag.parts['hand' + gh].severed)) { // a punch needs no grip
+          N.gunHand = gh; N.aiming = true; rag.reach[gh] = holdPt; rag.reachCap = (N.ai.reachCap || 300) * Math.min(1, P.brainE) * (1 - 0.35 * P.pain) * (1 - 0.6 * (W['arm' + gh] || 0)); // the shoulder holds a gun up at arm's length
           if (N.clutching[gh]) { N.clutching[gh] = null; rag.setClutch(gh, null); }
           // the other hand on the gun too (the forend, or wrapped round the firing hand), unless it is holding a wound
-          if (N.ai.support && !N.clutching[sd] && !P.armBroken[sd] && !(P.gripLost && P.gripLost[sd]) && !(rag.parts['hand' + sd] && rag.parts['hand' + sd].severed)) { rag.reach[sd] = N.ai.support; N.supHand = sd; }
+          if (N.ai.support && !N.clutching[sd] && !P.armBroken[sd] && !(!N.ai.melee && P.gripLost && P.gripLost[sd]) && !(rag.parts['hand' + sd] && rag.parts['hand' + sd].severed)) { rag.reach[sd] = N.ai.support; N.supHand = sd; }
         }
+      }
+      if (N.ai && N.ai.beg && aware && !P.armsPara) { // begging: an open hand raised toward him
+        for (const sd of ['R', 'L']) { if (P.armBroken[sd] || N.clutching[sd] || (rag.parts['hand' + sd] && rag.parts['hand' + sd].severed)) continue; body.segs['uarm' + sd].g.getWorldPosition(shP); const d = N.ai.beg.clone().sub(shP).normalize(); rag.reach[sd] = shP.clone().addScaledVector(d, 0.5); rag.reachCap = 160; break; }
       }
       if (rag.setGunArms) { const gL = N.aiming && (N.gunHand === 'L' || N.supHand === 'L'), gR = N.aiming && (N.gunHand === 'R' || N.supHand === 'R'); rag.setGunArms(gL, gR, !!N.supHand); }
       // ---- a hand goes to the wound: neck, chest, belly, thigh, whatever it can reach

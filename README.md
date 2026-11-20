@@ -1,4 +1,4 @@
-# Port-Marlowe — Wound Ballistics Lab (v2.7)
+# Port-Marlowe — Wound Ballistics Lab (v2.8)
 
 A browser-based 3D simulator of gunshot wounds. A test subject stands in a chamber; every
 round is traced millimetre by millimetre through skin, bone, organs and vessels, and the
@@ -6,6 +6,16 @@ body then responds in real time (bleeding, blood pressure, breathing, consciousn
 
 **Run it:** serve this folder with any static server (`python3 -m http.server`) and open
 `index.html`. No build step. `node tools/build.js` bundles a single-file page into `dist/`.
+
+**v2.8 — the 1v1 gets desperate**: a fighter whose hands can no longer hold the gun (cut tendons, a broken or
+useless arm) drops it - it falls to the floor - and, still standing, fights on: he draws a knife from his belt (if he
+carries one) or uses his fists, closing in with his guard up. Punches snap the head round, shove and wind, and can
+knock a man out; a stab is run through the same tissue simulation as a bullet (a slow, heavy, sharp blade limited to
+its length, stopped by bone) and leaves a slit wound and whatever it cut inside. A beaten man on the floor who can
+no longer fight begs, an open hand raised toward the other man, crying, or curls up. The winner does not just stand
+there: he walks over, crouches over him, holds the gun on his head for a moment and fires once (the round stays
+open a few seconds for it). A fighter who is clearly winning rushes in and sprays longer bursts, accepting a looser
+aim.
 
 **v2.7 — scalp flaps, muscles, tendons, ligaments**: where the skull bursts, the scalp tears into flaps that stay
 attached along one edge and hang off the head with their hair, swinging under gravity and with the head's movement,

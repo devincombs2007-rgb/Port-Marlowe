@@ -71,11 +71,11 @@
   }
   // small loose pieces (knocked-out teeth): thrown, they fall, bounce once or twice and lie on the floor
   const debris = [];
-  function dropPiece(m, v) { scene.add(m); debris.push({ m, v: v.clone(), w: new V3(Math.random() * 30 - 15, Math.random() * 30 - 15, Math.random() * 30 - 15), rest: false }); }
+  function dropPiece(m, v, r) { scene.add(m); debris.push({ m, r, v: v.clone(), w: new V3(Math.random() * 30 - 15, Math.random() * 30 - 15, Math.random() * 30 - 15), rest: false }); }
   function stepDebris(dt) {
     for (const d of debris) {
       if (d.rest) continue; d.v.y -= 9.81 * dt; d.m.position.addScaledVector(d.v, dt); d.m.rotation.x += d.w.x * dt; d.m.rotation.y += d.w.y * dt; d.m.rotation.z += d.w.z * dt;
-      const r = Math.max(d.m.scale.x, d.m.scale.y, d.m.scale.z) * 0.5;
+      const r = d.r != null ? d.r : Math.max(d.m.scale.x, d.m.scale.y, d.m.scale.z) * 0.5;
       if (d.m.position.y < r) { d.m.position.y = r; if (Math.abs(d.v.y) < 0.5) { d.rest = true; } else { d.v.y *= -0.3; d.v.x *= 0.5; d.v.z *= 0.5; d.w.multiplyScalar(0.4); } }
     }
   }
@@ -685,7 +685,7 @@
     const mp = (O, q, p) => new V3(p[0], p[1], p[2]).applyQuaternion(q).add(O); // model point -> world
     const lerp3 = (a, b, u) => a.clone().lerp(b, Math.max(0, Math.min(1, u)));
     function holdGun(S, N, intent, dt, ep, vis) {
-      const ai = S.ai, gs = S.gs, P = S.phys; if (!gs || !S.gunModel) return;
+      const ai = S.ai, gs = S.gs, P = S.phys; if (!gs || !S.gunModel || ai.gunDown) return;
       const w = G.WEAPONS[ai.wi], H = HOLD[w.model] || HOLD.glock, gh = intent.gunHand || 'R', side = gh === 'L' ? -1 : 1;
       const standing = N.posture === 'stand' && P.conscious && ai.canFight;
       if (vis) ai.lastKnown = ep.clone();
@@ -807,7 +807,8 @@
       if (S.body.dress) S.body.dress(outfit({ top: 1, pants: 1, shoes: 1 })); // dressed like anyone off the street
       S.body.root.visible = true; S.body.root.position.copy(spawn[i]); S.body.root.rotation.set(0, i ? Math.PI : 0, 0);
       S.phys = G.Physiology(G.ANATOMY.bloodVolume);
-      S.ai = { state: 'engage', t: 0, aimT: 0, fireT: 0.8 + Math.random() * 0.6, strafeT: 2 + Math.random() * 3, strafe: null, downT: 0, canFight: true, lastSeen: 0, goal: null, peekT: 0, crouch: 0, lean: 0, clock: 0, seenT: 0, react: 0.5, burst: 0, reloadT: 0, ammo: WMAG[wi] };
+      if (S.ai && S.ai.knifeMesh) scene.remove(S.ai.knifeMesh);
+      S.ai = { knife: Math.random() < 0.55, state: 'engage', t: 0, aimT: 0, fireT: 0.8 + Math.random() * 0.6, strafeT: 2 + Math.random() * 3, strafe: null, downT: 0, canFight: true, lastSeen: 0, goal: null, peekT: 0, crouch: 0, lean: 0, clock: 0, seenT: 0, react: 0.5, burst: 0, reloadT: 0, ammo: WMAG[wi] };
       S.npc = G.NPC(S.body, S.phys, S.rag, { threat: () => partPos(D.fighters[1 - i], 'thorax'), event: npcEvent, fighter: true, ai: (N) => brain(S, N) });
       giveGun(S, wi);
     }
@@ -826,16 +827,27 @@
       // which hand holds the gun: the right, unless it is broken or gone
       const usable = (sd) => !P.armBroken[sd] && !S.rag.parts['hand' + sd].severed && !(P.gripLost && P.gripLost[sd]) && !(P.armExtLost && P.armExtLost[sd]);
       const gh = usable('R') ? 'R' : usable('L') ? 'L' : null; // a hand that cannot grip (cut tendons) or an arm that cannot extend drops the gun: the other one takes it
-      ai.canFight = !!gh && P.conscious && !P.armsPara;
+      // no hand can hold the gun: it falls. Standing, with an arm still working, he fights on with a knife or his fists.
+      if (!gh && !ai.gunDown && S.gunModel && P.conscious) dropGun(S);
+      const punchArm = (sd) => !P.armBroken[sd] && !S.rag.parts['hand' + sd].severed && !(P.armExtLost && P.armExtLost[sd]);
+      const melee = ai.gunDown && N.posture === 'stand' && (punchArm('R') || punchArm('L'));
+      ai.canFight = (!!gh && !ai.gunDown || melee) && P.conscious && !P.armsPara && !ai.beg;
       const sh = new V3(); S.body.segs['uarm' + (gh || 'R')].g.getWorldPosition(sh);
       // where to aim: centre of mass; the head of an enemy who is down and close
       ai.target = E.npc.posture !== 'stand' && dist < 2.2 ? partPos(E, 'head') : partPos(E, E.npc.posture === 'stand' ? 'thorax' : 'abdomen');
       const aimDir = ai.target.clone().sub(sh).normalize(), aim = gh && vis ? sh.clone().addScaledVector(aimDir, 0.6) : null;
-      const intent = { face, aim, gunHand: gh || 'R', crouch: 0, lean: 0, move: null, run: false };
+      const intent = { face, aim: ai.gunDown ? null : aim, gunHand: gh || 'R', crouch: 0, lean: 0, move: null, run: false };
       ai.t += dt;
+      // beaten: down, conscious, and unable (or no longer willing) to fight - he begs with a hand raised, or curls up
+      if (N.posture !== 'stand' && P.conscious && (ai.downT > 2 && (!gh || ai.gunDown || myHurt > 1.7))) {
+        if (!ai.beg) { ai.beg = true; ai.style = ai.style || (Math.random() < 0.55 ? 'beg' : 'curl'); ai.begVoice = 0.5; }
+        intent.aim = null; intent.beg = ai.style === 'beg' ? ep.clone().add(new V3(0, 0.4, 0)) : null;
+        ai.begVoice -= dt; if (ai.begVoice < 0) { ai.begVoice = 2.2 + Math.random() * 2.5; npcEvent(Math.random() < 0.6 ? 'cry' : 'moan', 0.8); }
+      } else if (N.posture === 'stand') ai.beg = false;
       if (N.posture === 'stand') {
         // decide what to do
-        if (out(E) && !E.phys.dead && dist > 1.6) ai.state = 'finish';
+        if ((out(E) || (E.ai && E.ai.beg)) && !E.phys.dead && !E.phys.brainDestroyed && !ai.gunDown && gh) ai.state = 'finish';
+        else if (melee) ai.state = 'melee';
         else if (winning && enHurt > 1) ai.state = 'push';
         else if ((myHurt > 0.45 || losing) && D.props.length && ai.state !== 'cover' && ai.t > 1.5) { ai.state = 'cover'; ai.goal = coverSpot(S, ep); ai.t = 0; }
         else if (ai.lastSeen > 1.8 && ai.state !== 'flank' && ai.state !== 'cover') { ai.state = 'flank'; ai.goal = flankSpot(S, E); ai.t = 0; }
@@ -859,7 +871,14 @@
           }
         } else if (ai.state === 'flank') { if (goTo(ai.goal, false) || ai.t > 6) { ai.state = 'engage'; ai.t = 0; } }
         else if (ai.state === 'push') { if (dist > 2.2) goTo(ep, !vis); } // rush in, but walk with the gun up once he can be seen
-        else if (ai.state === 'finish') { if (dist > 1.4) goTo(ep, true); }
+        else if (ai.state === 'finish') {
+          // finishing him: walk up to his head, crouch over him, put the gun to his head, a moment, one shot
+          const hd = partPos(E, 'head'), hdist = Math.hypot(hd.x - me.x, hd.z - me.z); ai.target = hd;
+          if (ai.over && hdist > 0.95) ai.over = false; else if (!ai.over && hdist < 0.62) ai.over = true; // over him (a little hysteresis: he squirms)
+          if (!ai.over) { goTo(hd, hdist > 2.2); intent.face = face; ai.finishT = 0; } // hurries over, then walks the last steps gun up
+          else { intent.crouch = 1; intent.face = Math.atan2(hd.x - me.x, hd.z - me.z); ai.finishT = (ai.finishT || 0) + dt; }
+          intent.aim = gh && vis ? sh.clone().addScaledVector(hd.clone().sub(sh).normalize(), 0.6) : null; intent.finish = !!ai.over;
+        } else if (ai.state === 'melee') meleeAct(S, N, E, intent, dt, me, dist, toE, goTo, punchArm);
       }
       // shooting the way people do: notice the enemy (reaction time), bring the gun on, fire a pair or a short burst
       // with the gun steady and the muzzle clear, pause to see what happened, reload when the magazine runs dry
@@ -879,12 +898,71 @@
         if (!clear) { const hd = partPos(E, 'head'); if (los(mz, hd)) { ai.target = hd; clear = true; } }
       }
       if (vis && intent.aim && !clear && ai.reloadT <= 0) ai.blockT = (ai.blockT || 0) + dt; else ai.blockT = 0;
-      const ready = !!intent.aim && ai.canFight && ai.seenT > ai.react && ai.aimT > 0.25 && steady && clear && ai.fireT <= 0 && ai.ammo > 0 && !(out(E) && E.phys.dead);
+      const spray = winning && dist < 4.5 && ai.state === 'push';
+      const ready = !!intent.aim && ai.canFight && ai.seenT > ai.react && ai.aimT > 0.25 && (steady || (spray && handErr < 0.2)) && clear && ai.fireT <= 0 && ai.ammo > 0 && !(out(E) && E.phys.dead) && (!intent.finish || ai.finishT > 1.3) && !(ai.state === 'finish' && !intent.finish);
       ai.handErr = handErr;
-      if (ready && ai.burst <= 0) { const w = G.WEAPONS[ai.wi]; ai.burst = w.cls === 'shotgun' || w.model === 'bolt' ? 1 : w.cls === 'pistol' ? (Math.random() < 0.65 ? 2 : Math.random() < 0.5 ? 1 : 3) : 2 + Math.floor(Math.random() * 3); }
+      if (ready && ai.burst <= 0) { const w = G.WEAPONS[ai.wi]; ai.burst = intent.finish ? 1 : spray && !(w.cls === 'shotgun' || w.model === 'bolt') ? (w.cls === 'pistol' ? 3 + Math.floor(Math.random() * 2) : 4 + Math.floor(Math.random() * 5)) : w.cls === 'shotgun' || w.model === 'bolt' ? 1 : w.cls === 'pistol' ? (Math.random() < 0.65 ? 2 : Math.random() < 0.5 ? 1 : 3) : 2 + Math.floor(Math.random() * 3); }
       ai.wantFire = ready && ai.burst > 0;
       ai.intent = intent;
       return intent;
+    }
+    // ---- disarmed: the gun falls; then knife or fists
+    const KNIFE = { name: 'Knife', cls: 'knife', bullet: { m: 3, d: 0.004, v: 6.5, len: 0.12, cd: 0.3, boneDeform: 1 } };
+    function dropGun(S) {
+      const ai = S.ai; ai.gunDown = true; ai.burst = 0; ai.wantFire = false;
+      const hb = S.rag.parts['hand' + (S.npc.gunHand || 'R')].b; dropPiece(S.gunModel, new V3(hb.velocity.x * 0.5 + (Math.random() - 0.5) * 0.6, 0.4, hb.velocity.z * 0.5 + (Math.random() - 0.5) * 0.6), 0.02);
+      if (ai.knife && !ai.knifeMesh) { // a fixed-blade knife drawn from the belt
+        const g = new THREE.Group(), blade = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.024, 0.14), new THREE.MeshStandardMaterial({ color: 0xb8bcc0, metalness: 0.9, roughness: 0.25 })), grip = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.026, 0.11), new THREE.MeshStandardMaterial({ color: 0x151515, roughness: 0.7 }));
+        blade.position.z = -0.075; grip.position.z = 0.055; g.add(blade, grip); g.traverse((o) => { o.castShadow = true; }); scene.add(g); ai.knifeMesh = g;
+      }
+    }
+    // a strike: the fist or blade goes to a point on him and back. Guard up between strikes (hands by the chin, or the
+    // knife held low and forward). Punches shove and hurt (and can stagger him); a stab is run through the same
+    // tissue simulation as a bullet, as a slow, heavy, sharp blade limited to its length.
+    function meleeAct(S, N, E, intent, dt, me, dist, toE, goTo, punchArm) {
+      const ai = S.ai, P = S.phys, strong = punchArm(ai.knifeHand || 'R') ? (ai.knifeHand || 'R') : punchArm('L') ? 'L' : 'R', weak = strong === 'R' ? 'L' : 'R';
+      ai.knifeHand = strong; intent.aim = null; intent.face = Math.atan2(toE.x, toE.z); intent.melee = true; intent.reachCap = 300;
+      // a knife needs a hand that can still grip it; otherwise it is fists (or the heel of the hand)
+      if (ai.knife && P.gripLost && P.gripLost[strong]) { ai.knife = false; if (ai.knifeMesh) { scene.remove(ai.knifeMesh); ai.knifeMesh = null; } }
+      if (dist > 0.72) goTo(partPos(E, 'thorax'), dist > 2);
+      const sh = new V3(); S.body.segs['uarm' + strong].g.getWorldPosition(sh);
+      const tq = S.rag.parts.thorax.b.quaternion, fw = new V3(0, 0, 1).applyQuaternion(new THREE.Quaternion(tq.x, tq.y, tq.z, tq.w)); fw.y = 0; fw.normalize();
+      const chin = partPos(S, 'head').addScaledVector(fw, 0.2).add(new V3(0, -0.12, 0)), side = new V3(-fw.z, 0, fw.x);
+      const guardS = ai.knife ? partPos(S, 'abdomen').addScaledVector(fw, 0.32).add(new V3(0, 0.08, 0)) : chin.clone().addScaledVector(side, strong === 'L' ? 0.06 : -0.06), guardW = chin.clone().addScaledVector(side, strong === 'L' ? -0.07 : 0.07);
+      intent.gunHand = strong; intent.hold = guardS; intent.support = punchArm(weak) ? guardW : null;
+      ai.strikeT = (ai.strikeT == null ? 0.6 : ai.strikeT) - dt;
+      if (!ai.strike && ai.strikeT <= 0 && dist < 0.95 && E.npc) {
+        const parts = ai.knife ? (E.npc.posture === 'stand' ? ['abdomen', 'thorax', 'abdomen', 'neck'] : ['thorax', 'neck', 'abdomen']) : ['head', 'head', 'thorax', 'abdomen'];
+        ai.strike = { t: 0, part: parts[Math.floor(Math.random() * parts.length)], hand: !ai.knife && punchArm(weak) && Math.random() < 0.45 ? weak : strong, done: false };
+      }
+      const st = ai.strike;
+      if (st) {
+        st.t += dt; const tgt = partPos(E, st.part), hn = 'hand' + st.hand, hp = partPos(S, hn);
+        const out = st.t < 0.22; // out and back
+        const pt = out ? tgt.clone().addScaledVector(tgt.clone().sub(sh).normalize(), 0.06) : (st.hand === strong ? guardS : guardW);
+        if (st.hand === strong) intent.hold = pt; else { intent.support = pt; }
+        if (out) intent.reachCap = 650; // the punch is thrown hard
+        if (!st.done && st.t > 0.08 && hp.distanceTo(tgt) < (st.part === 'head' ? 0.13 : 0.16)) { st.done = true; landStrike(S, E, st, hp, tgt); }
+        if (st.t > 0.45) { ai.strike = null; ai.strikeT = 0.55 + Math.random() * 0.7 + (P.pain > 0.5 ? 0.4 : 0); }
+      }
+    }
+    function landStrike(S, E, st, hp, tgt) {
+      const ai = S.ai, d = tgt.clone().sub(hp); d.y *= 0.5; d.normalize(); const seg = E.body.segs[st.part];
+      if (!ai.knife) {
+        // a punch: 10-15 N s to the head snaps it round; to the body it shoves and winds him
+        const J = st.part === 'head' ? 11 : 15; E.npc.impulse(seg, tgt, { x: d.x * J, y: d.y * J, z: d.z * J });
+        E.phys.pain = Math.min(1, E.phys.pain + (st.part === 'head' ? 0.06 : 0.04)); E.npc.stagger = Math.max(E.npc.stagger || 0, 0.5);
+        audio.thud(st.part === 'head' ? 0.35 : 0.25);
+        if (st.part === 'head' && Math.random() < 0.07) { E.phys.conscious = false; E.phys.koForced = true; E.phys.addInjury('ko', 'Knocked out by a punch', 1); }
+        return;
+      }
+      // a stab
+      const origin = hp.clone().addScaledVector(d, -0.04), back = current; use(E); E.body.updateMatrices();
+      const res = G.simulate(KNIFE.bullet, origin, d, { sample: E.body.sample, cavity: E.body.cavity, maxDist: 0.04 + KNIFE.bullet.len });
+      res.d0 = d; res.stab = true; for (const m of res.marks) m.stab = true;
+      { const ib = res.order.findIndex((o) => o.kind === 'bone'); if (ib >= 0) res.order = res.order.slice(0, ib); } // the blade stops on bone (it glances off a rib or the spine; it does not break it)
+      if (res.hitBody) { processShot(res, KNIFE, d, origin); audio.thud(0.2); }
+      use(back);
     }
     // find a way round: props (and the other man) push the heading away when close, and turn it along their side
     // toward the goal, so a fighter runs round a crate instead of into it
@@ -964,12 +1042,13 @@
     }
     // ---- rounds
     function startRound() {
-      D.round++; D.phase = 'ready'; D.t = 0; world.clear(); projectiles.clear(); pending.length = 0; clearDrops(); clearDebris();
+      D.round++; D.phase = 'ready'; D.t = 0; D.finishBy = null; world.clear(); projectiles.clear(); pending.length = 0; clearDrops(); clearDebris();
       const wi = DUEL_W[Math.floor(Math.random() * DUEL_W.length)];
       for (let i = 0; i < 2; i++) setupFighter(D.fighters[i], i, wi);
       layout(); D.weaponName = G.WEAPONS[wi].name; use(D.fighters[0]);
     }
     const DUEL_W = [1, 2, 3, 4, 5, 6, 8];
+    D.disarm = (i) => dropGun(D.fighters[i]); // tests
     D.arm = (wi) => { for (const S of D.fighters) { giveGun(S, wi); S.ai.ammo = WMAG[wi]; } D.weaponName = G.WEAPONS[wi].name; }; // tests / a fixed weapon
     // magazine capacity by weapon index (Glock 17, 1911 7+1, .357 revolver 6, AR/AK 30, bolt 5, pump 7)
     const WMAG = { 0: 10, 1: 17, 2: 17, 3: 8, 4: 6, 5: 30, 6: 30, 7: 5, 8: 7, 9: 7 };
@@ -992,7 +1071,9 @@
       const [A, B] = D.fighters;
       // guns in hand: aimed along the arm toward the target, or carried in the hand; dropped when the hand lets go
       for (const S of D.fighters) {
-        if (!S.ai || !S.gunModel) continue;
+        if (S.ai && S.ai.knifeMesh) { const kh = S.rag.parts['hand' + (S.ai.knifeHand || 'R')].b, kq = new THREE.Quaternion(kh.quaternion.x, kh.quaternion.y, kh.quaternion.z, kh.quaternion.w), dn = new V3(0, -1, 0).applyQuaternion(kq), fw2 = new V3(0, 0, 1).applyQuaternion(kq);
+          S.ai.knifeMesh.position.set(kh.position.x, kh.position.y, kh.position.z).addScaledVector(dn, 0.03); S.ai.knifeMesh.quaternion.setFromRotationMatrix(new THREE.Matrix4().lookAt(new V3(), fw2.multiplyScalar(-1), dn)); } // blade out past the thumb
+        if (!S.ai || !S.gunModel || S.ai.gunDown) continue;
         if (S.ai.flashN > 0) S.ai.flashN--; else S.ai.flash.intensity = 0;
         const gh = S.npc.gunHand || 'R', hb = S.rag.parts['hand' + gh].b, hp = new V3(hb.position.x, hb.position.y, hb.position.z);
         if (S.gs && S.gs.ro && S.gs.mode !== 'ground') {
@@ -1016,7 +1097,11 @@
       if (D.phase === 'ready' && D.t > 2.5) { D.phase = 'fight'; D.t = 0; }
       if (D.phase === 'fight') {
         const oa = out(A), ob = out(B);
-        if (oa || ob || D.t > 120) { D.phase = 'over'; D.t = 0; D.winner = oa && ob ? -1 : oa ? 1 : ob ? 0 : Math.abs(hurtOf(A) - hurtOf(B)) > 0.3 ? (hurtOf(A) < hurtOf(B) ? 0 : 1) : -1; /* time: the less hurt takes it */ if (D.winner >= 0) D.score[D.winner]++; }
+        // one man is out: the other gets a few seconds to walk up and finish him before the round is called
+        const loser = oa && !ob ? A : ob && !oa ? B : null, winnerS = loser ? D.fighters[1 - loser.idx] : null;
+        if (loser && !loser.phys.dead && !loser.phys.brainDestroyed && winnerS && winnerS.npc.posture === 'stand' && winnerS.ai && winnerS.ai.canFight && !winnerS.ai.gunDown) { D.finishBy = D.finishBy || D.t + 14; } // time to walk up and finish him
+        if ((oa || ob) && D.finishBy && D.t < D.finishBy && !(loser && (loser.phys.dead || loser.phys.brainDestroyed))) { /* still finishing */ }
+        else if (oa || ob || D.t > 120) { D.finishBy = null; D.phase = 'over'; D.t = 0; D.winner = oa && ob ? -1 : oa ? 1 : ob ? 0 : Math.abs(hurtOf(A) - hurtOf(B)) > 0.3 ? (hurtOf(A) < hurtOf(B) ? 0 : 1) : -1; /* time: the less hurt takes it */ if (D.winner >= 0) D.score[D.winner]++; }
       } else if (D.phase === 'over' && D.t > 5) {
         if (D.score[0] >= 3 || D.score[1] >= 3) { D.phase = 'match'; D.t = 0; } else startRound();
       } else if (D.phase === 'match' && D.t > 8) { D.score = [0, 0]; D.round = 0; startRound(); }

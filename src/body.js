@@ -558,15 +558,16 @@
       tv2.copy(dir).addScaledVector(n, -dir.dot(n)); const ang = tv2.lengthSq() > 1e-6 ? Math.atan2(tv2.dot(by), tv2.dot(bx)) : Math.random() * 6.3;
       const slit = exit && (mark.v || 0) < 260, oblique = !exit && cos < 0.88;
       const furrow = mark.type === 'furrow' || mark.type === 'graze';
-      const hole = new THREE.Mesh(woundGeo, furrow ? furrowMats[Math.random() < 0.5 ? 0 : 1] : exit ? (slit ? slitMats[Math.random() < 0.6 ? 0 : 1] : exitMats[Math.floor(Math.random() * 3)]) : oblique ? entryObMat : entryMat), stain = new THREE.Mesh(woundGeo, stainMat.clone());
+      const hole = new THREE.Mesh(woundGeo, mark.stab ? slitMats[0] : furrow ? furrowMats[Math.random() < 0.5 ? 0 : 1] : exit ? (slit ? slitMats[Math.random() < 0.6 ? 0 : 1] : exitMats[Math.floor(Math.random() * 3)]) : oblique ? entryObMat : entryMat), stain = new THREE.Mesh(woundGeo, stainMat.clone());
       // entry holes are about bullet diameter (the texture's hole is ~0.3 of its radius); stretched by 1/cos at an angle
       if (exit) { hole.scale.setScalar(slit ? mark.r * 1.7 : mark.r * 2.0); hole.rotation.z = slit ? ang + (Math.random() - 0.5) * 1.2 : Math.random() * 6.3; }
+      else if (mark.stab) { hole.scale.set(0.011, 0.011, 1); hole.rotation.z = Math.random() * 6.3; } // a stab: a slit about the width of the blade
       else if (furrow) { const L = mark.type === 'graze' ? mark.r * 5 : Math.max(mark.r * 4, (mark.len || 0.03) / 2 + mark.r * 1.2), W = mark.r * (mark.type === 'graze' ? 1.6 : 2.2); hole.scale.set(L, W, 1); hole.rotation.z = mark.ang != null ? mark.ang : ang + Math.PI; /* +x along the direction of travel (normal is reversed, as for an entry) */ if (mark.type === 'graze') hole.material = hole.material.clone(), hole.material.opacity = 0.75; }
       else { const e = Math.min(2.3, 1 / Math.max(0.43, cos)); hole.scale.set(mark.r * 1.9 * e, mark.r * 1.9, 1); hole.rotation.z = ang; }
       hole.position.z = 0.0008; hole.renderOrder = 6; if (mark.type === 'ooze') hole.visible = false;
       let bruise = null;
       if (!exit && mark.type !== 'ooze') { bruise = new THREE.Mesh(woundGeo, dmat(bruiseTex, -2, 0.6)); bruise.scale.setScalar(mark.r * 4.2 + 0.006); if (furrow) { bruise.scale.set(hole.scale.x * 1.3, hole.scale.y * 2.2, 1); bruise.rotation.z = hole.rotation.z; } bruise.material.opacity = 0.0; bruise.position.z = 0.0004; bruise.renderOrder = 4; g.add(bruise); }
-      if (!exit && mark.type !== 'ooze' && range != null && range < 0.75) {
+      if (!exit && mark.type !== 'ooze' && !mark.stab && range != null && range < 0.75) {
         // unburnt powder tattoos the skin out to roughly 60-75 cm (an oval pattern when the muzzle is at an angle); soot only within a hand's width
         const st = new THREE.Mesh(woundGeo, stippleMat); st.scale.set((0.022 + range * 0.075) / Math.max(0.5, cos), 0.022 + range * 0.075, 1); st.rotation.z = ang; st.position.z = 0.0022; st.renderOrder = 5; g.add(st);
         if (range < 0.16) { const so = new THREE.Mesh(woundGeo, sootMat); so.scale.set((0.02 + range * 0.14) / Math.max(0.5, cos), 0.02 + range * 0.14, 1); so.rotation.z = ang; so.position.z = 0.0024; so.renderOrder = 5; g.add(so); }

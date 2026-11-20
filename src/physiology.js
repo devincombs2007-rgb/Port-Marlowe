@@ -197,7 +197,7 @@
         const sf = surf && (surf.find((s) => s.seg === seg) || null);
         wound(seg.label + ' (soft tissue)', rate, { ext: ['thorax', 'abdomen', 'pelvis'].includes(seg.name) ? 0.6 : 0.9, clot: 420, surf: sf });
         if (res.depth < 0.03 && res.exited) inj('graze' + seg.name, 'Graze wound, ' + seg.label.toLowerCase(), 0);
-        else inj('soft' + seg.name, 'GSW ' + seg.label.toLowerCase() + ' — skin and muscle', 0);
+        else inj('soft' + seg.name, (res.stab ? 'Stab wound, ' : 'GSW ') + seg.label.toLowerCase() + ' — skin and muscle', 0);
       }
       S.pain = clamp(S.pain + pain, 0, 1);
       return notes;
