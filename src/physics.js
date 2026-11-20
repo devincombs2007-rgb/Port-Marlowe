@@ -130,14 +130,14 @@
       else if (j.severed) j.cons = [];
       else if (j.partial) j.cons = [new C.ConeTwistConstraint(a.b, b.b, { pivotA: pA, pivotB: pB, axisA: DOWN, axisB: DOWN, angle: 2.6, twistAngle: 1.6 })];
       else {
-        j.cons = [new C.ConeTwistConstraint(a.b, b.b, { pivotA: pA, pivotB: pB, axisA: d.aA, axisB: d.aB, angle: d.cone, twistAngle: d.twist })];
-        if (d.hinge) j.cons.push(new C.HingeConstraint(a.b, b.b, { pivotA: pA, pivotB: pB, axisA: XA, axisB: XA }));
+        j.cons = [new C.ConeTwistConstraint(a.b, b.b, { pivotA: pA, pivotB: pB, axisA: d.aA, axisB: d.aB, angle: d.cone * (j.lax ? 1.7 : 1), twistAngle: d.twist * (j.lax ? 2.2 : 1) })];
+        if (d.hinge && !j.lax) j.cons.push(new C.HingeConstraint(a.b, b.b, { pivotA: pA, pivotB: pB, axisA: XA, axisB: XA }));
         // rigid posturing: an extra tight cone around the straight (rest) direction, switched on only while the brainstem holds the body in extension
         if (!/^(hand|foot)/.test(s.name)) { j.lock = new C.ConeTwistConstraint(a.b, b.b, { pivotA: pA, pivotB: pB, axisA: d.aB, axisB: d.aB, angle: /^uarm/.test(s.name) ? 0.3 : 0.12, twistAngle: 0.25 }); j.lock.collideConnected = false; }
       }
       for (const c of j.cons) c.collideConnected = false;
       // gains from the reduced inertia of the pair, so the explicit PD torque stays stable at 120 Hz
-      const Ir = (a.I * b.I) / (a.I + b.I); j.k = 290 * Ir * d.gain; j.d = 34 * Ir * d.gain; j.pd = 22 * Ir;
+      const Ir = (a.I * b.I) / (a.I + b.I); j.k = 290 * Ir * d.gain * (j.lax ? 0.35 : 1); j.d = 34 * Ir * d.gain * (j.lax ? 0.5 : 1); j.pd = 22 * Ir;
       if (/^(neck|head)$/.test(s.name)) { j.passive = true; j.kp = 290 * Ir * d.gain * 0.22; j.dp = 0; /* extra explicit damping here destabilises the light neck */ }
     }
     for (const s of body.list) {
@@ -202,6 +202,8 @@
       if (partial) j.partial = true; else { j.severed = true; const mark = (sg) => { P.parts[sg.name].severed = true; for (const s2 of body.list) if (s2.parent === sg.name) mark(s2); }; mark(j.b.seg); }
       rewire([j]); j.a.b.wakeUp(); j.b.b.wakeUp(); return true;
     };
+    // torn ligaments: the joint loosens (wider range, no hinge, weaker muscle hold)
+    P.lax = (name) => { const j = P.joints.find((q) => q.b.seg.name === name); if (!j || j.lax || j.severed || !P.active) return false; j.lax = true; rewire([j]); j.b.b.wakeUp(); return true; };
     P.setRigid = (on) => { if (on === P.rigid || !P.active) return; P.rigid = on; for (const c of P.locks) on ? world.addConstraint(c) : world.removeConstraint(c); for (const k in P.parts) P.parts[k].b.wakeUp(); };
     P.stop = () => {
       if (!P.active) return;
@@ -210,7 +212,7 @@
       for (const j of P.joints) { for (const c of j.cons) world.removeConstraint(c); if (j.lock) world.removeConstraint(j.lock); }
       for (const k in P.parts) world.remove(P.parts[k].b);
       for (const k in P.parts) { const pp = P.parts[k]; pp.broken = pp.severed = false; if (pp.split) unsplit(pp); }
-      for (const j of P.joints) { j.broken = j.severed = j.partial = false; j.spasm = null; wire(j); }
+      for (const j of P.joints) { j.broken = j.severed = j.partial = j.lax = false; j.spasm = null; wire(j); }
       relock();
       for (const s of body.list) { s.g.position.copy(s.rest); s.g.quaternion.set(0, 0, 0, 1); }
       body.root.position.set(0, 0, 0); body.root.rotation.set(0, 0, 0);

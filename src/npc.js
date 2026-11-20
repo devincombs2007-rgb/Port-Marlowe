@@ -147,7 +147,8 @@
       const rigid = M === 'decerebrate' || M === 'tonic', clonic = M === 'clonic';
       const limp = (!P.conscious || P.brainDestroyed || P.dead) && !rigid && !clonic;
       const aware = P.conscious && !P.brainDestroyed && !P.dead && M === 'normal';
-      const legsOut = P.legsPara || P.legBroken.L || P.legBroken.R || P.pelvisBroken;
+      const W = P.weak || { legL: 0, legR: 0, armL: 0, armR: 0 }, LO = P.legOut || {};
+      const legsOut = P.legsPara || P.legBroken.L || P.legBroken.R || P.pelvisBroken || LO.L || LO.R || W.legL >= 0.9 || W.legR >= 0.9; // a knee that cannot straighten, or a leg whose muscles are destroyed, gives way
       const alive = !P.dead && P.rr > 0.5;
       N.motor = M;
       // ---- breathing, gasping, coughing
@@ -246,7 +247,7 @@
           if (ai && N.stagger < 0.4) {
             if (ai.face != null) ctl.face = ai.face;
             // walking speed: 1.3 m/s, running 2.6; slowed by pain, blood loss, a bad leg, crouching
-            if (ai.move) { const legHurt = P.legBroken.L || P.legBroken.R ? 0.35 : 1, sp = (ai.run ? 2.6 : 1.3) * Math.min(1, P.brainE) * (P.map > 60 ? 1 : 0.55) * (1 - 0.35 * P.pain) * legHurt * (1 - 0.45 * (ai.crouch || 0)); const tvx = ai.move.x * sp, tvz = ai.move.z * sp, cv = ctl.vel || { x: 0, z: 0 }, dvx = tvx - cv.x, dvz = tvz - cv.z, dm = Math.hypot(dvx, dvz), acc = 2.4 * dt; // people speed up over about a second
+            if (ai.move) { const legHurt = P.legBroken.L || P.legBroken.R ? 0.35 : (1 - 0.65 * Math.max(W.legL, W.legR)) * (P.footDrop && (P.footDrop.L || P.footDrop.R) ? 0.7 : 1), /* a limp */ sp = (ai.run ? 2.6 : 1.3) * Math.min(1, P.brainE) * (P.map > 60 ? 1 : 0.55) * (1 - 0.35 * P.pain) * legHurt * (1 - 0.45 * (ai.crouch || 0)); const tvx = ai.move.x * sp, tvz = ai.move.z * sp, cv = ctl.vel || { x: 0, z: 0 }, dvx = tvx - cv.x, dvz = tvz - cv.z, dm = Math.hypot(dvx, dvz), acc = 2.4 * dt; // people speed up over about a second
               ctl.vel = dm > acc ? { x: cv.x + dvx / dm * acc, z: cv.z + dvz / dm * acc } : { x: tvx, z: tvz }; ctl.lead = null; N.retreating = !N.aiming; }
             else if (ctl.vel) { const m = Math.hypot(ctl.vel.x, ctl.vel.z), k = Math.max(0, m - 2.5 * dt); ctl.vel = k > 0.05 ? { x: ctl.vel.x / m * k, z: ctl.vel.z / m * k } : null; } // and slow to a stop
             N.crouch += ((ai.crouch || 0) - N.crouch) * Math.min(1, dt * 3);
@@ -293,11 +294,11 @@
       const holdPt = N.ai && (N.ai.hold || N.ai.aim);
       if (!N.protect && holdPt && aware && !P.armsPara) {
         const gh = N.ai.gunHand || 'R', sd = gh === 'R' ? 'L' : 'R';
-        if (!P.armBroken[gh] && !(rag.parts['hand' + gh] && rag.parts['hand' + gh].severed)) {
-          N.gunHand = gh; N.aiming = true; rag.reach[gh] = holdPt; rag.reachCap = 300 * Math.min(1, P.brainE) * (1 - 0.35 * P.pain); // the shoulder holds a gun up at arm's length
+        if (!P.armBroken[gh] && !(P.gripLost && P.gripLost[gh]) && !(P.armExtLost && P.armExtLost[gh]) && !(rag.parts['hand' + gh] && rag.parts['hand' + gh].severed)) {
+          N.gunHand = gh; N.aiming = true; rag.reach[gh] = holdPt; rag.reachCap = 300 * Math.min(1, P.brainE) * (1 - 0.35 * P.pain) * (1 - 0.6 * (W['arm' + gh] || 0)); // the shoulder holds a gun up at arm's length
           if (N.clutching[gh]) { N.clutching[gh] = null; rag.setClutch(gh, null); }
           // the other hand on the gun too (the forend, or wrapped round the firing hand), unless it is holding a wound
-          if (N.ai.support && !N.clutching[sd] && !P.armBroken[sd] && !(rag.parts['hand' + sd] && rag.parts['hand' + sd].severed)) { rag.reach[sd] = N.ai.support; N.supHand = sd; }
+          if (N.ai.support && !N.clutching[sd] && !P.armBroken[sd] && !(P.gripLost && P.gripLost[sd]) && !(rag.parts['hand' + sd] && rag.parts['hand' + sd].severed)) { rag.reach[sd] = N.ai.support; N.supHand = sd; }
         }
       }
       if (rag.setGunArms) { const gL = N.aiming && (N.gunHand === 'L' || N.supHand === 'L'), gR = N.aiming && (N.gunHand === 'R' || N.supHand === 'R'); rag.setGunArms(gL, gR, !!N.supHand); }
@@ -355,6 +356,8 @@
         if (n.includes('X')) { part.tone = 0; part.target.set(0, 0, 0, 1); continue; } // mid-shaft of a long bone: no joint to drive
         if (part.severed) { part.tone = 0; continue; } // no longer attached: no nerve, no muscle control
         let tone = rigid ? 1.5 : clonic ? 1.25 : base;
+        // cut tendons and torn muscles: the joint they move goes slack (a hand that hangs from the wrist, foot drop)
+        if (!rigid && !clonic) { if (n === 'hand' + side && P.wristDrop && P.wristDrop[side]) tone = 0.05; else if (n === 'foot' + side && P.footDrop && P.footDrop[side]) tone *= 0.25; else if (isArm && W['arm' + side]) tone *= 1 - 0.5 * W['arm' + side]; else if (isLeg && W['leg' + side]) tone *= 1 - 0.45 * W['leg' + side]; }
         if (giving && !rigid) tone *= isLeg ? 0.06 : isArm ? 1 : 0.35;
         if (N.tripped && N.posture === 'falling' && isLeg) tone *= 0.5;
         if (isLeg) tone *= P.legsPara ? 0 : P.legBroken[side] ? 0.15 : P.pelvisBroken ? 0.4 : 1;

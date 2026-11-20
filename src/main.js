@@ -344,7 +344,7 @@
     const sw = ex && body.wounds.find((bw) => bw.mark === ex); if (!sw) return;
     if (E > 1000) {
       const s = Math.min(1, (E - 900) / 2200), R = 0.04 + 0.045 * s;
-      body.burst(sw, R, 4 + Math.round(s * 3));
+      body.burst(sw, R, 4 + Math.round(s * 3)); body.scalpFlaps(sw, R, 1 + (Math.random() < 0.3 + 0.5 * s ? 1 : 0)); // torn scalp hangs off in flaps
       for (let k = 0; k < 1 + Math.round(2 * s); k++) viscera.spawn(sw, R, 'brain');
       tmp2.set(ex.p.x, ex.p.y, ex.p.z); const dd = ex.dir || r0.d0;
       world.chunks(tmp2, dd, Math.round(14 + 24 * s), 3 + 4 * s, 0.7, 'brain'); world.chunks(tmp2, dd, Math.round(5 + 10 * s), 3 + 3 * s, 0.8, 'bone');
@@ -448,6 +448,7 @@
       body.addTrack(first, pts);
     }
     res.notes = res.hitBody ? phys.applyShot(res, surfs) : [];
+    if (phys.laxNew && phys.laxNew.length) { for (const j of phys.laxNew) rag.lax(j); phys.laxNew.length = 0; } // torn ligaments loosen the joint
     res.where = res.marks[0] && res.marks[0].seg ? body.locate(res.marks[0].seg, res.marks[0].p) : null;
     res.range = entries[0] ? origin.distanceTo(tmp2.set(entries[0].p.x, entries[0].p.y, entries[0].p.z)) : null;
     if (res.hitBody) {
@@ -823,7 +824,8 @@
       const myHurt = hurtOf(S), enHurt = hurtOf(E) + (out(E) ? 2 : 0), winning = enHurt - myHurt > 0.5, losing = myHurt - enHurt > 0.6;
       ai.downT = N.posture === 'stand' ? 0 : ai.downT + dt;
       // which hand holds the gun: the right, unless it is broken or gone
-      const gh = !P.armBroken.R && !S.rag.parts.handR.severed ? 'R' : !P.armBroken.L && !S.rag.parts.handL.severed ? 'L' : null;
+      const usable = (sd) => !P.armBroken[sd] && !S.rag.parts['hand' + sd].severed && !(P.gripLost && P.gripLost[sd]) && !(P.armExtLost && P.armExtLost[sd]);
+      const gh = usable('R') ? 'R' : usable('L') ? 'L' : null; // a hand that cannot grip (cut tendons) or an arm that cannot extend drops the gun: the other one takes it
       ai.canFight = !!gh && P.conscious && !P.armsPara;
       const sh = new V3(); S.body.segs['uarm' + (gh || 'R')].g.getWorldPosition(sh);
       // where to aim: centre of mass; the head of an enemy who is down and close
@@ -1006,7 +1008,7 @@
         // fingers: closed round the grip / forend, half closed pressing on a wound, otherwise relaxed
         if (S.body.setGrip) for (const sd of ['L', 'R']) {
           const N = S.npc, it = S.ai.intent || {}, tgt = sd === N.gunHand && N.aiming ? it.hold : sd === N.supHand ? it.support : null, hpos = partPos(S, 'hand' + sd);
-          const k = tgt && hpos.distanceTo(tgt) < 0.1 ? (sd === N.gunHand ? 1 : 0.8) : N.clutching && N.clutching[sd] ? 0.4 : S.phys.conscious ? 0.22 : 0.3;
+          const k = S.phys.gripLost && S.phys.gripLost[sd] ? 0.05 : tgt && hpos.distanceTo(tgt) < 0.1 ? (sd === N.gunHand ? 1 : 0.8) : N.clutching && N.clutching[sd] ? 0.4 : S.phys.conscious ? 0.22 : 0.3;
           S.body.setGrip(sd, k);
         }
         if (D.phase === 'fight' && S.ai.wantFire) aiFire(S);
@@ -1038,7 +1040,7 @@
       for (let i = 0; i < sub; i++) { phys.step(simDt / sub); bleed(simDt / sub, i === sub - 1); }
       npc.update(dt * Math.min(scale, 3) * slow);
     } else npc.update(dt);
-    viscera.update(dt * slow); smearBody(); if (body.clothTick) body.clothTick(dt * slow);
+    viscera.update(dt * slow); smearBody(); if (body.clothTick) body.clothTick(dt * slow); if (body.flapTick) body.flapTick(dt * slow);
     // hands get bloody: pressing a bleeding wound coats the palm and fingers within seconds; touching a pool on the
     // floor (crawling, pushing up) smears them too. It stays on (it dries, it does not go away).
     for (const sd of ['L', 'R']) {

@@ -219,16 +219,17 @@
     for (const pr of A.prims) {
       const s = body.segs[pr.seg];
       pr.prio = T[pr.tissue].prio; pr.frag = T[pr.tissue].frag; pr.segObj = s;
-      pr.margin = pr.kind === 'vessel' || pr.kind === 'cord' || pr.kind === 'cauda';
+      const soft = pr.kind === 'muscle' || pr.kind === 'tendon' || pr.kind === 'ligament'; // inside the skin: they must not change the segment's bounds (those size the physics bodies)
+      pr.margin = pr.kind === 'vessel' || pr.kind === 'cord' || pr.kind === 'cauda' || pr.kind === 'tendon' || pr.kind === 'ligament';
       if (pr.type === 'cap') {
         pr.ba = [pr.b[0] - pr.a[0], pr.b[1] - pr.a[1], pr.b[2] - pr.a[2]]; pr.baba = pr.ba[0] ** 2 + pr.ba[1] ** 2 + pr.ba[2] ** 2;
         for (const g of capGeo(pr.a, pr.b, pr.rad, s.origin)) s.ip.push({ geo: g, color: pr.color });
-        grow(pr.seg, ...pr.a, pr.rad); grow(pr.seg, ...pr.b, pr.rad);
+        if (!soft) { grow(pr.seg, ...pr.a, pr.rad); grow(pr.seg, ...pr.b, pr.rad); }
       } else {
         if (pr.rot) { const m = new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(...pr.rot)).elements; pr.R = [m[0], m[1], m[2], m[4], m[5], m[6], m[8], m[9], m[10]]; }
         if (pr.type === 'shell') pr.ri = pr.r.map((v) => v - pr.th);
         (pr.alpha ? s.ap : s.ip).push({ geo: ellGeo(pr.c, pr.r, pr.rot, s.origin, 18, 12), color: pr.color });
-        grow(pr.seg, ...pr.c, Math.max(...pr.r));
+        if (!soft) grow(pr.seg, ...pr.c, Math.max(...pr.r));
       }
       s.prims.push(pr);
     }
@@ -1209,7 +1210,7 @@
     // ---- a skull burst open by a high-energy round: the temporary cavity in the closed skull blows the bone out.
     // A large ragged defect with brain and blood inside and the edge of the skull showing; around it the scalp and
     // bone fragments are pushed outward; scalp tears radiate from the defect.
-    const brainC = new THREE.Color(0x8a6a66), bloodC = new THREE.Color(0x2e0304), boneC = new THREE.Color(0xc9bba0), tearC = new THREE.Color(0x250203), darkC = new THREE.Color(0x120101);
+    const brainC = new THREE.Color(0xb38e88), bloodC = new THREE.Color(0x560a0c), boneC = new THREE.Color(0xd8ccb4), tearC = new THREE.Color(0x3a0507), darkC = new THREE.Color(0x3a0608); // brain, fresh blood, bone, torn edge, clotted blood
     body.burst = (w, R, tears) => {
       const hm = body.human; if (!hm) return;
       const geo = hm.geometry, pos = geo.attributes.position, col = geo.attributes.color, SIa = geo.attributes.skinIndex.array, SWa = geo.attributes.skinWeight.array, hi = body.list.indexOf(body.segs.head);
@@ -1223,7 +1224,7 @@
         rad.subVectors(q, hc).normalize(); const jag = 0.7 + 0.6 * Math.abs(Math.sin(i * 12.9898) * 43758.5453 % 1), c0 = new THREE.Color(col.getX(i), col.getY(i), col.getZ(i));
         if (d < R * jag) {
           const u = d / R; q.addScaledVector(rad, -R * 0.55 * (1 - u * u) * jag); // the open defect
-          c0.copy(u < 0.35 ? darkC : u < 0.8 ? (Math.random() < 0.5 ? brainC : bloodC) : boneC).lerp(bloodC, Math.random() * 0.5);
+          c0.copy(u < 0.25 ? (Math.random() < 0.55 ? brainC : darkC) : u < 0.8 ? (Math.random() < 0.6 ? brainC : bloodC) : (Math.random() < 0.7 ? boneC : bloodC)).lerp(bloodC, Math.random() * 0.4); // brain in the hole, splintered bone at the rim
         } else if (d < R * 1.8) {
           const u = (d - R) / (R * 0.8); q.addScaledVector(rad, 0.016 * (1 - u) * jag * jag); // bone and scalp everted round the edge, in ragged pieces
           c0.lerp(bloodC, 0.97 * (1 - u * 0.25));
@@ -1239,10 +1240,99 @@
       for (const ch of w.g.children) ch.visible = false;
       // the hair over the defect goes with the scalp (tucked inside the skull, out of sight)
       for (const hm2 of body.hairs || []) {
-        const hp = hm2.geometry.attributes.position; if (!hm2.userData.pos0) hm2.userData.pos0 = hp.array.slice();
-        for (let i = 0; i < hp.count; i++) { q.set(hp.getX(i), hp.getY(i), hp.getZ(i)); if (q.distanceTo(p) < R * 1.2) hp.setXYZ(i, hc.x, hc.y, hc.z); }
-        hp.needsUpdate = true;
+        // hair triangles over the defect are taken out (collapsing their vertices would stretch the neighbours into spikes)
+        const hp = hm2.geometry.attributes.position, hix = hm2.geometry.index.array; if (!hm2.userData.idx0) hm2.userData.idx0 = hix.slice();
+        const near = (i) => { q.set(hp.getX(i), hp.getY(i), hp.getZ(i)); return q.distanceTo(p) < R * 1.25; };
+        for (let t = 0; t < hix.length; t += 3) if (near(hix[t]) || near(hix[t + 1]) || near(hix[t + 2])) hix[t + 1] = hix[t + 2] = hix[t];
+        hm2.geometry.index.needsUpdate = true;
       }
+    };
+    // ---- scalp flaps: where the skull bursts, the scalp does not vanish - it tears into flaps that stay attached along
+    // one edge and hang off the head, hair and all. Each flap is cut out of the skin and hair meshes (outer skin, the raw
+    // red underside of the scalp, the hair on it) and hung on a hinge at its root; it swings under gravity and with the
+    // head's movement (a damped pendulum about the hinge), and can fold back but not pass into the skull.
+    body.flaps = [];
+    body.scalpFlaps = (w, R, n) => {
+      const hm = body.human; if (!hm) return;
+      const geo = hm.geometry, pos = geo.attributes.position, uv = geo.attributes.uv, col = geo.attributes.color, ix = geo.index.array, SIa = geo.attributes.skinIndex.array, SWa = geo.attributes.skinWeight.array;
+      const hs = body.segs.head, hi = body.list.indexOf(hs), ho = hs.origin, p = w.g.position.clone().add(w.seg.origin), hc = new V3(0, 1.69, -0.005), q = new V3();
+      const rad0 = p.clone().sub(hc).normalize(), t1 = new V3(0, 1, 0).cross(rad0); if (t1.lengthSq() < 1e-4) t1.set(1, 0, 0); t1.normalize(); const t2 = rad0.clone().cross(t1);
+      const headV = new Uint8Array(pos.count); for (let i = 0; i < pos.count; i++) { let m = 0, b = 0; for (let k = 0; k < 4; k++) if (SWa[i * 4 + k] > m) { m = SWa[i * 4 + k]; b = SIa[i * 4 + k]; } headV[i] = b === hi ? 1 : 0; }
+      if (!body.flapSave) body.flapSave = [];
+      const hair = (body.hairs || [])[body.hairIdx || 0];
+      for (let f = 0; f < n; f++) {
+        const an = Math.random() * 6.283 + f * 3.1, d = t1.clone().multiplyScalar(Math.cos(an)).addScaledVector(t2, Math.sin(an)), side = d.clone().cross(rad0), RH = 0.095;
+        const a0 = R * 0.75, a1 = Math.min(0.13, R * (1.6 + Math.random() * 0.3)), hw = Math.min(0.038, R * (0.42 + Math.random() * 0.18));
+        // distances along the skull: angle from the wound centre times the head's radius, split along / across the flap
+        const geo2 = (x, y, z) => { q.set(x - hc.x, y - hc.y, z - hc.z).normalize(); const ang = Math.acos(Math.max(-1, Math.min(1, q.dot(rad0)))), tx = q.dot(d), ty = q.dot(side), tl = Math.hypot(tx, ty) || 1; return [ang * RH * tx / tl, ang * RH * Math.abs(ty) / tl]; };
+        const inside = (x, y, z) => { const [a, sd] = geo2(x, y, z); return a > a0 && a < a1 && sd < hw * (1 - 0.35 * (a - a0) / (a1 - a0)); };
+        // the flap: a fine curved grid lying on the skull (geodesic coordinates a along the flap, s across it), each
+        // point at the scalp's own radius there, with the skin colour and texture of the nearest scalp vertex
+        const S0 = body.skin0.pos, hvs = []; for (let i = 0; i < pos.count; i++) if (headV[i]) hvs.push(i);
+        const dirOf = (aa, ss) => rad0.clone().add(d.clone().multiplyScalar(Math.tan(aa / RH))).add(side.clone().multiplyScalar(Math.tan(ss / RH) / Math.max(0.2, Math.cos(aa / RH)))).normalize();
+        const nearest = (dir) => { let best = -1, bd = -2; for (const i of hvs) { q.set(S0[i * 3] - hc.x, S0[i * 3 + 1] - hc.y, S0[i * 3 + 2] - hc.z); const l = q.length(), dd = q.dot(dir) / l; if (dd > bd) { bd = dd; best = i; } } q.set(S0[best * 3] - hc.x, S0[best * 3 + 1] - hc.y, S0[best * 3 + 2] - hc.z); return [best, q.length()]; };
+        if (a1 / RH > 1.45) continue;
+        const NA = 14, NS = 9, P = [], UV = [], C = [], T = [];
+        for (let i = 0; i <= NA; i++) for (let j = 0; j <= NS; j++) {
+          const u = i / NA, aa = a0 + (a1 - a0) * u, w2 = hw * (1 - 0.35 * u) * (0.85 + 0.15 * Math.sin(i * 2.3 + j)), ss = (j / NS * 2 - 1) * w2 * (i === 0 ? 0.6 + 0.4 * Math.abs(Math.sin(j * 1.7)) : 1); // a ragged torn end
+          const dir = dirOf(aa, ss), [vi, r] = nearest(dir), wp = dir.multiplyScalar(r + 0.0015).add(hc);
+          P.push(wp.x - ho.x, wp.y - ho.y, wp.z - ho.z); UV.push(uv.getX(vi), uv.getY(vi)); C.push(col.getX(vi), col.getY(vi), col.getZ(vi));
+        }
+        for (let i = 0; i < NA; i++) for (let j = 0; j < NS; j++) { const k = i * (NS + 1) + j; T.push(k, k + NS + 1, k + 1, k + 1, k + NS + 1, k + NS + 2); }
+        // the skin it came off: exposed skull, white bone streaked with blood
+        const boneC = [0.86, 0.8, 0.7]; for (const i of hvs) { const [aa, sd] = geo2(pos.getX(i), pos.getY(i), pos.getZ(i)); if (aa > a0 * 0.9 && aa < a1 && sd < hw * (1 - 0.35 * (aa - a0) / (a1 - a0))) { const m = 0.35 + 0.5 * Math.abs(Math.sin(i * 7.31)), rr = new V3(pos.getX(i) - hc.x, pos.getY(i) - hc.y, pos.getZ(i) - hc.z); rr.setLength(rr.length() - 0.004); col.setXYZ(i, boneC[0] * (1 - m) + 0.4 * m, boneC[1] * (1 - m) + 0.03 * m, boneC[2] * (1 - m) + 0.04 * m); pos.setXYZ(i, rr.x + hc.x, rr.y + hc.y, rr.z + hc.z); } }
+        pos.needsUpdate = col.needsUpdate = true; body.dirty = true;
+        // the hinge: the root of the flap, across it
+        const Hw = new V3(P[NA * (NS + 1) * 3 + Math.floor(NS / 2) * 3], P[NA * (NS + 1) * 3 + Math.floor(NS / 2) * 3 + 1], P[NA * (NS + 1) * 3 + Math.floor(NS / 2) * 3 + 2]).add(ho), H = Hw.clone().sub(ho), radH = Hw.clone().sub(hc).normalize();
+        const k0 = (NA - 1) * (NS + 1) + Math.floor(NS / 2), along = new V3(P[k0 * 3], P[k0 * 3 + 1], P[k0 * 3 + 2]).add(ho).sub(Hw).negate().normalize(), axis = radH.clone().cross(along).normalize();
+        for (let i = 0; i < P.length; i += 3) { P[i] -= H.x; P[i + 1] -= H.y; P[i + 2] -= H.z; }
+        const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(UV, 2)); g.setAttribute('color', new THREE.Float32BufferAttribute(C, 3)); g.setIndex(T); g.computeVertexNormals();
+        // blood-stained toward the torn end
+        const ca = g.attributes.color; for (let i = 0; i <= NA; i++) for (let j = 0; j <= NS; j++) { const k = i * (NS + 1) + j, u = 1 - i / NA, m = 0.25 + 0.6 * u * u + (j === 0 || j === NS ? 0.3 : 0); ca.setXYZ(k, ca.getX(k) * (1 - Math.min(1, m)) + 0.33 * Math.min(1, m), ca.getY(k) * (1 - Math.min(1, m)) + 0.02 * Math.min(1, m), ca.getZ(k) * (1 - Math.min(1, m)) + 0.03 * Math.min(1, m)); }
+        const pivot = new THREE.Group(); pivot.position.copy(H); hs.g.add(pivot);
+        const outer = new THREE.Mesh(g, Object.assign(body.skinMat.clone(), { skinning: false, side: THREE.FrontSide })); outer.material.vertexColors = true;
+        const under = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: 0x5c0c0e, roughness: 0.35, side: THREE.BackSide }));
+        outer.castShadow = true; pivot.add(outer, under);
+        // its hair: the hair triangles over the flap come with it (and leave the head)
+        if (hair) {
+          const hp = hair.geometry.attributes.position, huv = hair.geometry.attributes.uv, hix = hair.geometry.index.array; if (!hair.userData.pos0) hair.userData.pos0 = hp.array.slice();
+          const P0 = hair.userData.pos0, HP = [], HU = [], HT = [], hm2 = new Map(), lift = (i) => { q.set(P0[i * 3] - hc.x, P0[i * 3 + 1] - hc.y, P0[i * 3 + 2] - hc.z); return q.setLength(Math.max(0, q.length() - 0.012)).add(hc); };
+          for (let t = 0; t < hix.length; t += 3) {
+            const vs = [hix[t], hix[t + 1], hix[t + 2]]; if (vs[0] === vs[1]) continue; if (!vs.every((v) => { const s0 = lift(v); return inside(s0.x, s0.y, s0.z); })) continue;
+            for (const v of vs) { if (!hm2.has(v)) { hm2.set(v, HP.length / 3); HP.push(P0[v * 3] - ho.x - H.x, P0[v * 3 + 1] - ho.y - H.y, P0[v * 3 + 2] - ho.z - H.z); HU.push(huv.getX(v), huv.getY(v)); } HT.push(hm2.get(v)); }
+          }
+          if (HT.length) {
+            if (!hair.userData.idx0) hair.userData.idx0 = hix.slice(); for (let t = 0; t < hix.length; t += 3) if (hm2.has(hix[t]) || hm2.has(hix[t + 1]) || hm2.has(hix[t + 2])) hix[t + 1] = hix[t + 2] = hix[t]; hair.geometry.index.needsUpdate = true;
+            const hg = new THREE.BufferGeometry(); hg.setAttribute('position', new THREE.Float32BufferAttribute(HP, 3)); hg.setAttribute('uv', new THREE.Float32BufferAttribute(HU, 2)); hg.setIndex(HT); hg.computeVertexNormals();
+            const hmesh = new THREE.Mesh(hg, Object.assign(hair.material.clone(), { skinning: false })); hmesh.castShadow = true; hmesh.renderOrder = 4; pivot.add(hmesh);
+          }
+        }
+        // the flap's centre of mass (from the hinge) and which way about the hinge peels it outward
+        const com = new V3(); for (let i = 0; i < P.length; i += 3) com.add(new V3(P[i], P[i + 1], P[i + 2])); com.divideScalar(P.length / 3);
+        const outW = com.clone().add(H).add(ho).sub(hc).normalize(), test = com.clone().applyAxisAngle(axis, 0.1); if (test.dot(outW) < com.dot(outW)) axis.negate();
+        const F = { pivot, axis, com, th: 0.25, om: 5 + Math.random() * 6, prev: null, prevV: null };
+        pivot.quaternion.setFromAxisAngle(axis, F.th); body.flaps.push(F);
+      }
+    };
+    const fq = new THREE.Quaternion(), fv = new V3(), fg = new V3(), fw = new V3();
+    body.flapTick = (dt) => {
+      if (!body.flaps.length || !dt) return;
+      const hg = body.segs.head.g; hg.updateMatrixWorld(); hg.getWorldQuaternion(fq); const inv = fq.clone().invert(); fw.setFromMatrixPosition(hg.matrixWorld);
+      for (const F of body.flaps) {
+        // gravity and the head's own acceleration, in the head's frame
+        fg.set(0, -9.81, 0);
+        if (F.prev) { const v = fw.clone().sub(F.prev).divideScalar(dt); if (F.prevV) { const a = v.clone().sub(F.prevV).divideScalar(dt); if (a.length() > 80) a.setLength(80); fg.sub(a); } F.prevV = v; }
+        F.prev = fw.clone(); fg.applyQuaternion(inv);
+        const r = F.com.clone().applyAxisAngle(F.axis, F.th), torque = fv.crossVectors(r, fg).dot(F.axis), I = Math.max(1e-5, r.lengthSq());
+        F.om += (torque / I - 6 * F.om) * dt; F.th += F.om * dt;
+        if (F.th < 0) { F.th = 0; F.om = Math.abs(F.om) * 0.2; } if (F.th > 2.9) { F.th = 2.9; F.om = -Math.abs(F.om) * 0.2; } // it lies back on the skull at most; it cannot go into it
+        F.pivot.quaternion.setFromAxisAngle(F.axis, F.th);
+      }
+    };
+    body.clearFlaps = () => {
+      for (const F of body.flaps) { F.pivot.parent && F.pivot.parent.remove(F.pivot); F.pivot.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); }
+      body.flaps.length = 0;
+      if (body.flapSave && body.human) { const ix = body.human.geometry.index.array; for (const [t, a, b, c] of body.flapSave) if (t + 2 < ix.length) { ix[t] = a; ix[t + 1] = b; ix[t + 2] = c; } body.human.geometry.index.needsUpdate = true; body.flapSave = null; }
     };
     body.growStain = (w, ml) => {
       if (w.cloth) {
@@ -1270,8 +1360,8 @@
     body.clearWounds = () => { if (body.resetMouth) { for (const t of body.teeth) t.m.visible = true; body.mouthBlood(0); body.jawDirty = true; }
       if (body.resetEyes) body.resetEyes();
       if (body.cut0 && body.human) { const g = body.human.geometry; g.attributes.skinIndex.array.set(body.cut0.si); g.attributes.skinWeight.array.set(body.cut0.sw); g.attributes.skinIndex.needsUpdate = g.attributes.skinWeight.needsUpdate = true; g.setIndex(new THREE.BufferAttribute(body.cut0.idx.slice(), 1)); body.cut0 = null; }
-      for (const m of body.stumps || []) m.parent && m.parent.remove(m); body.stumps = []; if (body.restoreGarments) body.restoreGarments();
-      for (const hm2 of body.hairs || []) if (hm2.userData.pos0) { hm2.geometry.attributes.position.array.set(hm2.userData.pos0); hm2.geometry.attributes.position.needsUpdate = true; }
+      body.clearFlaps(); for (const m of body.stumps || []) m.parent && m.parent.remove(m); body.stumps = []; if (body.restoreGarments) body.restoreGarments();
+      for (const hm2 of body.hairs || []) { if (hm2.userData.pos0) { hm2.geometry.attributes.position.array.set(hm2.userData.pos0); hm2.geometry.attributes.position.needsUpdate = true; } if (hm2.userData.idx0) { hm2.geometry.index.array.set(hm2.userData.idx0); hm2.geometry.index.needsUpdate = true; } }
       if (body.human && body.dirty) { body.gripDirty = true; body.jawDirty = true; const g = body.human.geometry; g.attributes.position.array.set(body.skin0.pos); g.attributes.color.array.set(body.skin0.col); g.attributes.position.needsUpdate = g.attributes.color.needsUpdate = true; g.computeVertexNormals(); body.dirty = false; }
       for (const sg of body.list) if (sg.dirty && sg.skin) { const g = sg.skin.geometry; g.attributes.position.array.set(sg.skin0.pos); g.attributes.color.array.set(sg.skin0.col); g.attributes.position.needsUpdate = g.attributes.color.needsUpdate = true; g.computeVertexNormals(); sg.dirty = false; } for (const w of body.wounds) { w.seg.g.remove(w.g); if (w.track) w.seg.g.remove(w.track); if (w.soak) { w.soak.parent.remove(w.soak); w.soak.geometry.dispose(); } if (w.fab && w.fab.parent) { w.fab.parent.remove(w.fab); w.fab.geometry.dispose(); } } body.wounds.length = 0; if (body.clearBlood) body.clearBlood(); };
     body.updateMatrices();

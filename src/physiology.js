@@ -15,6 +15,8 @@
       periVol: 0, periRate: 0, pump: 1, heartDestroyed: false, airway: 1,
       apnea: false, apneaWhy: '', icpTimer: -1, brainDestroyed: false, brainInjury: 0, koForced: false,
       neurogenic: false, legsPara: false, armsPara: false, legBroken: { L: false, R: false }, armBroken: { L: false, R: false }, pelvisBroken: false,
+      // muscles, tendons, ligaments: weakness per limb (0..1), and specific losses of function
+      weak: { legL: 0, legR: 0, armL: 0, armR: 0 }, legOut: { L: false, R: false }, gripLost: { L: false, R: false }, armExtLost: { L: false, R: false }, footDrop: { L: false, R: false }, wristDrop: { L: false, R: false }, lax: {}, laxNew: [],
       pain: 0, upright: true, vagal: 0, vagalAt: 0, vagalDone: false, stemDestroyed: false, stemTimer: -1, hemoptysis: false, motor: { mode: 'normal', t: 0 }, events: [], conscious: true, arrest: false, arrestT: 0, lowMapT: 0, dead: false, deadT: 0, cause: '', bleedRate: 0, shots: 0, lastHitT: -99,
     };
     const injMap = new Map();
@@ -106,6 +108,38 @@
             const w = wound(name, prim.rate * sev, { ext: prim.ext == null ? 0.05 : prim.ext, cavity: prim.cavity, side: prim.side, venous: prim.venous, surf: pickSurf() });
             if (!inj(key, name + (sev > 0.7 ? ' transected' : ' lacerated'), prim.rate >= 400 ? 2 : 1)) w.rate *= 0.4;
             notes.push(name); break;
+          }
+          case 'muscle': {
+            // torn muscle: the limb is weaker in proportion to how much of it the bullet and its cavity destroyed
+            const dmg = Math.min(1, h.len * 9 + (h.vol + cavOf(prim)) * 1.5e5);
+            S.weak[prim.limb] = Math.min(1, S.weak[prim.limb] + dmg * prim.w); pain += 0.08;
+            const eff = { quad: 'the leg is weak, the knee buckles', ham: 'the leg is weak', glute: 'the hip is weak, a heavy limp', calf: 'cannot push off with that foot', delt: 'cannot raise the arm properly', bic: 'the elbow is weak', tri: 'cannot push the arm out straight', flex: 'grip weakened', ext: 'the wrist is weak' }[prim.grp];
+            if (dmg > 0.15) inj('m' + name, name + ' torn — ' + eff, 0);
+            break;
+          }
+          case 'tendon': {
+            // a tendon the bullet goes through is cut: the muscle above it can no longer move the joint at all
+            const sd = prim.side, f = prim.fn; pain += 0.12;
+            const T = { achT: 'cut — foot drop, cannot stand on the toes, the leg gives poor support', patT: 'cut — the knee cannot be straightened, the leg gives way', quadT: 'cut — the knee cannot be straightened, the leg gives way', hamT: 'cut — the knee is weak in bending',
+              bicT: 'cut — the elbow is weak in bending', triT: 'cut — the arm cannot be pushed out straight', flexT: 'cut — the fingers cannot close, the hand cannot grip', extT: 'cut — wrist drop, the hand hangs' }[f];
+            if (f === 'achT') { S.footDrop[sd] = true; S.weak['leg' + sd] = Math.min(1, S.weak['leg' + sd] + 0.45); }
+            else if (f === 'patT' || f === 'quadT') S.legOut[sd] = true;
+            else if (f === 'hamT') S.weak['leg' + sd] = Math.min(1, S.weak['leg' + sd] + 0.3);
+            else if (f === 'bicT') S.weak['arm' + sd] = Math.min(1, S.weak['arm' + sd] + 0.35);
+            else if (f === 'triT') S.armExtLost[sd] = true;
+            else if (f === 'flexT') S.gripLost[sd] = true;
+            else if (f === 'extT') S.wristDrop[sd] = true;
+            inj('t' + name, name + ' ' + T, 1); notes.push(name);
+            break;
+          }
+          case 'ligament': {
+            // torn ligaments: the joint is unstable (it moves past its normal range and the muscles hold it poorly)
+            const sd = prim.side, j = prim.joint + sd; pain += 0.15;
+            if (!S.lax[j]) { S.lax[j] = true; S.laxNew.push(j); }
+            if (prim.joint === 'shin' || prim.joint === 'foot') S.weak['leg' + sd] = Math.min(1, S.weak['leg' + sd] + (prim.joint === 'shin' ? 0.45 : 0.3));
+            else S.weak['arm' + sd] = Math.min(1, S.weak['arm' + sd] + 0.25);
+            inj('l' + j, name.replace(/ \(.*\)/, '') + ' torn — the ' + { shin: 'knee', foot: 'ankle', farm: 'elbow', hand: 'wrist', uarm: 'shoulder' }[prim.joint] + ' is unstable', 1); notes.push(name);
+            break;
           }
           case 'bone': {
             const b = prim.bone, sd = prim.side;

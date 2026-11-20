@@ -1,4 +1,4 @@
-# Port-Marlowe — Wound Ballistics Lab (v2.6)
+# Port-Marlowe — Wound Ballistics Lab (v2.7)
 
 A browser-based 3D simulator of gunshot wounds. A test subject stands in a chamber; every
 round is traced millimetre by millimetre through skin, bone, organs and vessels, and the
@@ -6,6 +6,19 @@ body then responds in real time (bleeding, blood pressure, breathing, consciousn
 
 **Run it:** serve this folder with any static server (`python3 -m http.server`) and open
 `index.html`. No build step. `node tools/build.js` bundles a single-file page into `dist/`.
+
+**v2.7 — scalp flaps, muscles, tendons, ligaments**: where the skull bursts, the scalp tears into flaps that stay
+attached along one edge and hang off the head with their hair, swinging under gravity and with the head's movement,
+leaving white, blood-streaked skull exposed; the defect itself now shows brain, splintered bone and blood instead of
+a black hole, and the hair over it is cut away instead of stretched across it. The anatomy gains the named muscles
+(gluteus, quadriceps, hamstrings, calf, deltoid, biceps, triceps, forearm flexors and extensors), tendons (Achilles,
+patellar, quadriceps, hamstring, biceps, triceps, wrist flexor and extensor tendons) and ligaments (knee collaterals
+and cruciates, ankle, elbow, wrist, shoulder capsule), each with its real loss of function: a torn muscle weakens
+the limb (a limp, a slower run, an arm that cannot hold the aim up; a leg whose muscles are destroyed gives way), a
+cut Achilles gives foot drop, a cut patellar or quadriceps tendon drops him (the knee cannot be straightened), cut
+wrist flexors open the hand so it cannot grip (a fighter drops the gun and takes it in the other hand), cut extensors
+give wrist drop, a cut triceps tendon stops the arm extending to aim, and torn ligaments leave the joint loose
+(wider range, no hinge, weak muscle hold).
 
 **v2.6 — clothing rebuilt**: garments are welded, subdivided cloth shells cut cleanly along their hem lines (a smooth
 crew neck, straight sleeve ends, shirt hem, cuffs and waistband), with real cloth thickness at every edge and a ribbed

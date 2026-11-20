@@ -21,6 +21,9 @@
     cancellous: { rho: 1300, sig: 35e6, prio: 8, frag: 0, bone: true },
     bone: { rho: 1900, sig: 110e6, prio: 8, frag: 0, bone: true },
     cord: { rho: 1040, sig: 0.3e6, prio: 9, frag: 0.7 },
+    muscle: { rho: 1060, sig: 1.0e6, prio: 2, frag: 0 }, // named muscles (their loss of function is tracked); otherwise like soft tissue
+    tendon: { rho: 1120, sig: 6e6, prio: 6, frag: 0 },
+    ligament: { rho: 1120, sig: 6e6, prio: 5, frag: 0 },
   };
   const SKIN_J_M2 = 2.0e5; // ~20 J/cm^2 to perforate skin
 
@@ -114,7 +117,8 @@
         let h = res.hits.get(prim);
         if (!h) { h = { prim, len: 0, E: 0, vol: 0, rpc: 0, dmin: 1, seg: out.seg, p: { ...p } }; res.hits.set(prim, h); res.order.push(prim); }
         h.len += ds; h.E += dE + extra; h.vol += vol; if (rpc > h.rpc) h.rpc = rpc; if (out.sdf < h.dmin) h.dmin = out.sdf;
-      } else {
+      }
+      if (!prim || prim.kind === 'muscle') {
         let h = res.softSeg.get(out.seg);
         if (!h) { h = { seg: out.seg, len: 0, E: 0, vol: 0, rpc: 0, p: { ...p } }; res.softSeg.set(out.seg, h); }
         h.len += ds; h.E += dE + extra; h.vol += vol; if (rpc > h.rpc) h.rpc = rpc;

@@ -8,6 +8,7 @@
     bone: 0xe9e1c9, cart: 0xc5d3d8, brain: 0xe3a3a3, heart: 0xa82424, lung: 0xd98d8d, liver: 0x7a2c1c,
     stomach: 0xd69a74, spleen: 0x6b2a4c, kidney: 0x8c3a2a, bowel: 0xd9aa92, colon: 0xbf8a78, bladder: 0xdcc06a,
     artery: 0xd41a1a, vein: 0x2f52c4, cord: 0xf1e36a, airway: 0xa9cbdb, pancreas: 0xe0b25e, eso: 0xb98a8a,
+    muscle: 0xa8443c, tendon: 0xeee8d8, ligament: 0xd8d0c0,
   };
   const segs = {
     pelvis: [null, [0, 0.95, 0]], abdomen: ['pelvis', [0, 1.05, -0.03]], thorax: ['abdomen', [0, 1.2, -0.04]],
@@ -213,6 +214,36 @@
     C('farm' + S, 'bone', N + ' ulna', 'bone', COL.bone, [ax, 1.135, -0.022], [ax, 0.88, -0.02], 0.0065, { bone: 'forearm', side: S });
     E('hand' + S, 'bone', N + ' hand (carpals / metacarpals)', 'cancellous', COL.bone, [ax, 0.81, -0.005], [0.008, 0.05, 0.034], null, { bone: 'hand', side: S });
     E('hand' + S, 'bone', N + ' hand (phalanges)', 'cancellous', COL.bone, [ax, 0.728, -0.002], [0.006, 0.034, 0.028], null, { bone: 'hand', side: S });
+    // ---- muscles (the named ones whose loss matters: drawn faintly in the x-ray), tendons and ligaments
+    const M = (seg, name, c, r, grp, w) => E(seg, 'muscle', N + ' ' + name, 'muscle', COL.muscle, c, r, null, { side: S, grp, limb: (/^(uarm|farm|hand)/.test(seg) ? 'arm' : 'leg') + S, w, alpha: true });
+    const TD = (seg, name, a, b, rad, fn) => C(seg, 'tendon', N + ' ' + name, 'tendon', COL.tendon, a, b, rad, { side: S, fn });
+    const LG = (seg, name, a, b, rad, joint) => C(seg, 'ligament', N + ' ' + name, 'ligament', COL.ligament, a, b, rad, { side: S, joint });
+    M('pelvis', 'gluteus maximus', [0.08 * s, 0.9, -0.085], [0.07, 0.07, 0.04], 'glute', 0.4);
+    M(T, 'quadriceps', [0.1 * s, 0.72, 0.035], [0.05, 0.16, 0.04], 'quad', 0.55);
+    M(T, 'hamstrings', [0.095 * s, 0.72, -0.042], [0.045, 0.15, 0.035], 'ham', 0.35);
+    M(SH, 'calf muscle (gastrocnemius)', [lx, 0.36, -0.038], [0.04, 0.1, 0.035], 'calf', 0.4);
+    TD(T, 'quadriceps tendon', [lx, 0.6, 0.047], [lx, 0.525, 0.047], 0.006, 'quadT');
+    TD(SH, 'patellar tendon', [lx, 0.488, 0.044], [lx, 0.43, 0.036], 0.006, 'patT');
+    TD(T, 'hamstring tendons', [lx, 0.57, -0.04], [lx, 0.47, -0.034], 0.007, 'hamT');
+    TD(SH, 'Achilles tendon', [lx, 0.2, -0.045], [lx, 0.055, -0.06], 0.005, 'achT');
+    LG(SH, 'knee ligaments (medial collateral)', [lx - 0.045 * s, 0.53, 0], [lx - 0.042 * s, 0.45, 0], 0.006, 'shin');
+    LG(SH, 'knee ligaments (lateral collateral)', [lx + 0.045 * s, 0.53, -0.005], [lx + 0.042 * s, 0.45, -0.008], 0.006, 'shin');
+    LG(SH, 'knee ligaments (cruciates)', [lx, 0.505, -0.01], [lx, 0.47, 0.006], 0.009, 'shin');
+    LG(F, 'ankle ligaments', [lx + 0.03 * s, 0.09, -0.012], [lx + 0.03 * s, 0.045, -0.022], 0.006, 'foot');
+    LG(F, 'ankle ligaments (deltoid)', [lx - 0.028 * s, 0.09, -0.012], [lx - 0.028 * s, 0.045, -0.02], 0.006, 'foot');
+    M('uarm' + S, 'deltoid', [0.205 * s, 1.4, -0.005], [0.04, 0.06, 0.045], 'delt', 0.5);
+    M('uarm' + S, 'biceps', [ax, 1.28, 0.03], [0.025, 0.09, 0.022], 'bic', 0.35);
+    M('uarm' + S, 'triceps', [ax, 1.28, -0.036], [0.028, 0.1, 0.022], 'tri', 0.4);
+    M('farm' + S, 'forearm flexors', [ax, 1.04, 0.016], [0.025, 0.08, 0.02], 'flex', 0.4);
+    M('farm' + S, 'forearm extensors', [ax, 1.04, -0.024], [0.024, 0.08, 0.018], 'ext', 0.3);
+    TD('farm' + S, 'biceps tendon', [ax, 1.14, 0.026], [ax, 1.1, 0.012], 0.0045, 'bicT');
+    TD('uarm' + S, 'triceps tendon', [ax, 1.185, -0.032], [ax, 1.14, -0.03], 0.0055, 'triT');
+    TD('farm' + S, 'wrist flexor tendons', [ax, 0.955, 0.013], [ax, 0.876, 0.011], 0.0065, 'flexT');
+    TD('farm' + S, 'wrist extensor tendons', [ax, 0.955, -0.019], [ax, 0.876, -0.017], 0.0065, 'extT');
+    LG('farm' + S, 'elbow ligaments', [ax + 0.026 * s, 1.155, -0.01], [ax + 0.026 * s, 1.11, -0.01], 0.006, 'farm');
+    LG('farm' + S, 'elbow ligaments (ulnar collateral)', [ax - 0.026 * s, 1.155, -0.01], [ax - 0.026 * s, 1.11, -0.012], 0.006, 'farm');
+    LG('hand' + S, 'wrist ligaments', [ax, 0.872, -0.026], [ax, 0.872, 0.016], 0.008, 'hand');
+    LG('uarm' + S, 'shoulder capsule', [0.21 * s, 1.455, -0.03], [0.21 * s, 1.455, 0.012], 0.009, 'uarm');
   }
 
   G.ANATOMY = { segs, segLabel, lofts, skins, prims, deco, SKIN, bloodVolume: 5400, massKg: 77, heightM: 1.78 };
