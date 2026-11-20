@@ -199,6 +199,7 @@
     const k = e.key.toLowerCase(); state.keys[k] = true;
     const wi = G.WEAPONS.findIndex((w) => w.key === k);
     if (wi >= 0) setWeapon(wi);
+    else if (k === 'i') gun.inspect();
     else if (k === 'x') toggleXray(); else if (k === 't') cycleTime(); else if (k === 'r') reset(); else if (k === 'g') toggleGrab(); else if (k === 'f') toggleSlow(); else if (k === ' ') { fire(); e.preventDefault(); }
     if (k.startsWith('arrow')) e.preventDefault();
   });
@@ -231,6 +232,7 @@
     return out.copy(ndc).sub(camera.position).normalize();
   }
   function fire() {
+    if (gun.busy && gun.busy()) return; // changing weapons
     if (!state.started || state.grab || (intro && intro.active()) || (duel && duel.on)) return;
     const now = performance.now() / 1000, w = G.WEAPONS[state.wi];
     if (now - state.lastShot < 60 / w.rpm) return;
@@ -252,6 +254,7 @@
       res.d0 = tmp.clone(); results.push(res);
     }
     G.debug.last = results;
+    if (npc.startle && !results.some((r) => r.hitBody)) npc.startle(1); // a miss: he flinches at the shot
     // the round itself, flying the computed track from the muzzle
     { const m = gun.models[gun.model]; tmp.set(0, m ? m.userData.fy || 0.03 : 0.03, m ? (m.userData.muzzle || -0.2) : -0.2); if (m) m.localToWorld(tmp); else tmp.copy(origin);
       for (const res of results) {
@@ -635,7 +638,7 @@
     }
 
     const traveled = Math.hypot(x - previousX, z - previousZ);
-    const pace = Math.min(1, traveled / (walkSpeed * dt));
+    const pace = Math.min(1, traveled / (walkSpeed * dt)); state.pace = pace;
     stride += traveled / stepLength;
     if (stride >= 1) {
       stride %= 1;
@@ -942,6 +945,7 @@
       ai.handErr = handErr;
       if (ready && ai.burst <= 0) { const w = G.WEAPONS[ai.wi]; ai.burst = intent.finish ? 1 : spray && !(w.cls === 'shotgun' || w.model === 'bolt') ? (w.cls === 'pistol' ? 3 + Math.floor(Math.random() * 2) : 4 + Math.floor(Math.random() * 5)) : w.cls === 'shotgun' || w.model === 'bolt' ? 1 : w.cls === 'pistol' ? (Math.random() < 0.65 ? 2 : Math.random() < 0.5 ? 1 : 3) : 2 + Math.floor(Math.random() * 3); }
       ai.wantFire = ready && ai.burst > 0;
+      intent.scan = !vis && ai.lastSeen > 0.8 && !ai.gunDown; intent.lookDown = ai.reloadT > 0 && ai.reloadT < (ai.reloadTot || 2) * 0.85; // searching sweeps the head; a reload is watched
       ai.intent = intent;
       return intent;
     }
@@ -1075,6 +1079,7 @@
           if (r.hitBody) processShot(r, w, r.d0, origin); else { const h = world.rayRoom(origin, r.d0); if (h) strike(h, r.d0, r.E0 || 400, w, 0); }
         }
         const hits = results.filter((r) => r.hitBody);
+        if (!hits.length && E.npc.startle) E.npc.startle(0.6); // the round cracked past him
         if (hits.length) { dismember(results.filter((r) => !r.blocked), w, origin); headTrauma(hits); audio.impact(hits.some((r) => r.order.some((p) => p.kind === 'bone')), hits.reduce((a, r) => a + r.Edep, 0)); }
         use(back);
       } });
@@ -1183,6 +1188,9 @@
       J.a += (tgt - J.a) * Math.min(1, dt * slow * (tgt > J.a ? 14 : 5)); body.setJaw(J.a);
       if (headFx.mouth) { headFx.mouthK = Math.min(0.85, (headFx.mouthK || 0) + dt * slow * 0.25); body.mouthBlood(headFx.mouthK); }
     }
+    if (body.setLids) { if (!body.lidToned) body.lidToned = body.lidTone(); body.setLids(npc.lids || 0, npc.lids || 0); body.lookEyes(npc.eyePt, npc.eyeWander); }
+    // the hands of a subject who is not holding anything: relaxed, half shut on a wound, clenched in pain, slack when out
+    if (body.setGrip && !(S.ai)) { const k0 = phys.dead ? 0.35 : !phys.conscious ? 0.3 : phys.pain > 0.55 && npc.posture !== 'down' ? 0.6 : 0.18; for (const sd of ['L', 'R']) body.setGrip(sd, npc.clutching && npc.clutching[sd] ? 0.4 : phys.gripLost && phys.gripLost[sd] ? 0.05 : k0); }
     handBlood.at += dt; if (handBlood.at > 0.3) { handBlood.at = 0; if (handBlood.L > 0) body.bloodyHand('L', handBlood.L); if (handBlood.R > 0) body.bloodyHand('R', handBlood.R); }
     // raccoon eyes come up over ~7 minutes while blood still circulates
     if (headFx.rkMax > headFx.rk && phys.hr > 20) { headFx.rk = Math.min(headFx.rkMax, headFx.rk + dt * slow * scale * headFx.rkMax / 420); headFx.at += dt; if (headFx.at > 0.25) { headFx.at = 0; body.periorbital(headFx.rk); } } body.bloodTick && body.bloodTick(dt * slow, phys.hr > 20);
@@ -1217,7 +1225,8 @@
     if (world.landed && Math.random() < 0.25) audio.drip();
     aimDir(camDir); q.copy(camera.quaternion).invert(); camDir.applyQuaternion(q);
     if (intro) intro.update(dt);
-    gun.update(dt, camDir, state.narrow);
+    { const yv = (state.yaw - (state.lastYaw ?? state.yaw)) / Math.max(1e-3, dt), pv = (state.pitch - (state.lastPitch ?? state.pitch)) / Math.max(1e-3, dt); state.lastYaw = state.yaw; state.lastPitch = state.pitch;
+      gun.update(dt, camDir, state.narrow, { yawV: yv, pitchV: pv, stride, pace: state.pace || 0 }); }
     ui.cross(state.ax, state.ay); ui.ecg(phys, dt * Math.min(scale, 2) * slow);
     uiT += dt; if (uiT > 0.15) { uiT = 0;
       { const st = phys.status(), lost = Math.round(phys.total - phys.bv), mini = document.getElementById('mini');

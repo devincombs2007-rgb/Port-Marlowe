@@ -342,7 +342,12 @@
         const cornea = new THREE.Mesh(new THREE.SphereGeometry(e.r * 0.52, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), corneaMat); cornea.rotation.x = Math.PI / 2; cornea.position.z = e.r * 0.86; cornea.scale.y = 0.35;
         const pupil = new THREE.Mesh(cap(e.r * 1.008, 0.16), pupilMat); pupil.renderOrder = 3; body.pupils.push(pupil);
         g.add(ball, disc, pupil, cornea); hd.g.add(g); body.decoMeshes.push(g);
-        body.eyes.push({ g, ball, disc, pupil, cornea, c: new V3(e.c[0], e.c[1], e.c[2]), r: e.r, p0: g.position.clone(), side: e.c[0] > 0 ? 'L' : 'R' });
+        // the upper lid: a thin skin-coloured shell over the top of the eyeball (on the head, not the eye, so the eye can
+        // turn under it); turned down about the eye's centre to blink, droop or close
+        const lidG = new THREE.Group(); lidG.position.copy(g.position); hd.g.add(lidG);
+        const lid = new THREE.Mesh(new THREE.SphereGeometry(e.r * 1.07, 22, 10, 0, Math.PI * 2, 0, 1.25), body.lidMat || (body.lidMat = new THREE.MeshStandardMaterial({ color: 0xb98a6c, roughness: 0.6 })));
+        lidG.add(lid); body.decoMeshes.push(lidG);
+        body.eyes.push({ g, ball, disc, pupil, cornea, lidG, c: new V3(e.c[0], e.c[1], e.c[2]), r: e.r, p0: g.position.clone(), side: e.c[0] > 0 ? 'L' : 'R' });
       }
       // nearest point of the real skin along a wound's normal (rest pose), so decals sit on the mesh, not the hit volume
       const ia = geo.index.array, e1 = new V3(), e2 = new V3(), pv = new V3(), tv = new V3(), qv = new V3(), a = new V3(), o = new V3(), d = new V3();
@@ -368,6 +373,28 @@
 
     // pupil diameter as a fraction of the iris: ~0.32 normal in room light, wider with shock and adrenaline,
     // fixed and fully dilated once the brainstem stops working
+    // eyelids: k = 0 open (resting just above the iris), 1 shut
+    body.setLids = (kL, kR) => { for (const e of body.eyes || []) { const k = e.side === 'L' ? kL : kR; e.lidG.visible = e.state !== 'out' && !body.xray; e.lidG.rotation.x = -0.24 + 0.98 * Math.max(0, Math.min(1, k)); } };
+    // the eyes turn toward a point in the world (within what eyes can do: about 35 degrees each way)
+    const eyeQ = new THREE.Quaternion(), eyeV = new V3(), eyeW = new V3();
+    body.lookEyes = (pt, wander) => {
+      for (const e of body.eyes || []) {
+        if (e.state === 'out' || e.state === 'ruptured') continue;
+        if (!pt) { e.g.rotation.set(0, 0, 0); continue; }
+        e.g.parent.getWorldQuaternion(eyeQ); e.g.getWorldPosition(eyeW); eyeV.copy(pt).sub(eyeW).applyQuaternion(eyeQ.invert()).normalize();
+        const yaw = Math.max(-0.6, Math.min(0.6, Math.atan2(eyeV.x, eyeV.z))), pitch = Math.max(-0.45, Math.min(0.4, Math.asin(Math.max(-1, Math.min(1, eyeV.y)))));
+        e.g.rotation.set(-pitch + (wander ? wander.y : 0), yaw + (wander ? wander.x : 0), 0, 'YXZ');
+      }
+    };
+    // the lid takes the colour of the skin round the eye (sampled from the skin texture once it has loaded)
+    body.lidTone = () => {
+      const m = body.skinMat.map, img = m && m.image; if (!img || !img.width || !body.human) return false;
+      const c = document.createElement('canvas'); c.width = 64; c.height = 64; const x = c.getContext('2d'); x.drawImage(img, 0, 0, 64, 64);
+      const e = body.eyes[0], uv = body.human.geometry.attributes.uv, P = body.skin0.pos; let best = -1, bd = 9;
+      for (let i = 0; i < P.length / 3; i++) { const d = Math.hypot(P[i * 3] - e.c.x, P[i * 3 + 1] - (e.c.y + e.r * 2.5), P[i * 3 + 2] - (e.c.z + e.r * 0.3)); /* just under the brow: plain skin (nearer the eye the texture holds the socket's red) */ if (d < bd) { bd = d; best = i; } }
+      if (best < 0 || !uv) return false; const u = uv.getX(best), v = uv.getY(best), px = x.getImageData(Math.min(63, Math.floor(u * 64)), Math.min(63, Math.floor((1 - v) * 64)), 1, 1).data;
+      body.lidMat.color.setRGB(px[0] / 255, px[1] / 255, px[2] / 255).convertSRGBToLinear().multiplyScalar(0.88); return true;
+    };
     body.setPupil = (f) => { for (const p of body.pupils || []) { const k = Math.max(0.6, Math.min(2.6, f / 0.32)); p.scale.set(k, k, 1); } };
     // skin colour follows the circulation: pallor with blood loss, blue-grey with low oxygen, waxy grey after death
     const tint = new THREE.Color();
@@ -383,7 +410,7 @@
     body.setLook = (skin, hair, hairTint) => {
       if (H && H.skins && H.skins[skin]) {
         if (!body.skinTex[skin]) { const t = new THREE.TextureLoader().load(H.skins[skin].tex); t.encoding = THREE.sRGBEncoding; t.flipY = true; t.anisotropy = 4; body.skinTex[skin] = t; }
-        body.skinMat.map = body.skinTex[skin]; body.skinMat.needsUpdate = true; body.lookName = H.skins[skin].name;
+        body.skinMat.map = body.skinTex[skin]; body.skinMat.needsUpdate = true; body.lookName = H.skins[skin].name; body.lidToned = false;
       }
       body.hairIdx = (body.hairs || []).length ? hair % body.hairs.length : 0;
       (body.hairs || []).forEach((m, i) => { m.visible = i === body.hairIdx && !body.xray; if (hairTint != null) m.material.color.set(hairTint); });

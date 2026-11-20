@@ -44,6 +44,8 @@
       }
     };
     N.impulse = (seg, pt, imp) => rag.impulse(seg, pt, imp);
+    // a gunshot that misses him: he blinks, flinches, ducks his head and pulls the arms in (if he is up and aware)
+    N.startle = (k) => { if (!phys.conscious || phys.dead) return; N.blink = 1; if (N.posture === 'stand' && !N.aiming && (k == null || k > 0.3)) N.flinchT = Math.max(N.flinchT || 0, 0.3); };
     N.onHit = (res, mark, dir) => {
       // the reflex jolt of the struck part happens whether or not the person is conscious
       const en = res.marks.find((m) => m.type === 'entry');
@@ -168,7 +170,7 @@
         if (N.voiceAt <= 0) {
           const d = N.distress, r = Math.random();
           N.voiceAt = 1.0 + 5.5 * (1 - d) * (0.6 + Math.random() * 0.8) + 2.5 * shock;
-          if (d > 0.6 && acute > 0.25 && r < 0.35 * (1 - shock)) ev('scream', d);
+          if (d > 0.6 && acute > 0.25 && r < 0.35 * (1 - shock)) { ev('scream', d); N.screamT = 1.2; }
           else if (r < 0.72) ev('moan', d);
           else ev('cry', d);
         }
@@ -314,6 +316,34 @@
       N.lookT = Math.max(0, N.lookT - dt);
       if (N.clutchT > 0) N.clutchT -= dt;
       else { N.clutchT = 0.5; chooseClutch(P, aware && !N.crawling && !N.protect && body.wounds.length > 0 && grip > ((N.clutching.L || N.clutching.R) ? 0.15 : 0.35)); } // once the hands have dropped they need real strength to come back
+      // ---- life in the face and the stance: blinking, where the eyes and head go, weight shifting, shivering
+      N.blinkT = (N.blinkT == null ? 2 : N.blinkT) - dt; N.blink = Math.max(0, (N.blink || 0) - dt / 0.16);
+      if (N.blinkT <= 0 && aware) { N.blink = 1; N.blinkT = (N.distress > 0.3 ? 1 : 2.2) + Math.random() * 4; if (Math.random() < 0.15) N.blinkT = 0.25; } // sometimes a double blink
+      const bl = Math.sin(Math.PI * Math.min(1, N.blink)), droop = P.dead ? 0.55 : !P.conscious ? 0.93 : Math.min(0.4, Math.max(0, P.frac() - 0.15) * 1.2 + (P.brainE < 0.8 ? 0.2 : 0));
+      N.lids = Math.max(droop, bl); if (P.dead && N.lids > 0.55) N.lids = 0.55; // the dead lie with the eyes half open
+      const th0 = hooks.threat ? hooks.threat() : null; let lookPt = null;
+      if (aware) {
+        // the eyes fix on him, or on the wound he is looking at, jumping between points every second or so (saccades)
+        N.sacT = (N.sacT || 0) - dt; if (N.sacT <= 0) { N.sacT = 0.4 + Math.random() * 1.6; N.sac = { x: (Math.random() - 0.5) * (N.lookT > 0 ? 0.1 : 0.16), y: (Math.random() - 0.5) * 0.08 }; }
+        if (N.lookT > 0 && N.lookAt && body.woundWorld) { lookPt = new THREE.Vector3(); body.woundWorld(N.lookAt, lookPt); } else if (th0) lookPt = th0.clone ? th0.clone() : new THREE.Vector3(th0.x, th0.y, th0.z);
+      }
+      N.eyePt = lookPt; N.eyeWander = aware ? N.sac : null;
+      // head turned toward him (relative to the chest), not while aiming (the gun has the head) or lying hurt
+      let headYaw = 0, headPitch = 0;
+      if (aware && th0 && N.posture === 'stand' && !N.aiming && !N.protect) {
+        const tq = tho.quaternion, fwx = 2 * (tq.x * tq.z + tq.w * tq.y), fwz = 1 - 2 * (tq.x * tq.x + tq.y * tq.y), hp = rag.parts.head.b.position;
+        const dx = th0.x - hp.x, dz = th0.z - hp.z; let a = Math.atan2(dx, dz) - Math.atan2(fwx, fwz); a = Math.atan2(Math.sin(a), Math.cos(a));
+        headYaw = Math.max(-1.1, Math.min(1.1, a)); headPitch = Math.max(-0.4, Math.min(0.35, Math.atan2(hp.y - (th0.y || 1.6), Math.hypot(dx, dz))));
+      }
+      if (N.ai && N.ai.scan && aware && N.posture === 'stand') headYaw += 0.55 * Math.sin(c * 0.9); // searching: the head sweeps
+      if (N.ai && N.ai.lookDown && aware) headPitch += 0.45; // looking down at his hands (reloading)
+      N.hYaw = (N.hYaw || 0) + (headYaw - (N.hYaw || 0)) * Math.min(1, dt * 4); N.hPitch = (N.hPitch || 0) + (headPitch - (N.hPitch || 0)) * Math.min(1, dt * 4);
+      // stood still, nobody stands like a statue: the weight drifts from foot to foot and the trunk sways a little
+      const idle = N.posture === 'stand' && aware && !ctl.vel && !N.aiming ? 1 : 0;
+      N.idleK = (N.idleK || 0) + (idle - (N.idleK || 0)) * Math.min(1, dt * 1.5);
+      // shivering: shock (blood loss) and fear set the muscles trembling
+      const shiver = aware && !P.dead ? Math.min(1, Math.max(0, P.frac() - 0.2) * 3 + (N.distress > 0.6 ? 0.3 : 0)) : 0;
+      N.screamT = Math.max(0, (N.screamT || 0) - dt);
       // ---- muscle tone and joint targets
       const base = limp ? 0 : Math.max(0.25, Math.min(1, P.brainE)) * (1 - 0.3 * Math.min(1, Math.max(0, (60 - P.map) / 40)));
       const k = Math.min(1, dt * (rigid || clonic || N.flinchT > 0.3 ? 14 : 5));
@@ -426,6 +456,9 @@
         }
         if ((n === 'neck' || n === 'head') && N.lookT > 0 && aware) { x += 0.32 * Math.min(1, N.lookT); tone = Math.max(tone, 0.6); } // looks down at the wound
         if ((n === 'neck' || n === 'head') && N.gasp > 0) { tone = Math.max(tone, 0.7); x -= 0.3 * N.gasp; }
+        if (n === 'neck' || n === 'head') { const f = n === 'neck' ? 0.4 : 0.6; y += N.hYaw * f; x += N.hPitch * f; if (Math.abs(N.hYaw) > 0.05) tone = Math.max(tone, 0.55); if (N.screamT > 0) x -= 0.22 * Math.min(1, N.screamT * 2); } // turns to look; head back in a scream
+        if (N.idleK > 0.01) { const ik = N.idleK; if (n === 'abdomen') z += 0.035 * Math.sin(c * 0.33 + 1) * ik; else if (n === 'thorax') { y += 0.05 * Math.sin(c * 0.21) * ik; z -= 0.02 * Math.sin(c * 0.33 + 1) * ik; } else if (n.startsWith('thigh')) z += 0.03 * Math.sin(c * 0.33 + 1) * ik; else if (isArm && !N.clutching[side] && n.startsWith('farm')) x -= 0.08 * (0.5 + 0.5 * Math.sin(c * 0.27 + (side === 'L' ? 0 : 2))) * ik; }
+        if (shiver > 0.02 && tone > 0) { const tr = Math.sin(c * 57 + n.length * 1.7) * 0.5 + Math.sin(c * 41 + n.length) * 0.5; if (isArm) x += 0.05 * tr * shiver; else if (n === 'head') { x += 0.02 * tr * shiver; } else if (n === 'thorax') x += 0.015 * tr * shiver; else if (isLeg && N.posture !== 'stand') x += 0.03 * tr * shiver; }
         part.tone = tone; part.target.setFromEuler(eul.set(x, y, z));
       }
       rag.setRigid(rigid);

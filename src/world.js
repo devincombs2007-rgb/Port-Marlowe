@@ -327,26 +327,44 @@
     const light = new THREE.PointLight(0xffc878, 0, 9, 2); g.add(light);
     const S = { g, models, cls: null, kick: 0, flashT: 0, flashN: 0, raise: 1, aim: new THREE.Quaternion() };
     const fwd = new V3(0, 0, -1), d = new V3();
-    S.set = (cls, model) => { S.model = models[model] ? model : 'glock'; for (const k in models) models[k].visible = k === S.model; S.cls = cls; if (S.hands) S.hands.place(S.model); };
+    const show = (cls, model) => { S.model = models[model] ? model : 'glock'; for (const k in models) models[k].visible = k === S.model; S.cls = cls; if (S.hands) S.hands.place(S.model); };
+    // changing weapons: the one in hand goes down out of view, the new one comes up
+    S.set = (cls, model) => { if (!S.model || S.raise < 0.5 || (S.model === model && S.cls === cls)) { show(cls, model); return; } S.swap = { t: 0, cls, model }; S.inspectT = 0; };
+    S.busy = () => !!S.swap || S.raise < 0.98;
+    S.inspect = () => { if (!S.swap && S.raise > 0.98) S.inspectT = 2.6; };
+    let ti = 0, swY = 0, swX = 0, swR = 0, rk = 0, rkV = 0;
     S.fire = (recoil) => {
-      S.kick = Math.min(1.6, S.kick + 0.5 + recoil * 0.4); S.flashN = 1;
+      S.kick = Math.min(1.6, S.kick + 0.5 + recoil * 0.4); S.flashN = 1; rkV += (Math.random() - 0.5) * (2 + recoil * 4); S.inspectT = 0; // recoil also throws the muzzle a little sideways and rolls the gun
       const md = models[S.model].userData, k = 0.06 + recoil * 0.05, long = S.cls === 'rifle' || S.cls === 'shotgun';
       flash.position.set(0, md.fy, md.muzzle - 0.004); flash.scale.set(k, k, k * (long ? 2.4 : 1.6));
       star.material.map = starTex[Math.floor(Math.random() * 3)]; star.rotation.z = Math.random() * 6.3; star.scale.setScalar(0.9 + Math.random() * 0.4);
       light.position.copy(flash.position); light.intensity = 3 + recoil * 1.5;
     };
     // dirCam: aim direction in camera space
-    S.update = (dt, dirCam, narrow) => {
+    S.update = (dt, dirCam, narrow, mo) => {
+      mo = mo || {}; ti += dt;
+      if (S.swap) { S.swap.t += dt; if (S.swap.t >= 0.22 && !S.swap.done) { S.swap.done = true; show(S.swap.cls, S.swap.model); } if (S.swap.t >= 0.5) S.swap = null; }
       const long = S.cls === 'rifle' || S.cls === 'shotgun';
       g.position.set(narrow ? 0.12 : 0.2, long ? -0.17 : -0.2, long ? -0.42 : -0.5);
+      // sway: the gun lags behind the turn of the head (it has weight), rolls into the turn, breathes, and bobs with each step
+      const lx = Math.max(-3, Math.min(3, mo.yawV || 0)), ly = Math.max(-3, Math.min(3, mo.pitchV || 0)), a = Math.min(1, dt * 9);
+      swX += (lx * 0.012 - swX) * a; swY += (-ly * 0.01 - swY) * a; swR += (lx * 0.05 - swR) * a;
+      const pace = mo.pace || 0, st = (mo.stride || 0) * Math.PI * 2, breathe = 1 - Math.min(1, pace);
+      g.position.x += swX + Math.sin(ti * 0.8) * 0.0012 * breathe + Math.sin(st) * 0.006 * pace;
+      g.position.y += swY + Math.sin(ti * 1.6) * 0.0016 * breathe - Math.abs(Math.cos(st)) * 0.008 * pace;
+      rkV += (-rk * 90 - rkV * 12) * dt; rk += rkV * dt;
       d.copy(dirCam).multiplyScalar(12).sub(g.position).normalize();
-      S.aim.setFromUnitVectors(fwd, d); g.quaternion.slerp(S.aim, Math.min(1, dt * 18));
+      S.aim.setFromUnitVectors(fwd, d); g.quaternion.slerp(S.aim, Math.min(1, dt * 18)); g.rotateZ(swR + rk * 0.5 + Math.sin(st) * 0.02 * pace); g.rotateY(rk * 0.15);
       S.kick = Math.max(0, S.kick - dt * 7 * (0.4 + S.kick));
       g.position.z += S.kick * 0.05; g.rotateX(S.kick * 0.12);
       flash.visible = S.flashN > 0; if (S.flashN > 0) S.flashN--; else light.intensity = 0; // one frame
       // being brought up (opening): from below the view, muzzle tipped down
       g.visible = S.raise > 0.02;
       if (S.raise < 1) { const r = 1 - S.raise; g.position.y -= r * r * 0.4; g.position.z += r * 0.08; g.rotateX(-r * 0.7); }
+      if (S.swap) { const u = S.swap.t < 0.22 ? S.swap.t / 0.22 : 1 - (S.swap.t - 0.22) / 0.28, e2 = u * u * (3 - 2 * u); g.position.y -= e2 * 0.45; g.position.x += e2 * 0.06; g.rotateX(e2 * 0.35); g.rotateZ(e2 * 0.5); } // down and out of view, muzzle tipped up so the arms stay below
+      // inspecting: the gun is brought in and turned to look along its side, then the other, then back
+      if (S.inspectT > 0) { S.inspectT = Math.max(0, S.inspectT - dt); const u = 1 - S.inspectT / 2.6, w = Math.sin(Math.PI * Math.min(1, u * 1.15)), turn = Math.sin(u * Math.PI * 2) * 0.9;
+        g.position.x -= 0.08 * w; g.position.y += 0.05 * w; g.position.z += 0.06 * w; g.rotateY(-0.9 * w + turn * 0.4 * w); g.rotateZ(turn * 0.6 * w); g.rotateX(0.15 * w); }
     };
     return S;
   };

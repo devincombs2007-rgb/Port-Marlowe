@@ -1,4 +1,4 @@
-# Port-Marlowe — Wound Ballistics Lab (v2.8)
+# Port-Marlowe — Wound Ballistics Lab (v2.9)
 
 A browser-based 3D simulator of gunshot wounds. A test subject stands in a chamber; every
 round is traced millimetre by millimetre through skin, bone, organs and vessels, and the
@@ -6,6 +6,18 @@ body then responds in real time (bleeding, blood pressure, breathing, consciousn
 
 **Run it:** serve this folder with any static server (`python3 -m http.server`) and open
 `index.html`. No build step. `node tools/build.js` bundles a single-file page into `dist/`.
+
+**v2.9 — performance, settings, animation**: the HUD is off by default; a settings panel (≡ button or Esc) turns
+the HUD, crosshair and an FPS counter on or off and sets graphics quality (High / Medium / Low, or Auto, which lowers
+the render scale and shadow work when frames run slow and raises them again when there is room). Fixed a slowdown
+that doubled frame time after a few 1v1 rounds (a new light per round) and a geometry leak between rounds.
+Animation: subjects blink (now and then twice), their eyes fix on the shooter or the wound with small jumps, the head
+turns to follow him, the weight drifts from foot to foot when standing, the hands rest half open, clench in pain and
+shut on a wound, shock and fear set them shivering, the head goes back in a scream, a miss makes them blink and
+flinch, the lids droop with blood loss, close when unconscious and stay half open in death. Fighters sweep the room
+with their eyes when they have lost him and watch their hands while reloading. First person: the gun lags and rolls
+with every turn of the head, breathes when still, bobs with each step, kicks sideways and rolls under recoil, goes
+down and the next one comes up when changing weapons, and can be inspected (I).
 
 **v2.8 — the 1v1 gets desperate**: a fighter whose hands can no longer hold the gun (cut tendons, a broken or
 useless arm) drops it - it falls to the floor - and, still standing, fights on: he draws a knife from his belt (if he
