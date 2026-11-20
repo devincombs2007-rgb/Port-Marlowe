@@ -109,10 +109,49 @@
   duel = Duel();
   document.getElementById('bDuel').addEventListener('click', () => { document.getElementById('intro').hidden = true; state.started = true; audio.init(); duel.start(); });
 
+  // ---------- settings: HUD, crosshair, FPS counter and graphics quality, kept in this browser
+  // quality: pr = share of the screen's pixel ratio rendered; key = the main light's shadow; bulb = the hanging bulb's
+  // shadow (a point-light shadow draws the whole scene six more times); map = shadow-map size
+  const QUAL = { high: { pr: 1, key: true, bulb: true, map: 1024 }, medium: { pr: 0.8, key: true, bulb: false, map: 1024 }, low: { pr: 0.6, key: false, bulb: false, map: 512 } };
+  const cfg = { hud: false, cross: true, fps: false, q: 'auto' };
+  try { Object.assign(cfg, JSON.parse(localStorage.getItem('gsw.settings') || '{}')); } catch (e) { /* storage unavailable: defaults */ }
+  let autoQ = 'high';
+  const saveCfg = () => { try { localStorage.setItem('gsw.settings', JSON.stringify(cfg)); } catch (e) { /* not persisted */ } };
+  function applyQuality() {
+    const Q = QUAL[cfg.q === 'auto' ? autoQ : cfg.q] || QUAL.high;
+    scene.traverse((o) => { if (!o.isLight || !(o.castShadow || o.userData.shadowable)) return; o.userData.shadowable = true; const want = o.isPointLight ? Q.bulb : Q.key; if (o.castShadow !== want) { o.castShadow = want; } if (o.isDirectionalLight && o.shadow.mapSize.x !== Q.map) { o.shadow.mapSize.set(Q.map, Q.map); if (o.shadow.map) { o.shadow.map.dispose(); o.shadow.map = null; } } });
+    renderer.shadowMap.enabled = Q.key || Q.bulb; resize();
+    const note = document.getElementById('qNote'); if (note) note.textContent = cfg.q === 'auto' ? 'Auto: now ' + autoQ + ' (lowers itself if frames run slow)' : '';
+  }
+  function applySettings() {
+    document.body.classList.toggle('nohud', !cfg.hud); document.body.classList.toggle('nocross', !cfg.cross);
+    document.getElementById('fps').hidden = !cfg.fps;
+    for (const [id, k] of [['optHud', 'hud'], ['optCross', 'cross'], ['optFps', 'fps']]) document.getElementById(id).checked = cfg[k];
+    for (const b of document.querySelectorAll('#optQ button')) b.setAttribute('aria-checked', String(b.dataset.q === cfg.q));
+    applyQuality(); saveCfg();
+  }
+  const setPanel = document.getElementById('settings'), openSettings = (on) => { setPanel.hidden = on == null ? !setPanel.hidden : !on; };
+  for (const [id, k] of [['optHud', 'hud'], ['optCross', 'cross'], ['optFps', 'fps']]) document.getElementById(id).addEventListener('change', (e) => { cfg[k] = e.target.checked; applySettings(); });
+  for (const b of document.querySelectorAll('#optQ button')) b.addEventListener('click', () => { cfg.q = b.dataset.q; if (cfg.q === 'auto') autoQ = 'high'; applySettings(); });
+  document.getElementById('setClose').addEventListener('click', () => openSettings(false));
+  document.getElementById('bSettings').addEventListener('click', () => openSettings(true));
+  window.addEventListener('keydown', (e) => { if (e.key === 'Escape') openSettings(); });
+  // auto quality: watch real frame times; step down after a few slow seconds, back up after a long run of fast ones
+  const perf = { ema: 16, slowT: 0, fastT: 0, fpsT: 0, n: 0 };
+  function watchFrames(ms, dt) {
+    perf.ema += (ms - perf.ema) * 0.05; perf.n++; perf.fpsT += dt;
+    if (perf.fpsT > 0.5) { if (cfg.fps) document.getElementById('fps').textContent = Math.round(perf.n / perf.fpsT) + ' fps · ' + perf.ema.toFixed(1) + ' ms'; perf.fpsT = 0; perf.n = 0; }
+    if (cfg.q !== 'auto' || document.hidden) return;
+    perf.slowT = perf.ema > 24 ? perf.slowT + dt : 0; perf.fastT = perf.ema < 11 ? perf.fastT + dt : 0;
+    const order = ['low', 'medium', 'high'], i = order.indexOf(autoQ);
+    if (perf.slowT > 3 && i > 0) { autoQ = order[i - 1]; perf.slowT = 0; applyQuality(); }
+    else if (perf.fastT > 12 && i < 2) { autoQ = order[i + 1]; perf.fastT = 0; applyQuality(); }
+  }
+
   // ---------- input
   function resize() {
     const w = canvas.clientWidth, h = canvas.clientHeight;
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2)); renderer.setSize(w, h, false);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2) * (QUAL[cfg.q === 'auto' ? autoQ : cfg.q] || QUAL.high).pr); renderer.setSize(w, h, false);
     camera.aspect = w / h; camera.fov = w < h ? 78 : 62; camera.updateProjectionMatrix(); state.narrow = w < h;
     if (!state.moved) { state.ax = w / 2; state.ay = h * 0.42; }
   }
@@ -151,8 +190,8 @@
     touch.id = null;
   };
   canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
-  const toggleHud = () => document.body.classList.toggle('min');
-  document.getElementById('bMenu').addEventListener('click', toggleHud);
+  const toggleHud = () => { if (cfg.hud) document.body.classList.toggle('min'); }; // Tab: the panels and tools (with the HUD on)
+  document.getElementById('bMenu').addEventListener('click', () => openSettings());
   window.addEventListener('keydown', (e) => { if (e.key === 'Tab') { e.preventDefault(); toggleHud(); } });
   window.addEventListener('keydown', (e) => { const k = e.key.toLowerCase(); if (k === 'o' && state.started) { duel.on ? duel.stop() : duel.start(); } else if (k === 'c' && duel && duel.on) duel.cycleCam(); });
   window.addEventListener('keydown', (e) => {
@@ -611,7 +650,7 @@
   const camDir = new V3(), q = new THREE.Quaternion();
   function frame(now) {
     requestAnimationFrame(frame);
-    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    const ms = now - last, dt = Math.min(0.05, ms / 1000); last = now; watchFrames(ms, dt);
     if (!G.debug.manual) step(dt);
   }
   // ======================= AI 1v1 =======================
@@ -626,7 +665,7 @@
     const spawn = [new V3(0, 0, -1.6), new V3(0, 0, 6.1)];
     const mats = { crate: new THREE.MeshStandardMaterial({ color: 0x6e5236, roughness: 0.85 }), concrete: new THREE.MeshStandardMaterial({ color: 0x8b8a84, roughness: 0.95 }), metal: new THREE.MeshStandardMaterial({ color: 0x4b545a, roughness: 0.5, metalness: 0.6 }) };
     const TYPES = [{ k: 'crate', s: [0.9, 0.9, 0.9], m: 'crate', low: true }, { k: 'barrier', s: [1.7, 0.85, 0.4], m: 'concrete', low: true }, { k: 'pillar', s: [0.55, 2.6, 0.55], m: 'concrete', low: false }, { k: 'locker', s: [0.9, 1.9, 0.5], m: 'metal', low: false }, { k: 'stack', s: [1.0, 1.4, 1.0], m: 'crate', low: false }];
-    function clearProps() { for (const p of D.props) { scene.remove(p.mesh); for (const S of D.fighters) S.rag.world.remove(p.bodies[S.idx]); } D.props.length = 0; }
+    function clearProps() { for (const p of D.props) { scene.remove(p.mesh); p.mesh.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.isLineSegments) o.material.dispose(); }); for (const S of D.fighters) S.rag.world.remove(p.bodies[S.idx]); } D.props.length = 0; }
     function addProp(T, x, z, rot) {
       const sx = rot ? T.s[2] : T.s[0], sz = rot ? T.s[0] : T.s[2], sy = T.s[1];
       const mesh = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), mats[T.m]); mesh.position.set(x, sy / 2, z); mesh.castShadow = mesh.receiveShadow = true; scene.add(mesh);
@@ -657,7 +696,7 @@
     function giveGun(S, wi) {
       if (S.gunModel) scene.remove(S.gunModel);
       const w = G.WEAPONS[wi], src = gun.models[w.model] || gun.models.glock, m = src.clone(true); m.visible = true; m.traverse((o) => { o.visible = true; o.castShadow = true; }); scene.add(m);
-      S.gunModel = m; S.ai.wi = wi; S.ai.flash = new THREE.PointLight(0xffc878, 0, 7, 2); scene.add(S.ai.flash);
+      S.gunModel = m; S.ai.wi = wi; if (!S.flashLight) { S.flashLight = new THREE.PointLight(0xffc878, 0, 7, 2); scene.add(S.flashLight); } S.ai.flash = S.flashLight; S.flashLight.intensity = 0; // one muzzle-flash light per fighter, reused (a new light every round made every surface dearer to shade and recompiled the shaders)
       // the magazine (a separate part on magazine-fed guns) and the pump's forend, for reloads and racking
       let mag = null, fore = null; m.children.forEach((c) => { if (c.material && c.material.color && c.material.color.getHex() === 0x33373b && !mag) mag = c; });
       if (w.model === 'pump') fore = m.children[3];
@@ -1058,7 +1097,7 @@
       document.body.classList.add('duel'); startRound(); hudEl.hidden = false;
     };
     D.stop = () => {
-      D.on = false; clearProps(); clearDrops(); for (const S of D.fighters) if (S.body.setGrip) { S.body.setGrip('L', 0); S.body.setGrip('R', 0); } for (const S of D.fighters) { if (S.gunModel) { scene.remove(S.gunModel); S.gunModel = null; } if (S.ai && S.ai.flash) scene.remove(S.ai.flash); S.ai = null; if (S !== primary) { use(S); S.rag.stop(); S.body.clearWounds(); S.body.root.visible = false; } }
+      D.on = false; clearProps(); clearDrops(); for (const S of D.fighters) if (S.body.setGrip) { S.body.setGrip('L', 0); S.body.setGrip('R', 0); } for (const S of D.fighters) { if (S.gunModel) { scene.remove(S.gunModel); S.gunModel = null; } if (S.ai && S.ai.flash) S.ai.flash.intensity = 0; S.ai = null; if (S !== primary) { use(S); S.rag.stop(); S.body.clearWounds(); S.body.root.visible = false; } }
       primary.body.root.position.set(0, 0, 0); primary.body.root.rotation.set(0, 0, 0); gun.raise = 1; document.body.classList.remove('duel'); hudEl.hidden = true; use(primary); reset();
     };
     // security cameras in the top corners (and the free view)
@@ -1194,6 +1233,7 @@
     if (G.debug && G.debug.camHook) G.debug.camHook(camera); // tests: a close look
     if (!noRender) renderer.render(scene, camera);
   }
+  applySettings();
   requestAnimationFrame(frame);
-  G.debug = { get duel() { return duel; }, subjects, use, viscera, projectiles, gun, scene, tick: step, manual: false, audio, rag, toggleGrab, toggleSlow, fire, state, setWeapon, toggleXray, camera, get phys() { return phys; }, get npc() { return npc; }, body, world };
+  G.debug = { renderer, get duel() { return duel; }, subjects, use, viscera, projectiles, gun, scene, tick: step, manual: false, audio, rag, toggleGrab, toggleSlow, fire, state, setWeapon, toggleXray, camera, get phys() { return phys; }, get npc() { return npc; }, body, world };
 })();

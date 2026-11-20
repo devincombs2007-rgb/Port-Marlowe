@@ -8,14 +8,27 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="src/style.css">
 </head>
-<body class="min">
+<body class="min nohud">
 <!--BODY-->
 <div id="app">
   <canvas id="view" aria-label="3D test chamber"></canvas>
   <div id="cross" aria-hidden="true"></div>
   <div id="hud">
     <div id="mini" aria-live="off"></div>
-    <button id="bMenu" type="button" aria-label="Show panels and tools" title="Panels and tools (Tab)">≡</button>
+    <button id="bMenu" type="button" aria-label="Settings" title="Settings (Esc)">≡</button>
+    <div id="fps" hidden></div>
+    <section id="settings" class="panel" hidden aria-label="Settings">
+      <div class="phead"><span>Settings</span><button id="setClose" type="button" class="x" aria-label="Close">×</button></div>
+      <label class="opt"><input type="checkbox" id="optHud"> <span>HUD<i>vitals line, scoreboard, panels (Tab)</i></span></label>
+      <label class="opt"><input type="checkbox" id="optCross" checked> <span>Crosshair</span></label>
+      <label class="opt"><input type="checkbox" id="optFps"> <span>FPS counter</span></label>
+      <div class="opt"><span>Graphics</span>
+        <div class="seg" id="optQ" role="radiogroup" aria-label="Graphics quality">
+          <button type="button" data-q="auto">Auto</button><button type="button" data-q="high">High</button><button type="button" data-q="medium">Medium</button><button type="button" data-q="low">Low</button>
+        </div>
+      </div>
+      <p class="dim small" id="qNote"></p>
+    </section>
     <section id="subject" class="panel" aria-live="off">
       <button id="subjHead" class="phead" type="button" aria-expanded="true">
         <span>Subject</span><span class="dim">M · 1.78 m · 77 kg</span>
@@ -86,6 +99,7 @@
       <p class="dim small">Simulated graphic injury. Educational model, not medical guidance. No treatment is modelled, so outcomes are untreated outcomes.</p>
       <button id="bStart" type="button">Enter test chamber</button>
       <button id="bDuel" type="button" class="alt">AI 1v1</button>
+      <button id="bSettings" type="button" class="alt">Settings</button>
     </div>
   </div>
 </div>

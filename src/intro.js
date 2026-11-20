@@ -42,6 +42,7 @@
       if (gun) gun.raise = ease((t - 3.3) / 0.9);
       if (t > 4.4) { I.done = true; canvas.style.filter = ''; fade.style.opacity = '0'; if (gun) gun.raise = 1; for (const [o, i0] of others) o.intensity = i0 * FILL; bulb.intensity = BULB; glassMat.emissiveIntensity = 2.2; }
     };
+    I.bulb = bulb;
     return I;
   };
 })();
