@@ -25,7 +25,7 @@ class GLB:
         if double: m['doubleSided']=True
         if extras: m['extras']=extras
         s.g['materials'].append(m); return len(s.g['materials'])-1
-    def mesh(s,name,prims):
+    def mesh(s,name,prims,extras=None):
         """prims: list of dict(pos,nrm,idx,mat,uv=None,col=None)"""
         P=[]
         for p in prims:
@@ -41,7 +41,9 @@ class GLB:
             else: ia=s._acc(idx.astype(np.uint32),5125,'SCALAR',34963)
             P.append({'attributes':at,'indices':ia,'material':p['mat'],'mode':4})
         s.g['meshes'].append({'name':name,'primitives':P})
-        s.g['nodes'].append({'name':name,'mesh':len(s.g['meshes'])-1}); s.g['scenes'][0]['nodes'].append(len(s.g['nodes'])-1)
+        nd={'name':name,'mesh':len(s.g['meshes'])-1}
+        if extras: nd['extras']=extras
+        s.g['nodes'].append(nd); s.g['scenes'][0]['nodes'].append(len(s.g['nodes'])-1)
     def save(s,path):
         while len(s.bin)%4: s.bin+=b'\0'
         s.g['buffers']=[{'byteLength':len(s.bin)}]

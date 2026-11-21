@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Devin 3D Bust</title>
+<title>Devin 3D Model</title>
 <style>
   :root{
     --bg:#15171c; --bg2:#23262e; --panel:rgba(22,24,30,.78); --line:rgba(255,255,255,.10);
@@ -18,10 +18,10 @@
     font:14px/1.4 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
   #stage{position:fixed;inset:0;background:radial-gradient(120% 90% at 50% 35%,var(--bg2),var(--bg))}
   canvas{display:block;outline:none;touch-action:none}
-  .panel{position:fixed;left:16px;top:16px;width:272px;padding:16px;border:1px solid var(--line);border-radius:14px;
+  .panel{position:fixed;left:16px;top:16px;width:280px;padding:16px;border:1px solid var(--line);border-radius:14px;
     background:var(--panel);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
   h1{margin:0 0 2px;font-size:17px;font-weight:650;letter-spacing:.01em}
-  .sub{margin:0 0 14px;color:var(--muted);font-size:12.5px}
+  .sub{margin:0 0 12px;color:var(--muted);font-size:12.5px}
   .row{margin:12px 0 0}
   .label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:7px}
   .sw{display:flex;gap:8px;flex-wrap:wrap}
@@ -51,9 +51,13 @@
 <div id="loading">Loading model…</div>
 <aside class="panel" aria-label="Viewer controls">
   <h1>Devin, in 3D</h1>
-  <p class="sub">Face reconstructed from your selfies &amp; video. Hair, ears and hoodie are procedural.</p>
+  <p class="sub">Face reconstructed from your selfies &amp; video. Hair, ears, body and clothes are procedural.</p>
+  <div class="seg" id="modes">
+    <button data-m="bust" aria-pressed="true">Bust</button>
+    <button data-m="body">Full body</button>
+  </div>
   <div class="row">
-    <div class="label">Hoodie</div>
+    <div class="label" id="swlabel">Hoodie</div>
     <div class="sw" id="swatches"></div>
   </div>
   <div class="row">
@@ -66,7 +70,7 @@
   </div>
   <div class="actions">
     <button class="btn" id="spin" aria-pressed="true">Pause spin</button>
-    <a class="btn" id="dl" download="devin-bust.glb">Download .glb</a>
+    <a class="btn" id="dl" download="devin-3d.glb">Download .glb</a>
   </div>
 </aside>
 <div class="hint">Drag to orbit · scroll or pinch to zoom · right-drag to pan</div>
@@ -85,12 +89,12 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 
+const mobile = innerWidth < 640;
 const stage = document.getElementById('stage');
 const renderer = new THREE.WebGLRenderer({antialias:true, alpha:true, preserveDrawingBuffer:true});
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.0;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -100,33 +104,28 @@ const scene = new THREE.Scene();
 const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 
-const camera = new THREE.PerspectiveCamera(28, innerWidth/innerHeight, 0.02, 30);
-camera.position.set(0.50, 0.60, 1.42);
-if (innerWidth < 640) camera.position.multiplyScalar(1.35);
+const camera = new THREE.PerspectiveCamera(28, innerWidth/innerHeight, 0.02, 40);
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.target.set(0, innerWidth < 640 ? 0.36 : 0.38, 0);
 controls.enableDamping = true; controls.dampingFactor = 0.08;
-controls.minDistance = 0.35; controls.maxDistance = 3.0;
 controls.maxPolarAngle = Math.PI * 0.62;
 controls.autoRotate = true; controls.autoRotateSpeed = 0.9;
 
 // lights
 const key = new THREE.DirectionalLight(0xffffff, 2.0);
 key.castShadow = true; key.shadow.mapSize.set(2048, 2048);
-key.shadow.camera.left = -0.5; key.shadow.camera.right = 0.5; key.shadow.camera.top = 0.9; key.shadow.camera.bottom = -0.2;
-key.shadow.camera.near = 0.1; key.shadow.camera.far = 6; key.shadow.bias = -0.0004; key.shadow.normalBias = 0.012;
-const keyT = new THREE.Object3D(); keyT.position.set(0, 0.4, 0); key.target = keyT;
+key.shadow.camera.near = 0.1; key.shadow.camera.far = 8; key.shadow.bias = -0.0004; key.shadow.normalBias = 0.012;
+const keyT = new THREE.Object3D(); key.target = keyT;
 const fill = new THREE.DirectionalLight(0xffffff, 0.6);
 const rim = new THREE.DirectionalLight(0xffffff, 1.2);
 const hemi = new THREE.HemisphereLight(0xffffff, 0x222222, 0.3);
 scene.add(key, keyT, fill, rim, hemi);
 
-// contact shadow floor
+// soft contact shadow
 const blobC = document.createElement('canvas'); blobC.width = blobC.height = 256;
 const g2 = blobC.getContext('2d'); const grd = g2.createRadialGradient(128,128,10,128,128,128);
 grd.addColorStop(0,'rgba(0,0,0,0.55)'); grd.addColorStop(0.55,'rgba(0,0,0,0.22)'); grd.addColorStop(1,'rgba(0,0,0,0)');
 g2.fillStyle = grd; g2.fillRect(0,0,256,256);
-const floor = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.62), new THREE.MeshBasicMaterial({map: new THREE.CanvasTexture(blobC), transparent: true, depthWrite: false}));
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({map: new THREE.CanvasTexture(blobC), transparent: true, depthWrite: false}));
 floor.rotation.x = -Math.PI/2; floor.position.y = 0.001; scene.add(floor);
 
 const LIGHTS = {
@@ -134,16 +133,65 @@ const LIGHTS = {
   golden: {key:[0xffb46b, 2.8, [2.2, 1.0, 1.0]], fill:[0x8fb0ff, 0.35, [-1.6, 0.9, 1.0]], rim:[0xffd59a, 1.6, [-1.4, 1.2, -1.8]], env:0.35, hemi:0.15, exp:1.05},
   night:  {key:[0xff6a4a, 0.9, [-1.0, 0.4, 1.4]], fill:[0x5a7cff, 0.9, [1.6, 0.9, 0.6]], rim:[0x9ad0ff, 2.2, [0.6, 1.5, -2.0]], env:0.12, hemi:0.05, exp:1.1},
 };
+let lightName = 'studio';
 function setLight(name){
-  const L = LIGHTS[name];
+  lightName = name; const L = LIGHTS[name]; const s = mode === 'body' ? 2.0 : 1.0;
   for (const [obj, k] of [[key,'key'],[fill,'fill'],[rim,'rim']]){
-    obj.color.setHex(L[k][0]); obj.intensity = L[k][1]; obj.position.set(...L[k][2]);
+    obj.color.setHex(L[k][0]); obj.intensity = L[k][1];
+    obj.position.set(L[k][2][0]*s, L[k][2][1]*s + (mode === 'body' ? 0.6 : 0), L[k][2][2]*s);
   }
   scene.environmentIntensity = L.env; hemi.intensity = L.hemi; renderer.toneMappingExposure = L.exp;
   document.querySelectorAll('#lights button').forEach(b => b.setAttribute('aria-pressed', b.dataset.l === name));
 }
 document.querySelectorAll('#lights button').forEach(b => b.onclick = () => setLight(b.dataset.l));
-setLight('studio');
+
+// modes: the model is authored with the head at the origin; each mode lifts it onto the floor
+const MODES = {
+  bust: {lift: 0.421, target: mobile ? 0.36 : 0.38, cam: [0.50, 0.60, 1.42], min: 0.35, max: 3.0, blob: 0.62,
+         shadow: [-0.5, 0.5, 0.9, -0.2], label: 'Hoodie', mats: ['Hoodie','Drawstrings'],
+         swatches: {Taupe:'#5f5752', Navy:'#283047', Brown:'#4b3b31', Grey:'#8a8c90', Black:'#1e1f22'}},
+  body: {lift: 1.640, target: mobile ? 0.50 : 0.92, cam: [1.25, 1.15, 4.35], min: 0.5, max: 9.0, blob: 0.95,
+         shadow: [-0.7, 0.7, 2.0, -0.1], label: 'Tee', mats: ['Tee'],
+         swatches: {Royal:'#2f5db8', 'Heather blue':'#6d8db6', White:'#e9e9e7', Black:'#1c1d20', Grey:'#8b8d91'}},
+};
+let mode = 'bust', root = null; const groups = {shared: [], bust: [], body: []}; const matsByName = {};
+const chosen = {bust: 'Taupe', body: 'Royal'};
+
+function setMode(m){
+  mode = m; const M = MODES[m];
+  if (root){
+    root.position.y = M.lift;
+    groups.bust.forEach(o => o.visible = m === 'bust'); groups.body.forEach(o => o.visible = m === 'body');
+  }
+  controls.target.set(0, M.target, 0);
+  const k = mobile ? (m === 'body' ? 1.45 : 1.35) : 1; camera.position.set(M.cam[0]*k, M.cam[1] + (mobile ? 0.05 : 0) - (m === 'body' && mobile ? 0.4 : 0), M.cam[2]*k);
+  controls.minDistance = M.min; controls.maxDistance = M.max; controls.update();
+  floor.scale.set(M.blob, M.blob, 1);
+  const c = key.shadow.camera; [c.left, c.right, c.top, c.bottom] = M.shadow; c.updateProjectionMatrix();
+  keyT.position.set(0, M.target, 0);
+  setLight(lightName);
+  document.getElementById('swlabel').textContent = M.label;
+  buildSwatches();
+  document.querySelectorAll('#modes button').forEach(b => b.setAttribute('aria-pressed', b.dataset.m === m));
+}
+function paint(name, hex){
+  const c = new THREE.Color(hex);
+  (matsByName[name] || []).forEach(mat => {
+    mat.color.copy(c).multiplyScalar(name === 'Drawstrings' ? 0.88 : 1);
+    if (mat.sheenColor) mat.sheenColor.copy(mat.color).lerp(new THREE.Color(1,1,1), 0.25);
+  });
+}
+function buildSwatches(){
+  const M = MODES[mode], box = document.getElementById('swatches'); box.innerHTML = '';
+  Object.entries(M.swatches).forEach(([name, hex]) => {
+    const b = document.createElement('button');
+    b.style.background = hex; b.title = name; b.setAttribute('aria-label', `${name} ${M.label.toLowerCase()}`);
+    b.setAttribute('aria-pressed', chosen[mode] === name);
+    b.onclick = () => { chosen[mode] = name; M.mats.forEach(n => paint(n, hex)); box.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); };
+    box.appendChild(b);
+  });
+}
+document.querySelectorAll('#modes button').forEach(b => b.onclick = () => setMode(b.dataset.m));
 
 // decode embedded model
 const b64 = document.getElementById('glb').textContent.trim();
@@ -151,42 +199,30 @@ const bin = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
 document.getElementById('dl').href = URL.createObjectURL(new Blob([bin], {type:'model/gltf-binary'}));
 
 const loader = new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
-let hoodieMats = [];
 loader.parse(bin.buffer, '', gltf => {
-  const root = gltf.scene;
+  root = gltf.scene;
   root.traverse(o => {
     if (!o.isMesh) return;
     o.castShadow = true; o.receiveShadow = true;
+    const grp = (o.userData && o.userData.group) || (o.parent && o.parent.userData && o.parent.userData.group) || 'shared';
+    (groups[grp] || groups.shared).push(o);
     const m = o.material, n = m.name;
-    if (n === 'Hoodie' || n === 'Drawstrings'){
-      const p = new THREE.MeshPhysicalMaterial({color: m.color, roughness: 0.92, sheen: 0.6, sheenRoughness: 0.8});
-      p.sheenColor.copy(m.color).lerp(new THREE.Color(1,1,1), 0.25);
-      o.material = p; hoodieMats.push({mat: p, scale: n === 'Drawstrings' ? 0.88 : 1});
+    let out = m;
+    if (['Hoodie','Drawstrings','Tee','Shorts','Socks'].includes(n)){
+      out = new THREE.MeshPhysicalMaterial({color: m.color, roughness: m.roughness, sheen: 0.6, sheenRoughness: 0.8});
+      out.sheenColor.copy(m.color).lerp(new THREE.Color(1,1,1), 0.25);
     } else if (n === 'HairCurls' || n === 'HairBase'){
       m.roughness = n === 'HairCurls' ? 0.48 : 0.7; m.envMapIntensity = 0.8;
-    } else if (n === 'Skin' || n === 'Ears'){
-      const p = new THREE.MeshPhysicalMaterial({map: m.map, color: m.color, roughness: 0.52, sheen: 0.35, sheenRoughness: 0.5, sheenColor: new THREE.Color(0xffd2c2)});
-      o.material = p;
+    } else if (n === 'Skin' || n === 'Ears' || n === 'BodySkin'){
+      out = new THREE.MeshPhysicalMaterial({map: m.map, color: m.color, roughness: 0.52, sheen: 0.35, sheenRoughness: 0.5, sheenColor: new THREE.Color(0xffd2c2)});
       if (n === 'Ears') o.castShadow = false;
     }
+    out.name = n; o.material = out;
+    (matsByName[n] = matsByName[n] || []).push(out);
   });
   scene.add(root);
   document.getElementById('loading').remove();
-
-  const swatches = {Taupe:'#5f5752', Navy:'#283047', Brown:'#4b3b31', Grey:'#8a8c90', Black:'#1e1f22'};
-  const box = document.getElementById('swatches');
-  Object.entries(swatches).forEach(([name, hex], i) => {
-    const b = document.createElement('button');
-    b.style.background = hex; b.title = name; b.setAttribute('aria-label', name + ' hoodie');
-    b.setAttribute('aria-pressed', i === 0);
-    b.onclick = () => {
-      const c = new THREE.Color(hex);
-      hoodieMats.forEach(({mat, scale}) => { mat.color.copy(c).multiplyScalar(scale); mat.sheenColor.copy(mat.color).lerp(new THREE.Color(1,1,1), 0.25); });
-      box.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
-    };
-    box.appendChild(b);
-  });
-  document.title = 'Devin 3D Bust';
+  setMode('bust');
   window.__ready = true;
   window.__setView = (az, el, d, ty) => { // used for still renders
     controls.autoRotate = false; const a = az*Math.PI/180, e = el*Math.PI/180;
@@ -201,7 +237,6 @@ spin.onclick = () => {
   spin.setAttribute('aria-pressed', controls.autoRotate);
 };
 renderer.domElement.addEventListener('pointerdown', () => { if (controls.autoRotate) spin.click(); });
-
 addEventListener('resize', () => {
   camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight);
 });

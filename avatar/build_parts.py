@@ -133,15 +133,16 @@ hair = np.zeros(len(Hpos), bool)
 hair |= (z > -1.0) & (y > np.maximum(front_hl, ear_top + 0.3))
 hair |= (z <= -1.0) & (z > -3.0) & (y > ear_top + 0.2)
 hair |= (z <= -3.0) & (z > -2.2 - 6.2) & (y > ear_top)                               # above ear
-hair |= (z <= -2.4) & (z > -3.9) & (y > 1.2) & (ax > 5)                                # sideburn strip
+hair |= (z <= -2.4) & (z > -3.9) & (y > 3.4) & (ax > 5)                                # short sideburn tops
 hair |= (z <= -8.4) & (y > -6.3 + 2.8 * (np.clip(ax / 7.5, 0, 1)) ** 2 + 2.0 * ss(-8.4, -10.5, -z) * 0)   # back / nape
 hair |= (z <= -8.4) & (z > -9.6) & (y > ear_top - 3.5 * ss(-8.4, -9.6, z * -1 + 0))
+hair |= (z <= -7.0) & (y > -2.6 - 2.2 * ss(-7.0, -9.5, z))                           # behind the ear, down to the nape line
 hair &= ~(isface & (y < front_hl))
 # local hair length & flow
 t_top = ss(4.5, 10.5, y); front = ss(-2.0, 4.0, z); back = ss(-6.5, -11.5, z)
-L_side = 1.5 + 0.7 * ss(ear_top, ear_top + 3, y)
-L_top = 5.2 + 1.0 * front
-L_back = 1.1 + 2.6 * ss(-6.3, 8.0, y)
+L_side = 0.8 + 1.4 * ss(ear_top, ear_top + 4.0, y) ** 1.2   # taper: short at the ears
+L_top = 5.4 + 0.8 * front
+L_back = 0.7 + 3.0 * ss(-6.3, 9.5, y) ** 1.4               # taper: tight at the nape
 Lh = (L_side * (1 - t_top) + L_top * t_top) * (1 - back) + L_back * back
 thick = np.where(t_top > 0.5, 1, 0)
 
@@ -189,7 +190,7 @@ def tube(sp, rad, sides):
     if fn @ dirs.reshape(-1, 3)[tris[0, 0]] < 0: tris = tris[:, [0, 2, 1]]
     return P.reshape(-1, 3), tris, dirs.reshape(-1, 3)
 
-root_c = hexlin('#24170f'); mid_c = hexlin('#45301f'); tip_c = hexlin('#6c4d33'); tip_sun = hexlin('#8d6a48')
+root_c = hexlin('#2a1b11'); mid_c = hexlin('#523a25'); tip_c = hexlin('#7f5f3d'); tip_sun = hexlin('#a6835a')
 HP, HT, HN, HC = [], [], [], []; voff = 0
 up = np.array([0, 1, 0.]); fwd = np.array([0, 0, 1.]); down = -up
 def rot_about(v, k, a):
@@ -213,12 +214,12 @@ for ri in roots:
         spine.append(spine[-1] + dd * seg)
     spine = np.array(spine)
     e1 = np.cross(d, n + 1e-3 * rng.normal(size=3)); e1 /= np.linalg.norm(e1); e2 = np.cross(d, e1)
-    rc = (0.45 + 0.35 * tt) * rng.uniform(0.75, 1.25) * np.clip(t * 3.0, 0.2, 1)
+    rc = (0.45 + 0.35 * tt) * min(1.0, 0.35 + L / 3.5) * rng.uniform(0.75, 1.25) * np.clip(t * 3.0, 0.2, 1)
     phase = rng.uniform(0, 2 * np.pi); wsign = rng.choice([-1, 1])
     w_ = wsign * 2 * np.pi * turns * t + phase
     spine = spine + rc[:, None] * (np.cos(w_)[:, None] * e1 + np.sin(w_)[:, None] * e2)
     spine[1:] = push_out(spine[1:], 0.3)
-    rt = (0.34 + 0.12 * tt) * rng.uniform(0.85, 1.2) * (1 - 0.55 * t ** 1.5)
+    rt = (0.34 + 0.12 * tt) * min(1.0, 0.55 + L / 4.0) * rng.uniform(0.85, 1.2) * (1 - 0.55 * t ** 1.5)
     P, Tt, Nn = tube(spine, rt, 6)
     tcol = np.repeat(t, 6)
     tc = tip_sun if rng.random() < 0.35 * (0.4 + tt) else tip_c

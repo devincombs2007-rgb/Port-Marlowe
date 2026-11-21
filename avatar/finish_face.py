@@ -27,7 +27,7 @@ skin=np.median(np.concatenate(samples),0)
 print('skin BGR',skin)
 # fade near boundary + grazing views. Exclude the photo's dark right edge by luminance check
 dist=cv2.distanceTransform(region,cv2.DIST_L2,5)
-fade=np.clip(dist/55,0,1); fade=fade*fade*(3-2*fade)
+fade=np.clip(dist/32,0,1); fade=fade*fade*(3-2*fade)
 wn=np.clip((w/np.maximum(w,1e-6).max()*0+np.clip(w,0,None))/0.35,0,1)  # w is per-pixel n.v^2 (approx, overlapping tri edges)
 # normalize w by local coverage count
 cnt=np.zeros((T,T),np.float32)
