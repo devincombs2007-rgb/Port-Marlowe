@@ -1,4 +1,4 @@
-# Port-Marlowe — Wound Ballistics Lab (v2.9)
+# Port-Marlowe — Wound Ballistics Lab (v3.0)
 
 A browser-based 3D simulator of gunshot wounds. A test subject stands in a chamber; every
 round is traced millimetre by millimetre through skin, bone, organs and vessels, and the
@@ -6,6 +6,18 @@ body then responds in real time (bleeding, blood pressure, breathing, consciousn
 
 **Run it:** serve this folder with any static server (`python3 -m http.server`) and open
 `index.html`. No build step. `node tools/build.js` bundles a single-file page into `dist/`.
+
+**v3.0 — Port Marlowe, open world** (start screen, "Port Marlowe · open world"): a third-person sandbox on the sunny
+streets of an original coastal town - nine blocks of pastel stucco buildings with shopfronts and awnings, palm-lined
+sidewalks, street lamps, benches and bins, parked cars, zebra crossings, a beach and the sea, under a late-afternoon
+sun. You are a full simulated person too (same body, wounds and physiology), seen over the shoulder: WASD to move,
+Shift to run, right mouse to aim (the camera closes in), left mouse to fire (or hip-fire), R to reload, C to crouch,
+1-0 for weapons, O to leave. Pedestrians walk the sidewalks and stop now and then; gunfire makes them panic and run
+(routed round the blocks) or cower. Shooting near people and hitting them raises the heat; armed responders come in
+from a street corner out of sight, route through the streets to where you were last seen, close in and engage
+(and can hit each other in a crossfire). The heat cools once they lose you and the shooting stops. Go down and you
+are back on your feet a few seconds later at the start. The street round you stays populated: people who wander
+far off, or lie dead out of sight, are replaced by new passers-by.
 
 **v2.9 — performance, settings, animation**: the HUD is off by default; a settings panel (≡ button or Esc) turns
 the HUD, crosshair and an FPS counter on or off and sets graphics quality (High / Medium / Low, or Auto, which lowers

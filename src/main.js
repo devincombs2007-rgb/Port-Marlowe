@@ -11,7 +11,9 @@
   const camera = new THREE.PerspectiveCamera(62, 1, 0.05, 40);
   camera.rotation.order = 'YXZ'; scene.add(camera);
 
+  const preChamber = new Set(scene.children);
   const vent = G.buildChamber(scene, renderer);
+  const chamberObjs = scene.children.filter((o) => !preChamber.has(o)); // hidden outdoors
   const world = G.buildWorld(scene), gun = G.buildGun(camera), audio = G.Audio();
   let body = G.buildBody(scene);
   if (G.FPHands) gun.hands = G.FPHands(gun);
@@ -107,6 +109,7 @@
   }
   reset(); setWeapon(1); ui.setTime(1);
   duel = Duel();
+  document.getElementById('bCity').addEventListener('click', () => { document.getElementById('intro').hidden = true; state.started = true; audio.init(); duel.city.start(); });
   document.getElementById('bDuel').addEventListener('click', () => { document.getElementById('intro').hidden = true; state.started = true; audio.init(); duel.start(); });
 
   // ---------- settings: HUD, crosshair, FPS counter and graphics quality, kept in this browser
@@ -123,6 +126,7 @@
     renderer.shadowMap.enabled = Q.key || Q.bulb; resize();
     const note = document.getElementById('qNote'); if (note) note.textContent = cfg.q === 'auto' ? 'Auto: now ' + autoQ + ' (lowers itself if frames run slow)' : '';
   }
+  const applySettingsQuality = () => applyQuality();
   function applySettings() {
     document.body.classList.toggle('nohud', !cfg.hud); document.body.classList.toggle('nocross', !cfg.cross);
     document.getElementById('fps').hidden = !cfg.fps;
@@ -159,7 +163,9 @@
   const touch = { id: null, x: 0, y: 0, t: 0, drag: false };
   let look = false;
   canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+  const CT = () => duel && duel.city && duel.city.on ? duel.city : null;
   canvas.addEventListener('pointerdown', (e) => {
+    const C = CT(); if (C && e.pointerType === 'mouse') { if (!document.pointerLockElement && canvas.requestPointerLock) canvas.requestPointerLock(); if (e.button === 0) { C.fireHeld = true; C.fireReq = true; if (!C.aimHeld && C.player && C.player.ai) C.player.ai.hipT = Math.max(C.player.ai.hipT, 0.9); } else if (e.button === 2) C.aimHeld = true; return; }
     audio.init(); canvas.setPointerCapture && canvas.setPointerCapture(e.pointerId);
     const r = canvas.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
     if (e.pointerType === 'mouse') {
@@ -172,6 +178,7 @@
   });
   canvas.addEventListener('pointermove', (e) => {
     const r = canvas.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+    const C = CT(); if (C && e.pointerType === 'mouse') { if (document.pointerLockElement === canvas) { state.yaw -= e.movementX * 0.0024; state.pitch -= e.movementY * 0.0024; } else if (look || e.buttons & 2) { state.yaw -= e.movementX * 0.004; state.pitch -= e.movementY * 0.004; } return; }
     if (e.pointerType === 'mouse') {
       if (look) { state.yaw -= e.movementX * 0.0032; state.pitch -= e.movementY * 0.0032; }
       state.ax = x; state.ay = y; state.moved = true;
@@ -183,6 +190,7 @@
     }
   });
   const up = (e) => {
+    const C = CT(); if (C && e.pointerType === 'mouse') { if (e.button === 0) C.fireHeld = false; else if (e.button === 2) C.aimHeld = false; return; }
     if (e.pointerType === 'mouse') { if (e.button !== 0) look = false; else rag.release(); return; }
     if (e.pointerId !== touch.id) return;
     rag.release();
@@ -193,11 +201,12 @@
   const toggleHud = () => { if (cfg.hud) document.body.classList.toggle('min'); }; // Tab: the panels and tools (with the HUD on)
   document.getElementById('bMenu').addEventListener('click', () => openSettings());
   window.addEventListener('keydown', (e) => { if (e.key === 'Tab') { e.preventDefault(); toggleHud(); } });
-  window.addEventListener('keydown', (e) => { const k = e.key.toLowerCase(); if (k === 'o' && state.started) { duel.on ? duel.stop() : duel.start(); } else if (k === 'c' && duel && duel.on) duel.cycleCam(); });
+  window.addEventListener('keydown', (e) => { const k = e.key.toLowerCase(); if (k === 'o' && state.started) { if (CT()) duel.city.stop(); else duel.on ? duel.stop() : duel.start(); } else if (k === 'c' && duel && duel.on) duel.cycleCam(); });
   window.addEventListener('keydown', (e) => {
     if (e.repeat || e.metaKey || e.ctrlKey) return;
     const k = e.key.toLowerCase(); state.keys[k] = true;
     const wi = G.WEAPONS.findIndex((w) => w.key === k);
+    const C = CT(); if (C) { if (wi >= 0) { state.wi = wi; C.setWeapon(wi); } else if (k === 'r') C.reloadReq = true; else if (k === 'c') C.crouch = !C.crouch; if (k === ' ' || k.startsWith('arrow')) e.preventDefault(); return; } // in the city the keys drive the character
     if (wi >= 0) setWeapon(wi);
     else if (k === 'i') gun.inspect();
     else if (k === 'x') toggleXray(); else if (k === 't') cycleTime(); else if (k === 'r') reset(); else if (k === 'g') toggleGrab(); else if (k === 'f') toggleSlow(); else if (k === ' ') { fire(); e.preventDefault(); }
@@ -857,10 +866,10 @@
     // ---- the mind
     function brain(S, N) {
       if (!S.ai) return null;
-      const E = D.fighters[1 - S.idx], ai = S.ai, P = S.phys, dt = Math.max(0, N.clock - (ai.clock || N.clock)); ai.clock = N.clock;
+      const ai = S.ai, E = ai.enemy || D.fighters[1 - S.idx], P = S.phys, dt = Math.max(0, N.clock - (ai.clock || N.clock)); ai.clock = N.clock;
       const me = partPos(S, 'thorax'), ep = partPos(E, 'thorax'), toE = ep.clone().sub(me); toE.y = 0; const dist = toE.length(); toE.normalize();
       const face = Math.atan2(toE.x, toE.z);
-      if (D.phase !== 'fight') { const it = { face, gunHand: 'R' }; holdGun(S, N, it, dt, ep, false); ai.intent = it; return it; } // waiting: gun at the ready
+      if (D.phase !== 'fight' && !CITY.on) { const it = { face, gunHand: 'R' }; holdGun(S, N, it, dt, ep, false); ai.intent = it; return it; } // waiting: gun at the ready
       const eye = partPos(S, 'head'), seeTarget = partPos(E, E.npc.posture === 'stand' ? 'thorax' : 'abdomen');
       const vis = los(eye, seeTarget) || los(eye, partPos(E, 'head'));
       if (vis) ai.lastSeen = 0; else ai.lastSeen += dt;
@@ -892,15 +901,16 @@
         else if (melee) ai.state = 'melee';
         else if (winning && enHurt > 1) ai.state = 'push';
         else if ((myHurt > 0.45 || losing) && D.props.length && ai.state !== 'cover' && ai.t > 1.5) { ai.state = 'cover'; ai.goal = coverSpot(S, ep); ai.t = 0; }
-        else if (ai.lastSeen > 1.8 && ai.state !== 'flank' && ai.state !== 'cover') { ai.state = 'flank'; ai.goal = flankSpot(S, E); ai.t = 0; }
+        else if (ai.lastSeen > 1.8 && ai.state !== 'flank' && ai.state !== 'cover') { ai.state = 'flank'; ai.goal = CITY.on ? (ai.lastKnown || ep).clone() : flankSpot(S, E); ai.t = 0; } // in the city: go to where he was last seen
         else if (vis && ai.state === 'flank') ai.state = 'engage';
-        const goTo = (g, run) => { if (!g) return false; const d = g.clone().sub(me); d.y = 0; if (d.length() < 0.35) return true; d.normalize(); const st = steer(S, me, d, E); intent.move = { x: st.x, z: st.z }; intent.run = run && !st.tight; if (!vis || run) intent.face = Math.atan2(st.x, st.z); return false; };
+        const goTo = (g0, run) => { if (!g0) return false; const g = CITY.on ? cityWay(S, me, g0) : g0; const d = g.clone().sub(me); if (g !== g0 && d.length() < 0.35) return false; d.y = 0; if (d.length() < 0.35) return true; d.normalize(); const st = steer(S, me, d, E); intent.move = { x: st.x, z: st.z }; intent.run = run && !st.tight; if (!vis || run) intent.face = Math.atan2(st.x, st.z); return false; };
         if (ai.state === 'engage') {
           ai.strafeT -= dt;
           if (ai.strafeT < 0) { ai.strafe = ai.strafe ? null : (Math.random() < 0.5 ? 1 : -1); ai.strafeT = ai.strafe ? 0.8 + Math.random() * 1.2 : 2 + Math.random() * 3; }
           // can see him but the muzzle line is blocked (low cover, a pillar edge): step out to get a shot, not stand there
           if ((ai.blockT || 0) > 0.6) { if (!ai.strafe || ai.blockT > 1.8) { ai.strafe = ai.blockT > 1.8 ? -(ai.strafe || 1) : (Math.random() < 0.5 ? 1 : -1); ai.blockT = 0.61; } ai.strafeT = Math.max(ai.strafeT, 0.6); }
           if (ai.strafe) { const st = steer(S, me, new V3(-toE.z * ai.strafe, 0, toE.x * ai.strafe), E); intent.move = { x: st.x, z: st.z }; }
+          if (CITY.on && dist > 16) goTo(ep, false); // too far for a sure shot: close in, gun up
         } else if (ai.state === 'cover') {
           const there = goTo(ai.goal, true);
           if (there) {
@@ -911,7 +921,7 @@
             if (!ai.peeking) { intent.crouch = low ? 1 : 0; intent.aim = null; } else { intent.crouch = low && (ai.blockT || 0) < 0.5 ? 0.2 : 0; intent.lean = low ? 0 : ai.goal.side; if (!low && (ai.blockT || 0) > 1.2) ai.goal.side = -ai.goal.side; } // still no line: rise fully / try the other edge
             if (myHurt < 0.3 && ai.t > 8) ai.state = 'engage';
           }
-        } else if (ai.state === 'flank') { if (goTo(ai.goal, false) || ai.t > 6) { ai.state = 'engage'; ai.t = 0; } }
+        } else if (ai.state === 'flank') { if (CITY.on && ai.lastSeen > 1.8) { ai.goal = ai.lastKnown ? ai.lastKnown.clone() : ep.clone(); } if (goTo(ai.goal, CITY.on && dist > 14) || ai.t > (CITY.on ? 30 : 6)) { ai.state = 'engage'; ai.t = 0; } }
         else if (ai.state === 'push') { if (dist > 2.2) goTo(ep, !vis); } // rush in, but walk with the gun up once he can be seen
         else if (ai.state === 'finish') {
           // finishing him: walk up to his head, crouch over him, put the gun to his head, a moment, one shot
@@ -1018,9 +1028,9 @@
         out.x += nx * w * 1.6 + tx * sgn * w * 1.4; out.z += nz * w * 1.6 + tz * sgn * w * 1.4; if (dist < keep * 0.6) tight = true;
       };
       for (const p of D.props) { const b = p.box, cx = Math.max(b.min.x, Math.min(me.x, b.max.x)), cz = Math.max(b.min.z, Math.min(me.z, b.max.z)); avoid(cx, cz, Math.hypot(me.x - cx, me.z - cz), 0.75); }
-      const ep = partPos(E, 'pelvis'); avoid(ep.x, ep.z, Math.hypot(me.x - ep.x, me.z - ep.z) - 0.2, 0.7);
+      if (E && E !== S) { const ep = partPos(E, 'pelvis'); avoid(ep.x, ep.z, Math.hypot(me.x - ep.x, me.z - ep.z) - 0.2, 0.7); }
       // and the walls
-      if (me.x < ROOM.x0 + 0.6) out.x += 1.2; if (me.x > ROOM.x1 - 0.6) out.x -= 1.2; if (me.z < ROOM.z0 + 0.6) out.z += 1.2; if (me.z > ROOM.z1 - 0.6) out.z -= 1.2;
+      const A = area(); if (me.x < A.x0 + 0.6) out.x += 1.2; if (me.x > A.x1 - 0.6) out.x -= 1.2; if (me.z < A.z0 + 0.6) out.z += 1.2; if (me.z > A.z1 - 0.6) out.z -= 1.2;
       out.y = 0; const l = Math.hypot(out.x, out.z) || 1; out.x /= l; out.z /= l; out.tight = tight; return out;
     }
     function coverSpot(S, ep) {
@@ -1028,21 +1038,23 @@
       for (const p of D.props) {
         const c = p.mesh.position, away = new V3(c.x - ep.x, 0, c.z - ep.z).normalize(), r = Math.max(p.box.max.x - p.box.min.x, p.box.max.z - p.box.min.z) / 2 + 0.55;
         const spot = new V3(c.x + away.x * r, 0, c.z + away.z * r), d = spot.distanceTo(new V3(me.x, 0, me.z));
-        if (d < bd && spot.x > ROOM.x0 + 0.5 && spot.x < ROOM.x1 - 0.5 && spot.z > ROOM.z0 + 0.5 && spot.z < ROOM.z1 - 0.5) { bd = d; best = spot; best.low = p.low; best.side = Math.random() < 0.5 ? -1 : 1; }
+        const A = area(); if (d < bd && d < 30 && spot.x > A.x0 + 0.5 && spot.x < A.x1 - 0.5 && spot.z > A.z0 + 0.5 && spot.z < A.z1 - 0.5) { bd = d; best = spot; best.low = p.low; best.side = Math.random() < 0.5 ? -1 : 1; }
       }
       return best;
     }
     function flankSpot(S, E) {
       const ep = partPos(E, 'head'), me = partPos(S, 'thorax'); let best = null, bd = 1e9;
       for (let k = 0; k < 12; k++) { const a = (k / 12) * 6.283, r = 2.5 + Math.random() * 2.5, c = new V3(ep.x + Math.cos(a) * r, 1.5, ep.z + Math.sin(a) * r);
-        if (c.x < ROOM.x0 + 0.6 || c.x > ROOM.x1 - 0.6 || c.z < ROOM.z0 + 0.6 || c.z > ROOM.z1 - 0.6 || !los(c, ep)) continue;
+        const A = area(); if (c.x < A.x0 + 0.6 || c.x > A.x1 - 0.6 || c.z < A.z0 + 0.6 || c.z > A.z1 - 0.6 || !los(c, ep)) continue;
         const d = c.distanceTo(me); if (d < bd) { bd = d; best = c; } }
       return best;
     }
     // ---- firing: the round leaves the fighter's muzzle and is traced through the other body
     const mzl = new V3(), dd = new V3();
     function aiFire(S) {
-      const E = D.fighters[1 - S.idx], ai = S.ai, w = G.WEAPONS[ai.wi], P = S.phys, m = S.gunModel;
+      const ai = S.ai, E = ai.enemy || D.fighters[1 - S.idx], w = G.WEAPONS[ai.wi], P = S.phys, m = S.gunModel;
+      const cands = CITY.on ? CITY.subs.filter((T) => T !== S && T.body.root.visible) : [E];
+      if (CITY.on) CITY.shot(S); // everyone near hears it
       ai.ammo--; ai.burst--; ai.shots = (ai.shots || 0) + 1;
       if (S.gs) { const long = w.cls === 'rifle' || w.cls === 'shotgun'; S.gs.kick += (long ? 0.06 : 0.2) * w.recoil * (0.8 + Math.random() * 0.4) * (S.npc.supHand ? 1 : 1.5); S.gs.back += 0.018 * w.recoil; if (w.model === 'pump') S.gs.cyc = 0.45; else if (w.model === 'bolt') S.gs.cyc = 0.7; } // muzzle flip, worse one-handed; rack the pump / work the bolt
       const gap = Math.max(60 / w.rpm, w.cls === 'pistol' ? 0.24 : 0.14) * (1 + Math.random() * 0.4) + (P.pain > 0.5 ? 0.1 : 0);
@@ -1057,10 +1069,15 @@
       for (let i = 0; i < n; i++) {
         const d = ai.target.clone().sub(origin).normalize(), s = sig + (n > 1 ? w.spread : 0);
         d.x += gauss() * s; d.y += gauss() * s; d.z += gauss() * s; d.normalize();
-        E.body.updateMatrices(); const res = G.simulate(w.bullet, origin, d, E.sampler); res.d0 = d;
+        // the round meets whoever is first along its line
+        let res = null;
+        for (const T of cands) { const tp = partPos(T, 'thorax'), v = tp.clone().sub(origin), along = v.dot(d); if (cands.length > 1 && (along < 0 || v.clone().addScaledVector(d, -along).length() > 1.3)) continue;
+          T.body.updateMatrices(); const r2 = G.simulate(w.bullet, origin, d, T.sampler); r2.S = T; const e2 = r2.hitBody && r2.marks.find((mk) => mk.type === 'entry');
+          const t2 = e2 ? origin.distanceTo(new V3(e2.p.x, e2.p.y, e2.p.z)) : Infinity; if (!res || (t2 < (res.tEnt || Infinity))) { res = r2; res.tEnt = t2; } }
+        if (!res) { res = { hitBody: false, marks: [], E0: 0.5 * w.bullet.m * w.bullet.v * w.bullet.v, S: E }; } res.d0 = d;
         const entry = res.marks.find((mk) => mk.type === 'entry'), tBody = res.hitBody && entry ? origin.distanceTo(tmp2.set(entry.p.x, entry.p.y, entry.p.z)) : Infinity;
         const pr = rayProps(origin, d, tBody); if (pr) { res.blocked = pr; res.hitBody = false; }
-        results.push(res);
+        results.push(res); if (G.debug) G.debug.shotLog = (G.debug.shotLog || []).concat([(res.blocked ? 'blocked@' + res.blocked.t.toFixed(1) : res.hitBody ? 'HIT' : 'miss') + (res.S && res.S.ai && res.S.ai.ped ? ':ped' : '')]).slice(-30);
         // the visible round
         const pts = [origin.clone()], v = [], hide = []; let sp = w.bullet.v, inside = false;
         if (res.blocked) { pts.push(res.blocked.at.clone()); v.push(sp); hide.push(false); }
@@ -1072,15 +1089,15 @@
       }
       const first = results.find((r) => r.hitBody), firstBlock = results.find((r) => r.blocked), dist = first ? origin.distanceTo(tmp2.set(first.marks[0].p.x, first.marks[0].p.y, first.marks[0].p.z)) : firstBlock ? firstBlock.blocked.t : 5;
       pending.push({ t: simClock + dist / w.bullet.v, run: () => {
-        const back = current; use(E);
-        for (const r of results) {
+        const back = current;
+        for (const r of results) { use(r.S || E);
           if (r.blocked) { const b = r.blocked; const nrm = new V3(); const c = b.p.mesh.position, hb = b.p.box, eps = 0.01; nrm.set(Math.abs(b.at.x - hb.min.x) < eps ? -1 : Math.abs(b.at.x - hb.max.x) < eps ? 1 : 0, Math.abs(b.at.y - hb.max.y) < eps ? 1 : 0, Math.abs(b.at.z - hb.min.z) < eps ? -1 : Math.abs(b.at.z - hb.max.z) < eps ? 1 : 0); if (nrm.lengthSq() === 0) nrm.set(0, 1, 0); void c;
-            world.addHole(b.at, nrm, Math.max(0.006, w.bullet.d * 0.9), 300); world.chunks(b.at, nrm, 6, 1.6, 1.2, b.p.T.m === 'crate' ? 'chip' : 'dust'); audio.wall(300); continue; }
-          if (r.hitBody) processShot(r, w, r.d0, origin); else { const h = world.rayRoom(origin, r.d0); if (h) strike(h, r.d0, r.E0 || 400, w, 0); }
+            world.addHole(b.at, nrm, Math.max(0.006, w.bullet.d * 0.9), 300); world.chunks(b.at, nrm, 6, 1.6, 1.2, b.p.T && b.p.T.m === 'crate' ? 'chip' : 'dust'); audio.wall(300); continue; }
+          if (r.hitBody) { if (CITY.on) { world.centerOn && world.centerOn(r.marks[0].p.x, r.marks[0].p.z); CITY.hit(S, r.S); } processShot(r, w, r.d0, origin); } else { const h = world.rayRoom(origin, r.d0); if (h) strike(h, r.d0, r.E0 || 400, w, 0); }
         }
         const hits = results.filter((r) => r.hitBody);
-        if (!hits.length && E.npc.startle) E.npc.startle(0.6); // the round cracked past him
-        if (hits.length) { dismember(results.filter((r) => !r.blocked), w, origin); headTrauma(hits); audio.impact(hits.some((r) => r.order.some((p) => p.kind === 'bone')), hits.reduce((a, r) => a + r.Edep, 0)); }
+        if (!hits.length && E && E.npc && E.npc.startle) E.npc.startle(0.6); // the round cracked past him
+        for (const T of new Set(hits.map((r) => r.S || E))) { use(T); const hT = hits.filter((r) => (r.S || E) === T); dismember(hT, w, origin); headTrauma(hT); audio.impact(hT.some((r) => r.order.some((p) => p.kind === 'bone')), hT.reduce((a, r) => a + r.Edep, 0)); }
         use(back);
       } });
     }
@@ -1105,19 +1122,184 @@
       D.on = false; clearProps(); clearDrops(); for (const S of D.fighters) if (S.body.setGrip) { S.body.setGrip('L', 0); S.body.setGrip('R', 0); } for (const S of D.fighters) { if (S.gunModel) { scene.remove(S.gunModel); S.gunModel = null; } if (S.ai && S.ai.flash) S.ai.flash.intensity = 0; S.ai = null; if (S !== primary) { use(S); S.rag.stop(); S.body.clearWounds(); S.body.root.visible = false; } }
       primary.body.root.position.set(0, 0, 0); primary.body.root.rotation.set(0, 0, 0); gun.raise = 1; document.body.classList.remove('duel'); hudEl.hidden = true; use(primary); reset();
     };
+
+    // =============================== THE CITY: open-world mode ===============================
+    // A third-person player on the streets of Port Marlowe, pedestrians going about their day, and armed
+    // responders who come when the shooting starts ("heat"). Every person is a full subject: the same body,
+    // physics, physiology and wound simulation as in the lab.
+    const CITY = { on: false, C: null, subs: [], player: null, peds: [], cops: [], heat: 0, quietT: 0, aimHeld: false, fireHeld: false, aimPt: new V3(), msg: '', msgT: 0, downT: 0, camD: 3.2 };
+    D.city = CITY;
+    function area() { return CITY.on ? CITY.C.bounds : ROOM; }
+    // the next point to head for on the way to g: straight there if nothing big is in the way, else along the street route
+    function cityWay(S, me, g) {
+      const R = S.route; if (!R || R.goal.distanceTo(g) > 3 || (R.t = (R.t || 0) + 1) > 40) S.route = { goal: g.clone(), path: CITY.C.route(me, g), t: 0 };
+      const path = S.route.path; while (path.length > 1 && (Math.hypot(path[0].x - me.x, path[0].z - me.z) < 1.5 || CITY.C.segClear(me, path[1]))) path.shift();
+      return path[0] || g;
+    }
+    const NPED = 6, NCOP = 3;
+    let cityHud = null;
+    function cityScenery(on) {
+      for (const o of chamberObjs) o.visible = !on; if (intro && intro.bulb) intro.bulb.parent.visible = !on;
+      CITY.C.root.visible = on; scene.background = on ? null : new THREE.Color(0x0b0f11); scene.fog = on ? CITY.C.fog : null;
+      if (on) { CITY.envSave = scene.environment; scene.environment = CITY.C.env; } else if (CITY.envSave) scene.environment = CITY.envSave;
+      camera.far = on ? 600 : 40; camera.updateProjectionMatrix(); world.open = on; world.rayHook = on ? CITY.C.ray : null; G.BOUNDS = on ? CITY.C.bounds : null;
+      renderer.toneMappingExposure = on ? 0.82 : 1;
+      CITY.C.sun.userData.shadowable = true; applySettingsQuality && applySettingsQuality();
+    }
+    // the colliders near a person go into his physics world (a full set in every world would be slow)
+    function nearStatics(S) { const p = partPos(S, 'pelvis'), near = CITY.C.colliders.filter((c) => { const b = c.box; return p.x > b.min.x - 6 && p.x < b.max.x + 6 && p.z > b.min.z - 6 && p.z < b.max.z + 6; }).slice(0, 14); S.rag.setStatics(near.map((c) => c.box)); S.staticAt = p.clone(); }
+    function cityPerson(S, pos, ry, look) {
+      use(S); S.idx = -1;
+      S.body.clearWounds(); S.rag.stop(); S.rag.clear(); S.viscera.clear(); S.headFx.rk = S.headFx.rkMax = 0; S.headFx.mouth = false; S.headFx.jawBroken = false; S.headFx.mouthK = 0; S.handBlood.L = S.handBlood.R = 0;
+      if (S.gunModel) { scene.remove(S.gunModel); S.gunModel = null; } if (S.ai && S.ai.knifeMesh) scene.remove(S.ai.knifeMesh);
+      if (S.body.setLook) S.body.setLook(Math.floor(Math.random() * S.body.looks), Math.floor(Math.random() * 3), [0xffffff, 0x8a6a50, 0x5a4030, 0x404040, 0xd0b090][Math.floor(Math.random() * 5)]);
+      if (S.body.dress) S.body.dress(look || outfit({ top: 1, pants: Math.random() < 0.85 ? 1 : 0, shoes: 1 }));
+      S.body.root.visible = true; S.body.root.position.copy(CITY.C.free(pos)); S.body.root.rotation.set(0, ry, 0);
+      S.phys = G.Physiology(G.ANATOMY.bloodVolume); S.rag.setWalls(false); S.staticAt = null;
+    }
+    const fighterAI = (wi, extra) => Object.assign({ knife: false, state: 'engage', t: 0, aimT: 0, fireT: 0.8, strafeT: 3, strafe: null, downT: 0, canFight: true, lastSeen: 0, goal: null, peekT: 0, crouch: 0, lean: 0, clock: 0, seenT: 0, react: 0.5, burst: 0, reloadT: 0, ammo: WMAG[wi] }, extra);
+    function spawnPlayer() {
+      const S = CITY.player; cityPerson(S, CITY.C.spawns[8], Math.PI / 2, { top: 0x2b2b2b, sleeves: 'short', pants: 0x3a4a6a, shoes: [0xe8e8e4, 0xf2f2ee] });
+      S.ai = fighterAI(state.wi, { player: true, hipT: 0 });
+      S.npc = G.NPC(S.body, S.phys, S.rag, { threat: () => CITY.aimPt, event: npcEvent, fighter: true, ai: (N) => playerIntent(S, N) });
+      giveGun(S, cityWeapon(state.wi)); nearStatics(S); CITY.downT = 0;
+    }
+    const cityWeapon = (i) => (G.WEAPONS[i] ? i : 1);
+    function spawnPed(S) {
+      // on the sidewalk of the player's block or one next to it, somewhere he is not looking straight at
+      const pp = partPos(CITY.player, 'pelvis'), near = CITY.C.walk.slice().sort((A, B) => Math.hypot(A[0][0] + A[2][0] - 2 * pp.x, A[0][1] + A[2][1] - 2 * pp.z) - Math.hypot(B[0][0] + B[2][0] - 2 * pp.x, B[0][1] + B[2][1] - 2 * pp.z)).slice(0, 3);
+      let loop, k, pos; for (let tries = 0; tries < 12; tries++) { loop = near[Math.floor(Math.random() * near.length)]; k = Math.floor(Math.random() * 4); const a = loop[k], b = loop[(k + 1) % 4], u = Math.random(); pos = new V3(a[0] + (b[0] - a[0]) * u, 0, a[1] + (b[1] - a[1]) * u); const d = pos.distanceTo(pp); if (d > 7 && d < 45 && (tries > 8 || !CITY.subs.some((T) => T !== S && T.body.root.visible && partPos(T, 'pelvis').distanceTo(pos) < 3))) break; }
+      cityPerson(S, pos, Math.random() * 6.28);
+      S.ai = { ped: true, loop, wp: (k + 1) % 4, dir: Math.random() < 0.5 ? 1 : -1, alarm: null, alarmT: 0, idleT: 0, cower: false, clock: 0 };
+      S.npc = G.NPC(S.body, S.phys, S.rag, { threat: () => (S.ai.alarm ? S.ai.alarm.from : null), event: npcEvent, ai: (N) => pedIntent(S, N) });
+      nearStatics(S);
+    }
+    function spawnCop(S) {
+      // they come in from a street corner out of the player's sight
+      const pp = partPos(CITY.player, 'pelvis'); let best = null, bd = -1;
+      const H = CITY.C.pitch * 1.5 - 4, Q = CITY.C.pitch / 2; for (const c of [-H, -Q, Q, H]) for (const z of [-H, H]) for (const swap of [0, 1]) { const q = swap ? new V3(z, 0, c) : new V3(c, 0, z), d = q.distanceTo(pp); if (d > 30 && d < 70 && !los(q.clone().setY(1.6), pp.clone().setY(1.5)) && d > bd) { bd = d; best = q; } }
+      if (!best) best = new V3(pp.x + 40, 0, pp.z);
+      const wi = Math.random() < 0.5 ? 5 : 1; cityPerson(S, best, Math.atan2(pp.x - best.x, pp.z - best.z), { top: 0x1f2a44, sleeves: 'short', pants: 0x1c2233, shoes: [0x111111, 0x111111] });
+      S.ai = fighterAI(wi, { enemy: CITY.player, cop: true, state: 'flank', goal: pp.clone() }); S.route = null;
+      S.npc = G.NPC(S.body, S.phys, S.rag, { threat: () => partPos(CITY.player, 'thorax'), event: npcEvent, fighter: true, ai: (N) => brain(S, N) });
+      giveGun(S, wi); nearStatics(S);
+    }
+    function despawn(S) { use(S); if (S.gunModel) { scene.remove(S.gunModel); S.gunModel = null; } if (S.ai && S.ai.flash) S.ai.flash.intensity = 0; S.ai = null; S.rag.stop(); S.body.clearWounds(); S.body.root.visible = false; }
+    // ---- the player's own body, driven by the controls
+    function playerIntent(S, N) {
+      const ai = S.ai, P = S.phys, dt = Math.max(0, N.clock - (ai.clock || N.clock)); ai.clock = N.clock;
+      const k = state.keys, fwd = new V3(-Math.sin(state.yaw), 0, -Math.cos(state.yaw)), right = new V3(-fwd.z, 0, fwd.x);
+      const mv = fwd.clone().multiplyScalar((k.w ? 1 : 0) - (k.s ? 1 : 0)).addScaledVector(right, (k.d ? 1 : 0) - (k.a ? 1 : 0));
+      const usable = (sd) => !P.armBroken[sd] && !S.rag.parts['hand' + sd].severed && !(P.gripLost && P.gripLost[sd]) && !(P.armExtLost && P.armExtLost[sd]);
+      const gh = usable('R') ? 'R' : usable('L') ? 'L' : null;
+      ai.hipT = Math.max(0, ai.hipT - dt); const aiming = !!gh && (CITY.aimHeld || ai.hipT > 0) && ai.reloadT <= 0;
+      ai.target = CITY.aimPt.clone();
+      let face = ai.faceKeep != null ? ai.faceKeep : Math.atan2(fwd.x, fwd.z);
+      if (aiming) face = Math.atan2(fwd.x, fwd.z); else if (mv.lengthSq() > 0.01) face = Math.atan2(mv.x, mv.z);
+      ai.faceKeep = face;
+      const intent = { face, move: mv.lengthSq() > 0.01 ? { x: mv.normalize().x, z: mv.z } : null, run: !!k.shift && !aiming, aim: null, gunHand: gh || 'R', crouch: CITY.crouch ? 1 : 0 };
+      if (aiming) { const sh = new V3(); S.body.segs['uarm' + gh].g.getWorldPosition(sh); intent.aim = sh.addScaledVector(ai.target.clone().sub(sh).normalize(), 0.6); }
+      if (ai.reloadT > 0) { ai.reloadT -= dt; if (ai.reloadT <= 0) ai.ammo = WMAG[ai.wi]; }
+      else if (CITY.reloadReq || ai.ammo <= 0) { const w = G.WEAPONS[ai.wi]; ai.reloadT = w.cls === 'shotgun' ? 0.5 * WMAG[ai.wi] * 0.6 : w.model === 'bolt' ? 2.4 : w.model === 'revolver' ? 3.2 : 2.2; ai.reloadTot = ai.reloadT; ai.burst = 0; }
+      CITY.reloadReq = false; ai.fireT -= dt;
+      holdGun(S, N, intent, dt, ai.target, true);
+      const w = G.WEAPONS[ai.wi], auto = w.cls === 'rifle' && w.model !== 'bolt', ready = aiming && S.gs && S.gs.mode === 'aim' && S.gs.modeT > 0.12 && ai.fireT <= 0 && ai.ammo > 0 && ai.reloadT <= 0 && P.conscious && !ai.gunDown;
+      ai.wantFire = ready && (CITY.fireReq || (auto && CITY.fireHeld)); if (ai.wantFire) { CITY.fireReq = false; ai.burst = 99; }
+      ai.handErr = 0.03; ai.intent = intent; return intent;
+    }
+    // ---- pedestrians: walk the sidewalk loops, stop now and then; panic and run (or cower) when shooting starts
+    function pedIntent(S, N) {
+      const ai = S.ai, dt = Math.max(0, N.clock - (ai.clock || N.clock)); ai.clock = N.clock; const me = partPos(S, 'pelvis');
+      if (ai.alarm) {
+        ai.alarmT -= dt; if (ai.alarmT <= 0) ai.alarm = null;
+        if (ai.cower) return { face: Math.atan2(ai.alarm ? ai.alarm.from.x - me.x : 0, ai.alarm ? ai.alarm.from.z - me.z : 1), crouch: 1, move: null };
+        const away = me.clone().sub(ai.alarm ? ai.alarm.from : me); away.y = 0; if (away.lengthSq() < 0.01) away.set(1, 0, 0); away.normalize();
+        if (!ai.fleeTo || ai.fleeTo.distanceTo(me) < 2) ai.fleeTo = CITY.C.free(me.clone().addScaledVector(away, 22)); const w = cityWay(S, me, ai.fleeTo), dd = w.clone().sub(me); dd.y = 0; dd.normalize();
+        const st = steer(S, me, dd.lengthSq() ? dd : away, null); return { face: Math.atan2(st.x, st.z), move: { x: st.x, z: st.z }, run: true };
+      }
+      if (ai.idleT > 0) { ai.idleT -= dt; return { face: null, move: null }; }
+      const t = ai.loop[ai.wp], d = new V3(t[0] - me.x, 0, t[1] - me.z);
+      if (d.length() < 1.2) { ai.wp = (ai.wp + ai.dir + 4) % 4; if (Math.random() < 0.35) ai.idleT = 2 + Math.random() * 5; }
+      d.normalize(); const st = steer(S, me, d, null);
+      return { face: Math.atan2(st.x, st.z), move: { x: st.x, z: st.z }, run: false };
+    }
+    // a gunshot: everyone within earshot reacts; shooting near people raises the heat
+    CITY.shot = (S) => {
+      const from = partPos(S, 'thorax');
+      for (const T of CITY.peds) { if (!T.ai || !T.body.root.visible || !T.phys.conscious) continue; const d = partPos(T, 'pelvis').distanceTo(from); if (d < 45) { if (!T.ai.alarm) T.ai.cower = Math.random() < 0.3; T.ai.alarm = { from: from.clone() }; T.ai.alarmT = 10 + Math.random() * 8; if (d < 25 && T.npc.startle) T.npc.startle(1); } }
+      if (S === CITY.player) { CITY.quietT = 0; const near = CITY.peds.some((T) => T.body.root.visible && partPos(T, 'pelvis').distanceTo(from) < 25); if (near && (CITY.lastShotHeat || 0) < performance.now() - 3000) { CITY.lastShotHeat = performance.now(); CITY.heat = Math.min(5, CITY.heat + 0.35); } }
+    };
+    CITY.hit = (S, T) => { if (S === CITY.player && T && T !== S) CITY.heat = Math.min(5, CITY.heat + (T.ai && T.ai.cop ? 1.2 : 1)); };
+    // ---- camera: over the shoulder, closer and tighter while aiming, never through a wall
+    function cityCamera(dt) {
+      const S = CITY.player, P = partPos(S, 'thorax'), aiming = CITY.aimHeld || (S.ai && S.ai.hipT > 0), want = aiming ? 1.45 : 3.2;
+      CITY.camD += (want - CITY.camD) * Math.min(1, dt * 8);
+      state.pitch = Math.max(-1.1, Math.min(0.8, state.pitch));
+      const fwd = new V3(-Math.sin(state.yaw) * Math.cos(state.pitch), Math.sin(state.pitch), -Math.cos(state.yaw) * Math.cos(state.pitch)), right = new V3(Math.cos(state.yaw), 0, -Math.sin(state.yaw));
+      const pivot = (CITY.camPivot || (CITY.camPivot = P.clone())).lerp(new V3(P.x, P.y + 0.32, P.z), Math.min(1, dt * 12));
+      const want3 = pivot.clone().addScaledVector(fwd, -CITY.camD).addScaledVector(right, aiming ? 0.5 : 0.42);
+      const dir = want3.clone().sub(pivot), L = dir.length(); dir.normalize(); const hit = CITY.C.ray(pivot, dir, L + 0.3);
+      camera.position.copy(hit ? pivot.clone().addScaledVector(dir, Math.max(0.3, hit.t - 0.3)) : want3); camera.position.y = Math.max(0.25, camera.position.y);
+      state.shake = Math.max(0, (state.shake || 0) - dt * 6); const sk = state.shake * state.shake * 0.006;
+      camera.rotation.set(state.pitch + (Math.random() - 0.5) * sk, state.yaw + (Math.random() - 0.5) * sk, 0); camera.updateMatrixWorld();
+      camera.fov += ((aiming ? 50 : 62) - camera.fov) * Math.min(1, dt * 8); camera.updateProjectionMatrix();
+      state.pos.copy(camera.position); // (sound is heard from the camera)
+      // what the crosshair is on: the city, or the nearest person along the line
+      const o = camera.position.clone(), cd = new V3(0, 0, -1).applyQuaternion(camera.quaternion); let t = 120; const h = CITY.C.ray(o, cd, 120); if (h) t = h.t;
+      for (const T of CITY.subs) { if (T === S || !T.body.root.visible) continue; for (const n of ['head', 'thorax', 'abdomen', 'pelvis']) { const c = partPos(T, n), v = c.clone().sub(o), a = v.dot(cd); if (a > 0 && a < t && v.addScaledVector(cd, -a).length() < (n === 'head' ? 0.11 : 0.17)) t = a; } }
+      CITY.aimPt.copy(o).addScaledVector(cd, Math.max(2.5, t));
+      CITY.C.follow(P);
+    }
+    CITY.update = (dt) => {
+      const S = CITY.player; stepDrops(dt); CITY.C.update(dt);
+      for (const T of CITY.subs) { if (!T.body.root.visible) continue; if (T.ai && T.gunModel) gunTick(T); const p = partPos(T, 'pelvis'); if (!T.staticAt || T.staticAt.distanceTo(p) > 2.5) nearStatics(T); }
+      // the heat: responders matching it come in; it cools off once they have lost him and he has stopped shooting
+      CITY.quietT += dt; const seen = CITY.cops.some((T) => T.ai && T.body.root.visible && T.ai.lastSeen < 6);
+      if (CITY.quietT > 15 && !seen) CITY.heat = Math.max(0, CITY.heat - dt * 0.08);
+      const want = Math.min(NCOP, Math.ceil(CITY.heat - 0.05)), live = CITY.cops.filter((T) => T.body.root.visible && T.ai);
+      if (live.length < want && S.phys.conscious) { const T = CITY.cops.find((c) => !c.body.root.visible); if (T && (CITY.copT = (CITY.copT || 0) - dt) <= 0) { spawnCop(T); CITY.copT = 4; } }
+      if (CITY.heat < 0.1) for (const T of live) if (T.ai.lastSeen > 8 && !T.phys.dead) despawn(T);
+      // the player down: a few seconds, then back on his feet at the start, the heat gone
+      if (!S.phys.conscious || S.phys.dead || (S.npc.posture !== 'stand' && S.ai.downT > 20)) { CITY.downT += dt; if (CITY.downT > 7) { for (const T of CITY.cops) if (T.body.root.visible) despawn(T); CITY.heat = 0; spawnPlayer(); } } else CITY.downT = 0;
+      for (const T of CITY.subs) if (T.ai && T.ai.player) T.ai.downT = T.npc.posture === 'stand' ? 0 : (T.ai.downT || 0) + dt;
+      // a quiet street refills: someone who has been lying dead a while out of sight is replaced by a new passer-by
+      for (const T of CITY.peds) { if (!T.body.root.visible) continue; if (T.phys.dead) T.deadT = (T.deadT || 0) + dt; else T.deadT = 0; const far = partPos(T, 'pelvis').distanceTo(partPos(S, 'pelvis')); if ((T.deadT > 90 && far > 35) || (far > 70 && !T.ai.alarm && T.phys.conscious)) spawnPed(T); } // the street round him stays alive
+      // HUD: the heat, and a message line
+      CITY.msgT -= dt;
+      if (cityHud && Math.floor(CITY.C.t * 4) !== CITY.hudT) { CITY.hudT = Math.floor(CITY.C.t * 4);
+        const pips = Math.ceil(CITY.heat - 0.05); let h = '<div class="heat">' + (pips > 0 ? 'HEAT ' + '<b>' + '●'.repeat(pips) + '</b>' + '○'.repeat(5 - pips) : '') + '</div>';
+        const ai = S.ai, w = ai && G.WEAPONS[ai.wi]; if (w) h += '<div class="ammo">' + w.name + ' · ' + (ai.reloadT > 0 ? 'reloading' : ai.ammo + ' / ' + WMAG[ai.wi]) + '</div>';
+        const m = CITY.downT > 0 ? 'Down. Back on your feet in ' + Math.max(1, Math.ceil(7 - CITY.downT)) : CITY.msgT > 0 ? CITY.msg : '';
+        h += '<div class="msg">' + m + '</div>'; cityHud.innerHTML = h; }
+    };
+    CITY.camera = cityCamera;
+    CITY.start = () => {
+      if (D.on) D.stop();
+      if (!CITY.C) { CITY.C = G.buildCity(scene, renderer); CITY.props = CITY.C.colliders.map((c) => ({ box: c.box, low: c.low, h: c.h, T: { m: 'concrete' }, mesh: { position: c.box.getCenter(new V3()) }, bodies: [] })); }
+      if (!cityHud) { cityHud = document.createElement('div'); cityHud.id = 'cityHud'; document.getElementById('app').appendChild(cityHud); }
+      while (subjects.length < 1 + NPED + NCOP) newSubject();
+      CITY.player = primary; CITY.peds = subjects.slice(1, 1 + NPED); CITY.cops = subjects.slice(1 + NPED, 1 + NPED + NCOP); CITY.subs = [CITY.player, ...CITY.peds, ...CITY.cops];
+      CITY.on = true; D.props = CITY.props; cityScenery(true); document.body.classList.add('city'); cityHud.hidden = false; gun.raise = 0; state.threat = null; ui.report(null);
+      state.yaw = Math.PI; state.pitch = -0.12; // looking along the sidewalk CITY.heat = 0; CITY.camPivot = null; world.clear(); projectiles.clear(); pending.length = 0;
+      spawnPlayer(); for (const T of CITY.peds) spawnPed(T); for (const T of CITY.cops) despawn(T);
+      CITY.msg = 'WASD move · Shift run · right mouse aim · left mouse fire · R reload · C crouch · 1–0 weapons · O leave'; CITY.msgT = 9;
+    };
+    CITY.stop = () => {
+      CITY.on = false; for (const T of CITY.subs) { if (T !== primary) despawn(T); else { if (T.gunModel) { scene.remove(T.gunModel); T.gunModel = null; } T.ai = null; } T.rag.setWalls(true); T.rag.setStatics([]); }
+      D.props = []; cityScenery(false); document.body.classList.remove('city'); if (cityHud) cityHud.hidden = true; if (document.pointerLockElement) document.exitPointerLock();
+      primary.body.root.position.set(0, 0, 0); primary.body.root.rotation.set(0, 0, 0); camera.fov = 62; camera.updateProjectionMatrix(); gun.raise = 1; state.pos.set(0, 1.62, 3); state.yaw = 0; state.pitch = -0.06; use(primary); reset();
+    };
+    CITY.setWeapon = (i) => { const S = CITY.player; if (!S || !S.ai || !G.WEAPONS[i]) return; giveGun(S, i); S.ai.ammo = WMAG[i]; S.ai.reloadT = 0; S.ai.gunDown = false; };
     // security cameras in the top corners (and the free view)
     const CAMS = [null, new V3(-3.7, 2.9, -2.2), new V3(3.7, 2.9, -2.2), new V3(3.7, 2.9, 6.8), new V3(-3.7, 2.9, 6.8)];
     const camBody = new THREE.Group(); for (const c of CAMS) if (c) { const g = new THREE.Group(); const hous = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.09, 0.22), new THREE.MeshStandardMaterial({ color: 0xd9d9d4, roughness: 0.5 })); const lens = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.03, 14), new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.1 })); lens.rotation.x = Math.PI / 2; lens.position.z = 0.12; const led = new THREE.Mesh(new THREE.SphereGeometry(0.008, 8, 6), new THREE.MeshBasicMaterial({ color: 0xff2020 })); led.position.set(0.04, 0.03, 0.11); hous.add(lens, led); g.add(hous); g.position.copy(c); g.lookAt(0, 1, 2.2); camBody.add(g); } scene.add(camBody);
     D.cycleCam = () => { D.cam = (D.cam + 1) % CAMS.length; };
     const hudEl = document.createElement('div'); hudEl.id = 'duelHud'; hudEl.hidden = true; document.getElementById('app').appendChild(hudEl);
-    D.update = (dt, rdt) => {
-      D.t += rdt; D.clock += dt; stepDrops(dt);
-      const [A, B] = D.fighters;
-      // guns in hand: aimed along the arm toward the target, or carried in the hand; dropped when the hand lets go
-      for (const S of D.fighters) {
+    // guns in hand: aimed along the arm toward the target, or carried in the hand; dropped when the hand lets go
+    function gunTick(S) {
         if (S.ai && S.ai.knifeMesh) { const kh = S.rag.parts['hand' + (S.ai.knifeHand || 'R')].b, kq = new THREE.Quaternion(kh.quaternion.x, kh.quaternion.y, kh.quaternion.z, kh.quaternion.w), dn = new V3(0, -1, 0).applyQuaternion(kq), fw2 = new V3(0, 0, 1).applyQuaternion(kq);
           S.ai.knifeMesh.position.set(kh.position.x, kh.position.y, kh.position.z).addScaledVector(dn, 0.03); S.ai.knifeMesh.quaternion.setFromRotationMatrix(new THREE.Matrix4().lookAt(new V3(), fw2.multiplyScalar(-1), dn)); } // blade out past the thumb
-        if (!S.ai || !S.gunModel || S.ai.gunDown) continue;
+        if (!S.ai || !S.gunModel || S.ai.gunDown) return;
         if (S.ai.flashN > 0) S.ai.flashN--; else S.ai.flash.intensity = 0;
         const gh = S.npc.gunHand || 'R', hb = S.rag.parts['hand' + gh].b, hp = new V3(hb.position.x, hb.position.y, hb.position.z);
         if (S.gs && S.gs.ro && S.gs.mode !== 'ground') {
@@ -1136,8 +1318,12 @@
           const k = S.phys.gripLost && S.phys.gripLost[sd] ? 0.05 : tgt && hpos.distanceTo(tgt) < 0.1 ? (sd === N.gunHand ? 1 : 0.8) : N.clutching && N.clutching[sd] ? 0.4 : S.phys.conscious ? 0.22 : 0.3;
           S.body.setGrip(sd, k);
         }
-        if (D.phase === 'fight' && S.ai.wantFire) aiFire(S);
-      }
+        if ((D.phase === 'fight' || CITY.on) && S.ai.wantFire) aiFire(S);
+    }
+    D.update = (dt, rdt) => {
+      D.t += rdt; D.clock += dt; stepDrops(dt);
+      const [A, B] = D.fighters;
+      for (const S of D.fighters) gunTick(S);
       if (D.phase === 'ready' && D.t > 2.5) { D.phase = 'fight'; D.t = 0; }
       if (D.phase === 'fight') {
         const oa = out(A), ob = out(B);
@@ -1190,14 +1376,15 @@
     }
     if (body.setLids) { if (!body.lidToned) body.lidToned = body.lidTone(); body.setLids(npc.lids || 0, npc.lids || 0); body.lookEyes(npc.eyePt, npc.eyeWander); }
     // the hands of a subject who is not holding anything: relaxed, half shut on a wound, clenched in pain, slack when out
-    if (body.setGrip && !(S.ai)) { const k0 = phys.dead ? 0.35 : !phys.conscious ? 0.3 : phys.pain > 0.55 && npc.posture !== 'down' ? 0.6 : 0.18; for (const sd of ['L', 'R']) body.setGrip(sd, npc.clutching && npc.clutching[sd] ? 0.4 : phys.gripLost && phys.gripLost[sd] ? 0.05 : k0); }
+    if (body.setGrip && !(S.ai && S.gunModel)) { const k0 = phys.dead ? 0.35 : !phys.conscious ? 0.3 : phys.pain > 0.55 && npc.posture !== 'down' ? 0.6 : 0.18; for (const sd of ['L', 'R']) body.setGrip(sd, npc.clutching && npc.clutching[sd] ? 0.4 : phys.gripLost && phys.gripLost[sd] ? 0.05 : k0); }
     handBlood.at += dt; if (handBlood.at > 0.3) { handBlood.at = 0; if (handBlood.L > 0) body.bloodyHand('L', handBlood.L); if (handBlood.R > 0) body.bloodyHand('R', handBlood.R); }
     // raccoon eyes come up over ~7 minutes while blood still circulates
     if (headFx.rkMax > headFx.rk && phys.hr > 20) { headFx.rk = Math.min(headFx.rkMax, headFx.rk + dt * slow * scale * headFx.rkMax / 420); headFx.at += dt; if (headFx.at > 0.25) { headFx.at = 0; body.periorbital(headFx.rk); } } body.bloodTick && body.bloodTick(dt * slow, phys.hr > 20);
   }
   // one full simulation + render step (also driven directly by the test harness for frame-exact capture)
   function step(dt, noRender) {
-    movePlayer(dt);
+    const city = duel && duel.city && duel.city.on;
+    if (!city) movePlayer(dt);
     state.kick = Math.max(0, state.kick - dt * 0.12 * (1 + state.kick * 40));
     camera.position.copy(state.pos);
     camera.position.y += eyeOffset;
@@ -1210,11 +1397,12 @@
     moveGrab();
     if (state.started) { simClock += dt * slow; while (pending.length && pending[0].t <= simClock) pending.shift().run(); }
     projectiles.update(simClock, dt * slow);
-    const active = duel && duel.on ? duel.fighters : [primary];
+    const C0 = duel && duel.city && duel.city.on ? duel.city : null;
+    const active = C0 ? C0.subs.filter((T) => T.body.root.visible) : duel && duel.on ? duel.fighters : [primary];
     for (const S of active) simSubject(S, dt, scale, slow);
     world.update(dt * slow); stepDebris(dt * slow);
-    if (duel && duel.on) duel.update(dt * slow, dt); else use(primary);
-    if (state.started) {
+    if (C0) { C0.update(dt * slow); use(C0.player); } else if (duel && duel.on) duel.update(dt * slow, dt); else use(primary);
+    if (state.started && !C0) {
       const dx = vent.x - state.pos.x, dz = vent.y - state.pos.z;
       const distance = Math.hypot(dx, dz);
       audio.ventilation(distance, (dx * Math.cos(state.yaw) - dz * Math.sin(state.yaw)) / Math.max(1, distance));
@@ -1231,14 +1419,15 @@
     uiT += dt; if (uiT > 0.15) { uiT = 0;
       { const st = phys.status(), lost = Math.round(phys.total - phys.bv), mini = document.getElementById('mini');
         if (mini && document.body.classList.contains('min')) mini.innerHTML = '<b>' + st[0] + '</b> · HR ' + Math.round(phys.hr) + ' · ' + (lost > 0 ? '−' + lost + ' mL' : 'no blood loss') + ' · ' + G.WEAPONS[state.wi].name; }
-      for (const S of (duel && duel.on ? duel.fighters : [primary])) { use(S);
+      for (const S of (C0 ? active : duel && duel.on ? duel.fighters : [primary])) { use(S);
       // skin and pupils follow the physiology
       body.setPerfusion(phys.frac(), phys.spo2, phys.dead || phys.stemDestroyed, phys.deadT || 0);
       const brainGone = phys.dead || phys.stemDestroyed || phys.anoxic > 120;
       body.setPupil(brainGone ? 0.62 : 0.32 + 0.12 * Math.min(1, phys.frac() / 0.3) + (phys.tFirst != null && phys.conscious ? 0.06 : 0));
       }
-      use(duel && duel.on ? duel.fighters[0] : primary);
+      use(C0 ? C0.player : duel && duel.on ? duel.fighters[0] : primary);
       ui.update(phys, npc); ui.setRange(Math.hypot(state.pos.x - npc.pos.x, state.pos.z - npc.pos.z)); }
+    if (city) { duel.city.camera(dt); gun.raise = 0; const r = canvas.getBoundingClientRect(); state.ax = r.width / 2; state.ay = r.height / 2; }
     if (G.debug && G.debug.camHook) G.debug.camHook(camera); // tests: a close look
     if (!noRender) renderer.render(scene, camera);
   }

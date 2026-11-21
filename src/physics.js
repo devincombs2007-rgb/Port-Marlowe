@@ -70,12 +70,15 @@
     const groundMat = new C.Material('ground'), footMat = new C.Material('foot');
     const footCM = new C.ContactMaterial(groundMat, footMat, { friction: 0.02, restitution: 0.05 });
     world.addContactMaterial(footCM);
-    const plane = (pos, axis, ang) => { const b = new C.Body({ mass: 0, shape: new C.Plane(), material: groundMat }); b.position.set(...pos); if (axis) b.quaternion.setFromAxisAngle(axis, ang); b.collisionFilterGroup = GROUND; b.collisionFilterMask = -1; world.addBody(b); };
+    const plane = (pos, axis, ang) => { const b = new C.Body({ mass: 0, shape: new C.Plane(), material: groundMat }); b.position.set(...pos); if (axis) b.quaternion.setFromAxisAngle(axis, ang); b.collisionFilterGroup = GROUND; b.collisionFilterMask = -1; world.addBody(b); return b; };
     plane([0, 0, 0], XA, -Math.PI / 2);
-    plane([0, 0, R.z0], null); plane([0, 0, R.z1], UP, Math.PI);
-    plane([R.x0, 0, 0], UP, Math.PI / 2); plane([R.x1, 0, 0], UP, -Math.PI / 2);
+    const walls = [plane([0, 0, R.z0], null), plane([0, 0, R.z1], UP, Math.PI), plane([R.x0, 0, 0], UP, Math.PI / 2), plane([R.x1, 0, 0], UP, -Math.PI / 2)];
 
     const P = { stepping: null, stepCool: 0, steps: 0, world, active: false, parts: {}, joints: [], locks: [], rigid: false, lastThud: 0, t: 0, grabbed: null };
+    // outdoors: no chamber walls; the city's solid boxes instead
+    P.walls = true; P.statics = [];
+    P.setWalls = (on) => { if (on === P.walls) return; P.walls = on; for (const b of walls) on ? world.addBody(b) : world.remove(b); };
+    P.setStatics = (boxes) => { for (const b of P.statics) world.remove(b); P.statics = []; for (const bx of boxes || []) { const s = bx.getSize(new THREE.Vector3()), c = bx.getCenter(new THREE.Vector3()), b = new C.Body({ mass: 0, material: groundMat }); b.addShape(new C.Box(new C.Vec3(s.x / 2, s.y / 2, s.z / 2))); b.position.set(c.x, c.y, c.z); b.collisionFilterGroup = GROUND; b.collisionFilterMask = -1; world.addBody(b); P.statics.push(b); } };
     // standing controller: s = leg support 0..1, bal = balance quality 0..1, y0 = pelvis height to hold, push = extra force (N)
     P.ctl = { s: 0, bal: 1, y0: 0.94, yRest: 0.94, push: new V3() };
     const MTOT = 77, GRAV = 9.81;

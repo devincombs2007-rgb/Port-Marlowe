@@ -131,3 +131,13 @@ body.duel #bMenu { display: block; }
 #settings label.opt input { margin: 2px 0 0; flex: none; accent-color: #7fd4e6; }
 #settings label.opt span { display: block; }
 #settings div.opt { flex-direction: column; gap: 6px; cursor: default; }
+
+/* ---- the open world */
+#cityHud { position: absolute; right: 16px; top: 14px; text-align: right; font: 600 13px/1.4 'IBM Plex Mono', monospace; color: #f4f1ea; text-shadow: 0 1px 3px rgba(0,0,0,0.8); pointer-events: none; z-index: 12; }
+#cityHud .heat { font: 700 15px 'Chakra Petch', sans-serif; letter-spacing: 0.12em; color: #f0d27a; }
+#cityHud .heat b { color: #ff5a4e; font-weight: 700; }
+#cityHud .msg { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); font-size: 13px; text-align: center; white-space: nowrap; max-width: 92vw; overflow: hidden; text-overflow: ellipsis; }
+body.nohud #cityHud .ammo { display: none; }
+body.city #mini { display: none !important; }
+body.city #cross { width: 8px; height: 8px; margin: -4px 0 0 -4px; border-width: 1.5px; }
+body.city #bMenu { display: block; }

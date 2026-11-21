@@ -12,6 +12,7 @@
 
     // ---- ray vs room (from inside)
     W.rayRoom = (o, dir) => {
+      if (W.rayHook) return W.rayHook(o, dir); // outdoors: the city's own ground and buildings
       let best = Infinity, n = null;
       const test = (t, nx, ny, nz) => { if (t > 1e-4 && t < best) { best = t; n = [nx, ny, nz]; } };
       if (dir.x) { test((ROOM.x0 - o.x) / dir.x, 1, 0, 0); test((ROOM.x1 - o.x) / dir.x, -1, 0, 0); }
@@ -51,7 +52,7 @@
     const GX = 320, GZ = 376, CW = w / GX, CD = d / GZ, MLMM = (CW * CD * 1e4) / 10; /* mL per mm depth in one cell */
     const vol = new Float32Array(GX * GZ), dv = new Float32Array(GX * GZ), flr = new Float32Array(GX * GZ), age = new Float32Array(GX * GZ);
     for (let j = 0; j < GZ; j++) for (let i = 0; i < GX; i++) {
-      const x = ROOM.x0 + (i + 0.5) * CW, z = ROOM.z1 - (j + 0.5) * CD;
+      const x = ROOM.x0 + (i + 0.5) * CW, z = ROOM.z1 - (j + 0.5) * CD; // (the grid can be moved later; the floor's texture of heights goes with it)
       let hgt = 0.28 * Math.sin(x * 2.1 + 1) * Math.cos(z * 1.7) + 0.18 * Math.sin(x * 5.3 + z * 4.1) + 0.1 * Math.sin(x * 13 - z * 11);
       const gx = Math.abs(((x % 0.5) + 0.5) % 0.5), gz = Math.abs(((z % 0.5) + 0.5) % 0.5);
       if (gx < CW * 0.6 || gz < CW * 0.6) hgt -= 0.7; // grout line
@@ -72,7 +73,8 @@
     bmesh.rotation.x = -Math.PI / 2; bmesh.position.set(0, 0.0022, cz); bmesh.renderOrder = 2; scene.add(bmesh);
     const bb = { i0: GX, i1: -1, j0: GZ, j1: -1 };
     let texDirty = false; W.bloodOnFloor = 0;
-    const cellOf = (x, z) => { const i = Math.floor((x - ROOM.x0) / CW), j = Math.floor((ROOM.z1 - z) / CD); return i < 2 || j < 2 || i >= GX - 2 || j >= GZ - 2 ? -1 : j * GX + i; };
+    let gx0 = ROOM.x0, gz1 = ROOM.z1;
+    const cellOf = (x, z) => { const i = Math.floor((x - gx0) / CW), j = Math.floor((gz1 - z) / CD); return i < 2 || j < 2 || i >= GX - 2 || j >= GZ - 2 ? -1 : j * GX + i; };
     const grow = (i, j) => { if (i < bb.i0) bb.i0 = i; if (i > bb.i1) bb.i1 = i; if (j < bb.j0) bb.j0 = j; if (j > bb.j1) bb.j1 = j; };
     W.addBlood = (x, z, ml) => {
       const c = cellOf(x, z); if (c < 0 || !(ml > 0)) return;
@@ -173,8 +175,8 @@
     // blood that hits a wall with enough volume runs down it
     W.drips = [];
     const up = new V3(0, 1, 0), nn = new V3();
-    const wallHit = (pt) => (pt.y <= 0 ? up : pt.z <= ROOM.z0 ? nn.set(0, 0, 1) : pt.x <= ROOM.x0 ? nn.set(1, 0, 0) : pt.x >= ROOM.x1 ? nn.set(-1, 0, 0) : pt.z >= ROOM.z1 ? nn.set(0, 0, -1) : null);
-    const clampIn = (pt) => { pt.y = Math.max(0, pt.y); pt.x = Math.max(ROOM.x0, Math.min(ROOM.x1, pt.x)); pt.z = Math.max(ROOM.z0, Math.min(ROOM.z1, pt.z)); };
+    const wallHit = (pt) => (pt.y <= 0 ? up : W.open ? null : pt.z <= ROOM.z0 ? nn.set(0, 0, 1) : pt.x <= ROOM.x0 ? nn.set(1, 0, 0) : pt.x >= ROOM.x1 ? nn.set(-1, 0, 0) : pt.z >= ROOM.z1 ? nn.set(0, 0, -1) : null);
+    const clampIn = (pt) => { pt.y = Math.max(0, pt.y); if (W.open) return; pt.x = Math.max(ROOM.x0, Math.min(ROOM.x1, pt.x)); pt.z = Math.max(ROOM.z0, Math.min(ROOM.z1, pt.z)); };
     let flowAcc = 0, paintAcc = 0;
     W.landed = 0; // drops that reached the floor this frame (for drip sounds)
     W.update = (dt) => {
@@ -236,6 +238,8 @@
       if (flowAcc > 0.2) flowAcc = 0;
       paintAcc += dt; if (paintAcc > 0.07 && (texDirty || bb.i1 >= 0)) { paint(paintAcc); paintAcc = 0; }
     };
+    // outdoors the 8 x 9 m liquid floor follows the action: moved (and emptied) to wherever blood is being shed
+    W.centerOn = (x, z) => { const cx = gx0 + w / 2, cz2 = gz1 - d / 2; if (Math.abs(x - cx) < w / 2 - 1.2 && Math.abs(z - cz2) < d / 2 - 1.2) return false; vol.fill(0); age.fill(0); W.bloodOnFloor = 0; gx0 = x - w / 2; gz1 = z + d / 2; bmesh.position.set(x, 0.0022, z); bb.i0 = 0; bb.i1 = GX - 1; bb.j0 = 0; bb.j1 = GZ - 1; texDirty = true; return true; };
     W.clear = () => {
       for (const a of [W.stains, W.holes, W.debris]) { for (const m of a) scene.remove(m); a.length = 0; }
       for (const dp of W.drips) scene.remove(dp.m); W.drips.length = 0;

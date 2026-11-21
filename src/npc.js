@@ -233,7 +233,7 @@
           const th = hooks.threat ? hooks.threat() : null;
           if (N.retreatT > 0 && th && N.stagger < 0.3) {
             let dx = pel.position.x - th.x, dz = pel.position.z - th.z; const d = Math.hypot(dx, dz) || 1; dx /= d; dz /= d;
-            const R = G.ROOM, nx = pel.position.x + dx * 0.7, nz = pel.position.z + dz * 0.7;
+            const R = G.BOUNDS || G.ROOM, nx = pel.position.x + dx * 0.7, nz = pel.position.z + dz * 0.7;
             if (nx > R.x0 && nx < R.x1 && nz > R.z0 && nz < R.z1 && d < 7) {
               N.retreating = true; const l = 0.11 * Math.min(1, P.brainE) * (P.map > 60 ? 1 : 0.6);
               // first a step or two backwards, then turn away and walk off (fleeing), faster while fit
@@ -273,7 +273,7 @@
         const th = hooks.threat ? hooks.threat() : null;
         if (th && N.downT > 6) {
           let dx = tho.position.x - th.x, dz = tho.position.z - th.z; const d = Math.hypot(dx, dz) || 1; dx /= d; dz /= d;
-          const R = G.ROOM, x = tho.position.x + dx * 0.9, z = tho.position.z + dz * 0.9;
+          const R = G.BOUNDS || G.ROOM, x = tho.position.x + dx * 0.9, z = tho.position.z + dz * 0.9;
           if (x > R.x0 && x < R.x1 && z > R.z0 && z < R.z1 && d < 6) {
             N.crawling = true;
             const pulse = Math.max(0, Math.sin(c * 2.4)), f = 1500 * pulse * pulse * Math.min(1, P.brainE);
