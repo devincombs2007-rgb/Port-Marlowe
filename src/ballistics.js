@@ -98,7 +98,9 @@
         if (ph > 1) y = Math.max(y, fragmented ? 0.75 : b.yawRest == null ? 0.3 : b.yawRest);
       }
       if (y > 0) { const As = Math.max(A, b.len * b.d); A += (As - A) * y; Cd += ((b.cdYaw || 0.5) - Cd) * y; }
-      if (b.vFrag && !fragmented && y > 0.6 && v > b.vFrag) {
+      // a long round-nose bullet striking the thick skull fast breaks up at the bone (the first brain sample counts: a 6 mm
+      // step can pass over the 6.5 mm vault) (a "lead snowstorm" on the X-ray)
+      if (b.vFrag && !fragmented && ((y > 0.6) || (b.fragSkull && ((isBone && prim && prim.bone === 'skull') || (out.seg && out.seg.name === 'head' && /cereb|brain/.test(prim ? prim.kind || '' : ''))))) && v > b.vFrag) {
         fragmented = res.fragmented = true; extraTot = (1 - b.retain) * E; m *= b.retain; E -= extraTot; extraLeft = extraLen = 0.09; fragR = b.fragR || 0.03;
       }
       if (b.expMax && b.retain && !b.vFrag && !shed && e >= 1) {

@@ -6,6 +6,9 @@
 (function () {
   const G = (window.GSW = window.GSW || {});
   const POSES = {
+    seatThroat: { thighL: [-1.45, 0, 0.08], thighR: [-1.45, 0, -0.08], shinL: [1.4, 0, 0], shinR: [1.4, 0, 0], footL: [0.15, 0, 0], footR: [0.15, 0, 0], uarmL: [-1.45, 0, 0.75], uarmR: [-1.45, 0, -0.75], farmL: [-2.2, 0, 0], farmR: [-2.2, 0, 0], neck: [0.1, 0.25, -0.1], head: [0.1, 0.2, -0.08] }, // (head bowed and turned to the left, as the film shows from Z230 on)
+    seatHug: { thighL: [-1.5, 0, 0.08], thighR: [-1.5, 0, -0.08], shinL: [1.45, 0, 0], shinR: [1.45, 0, 0], footL: [0.15, 0, 0], footR: [0.15, 0, 0], uarmL: [-0.7, 0, 0.2], uarmR: [-0.7, 0, -0.2], farmL: [-1.9, 0, 0], farmR: [-1.9, 0, 0], abdomen: [0.2, 0, 0], thorax: [0.15, 0, 0] },
+    seated: { thighL: [-1.45, 0, 0.08], thighR: [-1.45, 0, -0.08], shinL: [1.4, 0, 0], shinR: [1.4, 0, 0], footL: [0.15, 0, 0], footR: [0.15, 0, 0], uarmL: [-0.3, 0, 0.08], uarmR: [-0.3, 0, -0.08], farmL: [-1.05, 0, 0], farmR: [-1.05, 0, 0] },
     stand: { uarmL: [0, 0, 0.1], uarmR: [0, 0, -0.1], farmL: [-0.15, 0, 0], farmR: [-0.15, 0, 0] },
     guard: { abdomen: [0.22, 0, 0], thorax: [0.25, 0, 0], head: [0.2, 0, 0], uarmL: [-0.35, 0, -0.12], uarmR: [-0.35, 0, 0.12], farmL: [-1.75, 0, -0.5], farmR: [-1.75, 0, 0.5], thighL: [-0.2, 0, 0], thighR: [-0.2, 0, 0], shinL: [0.35, 0, 0], shinR: [0.35, 0, 0], footL: [-0.15, 0, 0], footR: [-0.15, 0, 0] },
     brace: { abdomen: [0.3, 0, 0], thorax: [0.3, 0, 0], head: [0.2, 0, 0], uarmL: [-0.9, 0, 0.2], uarmR: [-0.9, 0, -0.2], farmL: [-0.7, 0, 0], farmR: [-0.7, 0, 0], thighL: [-0.9, 0, 0.06], thighR: [-0.9, 0, -0.06], shinL: [1.7, 0, 0], shinR: [1.7, 0, 0] },
@@ -28,7 +31,9 @@
     const N = { crouch: 0, lean: 0, aiming: false, gunHand: 'R', lookT: 0, lookAt: null, armSw: { L: 0, R: 0 }, fleeT: 0, flees: false, retreatT: 0, riseT: 0, riseTries: 0, chose: false, flinchT: 0, dip: 0, posture: 'stand', pose: 'stand', pos: new THREE.Vector3(), decideT: -1, wantDown: false, clock: 0, breath: 0, ragT: 0, stillT: 0, stagger: 0, stagDir: [0, 0], crawling: false, downT: 0,
       lowering: 0, giveT: 0, clutchT: 0, clutching: { L: null, R: null }, gasp: 0, cough: 0, coughAt: 4 + Math.random() * 6, groanAt: 3 + Math.random() * 5, voiceAt: 9, hitClock: -99, act: 'still', actT: 0, actDur: 1, actSeed: 0, actSide: 1, lastBreath: 0, motor: 'normal' };
     const ctl = rag.ctl, ev = (t, d) => hooks.event && hooks.event(t, d);
-    rag.start(); ctl.s = 1; ctl.bal = 1; ctl.y0 = ctl.yRest; ctl.canStep = true; ctl.trunk = 0; ctl.draw = 0; ctl.lead = null; ctl.face = null; rag.lost = null; rag.stepWin = 0;
+    if (hooks.seated) { N.posture = 'seated'; }
+    ctl.seatYaw = hooks.seated ? hooks.seatYaw || 0 : null;
+    rag.start(); ctl.s = hooks.seated ? 0 : 1; ctl.bal = 1; ctl.y0 = ctl.yRest; ctl.canStep = true; ctl.trunk = 0; ctl.draw = 0; ctl.lead = null; ctl.face = null; rag.lost = null; rag.stepWin = 0;
     const collapse = (rigid, tripped) => {
       if (N.posture !== 'stand') return;
       rag.lost = null;
@@ -293,6 +298,17 @@
         N.clutching.L = N.clutching.R = null; rag.setClutch('L', null); rag.setClutch('R', null);
       } else if (rag.reach.L || rag.reach.R) { rag.reach.L = rag.reach.R = null; }
       N.aiming = false; N.supHand = null; rag.reachCap = 130;
+      // sitting with a wound in the throat: both fists come up in front of it, elbows out (the arms are carried there by
+      // the shoulders; the muscles of a raised arm alone could not hold it)
+      if (N.posture === 'seated') {
+        const throat = aware && body.wounds.some((w) => w.noticeAt != null && w.noticeAt <= N.clock && w.seg.name === 'neck'), nk = rag.parts.neck.b.position, tq = tho.quaternion;
+        if (throat) { const fx = 2 * (tq.x * tq.z + tq.w * tq.y), fy = 2 * (tq.y * tq.z - tq.w * tq.x), fz = 1 - 2 * (tq.x * tq.x + tq.y * tq.y), lx = 1 - 2 * (tq.y * tq.y + tq.z * tq.z), lz = 2 * (tq.x * tq.z - tq.w * tq.y);
+          for (const sd of ['L', 'R']) { const k = sd === 'L' ? 1 : -1; rag.reach[sd] = new THREE.Vector3(nk.x + fx * 0.17 + lx * k * 0.045, nk.y - 0.03 + fy * 0.17, nk.z + fz * 0.17 + lz * k * 0.045); } rag.reachCap = 70; }
+        else if (hooks.seatHold && !body.wounds.length) { // something held in front of the chest (a hat): offsets [left, up, forward] in the chest's frame
+          const fx = 2 * (tq.x * tq.z + tq.w * tq.y), fy = 2 * (tq.y * tq.z - tq.w * tq.x), fz = 1 - 2 * (tq.x * tq.x + tq.y * tq.y), lx = 1 - 2 * (tq.y * tq.y + tq.z * tq.z), ly = 2 * (tq.x * tq.y + tq.w * tq.z), lz = 2 * (tq.x * tq.z - tq.w * tq.y), tp = tho.position;
+          for (const sd in hooks.seatHold) { const [a, u, f] = hooks.seatHold[sd]; rag.reach[sd] = new THREE.Vector3(tp.x + lx * a + fx * f, tp.y + ly * a + fy * f + u, tp.z + lz * a + fz * f); } rag.reachCap = 50;
+        } else if (rag.reach.L || rag.reach.R) rag.reach.L = rag.reach.R = null;
+      }
       const holdPt = N.ai && (N.ai.hold || N.ai.aim);
       if (!N.protect && holdPt && aware && !P.armsPara) {
         const gh = N.ai.gunHand || 'R', sd = gh === 'R' ? 'L' : 'R';
@@ -315,7 +331,7 @@
       applyPressure(P, grip);
       N.lookT = Math.max(0, N.lookT - dt);
       if (N.clutchT > 0) N.clutchT -= dt;
-      else { N.clutchT = 0.5; chooseClutch(P, aware && !N.crawling && !N.protect && body.wounds.length > 0 && grip > ((N.clutching.L || N.clutching.R) ? 0.15 : 0.35)); } // once the hands have dropped they need real strength to come back
+      else { N.clutchT = 0.5; chooseClutch(P, aware && N.posture !== 'seated' && !N.crawling && !N.protect && body.wounds.length > 0 && grip > ((N.clutching.L || N.clutching.R) ? 0.15 : 0.35)); } // once the hands have dropped they need real strength to come back
       // ---- life in the face and the stance: blinking, where the eyes and head go, weight shifting, shivering
       N.blinkT = (N.blinkT == null ? 2 : N.blinkT) - dt; N.blink = Math.max(0, (N.blink || 0) - dt / 0.16);
       if (N.blinkT <= 0 && aware) { N.blink = 1; N.blinkT = (N.distress > 0.3 ? 1 : 2.2) + Math.random() * 4; if (Math.random() < 0.15) N.blinkT = 0.25; } // sometimes a double blink
@@ -364,6 +380,7 @@
       const vigor = restless ? Math.sin(Math.PI * Math.min(1, N.actT / N.actDur)) * (0.45 + 0.55 * N.distress) * (1 - 0.6 * shock) : 0;
       const act = vigor > 0.01 ? N.act : 'still', sd0 = N.actSeed;
       rag.ext = rag.ext || {}; rag.ext.thorax = rag.ext.pelvis = null;
+      if (hooks.lean) { const ln = hooks.lean(); if (ln) { rag.ext.thorax = ln.thorax || null; rag.ext.pelvis = ln.pelvis || null; } } // an outside push on the trunk (someone pulling him over)
       if (act === 'roll' || act === 'curl') {
         // rolling is done by pushing against the floor with a leg and shoulder: a torque about the body's long axis
         tho.quaternion.vmult(LONG, lax);
@@ -371,6 +388,9 @@
         rag.ext.thorax = [lax.x * T, lax.y * T, lax.z * T]; rag.ext.pelvis = [lax.x * T * 0.7, lax.y * T * 0.7, lax.z * T * 0.7];
       }
       if (N.posture === 'down') ctl.trunk = act === 'lift' ? 0.22 * vigor : 0;
+      // sitting: the trunk muscles (and a back brace, if worn) hold the spine upright against the seat; a wound slackens
+      // them, unconsciousness lets the body fold, a brace keeps it up even then
+      if (N.posture === 'seated') ctl.trunk = !alive || P.brainDestroyed ? 0 : aware ? (hooks.brace ? 1 : hurt ? 0.45 : 0.75) * (1 - 0.6 * shock) : hooks.brace ? 0.55 : 0;
       // knees: drawn up while curled or lying hurt (typical for belly and leg pain), kicked in turn while writhing;
       // a broken or paralysed leg stays where it is
       if (N.posture === 'down') {
@@ -378,6 +398,14 @@
         ctl.knees = (ctl.knees || 0) + (want * (P.legsPara ? 0 : 1) - (ctl.knees || 0)) * Math.min(1, dt * 2);
         ctl.kneeSide = act === 'writhe' ? (Math.sin(c * 2.3 + sd0) > 0 ? 1 : -1) : P.legBroken.L ? -1 : P.legBroken.R ? 1 : 0;
       } else ctl.knees = 0;
+      if (N.posture === 'seated') {
+        // sitting: no reaching round with the hands (in a seat it wrenches the trunk); a wound once felt brings the arms in
+        // instead: to the throat, elbows up and out, for a wound in the neck; folded over the chest or belly otherwise
+        const felt = aware && body.wounds.some((w) => w.noticeAt != null && w.noticeAt <= N.clock);
+        const neck = felt && body.wounds.some((w) => w.noticeAt <= N.clock && w.seg.name === 'neck');
+        if (hooks.seatArms && !N.seatPose) N.seatPose = Object.assign({}, POSES.seated, hooks.seatArms);
+        target = neck ? POSES.seatThroat : felt ? POSES.seatHug : N.seatPose || POSES.seated;
+      }
       if (rigid) target = POSES[M];
       // clonic phase: rhythmic whole-body jerks that slow and fade
       let jerk = 0;
@@ -428,6 +456,7 @@
         if (N.posture === 'down' && aware && tone > 0 && !(isArm && N.clutching[side])) tone = Math.max(tone, 0.5 * (1 - 0.5 * shock));
         if (N.crawling && n.startsWith('uarm')) x = -1.6 + Math.sin(c * 2.4 + (side === 'L' ? 0 : Math.PI)) * 0.9;
         if (isArm && N.protect) { tone *= 0.25; }
+        if (N.posture === 'seated' && tone > 0) { if (hooks.brace && (n === 'abdomen' || n === 'thorax') && !P.brainDestroyed && !P.dead) tone = Math.max(tone, 1.2); if (isLeg) tone = Math.max(tone, 0.6 * base); if (aware && (n === 'neck' || n === 'head')) tone = Math.max(tone, hurt ? 0.5 : 0.9); } // a back brace holds the trunk upright
         if (isArm && N.aiming && (side === N.gunHand || side === N.supHand)) {
           // holding the gun: the shoulder lets the hand be placed; the elbow bends to the angle that puts the hand at the
           // grip (two-segment arm, law of cosines): nearly straight for a pistol at arm's length, well bent for a stock

@@ -1,4 +1,4 @@
-# Port-Marlowe — Wound Ballistics Lab (v3.1)
+# Port-Marlowe — Wound Ballistics Lab (v3.2)
 
 A browser-based 3D simulator of gunshot wounds. A test subject stands in a chamber; every
 round is traced millimetre by millimetre through skin, bone, organs and vessels, and the
@@ -6,6 +6,32 @@ body then responds in real time (bleeding, blood pressure, breathing, consciousn
 
 **Run it:** serve this folder with any static server (`python3 -m http.server`) and open
 `index.html`. No build step. `node tools/build.js` bundles a single-file page into `dist/`.
+
+**v3.2 — Dallas, 22 November 1963: a forensic reconstruction** (the "Dallas, 22 Nov 1963" button). A replay, not a playable
+shooter, of the assassination of President John F. Kennedy as the Warren Commission (1964) and the House Select
+Committee on Assassinations (1979) found it. It uses generic bodies, not likenesses. Dealey Plaza is laid out from the
+survey figures: the Texas School Book Depository with the sixth-floor south-east window, Houston and Elm Streets, the
+120° turn, the oak, the Stemmons Freeway sign, the grassy knoll with the pergola and fence, Zapruder's pedestal,
+Main and Commerce, and the triple underpass. The motorcade is SS-100-X (the President and Mrs Kennedy on the rear
+seat, Governor and Mrs Connally on the jump seats, agents Greer and Kellerman in front), with the lead car, the
+follow-up car with agents on the running boards, the Vice-President's car and the motorcycle escort. The car keeps
+to the Zapruder timeline: 18.3 frames a second, about 11 mph down Elm, shots at about Z160 (missed), Z222 and Z313,
+then Greer's acceleration. The rifle is a 6.5×52 mm Mannlicher-Carcano firing the Western Cartridge Co. 160-grain
+round-nose FMJ, traced from the window like every other shot in the lab:
+- Shot 2 enters the base of the President's neck right of the spine, passes through soft tissue and the trachea,
+  leaves at the throat, then enters Governor Connally's back by the right armpit, breaks the right fifth rib, perforates
+  the right lung, leaves below the right nipple and passes through his right wrist. The bullet stays whole (CE399).
+- Shot 3 enters the back of the head right of the midline (the HSCA panel's entry point), breaks up on the skull
+  (the two largest fragments found in the car were about 41% of the bullet) and bursts the skull.
+- The passengers sit in the moving car with their own physics: a back brace keeps the President upright after the
+  neck wound, his fists come up to his throat, and after the head shot his body goes limp and falls back and to his
+  left into Mrs Kennedy's lap (her pull is approximated as a push on the trunk).
+Five views: 1 Zapruder's camera (about 10° across at full zoom), 2 the sixth-floor window, 3 the plaza, 4 beside the
+car, 5 above; Space pauses, F is slow motion, R replays, O leaves. Captions say where the official findings come from
+and where they are disputed (the HSCA's acoustic "fourth shot" from the knoll, the entry point on the head). Limits:
+the jump seat is placed so the second shot's line reaches the Governor where his wounds were (as the HSCA did), the
+bodies are one standard size, and the wrist wound is soft tissue only (the real one broke the radius) and the thigh
+wound is not reproduced.
 
 **v3.1 — driving, traffic, day and night, minimap**: F gets you into the nearest car (a parked one, or one out of
 the traffic) and out again on the driver's side. Arcade car handling: W/S throttle and brake (then reverse), A/D

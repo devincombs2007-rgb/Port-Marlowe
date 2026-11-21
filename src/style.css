@@ -144,3 +144,13 @@ body.city #bMenu { display: block; }
 
 #minimap { position: absolute; left: 16px; bottom: 16px; width: 180px; height: 180px; border-radius: 50%; pointer-events: none; z-index: 11; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5)); }
 #cityHud .clock { font: 600 14px 'IBM Plex Mono', monospace; opacity: 0.9; }
+
+/* ---- the 1963 reconstruction */
+#reconHud { position: absolute; left: 0; right: 0; margin: 0 auto; top: 12px; width: min(820px, 92vw); text-align: center; font: 500 13px/1.45 'IBM Plex Mono', monospace; color: #f2efe8; text-shadow: 0 1px 3px rgba(0,0,0,0.85); pointer-events: none; z-index: 12; }
+#reconHud .title { font: 700 15px 'Chakra Petch', sans-serif; letter-spacing: 0.06em; }
+#reconHud .z { opacity: 0.85; margin: 2px 0 6px; }
+#reconHud .ev { background: rgba(10,12,14,0.55); padding: 6px 10px; border-radius: 6px; }
+#reconHud .sim { margin-top: 5px; font-size: 12px; color: #f0c8b8; }
+#reconHud .keys { position: fixed; left: 50%; bottom: 12px; transform: translateX(-50%); font-size: 11px; opacity: 0.75; white-space: nowrap; }
+body.recon #mini, body.recon #cross { display: none !important; }
+body.recon #bMenu { display: block; }

@@ -327,6 +327,8 @@
           const b = P.parts[n].b, [K, D] = TRUNKK[n], g = c.trunk * 1.4;
           b.quaternion.vmult(UP, up); up.cross(UP, ax);
           b.torque.x += K * g * ax.x - D * c.trunk * b.angularVelocity.x; b.torque.z += K * g * ax.z - D * c.trunk * b.angularVelocity.z;
+          // sitting in a seat: the hips and back are also kept facing the way the person is turned (c.seatYaw)
+          if (c.seatYaw != null && n !== 'head') { const q = b.quaternion, fx = 2 * (q.x * q.z + q.w * q.y), fz = 1 - 2 * (q.x * q.x + q.y * q.y); let e = Math.atan2(fx, fz) - c.seatYaw; e = Math.atan2(Math.sin(e), Math.cos(e)); b.torque.y += -K * 0.6 * g * e - D * c.trunk * b.angularVelocity.y; }
         }
         return;
       }
@@ -565,14 +567,15 @@
     const H = 1 / 120;
     P.step = (dt) => {
       P.t += dt; acc = Math.min(acc + dt, 0.1);
-      while (acc >= H) { if (P.active) { muscles(); balance(); clutchForce(); grabForce(); extForce(); keepOut(); } world.step(H); acc -= H; }
+      while (acc >= H) { if (P.active) { muscles(); balance(); clutchForce(); grabForce(); extForce(); keepOut(); if (P.frameAcc) { const fa = P.frameAcc; for (const k in P.parts) { const b = P.parts[k].b; if (P.parts[k].virtual) continue; b.force.x -= b.mass * fa.x; b.force.y -= b.mass * fa.y; b.force.z -= b.mass * fa.z; } } } world.step(H); acc -= H; } // (frameAcc: the frame's own acceleration, felt as inertia)
       syncCasings();
     };
     // ---- write physics transforms back to the render / hit-test skeleton
     const wq = {}, wo = {};
     P.sync = () => {
       if (!P.active) return;
-      body.root.position.set(0, 0, 0); body.root.rotation.set(0, 0, 0);
+      // a moving frame (a passenger in a car): the physics runs in the car's own frame and the body is drawn where the car is
+      if (P.frame) { body.root.position.copy(P.frame.pos); body.root.quaternion.copy(P.frame.quat); } else { body.root.position.set(0, 0, 0); body.root.rotation.set(0, 0, 0); }
       for (const s of body.list) {
         const p = s.part, b = p.b;
         const qw = (wq[s.name] = wq[s.name] || new Q()).set(b.quaternion.x, b.quaternion.y, b.quaternion.z, b.quaternion.w);

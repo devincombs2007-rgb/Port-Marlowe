@@ -84,7 +84,7 @@
   function clearDebris() { for (const d of debris) scene.remove(d.m); debris.length = 0; }
   // the voice opens the mouth: a scream wide, a cry or a cough part way, a moan a little
   const VOICE_JAW = { scream: [0.34, 1.3], yelp: [0.24, 0.45], cry: [0.2, 1.5], moan: [0.1, 1.1], groan: [0.1, 1.1], grunt: [0.06, 0.3], cough: [0.24, 0.35], gasp: [0.3, 0.6] };
-  const pending = []; let simClock = 0; let duel = null;
+  const pending = []; let simClock = 0; let duel = null, recon = null;
   const projectiles = G.Projectiles(scene);
   for (const S of subjects) S.viscera = G.Viscera(scene, S.body, S.rag);
   viscera = primary.viscera; current = primary;
@@ -109,8 +109,193 @@
   }
   reset(); setWeapon(1); ui.setTime(1);
   duel = Duel();
+  recon = Recon();
+  document.getElementById('bRecon').addEventListener('click', () => { document.getElementById('intro').hidden = true; state.started = true; audio.init(); recon.start(); });
   document.getElementById('bCity').addEventListener('click', () => { document.getElementById('intro').hidden = true; state.started = true; audio.init(); duel.city.start(); });
   document.getElementById('bDuel').addEventListener('click', () => { document.getElementById('intro').hidden = true; state.started = true; audio.init(); duel.start(); });
+
+
+  // =============================== DALLAS, 22 NOVEMBER 1963: forensic reconstruction ===============================
+  // A replay (not a game): the motorcade through Dealey Plaza and the three shots as found by the Warren Commission
+  // (1964) and the House Select Committee on Assassinations (1979), run through the same tissue, wound, physiology
+  // and ragdoll simulation as everything else. Timing in Zapruder-film frames (18.3 per second).
+  function Recon() {
+    const R = { on: false, D: null, subs: [], roles: {}, t: 0, rate: 1, cam: 1, fired: [false, false, false], cap: [], hud: null, hats: [] };
+    // Western Cartridge Co. 6.5 x 52 mm Mannlicher-Carcano: 160-grain (10.4 g) round-nose full metal jacket, about 2,165 ft/s
+    // at the muzzle (about 625 m/s at the car); long and stable, it can pass through flesh intact (CE399) and break up
+    // on bone at speed
+    const CARCANO = { name: '6.5×52 mm Mannlicher-Carcano', cls: 'rifle', model: 'bolt', load: '160 gr FMJ round nose (Western Cartridge Co.)', loud: 1, recoil: 0.7, spread: 0.0008,
+      bullet: { m: 0.01037, d: 0.00668, v: 625, len: 0.0302, cd: 0.3, cdYaw: 0.62, boneDeform: 1.05, yawOn: 0.16, yawLen: 0.09, yawRest: 0.55, vFrag: 520, retain: 0.4, fragR: 0.025, fragSkull: true } }; /* (retain: the two largest head-shot fragments found in the car weighed about 41% of the bullet) */
+    const FPS = 18.3, Z0 = -150, SHOTS = [160, 222, 313];
+    const zNow = () => Z0 + R.t * FPS;
+    // the limousine's place on the route (s, metres) for a Zapruder frame: 3.6 m/s through the turn, 4.9 m/s (11 mph) down
+    // Elm through the shots, then Greer accelerates away toward Parkland Hospital
+    function sOf(z) {
+      const D = R.D, s313 = D.sAt.z313;
+      if (z < 133) return s313 + 4.9 * (133 - 313) / FPS - 3.6 * (133 - z) / FPS;
+      if (z < 320) return s313 + 4.9 * (z - 313) / FPS;
+      const t = (z - 320) / FPS, v0 = 4.9, a = 3.2, tm = (13 - v0) / a; return s313 + 4.9 * 7 / FPS + (t < tm ? v0 * t + 0.5 * a * t * t : v0 * tm + 0.5 * a * tm * tm + 13 * (t - tm));
+    }
+    const segPt = (S, seg, rest) => { const sg = S.body.segs[seg]; S.body.updateMatrices(); return new V3(...rest).sub(sg.origin).applyMatrix4(sg.g.matrixWorld); };
+    const SEATED = (S) => { const b = S.body.segs; for (const sd of ['L', 'R']) { const k = sd === 'L' ? 1 : -1; b['thigh' + sd].g.rotation.set(-1.45, 0, 0.08 * k); b['shin' + sd].g.rotation.set(1.4, 0, 0); b['foot' + sd].g.rotation.set(0.15, 0, 0); b['uarm' + sd].g.rotation.set(-0.3, 0, 0.08 * k); b['farm' + sd].g.rotation.set(-1.05, 0, 0); } };
+    const LOOK = {
+      jfk: { top: 0x1e2536, sleeves: 'long', pants: 0x1e2536, shoes: [0x111111, 0x111111], hair: 0x6a4630 },
+      jackie: { top: 0xd99ab4, sleeves: 'long', pants: 0xd99ab4, shoes: [0x2a2a2a, 0x2a2a2a], hair: 0x2a1e18, hat: 0xd99ab4 },
+      connally: { top: 0xb3a586, sleeves: 'long', pants: 0xb3a586, shoes: [0x3a2a1e, 0x2a1e16], hair: 0x8f8a84 },
+      nellie: { top: 0xd6c07a, sleeves: 'long', pants: 0xd6c07a, shoes: [0x2a2a2a, 0x2a2a2a], hair: 0x5a3a26 },
+      greer: { top: 0x2a2e36, sleeves: 'long', pants: 0x2a2e36, shoes: [0x111111, 0x111111], hair: 0x9a9a98 },
+      kellerman: { top: 0x2a2e36, sleeves: 'long', pants: 0x2a2e36, shoes: [0x111111, 0x111111], hair: 0x3a2a20 },
+    };
+    // the inside of the car, in its own frame: seat cushions and backs, floor, doors, and the other people as blocks
+    function carBoxes(role) {
+      const S = R.D.limoSeats, B = (cx, cy, cz, sx, sy, sz) => new THREE.Box3(new V3(cx - sx / 2, cy - sy / 2, cz - sz / 2), new V3(cx + sx / 2, cy + sy / 2, cz + sz / 2)), out = [];
+      out.push(B(0, S[role].y - 0.46 - 0.1, 0, 2.0, 0.2, 6.2)); /* the floor, where this person's feet rest */ out.push(B(1.03, 0.75, -0.7, 0.1, 0.8, 4.2), B(-1.03, 0.75, -0.7, 0.1, 0.8, 4.2));
+      for (const k in S) { const q = S[k], wide = k === 'jfk' || k === 'jackie' || k === 'greer' || k === 'kellerman'; out.push(B(q.x, q.y - 0.07, q.z, wide ? 0.85 : 0.5, 0.14, 0.5), B(q.x, q.y + (k === 'connally' || k === 'nellie' ? 0.16 : 0.28), q.z - 0.31, wide ? 0.85 : 0.5, k === 'connally' || k === 'nellie' ? 0.32 : 0.55, 0.12));
+        if (k !== role) out.push(B(q.x, q.y + 0.36, q.z - 0.08, 0.4, 0.62, 0.26)); }
+      return out;
+    }
+    // which way each sat turned at about Z220 (radians, + to the car's left): the President a little toward the crowd on
+    // the right, Mrs Kennedy toward the left, the Governor turning back from his right (his testimony)
+    const SEATYAW = { jfk: -0.12, jackie: 0.3, connally: -0.12, nellie: 0.1 };
+    // after the head shot the film shows the President thrown back and to the left, then slumping over to his left into
+    // Mrs Kennedy's lap as she holds him. The limp body's own fall (and Greer's acceleration) is simulated; her arm
+    // pulling him over is approximated as a turning push on his trunk (N·m: -z leans him to the car's left, -x back)
+    function jfkLean(S) {
+      if (!S.phys.brainDestroyed) return null; const z = zNow();
+      if (z < 313 || z > 420) return null;
+      const k = z < 330 ? 1 : 0.8; return { thorax: [z < 330 ? -22 * k : 6, 0, -26 * k], pelvis: [0, 0, -8 * k] };
+    }
+    function seat(S, role) {
+      use(S); S.role = role; const q = R.D.limoSeats[role], L = LOOK[role];
+      S.body.clearWounds(); S.rag.stop(); S.rag.clear(); S.viscera.clear(); S.headFx.rk = S.headFx.rkMax = 0; S.headFx.mouth = false; S.headFx.jawBroken = false; S.headFx.mouthK = 0; S.handBlood.L = S.handBlood.R = 0;
+      if (S.gunModel) { scene.remove(S.gunModel); S.gunModel = null; } S.ai = null;
+      if (S.body.setLook) S.body.setLook(role === 'greer' || role === 'kellerman' ? 1 : 0, role === 'jackie' || role === 'nellie' ? 1 : 0, L.hair);
+      if (S.body.dress) S.body.dress(L);
+      S.body.root.visible = true; S.body.root.position.set(q.x, q.y + 0.1 - 0.95, q.z - 0.06); S.body.root.rotation.set(0, 0, 0); SEATED(S);
+      if (L.hat) { const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.088, 0.075, 20), new THREE.MeshStandardMaterial({ color: L.hat, roughness: 0.8 })); hat.position.set(0, 0.185, -0.02); hat.rotation.x = -0.25; S.body.segs.head.g.add(hat); R.hats.push(hat); } // the pillbox hat
+      S.phys = G.Physiology(G.ANATOMY.bloodVolume); S.rag.setWalls(false); S.rag.setStatics(carBoxes(role));
+      S.rag.frame = { pos: new V3(), quat: new THREE.Quaternion() }; S.rag.frameAcc = new V3();
+      S.npc = G.NPC(S.body, S.phys, S.rag, { threat: () => null, event: npcEvent, seated: true, brace: role === 'jfk', seatYaw: SEATYAW[role] || 0, seatArms: role === 'connally' ? { uarmR: [-0.45, 0, -0.12], farmR: [-1.7, 0, 0] } : null, seatHold: role === 'connally' ? { R: [-0.04, -0.1, 0.19] } : null, lean: role === 'jfk' ? () => jfkLean(S) : null }); /* the Governor held his Stetson in his right hand, in front of his chest */
+      R.roles[role] = S;
+    }
+    function scenery(on) {
+      for (const o of chamberObjs) o.visible = !on; if (intro && intro.bulb) intro.bulb.parent.visible = !on;
+      R.D.root.visible = on; scene.background = on ? null : new THREE.Color(0x0b0f11); scene.fog = on ? R.D.fog : null;
+      if (on) { R.envSave = scene.environment; scene.environment = R.D.env; } else if (R.envSave) scene.environment = R.envSave;
+      camera.far = on ? 900 : 40; camera.updateProjectionMatrix(); world.open = on; world.rayHook = on ? R.D.ray : null; G.BOUNDS = on ? { x0: -200, x1: 120, z0: -100, z1: 220 } : null;
+      renderer.toneMappingExposure = on ? 0.86 : 1; gun.raise = on ? 0 : 1; document.body.classList.toggle('recon', on); if (R.hud) R.hud.hidden = !on;
+      applyQuality();
+    }
+    // the car and everything with it at the current time
+    let lastP = null, lastV = null;
+    function place(dt) {
+      const D = R.D, z = zNow(), s = sOf(z), at = D.path(s), q = new THREE.Quaternion().setFromAxisAngle(new V3(0, 1, 0), at.ry);
+      D.limo.position.copy(at.p); D.limo.rotation.set(0, at.ry, 0);
+      // the frame the passengers' physics runs in, and its acceleration (felt by them as inertia: the turn, Greer's acceleration)
+      const v = lastP && dt > 0 ? at.p.clone().sub(lastP).divideScalar(dt) : new V3(), acc = lastV && dt > 0 ? v.clone().sub(lastV).divideScalar(dt) : new V3(); lastP = at.p.clone(); lastV = v;
+      if (acc.length() > 8) acc.setLength(8); const accL = acc.clone().applyQuaternion(q.clone().invert());
+      for (const S of R.subs) { S.rag.frame.pos.copy(at.p); S.rag.frame.quat.copy(q); S.rag.frameAcc.copy(accL); }
+      const put = (g, ds, lat, ry0) => { const a = D.path(Math.max(0, s + ds)); g.position.copy(a.p).add(new V3(Math.cos(a.ry) * lat, 0, -Math.sin(a.ry) * lat)); g.rotation.set(0, a.ry + (ry0 || 0), 0); return a; };
+      put(D.leadCar, 32, 0); const fa = put(D.followCar, -10, 0); put(D.vpCar, -32, 0);
+      for (const ag of D.agents) { const a = D.path(Math.max(0, s - 10 + ag.z)); ag.g.position.copy(a.p).add(new V3(Math.cos(a.ry) * ag.x, 0.35, -Math.sin(a.ry) * ag.x)); ag.g.rotation.set(0, a.ry, 0); }
+      for (const m of D.motor) put(m.g, m.z, m.x);
+      D.follow(at.p); return at;
+    }
+    // ---- a shot from the window
+    function fire(i) {
+      const D = R.D, JFK = R.roles.jfk, CON = R.roles.connally, W = D.muzzle(); let target;
+      if (i === 0) target = D.limo.position.clone().addScaledVector(D.dir, 9).add(new V3(0.8, 0, 0)); // missed: down onto Elm ahead of the car
+      else if (i === 1) target = segPt(JFK, 'neck', [-0.036, 1.492, -0.068]); // the base of the neck at the back, right of the spine (Warren: 14 cm below the right mastoid)
+      else target = segPt(JFK, 'head', [-0.025, 1.72, -0.082]); // the back of the head, right of the midline: the HSCA panel's entry, about 10 cm above the autopsy's (higher in the cowlick area)
+      const dir = target.clone().sub(W).normalize();
+      D.rifle.lookAt(D.rifle.position.clone().sub(dir)); R.kick = 1;
+      audio.dist = camera.position.distanceTo(W) / 6; audio.shot(CARCANO); state.shake = R.cam === 2 ? 0.6 : 0.15;
+      const B = CARCANO.bullet, pts = [W.clone()], v = [B.v], hide = [false], results = [];
+      const simAt = (T, o, d2, b) => { T.body.updateMatrices(); const c = new V3().setFromMatrixPosition(T.body.segs.thorax.g.matrixWorld), along = c.clone().sub(o).dot(d2), t0 = Math.max(0, along - 2.2); const o2 = o.clone().addScaledVector(d2, t0); return G.simulate(b, o2, d2, { sample: T.body.sample, cavity: T.body.cavity, maxDist: 4.5 }); };
+      let res = i === 0 ? null : simAt(JFK, W, dir, B), res2 = null, res3 = null;
+      if (res && res.hitBody) { results.push([JFK, res, W]); for (const mk of res.marks) if (mk.type === 'entry' || mk.type === 'exit') { pts.push(new V3(mk.p.x, mk.p.y, mk.p.z)); v.push(mk.v || B.v); hide.push(mk.type === 'exit'); }
+        // the second shot goes on, slowed and already tumbling, into Governor Connally
+        const ex = res.marks.filter((m) => m.type === 'exit').pop();
+        if (i === 1 && ex && res.vExit > 60) { const d2 = new V3(ex.dir.x, ex.dir.y, ex.dir.z).normalize(), b2 = Object.assign({}, B, { v: res.vExit, yawOn: 0, vFrag: 0 }); /* CE399 came out nearly whole */ res2 = simAt(CON, new V3(ex.p.x, ex.p.y, ex.p.z), d2, b2);
+          if (res2.hitBody) { results.push([CON, res2, new V3(ex.p.x, ex.p.y, ex.p.z)]); for (const mk of res2.marks) if (mk.type === 'entry' || mk.type === 'exit') { pts.push(new V3(mk.p.x, mk.p.y, mk.p.z)); v.push(mk.v || res.vExit); hide.push(mk.type === 'exit'); }
+            // and on out of his chest, slower and yawing, into whatever is in front of it: his right wrist, his left thigh
+            const ex2 = res2.marks.filter((m) => m.type === 'exit').pop();
+            if (ex2 && res2.vExit > 60) { const d3 = new V3(ex2.dir.x, ex2.dir.y, ex2.dir.z).normalize(), o3 = new V3(ex2.p.x, ex2.p.y, ex2.p.z).addScaledVector(d3, 0.012); CON.body.updateMatrices();
+              const r3 = G.simulate(Object.assign({}, B, { v: res2.vExit, yawOn: 0, vFrag: 0 }), o3, d3, { sample: CON.body.sample, cavity: CON.body.cavity, maxDist: 1.4 });
+              if (r3.hitBody) { res3 = r3; results.push([CON, r3, o3]); for (const mk of r3.marks) if (mk.type === 'entry' || mk.type === 'exit') { pts.push(new V3(mk.p.x, mk.p.y, mk.p.z)); v.push(mk.v || res2.vExit); hide.push(mk.type === 'exit'); } } } } } }
+      const last = res3 || (res2 && res2.hitBody ? res2 : res && res.hitBody ? res : null), endO = last ? last.marks.filter((m) => m.type === 'exit').pop() : null;
+      const fromP = endO ? new V3(endO.p.x, endO.p.y, endO.p.z) : W, fromD = endO ? new V3(endO.dir.x, endO.dir.y, endO.dir.z) : dir;
+      if (!last || endO) { const h = D.ray(fromP, fromD); if (h) { pts.push(h.p.clone()); v.push(400); hide.push(false); R.ground = h; } }
+      projectiles.spawn(pts, v, hide, B.d, false, simClock);
+      const tHit = (pts[1] ? W.distanceTo(pts[1]) : 80) / B.v;
+      pending.push({ t: simClock + tHit, run: () => {
+        const back = current;
+        const before = new Map(); for (const [T] of results) if (!before.has(T)) before.set(T, T.phys.injuries.length);
+        for (const [T, r, o] of results) { use(T); world.centerOn && world.centerOn(D.limo.position.x, D.limo.position.z); processShot(r, CARCANO, r.d0 || dir, o); headTrauma([r]); }
+        if (R.ground && (!last || endO)) { strike(R.ground, fromD, last ? 0.5 * B.m * (last.vExit || 200) ** 2 : 0.5 * B.m * B.v * B.v, CARCANO, 0); R.ground = null; }
+        if (results.length) audio.impact(results.some(([, r]) => r.order.some((p) => p.kind === 'bone')), 2000);
+        use(back);
+        R.shotNotes[i] = [...new Set(results.map((x) => x[0]))].map((T) => (T.role === 'jfk' ? 'President' : 'Governor') + ': ' + T.phys.injuries.slice(before.get(T)).filter((x) => !/^GSW/.test(x.text)).map((x) => x.text).slice(0, 4).join('; ')).join(' · ');
+      } });
+    }
+    const EVENTS = [
+      [-150, 'The motorcade turns from Main Street up Houston Street. Agent Greer drives SS-100-X at about 11 mph.'],
+      [-40, 'The 120° left turn onto Elm Street, slowing to about 8 mph in front of the Texas School Book Depository.'],
+      [133, 'Zapruder starts filming again from his pedestal on the knoll. From the sixth-floor window the oak tree hides the car until about Z210.'],
+      [160, 'First shot (about Z160, Warren Commission): it missed. A fragment struck the curb near the triple underpass; spray from it grazed spectator James Tague.'],
+      [222, 'Second shot (Z210–225): a 6.5 mm round enters the President\'s upper back and leaves through his throat, then strikes Governor Connally — back, chest, right wrist, left thigh (CE399; the single-bullet conclusion).'],
+      [240, 'The President\'s arms come up toward his throat; his back brace holds him upright. The Governor turns and slumps.'],
+      [313, 'Third shot (Z313): it strikes the back of the President\'s head and blows out a large wound on the right side.'],
+      [340, 'Greer accelerates; Agent Clint Hill reaches the car from the follow-up car. Parkland Memorial Hospital: the President is pronounced dead at 1:00 pm. Governor Connally survives.'],
+      [470, 'Reconstruction from the Warren Commission (1964) and HSCA (1979) findings. The HSCA also concluded, on acoustic evidence later disputed, that a fourth shot was probably fired from the grassy knoll and missed. Several points remain contested.'],
+    ];
+    R.update = (dt) => {
+      const zb = zNow(); R.t += dt * R.rate; const z = zNow(); place(dt * R.rate);
+      for (let i = 0; i < 3; i++) if (!R.fired[i] && z >= SHOTS[i]) { R.fired[i] = true; fire(i); }
+      if (R.kick > 0) { R.kick = Math.max(0, R.kick - dt * 4); R.D.rifle.translateZ(R.kick * 0.004); }
+      if (Math.floor(R.t * 6) !== R.hudT && R.hud) { R.hudT = Math.floor(R.t * 6);
+        const ev = EVENTS.filter((e) => e[0] <= z).pop(), zi = Math.round(z), note = [1, 2].map((k) => R.shotNotes[k] && z > SHOTS[k] + 8 ? '<div class="sim">Simulation, shot ' + (k + 1) + ' — ' + R.shotNotes[k] + '</div>' : '').join('');
+        R.hud.innerHTML = '<div class="title">Dealey Plaza, Dallas · Friday 22 November 1963 · 12:30 pm CST</div><div class="z">' + (zi >= 0 ? 'Zapruder frame ' + zi : (zi / FPS).toFixed(1) + ' s before frame 0') + ' · limousine ' + (R.speed * 2.237).toFixed(0) + ' mph' + (R.rate === 0 ? ' · paused' : R.rate < 1 ? ' · slow motion' : '') + '</div><div class="ev">' + (ev ? ev[1] : '') + '</div>' + note + '<div class="keys">1 Zapruder · 2 sixth-floor window · 3 plaza · 4 beside the car · 5 above · Space pause · F slow motion · R replay · O leave</div>'; }
+      const p0 = R.D.path(sOf(zb)).p, p1 = R.D.path(sOf(z)).p; if (dt * R.rate > 0) R.speed = p0.distanceTo(p1) / (dt * R.rate);
+    };
+    R.camera = (dt) => {
+      const D = R.D, c = D.limo.position, aim = c.clone().add(new V3(0, 1.1, 0)).addScaledVector(D.dir, 0), fwd = new V3(Math.sin(D.limo.rotation.y), 0, Math.cos(D.limo.rotation.y)), left = new V3(fwd.z, 0, -fwd.x);
+      let pos, fov;
+      D.zapFig.visible = R.cam !== 1; // (the camera is his eye)
+      if (R.cam === 1) { pos = D.zapruder; fov = 12; } // Zapruder's Bell & Howell 414 at full zoom (27 mm on double-8 film: about 10° across), panning from his pedestal
+      else if (R.cam === 2) { pos = D.window.clone().add(new V3(0.15, 0.05, -1.1)); fov = 13; } // through the 4x scope, roughly
+      else if (R.cam === 3) { pos = new V3(-10, 30, 112); fov = 44; }
+      else if (R.cam === 4) { pos = c.clone().addScaledVector(fwd, -2).addScaledVector(left, -4.2).add(new V3(0, 1.8, 0)); fov = 48; }
+      else { pos = c.clone().add(new V3(0.1, 34, 0)); fov = 50; }
+      camera.position.copy(pos); camera.lookAt(aim); camera.fov = fov; camera.updateProjectionMatrix();
+      state.shake = Math.max(0, (state.shake || 0) - dt * 4); if (state.shake > 0) { const k = state.shake * state.shake * 0.01; camera.rotation.x += (Math.random() - 0.5) * k; camera.rotation.y += (Math.random() - 0.5) * k; }
+      camera.updateMatrixWorld(); state.pos.copy(camera.position);
+    };
+    R.start = () => {
+      if (duel.on) duel.stop(); if (duel.city && duel.city.on) duel.city.stop();
+      if (!R.D) R.D = G.buildDealey(scene, renderer);
+      if (!R.hud) { R.hud = document.createElement('div'); R.hud.id = 'reconHud'; document.getElementById('app').appendChild(R.hud); }
+      while (subjects.length < 6) newSubject();
+      for (const S of subjects) if (S !== primary) { use(S); S.rag.stop(); S.body.root.visible = false; }
+      for (const h of R.hats) h.parent && h.parent.remove(h); R.hats = [];
+      R.subs = [primary, ...subjects.slice(1, 6)]; const roles = ['jfk', 'jackie', 'connally', 'nellie', 'greer', 'kellerman'];
+      R.on = true; scenery(true); world.clear(); projectiles.clear(); pending.length = 0; state.threat = null; ui.report(null);
+      // Governor Connally's jump seat: placed so the second shot's line, through the President's neck, reaches the right side
+      // of his back as the HSCA trajectory reconstruction found (he sat lower and a little inboard)
+      { const D = R.D, at = D.path(sOf(SHOTS[1])), q = new THREE.Quaternion().setFromAxisAngle(new V3(0, 1, 0), at.ry), inv = q.clone().invert(), W = D.window.clone().sub(at.p).applyQuaternion(inv), J = new V3(D.limoSeats.jfk.x - 0.036, D.limoSeats.jfk.y - 0.85 + 1.492, D.limoSeats.jfk.z - 0.06 - 0.068), dl = J.clone().sub(W).normalize(), t = (D.limoSeats.connally.z - 0.06 - 0.13 - J.z) / dl.z, hit = J.clone().addScaledVector(dl, t);
+        D.limoSeats.connally.x = Math.max(-0.5, Math.min(-0.15, hit.x + 0.19)); const js = D.limo.userData.seats[1]; js.cush.position.x = js.back.position.x = js.base.position.x = D.limoSeats.connally.x; }
+      roles.forEach((r, k) => seat(R.subs[k], r));
+      R.t = 0; R.rate = 1; R.fired = [false, false, false]; R.shotNotes = []; R.cam = 1; lastP = lastV = null; place(0); state.slow = false;
+    };
+    R.stop = () => {
+      R.on = false; for (const h of R.hats) h.parent && h.parent.remove(h); R.hats = [];
+      for (const S of R.subs) { S.rag.frame = null; S.rag.frameAcc = null; S.rag.setStatics([]); S.rag.setWalls(true); if (S !== primary) { use(S); S.rag.stop(); S.body.clearWounds(); S.body.root.visible = false; } }
+      scenery(false); camera.fov = 62; camera.updateProjectionMatrix(); state.pos.set(0, 1.62, 3); state.yaw = 0; state.pitch = -0.06;
+      primary.body.root.position.set(0, 0, 0); primary.body.root.rotation.set(0, 0, 0); use(primary); reset();
+    };
+    R.key = (k) => { if (k >= '1' && k <= '5') R.cam = +k; else if (k === ' ') R.rate = R.rate === 0 ? 1 : 0; else if (k === 'f') R.rate = R.rate === 1 ? 0.2 : 1; else if (k === 'r') R.start(); else if (k === 'o') R.stop(); };
+    return R;
+  }
 
   // ---------- settings: HUD, crosshair, FPS counter and graphics quality, kept in this browser
   // quality: pr = share of the screen's pixel ratio rendered; key = the main light's shadow; bulb = the hanging bulb's
@@ -201,11 +386,12 @@
   const toggleHud = () => { if (cfg.hud) document.body.classList.toggle('min'); }; // Tab: the panels and tools (with the HUD on)
   document.getElementById('bMenu').addEventListener('click', () => openSettings());
   window.addEventListener('keydown', (e) => { if (e.key === 'Tab') { e.preventDefault(); toggleHud(); } });
-  window.addEventListener('keydown', (e) => { const k = e.key.toLowerCase(); if (k === 'o' && state.started) { if (CT()) duel.city.stop(); else duel.on ? duel.stop() : duel.start(); } else if (k === 'c' && duel && duel.on) duel.cycleCam(); });
+  window.addEventListener('keydown', (e) => { const k = e.key.toLowerCase(); if (k === 'o' && state.started) { if (recon && recon.on) return; if (CT()) duel.city.stop(); else duel.on ? duel.stop() : duel.start(); } else if (k === 'c' && duel && duel.on) duel.cycleCam(); });
   window.addEventListener('keydown', (e) => {
     if (e.repeat || e.metaKey || e.ctrlKey) return;
     const k = e.key.toLowerCase(); state.keys[k] = true;
     const wi = G.WEAPONS.findIndex((w) => w.key === k);
+    if (recon && recon.on) { recon.key(k); if (k === ' ') e.preventDefault(); return; }
     const C = CT(); if (C) { if (k === 'f') { C.useKey(); return; } if (k === 't') { C.C.setTime(C.C.hour + 1); return; } if (C.veh && C.veh.driving) { if (k === ' ' || k.startsWith('arrow')) e.preventDefault(); return; } if (wi >= 0) { state.wi = wi; C.setWeapon(wi); } else if (k === 'r') C.reloadReq = true; else if (k === 'c') C.crouch = !C.crouch; if (k === ' ' || k.startsWith('arrow')) e.preventDefault(); return; } // in the city the keys drive the character
     if (wi >= 0) setWeapon(wi);
     else if (k === 'i') gun.inspect();
@@ -312,6 +498,13 @@
     } });
   }
   const res0dir = (r) => r.d0;
+  // a shot at range: the tissue march starts 2 m short of the person (the round loses nothing worth modelling in the air
+  // before that), so a target 80 m away is reached; the marks keep their true positions along the line
+  function simNear(b, origin, d, T, opts) {
+    const c = T.rag.parts.thorax.b.position, along = (c.x - origin.x) * d.x + (c.y - origin.y) * d.y + (c.z - origin.z) * d.z, t0 = Math.max(0, along - 2.2);
+    const o2 = { x: origin.x + d.x * t0, y: origin.y + d.y * t0, z: origin.z + d.z * t0 };
+    return G.simulate(b, o2, d, { sample: T.body.sample, cavity: T.body.cavity, maxDist: 4.5 });
+  }
   const gauss = () => (Math.random() + Math.random() + Math.random() - 1.5) * 0.82;
 
   // a crater through the belly wall over a torn bowel: loops of intestine push out through it
@@ -1072,7 +1265,7 @@
         // the round meets whoever is first along its line
         let res = null;
         for (const T of cands) { const tp = partPos(T, 'thorax'), v = tp.clone().sub(origin), along = v.dot(d); if (cands.length > 1 && (along < 0 || v.clone().addScaledVector(d, -along).length() > 1.3)) continue;
-          T.body.updateMatrices(); const r2 = G.simulate(w.bullet, origin, d, T.sampler); r2.S = T; const e2 = r2.hitBody && r2.marks.find((mk) => mk.type === 'entry');
+          T.body.updateMatrices(); const r2 = simNear(w.bullet, origin, d, T); r2.S = T; const e2 = r2.hitBody && r2.marks.find((mk) => mk.type === 'entry');
           const t2 = e2 ? origin.distanceTo(new V3(e2.p.x, e2.p.y, e2.p.z)) : Infinity; if (!res || (t2 < (res.tEnt || Infinity))) { res = r2; res.tEnt = t2; } }
         if (!res) { res = { hitBody: false, marks: [], E0: 0.5 * w.bullet.m * w.bullet.v * w.bullet.v, S: E }; } res.d0 = d;
         const entry = res.marks.find((mk) => mk.type === 'entry'), tBody = res.hitBody && entry ? origin.distanceTo(tmp2.set(entry.p.x, entry.p.y, entry.p.z)) : Infinity;
@@ -1535,8 +1728,8 @@
   }
   // one full simulation + render step (also driven directly by the test harness for frame-exact capture)
   function step(dt, noRender) {
-    const city = duel && duel.city && duel.city.on;
-    if (!city) movePlayer(dt);
+    const city = duel && duel.city && duel.city.on, rc = recon && recon.on;
+    if (!city && !rc) movePlayer(dt);
     state.kick = Math.max(0, state.kick - dt * 0.12 * (1 + state.kick * 40));
     camera.position.copy(state.pos);
     camera.position.y += eyeOffset;
@@ -1545,16 +1738,16 @@
     camera.rotation.set(state.pitch + state.kick + (Math.random() - 0.5) * sk, state.yaw + (Math.random() - 0.5) * sk, (Math.random() - 0.5) * sk * 0.6); camera.updateMatrixWorld();
     // simulation time
     // slow motion drops to bullet speed while a round is in the air, so it can be watched in flight
-    const scale = TIMES[state.ti], slow = state.slow ? (projectiles.active(simClock) ? 0.004 : 0.2) : 1;
+    const scale = TIMES[state.ti], slow = recon && recon.on ? recon.rate : state.slow ? (projectiles.active(simClock) ? 0.004 : 0.2) : 1;
     moveGrab();
     if (state.started) { simClock += dt * slow; while (pending.length && pending[0].t <= simClock) pending.shift().run(); }
     projectiles.update(simClock, dt * slow);
-    const C0 = duel && duel.city && duel.city.on ? duel.city : null;
-    const active = C0 ? C0.subs.filter((T) => T.body.root.visible) : duel && duel.on ? duel.fighters : [primary];
+    const C0 = duel && duel.city && duel.city.on ? duel.city : null, R0 = recon && recon.on ? recon : null;
+    const active = R0 ? R0.subs : C0 ? C0.subs.filter((T) => T.body.root.visible) : duel && duel.on ? duel.fighters : [primary];
     for (const S of active) simSubject(S, dt, scale, slow);
     world.update(dt * slow); stepDebris(dt * slow);
-    if (C0) { C0.update(dt * slow); use(C0.player); } else if (duel && duel.on) duel.update(dt * slow, dt); else use(primary);
-    if (state.started && !C0) {
+    if (R0) { R0.update(dt); use(R0.roles.jfk); } else if (C0) { C0.update(dt * slow); use(C0.player); } else if (duel && duel.on) duel.update(dt * slow, dt); else use(primary);
+    if (state.started && !C0 && !R0) {
       const dx = vent.x - state.pos.x, dz = vent.y - state.pos.z;
       const distance = Math.hypot(dx, dz);
       audio.ventilation(distance, (dx * Math.cos(state.yaw) - dz * Math.sin(state.yaw)) / Math.max(1, distance));
@@ -1577,13 +1770,14 @@
       const brainGone = phys.dead || phys.stemDestroyed || phys.anoxic > 120;
       body.setPupil(brainGone ? 0.62 : 0.32 + 0.12 * Math.min(1, phys.frac() / 0.3) + (phys.tFirst != null && phys.conscious ? 0.06 : 0));
       }
-      use(C0 ? C0.player : duel && duel.on ? duel.fighters[0] : primary);
+      use(R0 ? R0.roles.jfk : C0 ? C0.player : duel && duel.on ? duel.fighters[0] : primary);
       ui.update(phys, npc); ui.setRange(Math.hypot(state.pos.x - npc.pos.x, state.pos.z - npc.pos.z)); }
+    if (rc) { recon.camera(dt); gun.raise = 0; }
     if (city) { duel.city.camera(dt); gun.raise = 0; const r = canvas.getBoundingClientRect(); state.ax = r.width / 2; state.ay = r.height / 2; }
     if (G.debug && G.debug.camHook) G.debug.camHook(camera); // tests: a close look
     if (!noRender) renderer.render(scene, camera);
   }
   applySettings();
   requestAnimationFrame(frame);
-  G.debug = { renderer, get duel() { return duel; }, subjects, use, viscera, projectiles, gun, scene, tick: step, manual: false, audio, rag, toggleGrab, toggleSlow, fire, state, setWeapon, toggleXray, camera, get phys() { return phys; }, get npc() { return npc; }, body, world };
+  G.debug = { renderer, get recon() { return recon; }, get duel() { return duel; }, subjects, use, viscera, projectiles, gun, scene, tick: step, manual: false, audio, rag, toggleGrab, toggleSlow, fire, state, setWeapon, toggleXray, camera, get phys() { return phys; }, get npc() { return npc; }, body, world };
 })();
