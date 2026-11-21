@@ -1,0 +1,9 @@
+# generated avatar data (personal photos, textures, models)
+*.glb
+*.jpg
+*.jpeg
+*.png
+*.mov
+*.npz
+*.npy
+node_modules/
