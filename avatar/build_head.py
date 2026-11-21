@@ -19,14 +19,23 @@ P=np.zeros((NRH*NC,3)); fixed=np.zeros(NRH*NC,bool); isface=np.zeros(NRH*NC,bool
 bary=trimesh.triangles.points_to_barycentric(face.triangles[ti],loc)
 fuv[ri]=(UV[F[ti]]*bary[...,None]).sum(1)
 # smooth surface: loop-subdivided face mesh, same rays -> positions
-sv,sf=trimesh.remesh.subdivide_loop(X,F,iterations=2)
+def loop_interp(Vv, Ff, iters):
+    # Loop subdivision corrected to pass exactly through the input vertices (keeps jaw, cheekbones, nose bridge crisp)
+    for _ in range(iters):
+        nv, nf = trimesh.remesh.subdivide_loop(Vv, Ff, iterations=1)
+        e = trimesh.Trimesh(Vv, Ff, process=False).edges_unique
+        d = Vv - nv[:len(Vv)]
+        nv = nv.copy(); nv[:len(Vv)] += d; nv[len(Vv):] += (d[e[:, 0]] + d[e[:, 1]]) / 2
+        Vv, Ff = nv, nf
+    return Vv, Ff
+sv,sf=loop_interp(X,F,2)
 smooth=trimesh.Trimesh(sv,sf,process=False); inter2=trimesh.ray.ray_triangle.RayMeshIntersector(smooth)
 loc2,ri2,ti2=inter2.intersects_location(org[ri],-D[ri],multiple_hits=False)
 ok2=((loc2-C)*D[ri][ri2]).sum(1)>0
 Pr=loc.copy(); Pr[ri2[ok2]]=loc2[ok2]
 P[ri]=Pr; isface[ri]=True
 # skull ellipsoid
-ec=np.array([0,3.0,-4.3]); er=np.array([7.9,10.6,9.9])
+ec=np.array([0,3.0,-4.15]); er=np.array([7.7,9.9,9.45])
 def ell_hit(o,d):
     o2=(o-ec)/er; d2=d/er; a=(d2**2).sum(1); b=2*(o2*d2).sum(1); c=(o2**2).sum(1)-1
     t=(-b+np.sqrt(np.maximum(b*b-4*a*c,0)))/(2*a); return o+d*t[:,None]
@@ -39,11 +48,31 @@ skull=(~isface)&(~near)&(PS[:,1]>yfix)
 P[skull]=PS[skull]
 core=cv2.erode(np.tile(fm,(1,3)),np.ones((9,9),np.uint8))[:,NC:2*NC].reshape(-1)>0
 fixed=(isface&core)|skull
+JAW=[136,150,149,176,148,152,377,400,378,379,365]
+def neck_pt(p):  # nearest point on the neck surface at the same height, same azimuth
+    y=p[1]; zc=-5.9+(-11.2-y)*0.10; a=np.arctan2(p[0],(p[2]-zc)/5.2*4.95)
+    return np.array([4.95*np.sin(a),y,zc+5.2*np.cos(a)])
+shelf=[]
+JP=[]
+for a_,b_ in zip(JAW[:-1],JAW[1:]):
+    for t_ in (0,1/3,2/3): JP.append(X[a_]*(1-t_)+X[b_]*t_)
+JP.append(X[JAW[-1]])
+for J in JP:
+    for frac,drop in ((0.55,0.6),(0.88,1.0)):
+        q=J.copy(); q[1]-=drop; n_=neck_pt(q); q[0]=J[0]+(n_[0]-J[0])*frac; q[2]=J[2]+(n_[2]-J[2])*frac
+        shelf.append(q)
+shelf=np.array(shelf)
+dirs=(shelf-C)/np.linalg.norm(shelf-C,axis=1,keepdims=True)
+USE_SHELF=False
+for q,dq in zip(shelf if USE_SHELF else [],dirs):
+    k=int(np.argmax(D@dq))
+    if not fixed[k] and not isface[k]: P[k]=q; fixed[k]=True
+print('jaw shelf constraints',len(shelf),'applied',int(sum(1 for q in shelf)))
 # neck rows
-yn=np.linspace(-12.5,-30,NRN)
+yn=np.linspace(-11.2,-30,NRN)
 neck=[]
 for y in yn:
-    zc=-4.6+(-12.5-y)*0.10; rx,rz=5.5,5.9
+    zc=-5.9+(-11.2-y)*0.10; rx,rz=4.95,5.2
     neck.append(np.stack([rx*np.sin(ph),np.full(NC,y),zc+rz*np.cos(ph)],-1))
 neck=np.concatenate(neck)
 NR=NRH+NRN
@@ -73,7 +102,7 @@ for k in range(3):
     Pall[fr,k]=spl.spsolve(Aff.tocsc(),-Afc@Pall[fx,k])
 # Taubin smoothing to remove facets inherited from the coarse face mesh
 Lu=sp.diags(1/deg)@A  # averaging operator
-mov=np.ones(N,bool); mov[NRH*NC:]=False; mov[ipole]=False
+mov=np.ones(N,bool); mov[NRH*NC:]=False; mov[ipole]=False; mov[:NRH*NC][fixed[:NRH*NC]&isface]=False
 for it in range(6):
     for lam in (0.55,-0.58):
         Q=Lu@Pall; Pall[mov]+=lam*(Q[mov]-Pall[mov])
@@ -127,14 +156,21 @@ Pg=np.concatenate([Pall[:NR*NC].reshape(NR,NC,3),Pall[:NR*NC].reshape(NR,NC,3)[:
 PT=cv2.remap(Pg,gx.astype(np.float32),gy.astype(np.float32),cv2.INTER_LINEAR)
 ss=lambda a,b,x: np.clip((x-a)/(b-a),0,1)**2*(3-2*np.clip((x-a)/(b-a),0,1))
 stub=ss(-1.5,-5.5,PT[...,1])*ss(-14.5,-11.0,PT[...,1])*ss(-6.5,-2.0,PT[...,2])  # jaw / under-chin / upper throat
-stub*=0.75
+stub*=0.45
 rng=np.random.default_rng(3)
-noise=cv2.GaussianBlur(rng.normal(0,1,(TH_,TW)).astype(np.float32),(0,0),2.0)*2.5+cv2.GaussianBlur(rng.normal(0,1,(TH_,TW)).astype(np.float32),(0,0),12)*6
+noise=np.zeros((TH_,TW),np.float32)
+for fq,amp,cnt in ((0.35,2.6,6),(1.6,0.9,8),(4.5,0.4,10)):   # isotropic noise from 3D position: no smearing where the texture is stretched
+    for _ in range(cnt):
+        dv=rng.normal(size=3); dv/=np.linalg.norm(dv)
+        noise+=amp*np.sin(PT@dv*fq*2*np.pi/6+rng.uniform(0,6.3)).astype(np.float32)/np.sqrt(cnt)
 base=skin[None,None,:]+noise[...,None]*np.array([0.9,1,1.1])
-speck=np.clip(cv2.GaussianBlur(rng.normal(0,1,(TH_,TW)).astype(np.float32),(0,0),0.8)*1.4,-1,1)
-base=base*(1-stub[...,None]*(0.16+0.06*speck[...,None])*np.array([1.0,0.95,0.85]))
+speck=np.zeros((TH_,TW),np.float32)
+for _ in range(12):
+    dv=rng.normal(size=3); dv/=np.linalg.norm(dv); speck+=np.sin(PT@dv*9.0+rng.uniform(0,6.3)).astype(np.float32)
+speck=np.clip(speck/np.sqrt(12)*1.2,-1,1)
+base=base*(1-stub[...,None]*(0.15+0.02*speck[...,None])*np.array([1.0,0.95,0.85]))
 out=col*al[...,None]+base*(1-al[...,None])
 cv2.imwrite(f'{S}/work/head_tex.jpg',np.clip(out,0,255).astype(np.uint8),[cv2.IMWRITE_JPEG_QUALITY,92])
 np.savez(f'{S}/work/head.npz',pos=pos,tris=tris,nrm=nrm,uv=uvs,NR=NR,NC=NC,isface=isface)
-json.dump({'skull_center':ec.tolist(),'skull_radii':er.tolist(),'C':C.tolist()},open(f'{S}/work/head_params.json','w'))
+json.dump({'skull_center':ec.tolist(),'skull_radii':er.tolist(),'C':C.tolist(),'skin_bgr':[float(v) for v in skin]},open(f'{S}/work/head_params.json','w'))
 print('verts',len(pos),'tris',len(tris))

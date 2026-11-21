@@ -51,12 +51,19 @@
 <div id="loading">Loading model…</div>
 <aside class="panel" aria-label="Viewer controls">
   <h1>Devin, in 3D</h1>
-  <p class="sub">Face reconstructed from your selfies &amp; video. Hair, ears, body and clothes are procedural.</p>
+  <p class="sub">Face solved from 15 of your photos &amp; video frames. 5'8" · 125 lb build. Hair, body and clothes are procedural.</p>
   <div class="seg" id="modes">
     <button data-m="bust" aria-pressed="true">Bust</button>
     <button data-m="body">Full body</button>
   </div>
-  <div class="row">
+  <div class="row" id="outfitrow" hidden>
+    <div class="label">Outfit</div>
+    <div class="seg" id="outfits">
+      <button data-o="shirtless" aria-pressed="true">Shirtless</button>
+      <button data-o="tee">Tee</button>
+    </div>
+  </div>
+  <div class="row" id="swrow">
     <div class="label" id="swlabel">Hoodie</div>
     <div class="sw" id="swatches"></div>
   </div>
@@ -150,11 +157,11 @@ const MODES = {
   bust: {lift: 0.421, target: mobile ? 0.36 : 0.38, cam: [0.50, 0.60, 1.42], min: 0.35, max: 3.0, blob: 0.62,
          shadow: [-0.5, 0.5, 0.9, -0.2], label: 'Hoodie', mats: ['Hoodie','Drawstrings'],
          swatches: {Taupe:'#5f5752', Navy:'#283047', Brown:'#4b3b31', Grey:'#8a8c90', Black:'#1e1f22'}},
-  body: {lift: 1.640, target: mobile ? 0.50 : 0.92, cam: [1.25, 1.15, 4.35], min: 0.5, max: 9.0, blob: 0.95,
+  body: {lift: 1.598, target: mobile ? 0.48 : 0.88, cam: [1.25, 1.15, 4.35], min: 0.5, max: 9.0, blob: 0.95,
          shadow: [-0.7, 0.7, 2.0, -0.1], label: 'Tee', mats: ['Tee'],
          swatches: {Royal:'#2f5db8', 'Heather blue':'#6d8db6', White:'#e9e9e7', Black:'#1c1d20', Grey:'#8b8d91'}},
 };
-let mode = 'bust', root = null; const groups = {shared: [], bust: [], body: []}; const matsByName = {};
+let mode = 'bust', root = null; const groups = {shared: [], bust: [], body: [], body_tee: [], body_shirtless: []}; let outfit = 'shirtless'; const matsByName = {};
 const chosen = {bust: 'Taupe', body: 'Royal'};
 
 function setMode(m){
@@ -162,6 +169,8 @@ function setMode(m){
   if (root){
     root.position.y = M.lift;
     groups.bust.forEach(o => o.visible = m === 'bust'); groups.body.forEach(o => o.visible = m === 'body');
+    groups.body_tee.forEach(o => o.visible = m === 'body' && outfit === 'tee');
+    groups.body_shirtless.forEach(o => o.visible = m === 'body' && outfit === 'shirtless');
   }
   controls.target.set(0, M.target, 0);
   const k = mobile ? (m === 'body' ? 1.45 : 1.35) : 1; camera.position.set(M.cam[0]*k, M.cam[1] + (mobile ? 0.05 : 0) - (m === 'body' && mobile ? 0.4 : 0), M.cam[2]*k);
@@ -171,6 +180,8 @@ function setMode(m){
   keyT.position.set(0, M.target, 0);
   setLight(lightName);
   document.getElementById('swlabel').textContent = M.label;
+  document.getElementById('outfitrow').hidden = m !== 'body';
+  document.getElementById('swrow').hidden = m === 'body' && outfit === 'shirtless';
   buildSwatches();
   document.querySelectorAll('#modes button').forEach(b => b.setAttribute('aria-pressed', b.dataset.m === m));
 }
@@ -192,6 +203,10 @@ function buildSwatches(){
   });
 }
 document.querySelectorAll('#modes button').forEach(b => b.onclick = () => setMode(b.dataset.m));
+document.querySelectorAll('#outfits button').forEach(b => b.onclick = () => {
+  outfit = b.dataset.o; document.querySelectorAll('#outfits button').forEach(x => x.setAttribute('aria-pressed', x === b));
+  const keep = camera.position.clone(), tgt = controls.target.clone(); setMode('body'); camera.position.copy(keep); controls.target.copy(tgt); controls.update();
+});
 
 // decode embedded model
 const b64 = document.getElementById('glb').textContent.trim();
@@ -213,8 +228,8 @@ loader.parse(bin.buffer, '', gltf => {
       out.sheenColor.copy(m.color).lerp(new THREE.Color(1,1,1), 0.25);
     } else if (n === 'HairCurls' || n === 'HairBase'){
       m.roughness = n === 'HairCurls' ? 0.48 : 0.7; m.envMapIntensity = 0.8;
-    } else if (n === 'Skin' || n === 'Ears' || n === 'BodySkin'){
-      out = new THREE.MeshPhysicalMaterial({map: m.map, color: m.color, roughness: 0.52, sheen: 0.35, sheenRoughness: 0.5, sheenColor: new THREE.Color(0xffd2c2)});
+    } else if (n === 'Skin' || n === 'Ears' || n === 'BodySkin' || n === 'TorsoSkin'){
+      out = new THREE.MeshPhysicalMaterial({map: m.map, color: m.color, vertexColors: !!o.geometry.attributes.color, roughness: 0.52, sheen: 0.35, sheenRoughness: 0.5, sheenColor: new THREE.Color(0xffd2c2)});
       if (n === 'Ears') o.castShadow = false;
     }
     out.name = n; o.material = out;

@@ -31,7 +31,18 @@ def warp_tris(src_img, src_pts, dst_pts, weights, T):
     return acc / np.maximum(wacc, 1e-6)[..., None], wacc
 
 def bake(ph):
-    k = [k for k in D if ph in k][0]; img = cv2.imread(k).astype(np.float32)
+    k = [k for k in D if ph in k][0]; img8 = cv2.imread(k)
+    hsv = cv2.cvtColor(img8, cv2.COLOR_BGR2HSV)
+    green = ((hsv[..., 0] > 32) & (hsv[..., 0] < 88) & (hsv[..., 1] > 70) & (hsv[..., 2] > 40)).astype(np.uint8)
+    Lk = np.array(D[k]['L'])[:, :2]
+    for eye in ([33, 7, 163, 144, 145, 153, 154, 155, 133, 173, 157, 158, 159, 160, 161, 246], [263, 249, 390, 373, 374, 380, 381, 382, 362, 398, 384, 385, 386, 387, 388, 466]):
+        cv2.fillConvexPoly(green, cv2.convexHull(Lk[eye].astype(np.int32)), 0)   # never touch the irises
+    face_m = np.zeros_like(green); cv2.fillConvexPoly(face_m, cv2.convexHull(Lk[:468].astype(np.int32)), 1); green &= face_m
+    n_, lab, st, _ = cv2.connectedComponentsWithStats(green)
+    blob = np.isin(lab, [i for i in range(1, n_) if st[i, 4] > 60]).astype(np.uint8)
+    if blob.sum() > 0:   # e.g. a sticker on the cheek (plus its dark rim)
+        img8 = cv2.inpaint(img8, cv2.dilate(blob, np.ones((25, 25), np.uint8)), 15, cv2.INPAINT_TELEA); print('  inpainted', int(blob.sum()), 'green px')
+    img = img8.astype(np.float32)
     L = np.array(D[k]['L']); P = np.c_[L[:, 0], -L[:, 1]][:468]
     sol = np.linalg.lstsq(np.c_[X, np.ones(468)], P, rcond=None)[0]; A = sol[:3].T
     Uu, Sg, Vt = np.linalg.svd(A, full_matrices=False); R2 = Uu @ Vt; view = np.cross(R2[0], R2[1])
@@ -71,6 +82,7 @@ for ph in sides:
 num = sum(t * w[..., None] for t, w, _ in layers); den = sum(w for _, w, _ in layers)
 tex = num / np.maximum(den, 1e-6)[..., None]
 cover = np.max([v for _, _, v in layers], 0)
-cv2.imwrite(f'{S}/work/face_tex_raw.png', np.clip(tex, 0, 255).astype(np.uint8))
-np.save(f'{S}/work/face_w.npy', (cover ** 2 * (region > 0)).astype(np.float32))
-cv2.imwrite(f'{S}/work/face_tex_raw_small.jpg', cv2.resize(np.clip(tex, 0, 255).astype(np.uint8), (600, 600)))
+tag = sys.argv[5] if len(sys.argv) > 5 else ''
+cv2.imwrite(f'{S}/work/face_tex_raw{tag}.png', np.clip(tex, 0, 255).astype(np.uint8))
+np.save(f'{S}/work/face_w{tag}.npy', (cover ** 2 * (region > 0)).astype(np.float32))
+cv2.imwrite(f'{S}/work/face_tex_raw_small{tag}.jpg', cv2.resize(np.clip(tex, 0, 255).astype(np.uint8), (600, 600)))

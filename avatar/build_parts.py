@@ -59,8 +59,8 @@ def surf_x(y, z, side):
     return side * 8
 
 # ---------------------------------------------------------------- skin tone
-sk = json.load(open(f'{S}/work/skin.json'))['skin_bgr'][::-1]
-skin_lin = srgb2lin(np.array(sk) / 255 * np.array([0.93, 0.92, 0.92]))
+sk = json.load(open(f'{S}/work/head_params.json'))['skin_bgr'][::-1]
+skin_lin = srgb2lin(np.array(sk) / 255)
 
 # ---------------------------------------------------------------- EARS
 def build_ear(side):
@@ -68,8 +68,8 @@ def build_ear(side):
     s = np.linspace(0, 1, ns); al = np.linspace(0, 2 * np.pi, na, endpoint=False)
     S_, A_ = np.meshgrid(s, al, indexing='ij')
     sa = np.sin(A_)
-    a = 1.72 + 0.32 * sa                       # half width (wider at top, narrow lobe)
-    b = np.where(sa > 0, 3.25, 3.35)           # half height
+    a = (1.72 + 0.32 * sa) * 1.06              # half width (wider at top, narrow lobe)
+    b = np.where(sa > 0, 3.25, 3.35) * 1.06    # half height
     u = (1 - S_) * a * np.cos(A_); v = (1 - S_) * b * sa
     deg = np.degrees(A_) % 360
     def band(x, c, wdt):  # smooth bump 1 at c, 0 beyond wdt (degrees, circular)
@@ -83,7 +83,7 @@ def build_ear(side):
     w += np.where(S_ > 0.54, -0.55 * np.sin(np.pi / 2 * np.clip((S_ - 0.54) / 0.46, 0, 1)), 0) * (1 - lobe)
     w += lobe * 0.12 * (1 - S_)
     w -= front * 0.55 * (1 - S_) ** 0.5        # tuck front edge into the head
-    tilt = np.tan(np.radians(22))
+    tilt = np.tan(np.radians(40))
     w += (u + a) * tilt * (1 - 0.5 * front)
     # back skirt rings: from rim toward the head
     rim_u, rim_v, rim_w = u[0], v[0], w[0]
@@ -119,7 +119,7 @@ ep, et = [], []; off = 0
 for side in (1, -1):
     p, t = build_ear(side); ep.append(p); et.append(t + off); off += len(p)
 ear_pos = np.vstack(ep); ear_tris = np.vstack(et)
-save('ears', ear_pos, ear_tris, dict(name='Ears', color=list(skin_lin * np.array([1.0, 0.94, 0.93])) + [1], rough=0.55))
+save('ears', ear_pos, ear_tris, dict(name='Ears', color=list(skin_lin * np.array([1.0, 0.95, 0.94])) + [1], rough=0.55))
 
 # ---------------------------------------------------------------- HAIR
 Hpos = H['pos'][:NR * W].reshape(NR, W, 3)[:NRH, :NC].reshape(-1, 3)
@@ -294,11 +294,11 @@ save('hair', hair_pos, hair_tris, dict(name='HairCurls', color=[1, 1, 1, 1], rou
 # ---------------------------------------------------------------- HOODIE
 lv = np.array([
     # y,     W,    D,    zc,   n
-    [-11.8, 6.4, 6.6, -4.9, 2.0],
-    [-12.8, 7.1, 7.2, -4.9, 2.0],
-    [-14.2, 9.6, 8.2, -4.9, 2.2],
-    [-15.8, 13.8, 9.0, -4.8, 2.5],
-    [-17.5, 17.6, 9.6, -4.6, 2.8],
+    [-11.8, 6.0, 6.2, -6.0, 2.0],
+    [-12.8, 6.8, 6.9, -5.9, 2.0],
+    [-14.2, 9.4, 8.0, -5.6, 2.2],
+    [-15.8, 13.8, 9.0, -5.2, 2.5],
+    [-17.5, 17.6, 9.6, -4.8, 2.8],
     [-19.6, 20.0, 10.0, -4.4, 3.0],
     [-22.2, 20.9, 10.2, -4.2, 3.0],
     [-26.0, 20.6, 10.5, -4.0, 2.8],

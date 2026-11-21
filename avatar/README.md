@@ -8,16 +8,16 @@ The photos, video, textures and generated models are **not** committed. Only the
 | Step | Script | What it does |
 |---|---|---|
 | 1 | `detect.py` | MediaPipe Face Landmarker on video frames and photos: 478 landmarks plus head pose per image |
-| 2 | `solve_face.py` | Weak-perspective structure-from-motion over the head-turn frames, then mirror-symmetrised, giving the 3D face shape |
-| 3 | `bake_multi.py`, `finish_face.py` | Warps a frontal photo plus side views into the face mesh's UV layout. Side views are colour-matched to the frontal and mirrored onto the unseen side. Then inpaints and fades the edges into skin tone (`bake_face.py` is the original single-photo version) |
-| 4 | `build_head.py` | Lat-long head and neck grid. The front snaps to a Loop-smoothed face surface; skull and neck are fixed; the gaps are filled with a biharmonic solve. Bakes a 2048×1024 head texture |
+| 2 | `solve_face.py`, `ba_face.py` | Initial weak-perspective solve over the head-turn video, then a perspective bundle adjustment over video frames plus photos. Pose and focal length are solved per image, lips and eyelids are down-weighted, and the result is symmetrised. This removes close-selfie lens distortion |
+| 3 | `bake_multi.py`, `detail_merge.py`, `finish_face.py` | Warps a frontal photo plus side views into the face mesh's UV layout. Side views are colour-matched to the frontal and mirrored onto the unseen side. `detail_merge.py` puts the fine detail of the sharpest photo onto the even tone of another. Then inpaints (stickers too) and fades the edges into skin tone. `bake_face.py` is the original single-photo version |
+| 4 | `build_head.py` | Lat-long head and neck grid. The front snaps to a Loop-smoothed face surface that is corrected to pass through the solved landmarks; skull and neck are fixed; the gaps are filled with a biharmonic solve. Bakes a 2048×1024 head texture |
 | 5 | `build_parts.py` | Procedural ears, two-layer curly hair (tapered sides and nape, volume on top), hoodie bust with hood and drawstrings, plinth |
-| 5b | `build_body.py` | Procedural full body in the same frame: tee, arms and hands, shorts, legs, socks, sneakers |
+| 5b | `build_body.py` | Procedural full body at a set height (172.7 cm). Lean build; shirtless torso with modelled muscle definition and curvature shading; tee, shorts, socks, sneakers |
 | 6 | `assemble.py` + `glb.py` | Writes the GLB (small custom writer). Nodes are tagged `shared`, `bust` or `body`. The last argument is the vertical offset in cm: 42.1 = bust on its plinth, 164 = feet on the floor, 0 = combined file for the viewer |
 | 7 | `gltf-transform meshopt` / `draco` | Meshopt for the web viewer's combined file (~6 MB). Draco for the standalone bust and full-body files (~2.6 MB each) |
 | 8 | `viewer_template.html` | three.js viewer with the GLB embedded as base64 (`__GLB_BASE64__` is the placeholder). Bust / full body toggle, outfit colours, lighting moods |
 
-`shoot.js`, `test_viewer.js` and `hero.js` render headless Playwright previews for checking.
+`validate.py` renders the head from each photo's solved camera and overlays the outline on the photo, to check the jaw, nose and profile. `shoot.js`, `test_viewer.js` and `hero.js` render headless Playwright previews.
 
 ## Requirements
 
