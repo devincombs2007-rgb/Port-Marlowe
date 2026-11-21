@@ -136,8 +136,11 @@ body.duel #bMenu { display: block; }
 #cityHud { position: absolute; right: 16px; top: 14px; text-align: right; font: 600 13px/1.4 'IBM Plex Mono', monospace; color: #f4f1ea; text-shadow: 0 1px 3px rgba(0,0,0,0.8); pointer-events: none; z-index: 12; }
 #cityHud .heat { font: 700 15px 'Chakra Petch', sans-serif; letter-spacing: 0.12em; color: #f0d27a; }
 #cityHud .heat b { color: #ff5a4e; font-weight: 700; }
-#cityHud .msg { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); font-size: 13px; text-align: center; white-space: nowrap; max-width: 92vw; overflow: hidden; text-overflow: ellipsis; }
+#cityHud .msg { position: fixed; left: 50%; top: 14px; transform: translateX(-50%); font-size: 12px; text-align: center; white-space: normal; width: min(560px, 62vw); }
 body.nohud #cityHud .ammo { display: none; }
 body.city #mini { display: none !important; }
 body.city #cross { width: 8px; height: 8px; margin: -4px 0 0 -4px; border-width: 1.5px; }
 body.city #bMenu { display: block; }
+
+#minimap { position: absolute; left: 16px; bottom: 16px; width: 180px; height: 180px; border-radius: 50%; pointer-events: none; z-index: 11; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5)); }
+#cityHud .clock { font: 600 14px 'IBM Plex Mono', monospace; opacity: 0.9; }

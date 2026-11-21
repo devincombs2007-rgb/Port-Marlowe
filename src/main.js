@@ -116,7 +116,7 @@
   // quality: pr = share of the screen's pixel ratio rendered; key = the main light's shadow; bulb = the hanging bulb's
   // shadow (a point-light shadow draws the whole scene six more times); map = shadow-map size
   const QUAL = { high: { pr: 1, key: true, bulb: true, map: 1024 }, medium: { pr: 0.8, key: true, bulb: false, map: 1024 }, low: { pr: 0.6, key: false, bulb: false, map: 512 } };
-  const cfg = { hud: false, cross: true, fps: false, q: 'auto' };
+  const cfg = { hud: false, cross: true, fps: false, q: 'auto', map: true };
   try { Object.assign(cfg, JSON.parse(localStorage.getItem('gsw.settings') || '{}')); } catch (e) { /* storage unavailable: defaults */ }
   let autoQ = 'high';
   const saveCfg = () => { try { localStorage.setItem('gsw.settings', JSON.stringify(cfg)); } catch (e) { /* not persisted */ } };
@@ -130,12 +130,12 @@
   function applySettings() {
     document.body.classList.toggle('nohud', !cfg.hud); document.body.classList.toggle('nocross', !cfg.cross);
     document.getElementById('fps').hidden = !cfg.fps;
-    for (const [id, k] of [['optHud', 'hud'], ['optCross', 'cross'], ['optFps', 'fps']]) document.getElementById(id).checked = cfg[k];
+    for (const [id, k] of [['optHud', 'hud'], ['optCross', 'cross'], ['optFps', 'fps'], ['optMap', 'map']]) document.getElementById(id).checked = cfg[k];
     for (const b of document.querySelectorAll('#optQ button')) b.setAttribute('aria-checked', String(b.dataset.q === cfg.q));
     applyQuality(); saveCfg();
   }
   const setPanel = document.getElementById('settings'), openSettings = (on) => { setPanel.hidden = on == null ? !setPanel.hidden : !on; };
-  for (const [id, k] of [['optHud', 'hud'], ['optCross', 'cross'], ['optFps', 'fps']]) document.getElementById(id).addEventListener('change', (e) => { cfg[k] = e.target.checked; applySettings(); });
+  for (const [id, k] of [['optHud', 'hud'], ['optCross', 'cross'], ['optFps', 'fps'], ['optMap', 'map']]) document.getElementById(id).addEventListener('change', (e) => { cfg[k] = e.target.checked; applySettings(); });
   for (const b of document.querySelectorAll('#optQ button')) b.addEventListener('click', () => { cfg.q = b.dataset.q; if (cfg.q === 'auto') autoQ = 'high'; applySettings(); });
   document.getElementById('setClose').addEventListener('click', () => openSettings(false));
   document.getElementById('bSettings').addEventListener('click', () => openSettings(true));
@@ -178,7 +178,7 @@
   });
   canvas.addEventListener('pointermove', (e) => {
     const r = canvas.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
-    const C = CT(); if (C && e.pointerType === 'mouse') { if (document.pointerLockElement === canvas) { state.yaw -= e.movementX * 0.0024; state.pitch -= e.movementY * 0.0024; } else if (look || e.buttons & 2) { state.yaw -= e.movementX * 0.004; state.pitch -= e.movementY * 0.004; } return; }
+    const C = CT(); if (C && e.pointerType === 'mouse') { if (document.pointerLockElement === canvas) { state.yaw -= e.movementX * 0.0024; state.pitch -= e.movementY * 0.0024; if (Math.abs(e.movementX) + Math.abs(e.movementY) > 2) C.lookT = 1.5; } else if (look || e.buttons & 2) { state.yaw -= e.movementX * 0.004; state.pitch -= e.movementY * 0.004; } return; }
     if (e.pointerType === 'mouse') {
       if (look) { state.yaw -= e.movementX * 0.0032; state.pitch -= e.movementY * 0.0032; }
       state.ax = x; state.ay = y; state.moved = true;
@@ -206,7 +206,7 @@
     if (e.repeat || e.metaKey || e.ctrlKey) return;
     const k = e.key.toLowerCase(); state.keys[k] = true;
     const wi = G.WEAPONS.findIndex((w) => w.key === k);
-    const C = CT(); if (C) { if (wi >= 0) { state.wi = wi; C.setWeapon(wi); } else if (k === 'r') C.reloadReq = true; else if (k === 'c') C.crouch = !C.crouch; if (k === ' ' || k.startsWith('arrow')) e.preventDefault(); return; } // in the city the keys drive the character
+    const C = CT(); if (C) { if (k === 'f') { C.useKey(); return; } if (k === 't') { C.C.setTime(C.C.hour + 1); return; } if (C.veh && C.veh.driving) { if (k === ' ' || k.startsWith('arrow')) e.preventDefault(); return; } if (wi >= 0) { state.wi = wi; C.setWeapon(wi); } else if (k === 'r') C.reloadReq = true; else if (k === 'c') C.crouch = !C.crouch; if (k === ' ' || k.startsWith('arrow')) e.preventDefault(); return; } // in the city the keys drive the character
     if (wi >= 0) setWeapon(wi);
     else if (k === 'i') gun.inspect();
     else if (k === 'x') toggleXray(); else if (k === 't') cycleTime(); else if (k === 'r') reset(); else if (k === 'g') toggleGrab(); else if (k === 'f') toggleSlow(); else if (k === ' ') { fire(); e.preventDefault(); }
@@ -1147,7 +1147,7 @@
       CITY.C.sun.userData.shadowable = true; applySettingsQuality && applySettingsQuality();
     }
     // the colliders near a person go into his physics world (a full set in every world would be slow)
-    function nearStatics(S) { const p = partPos(S, 'pelvis'), near = CITY.C.colliders.filter((c) => { const b = c.box; return p.x > b.min.x - 6 && p.x < b.max.x + 6 && p.z > b.min.z - 6 && p.z < b.max.z + 6; }).slice(0, 14); S.rag.setStatics(near.map((c) => c.box)); S.staticAt = p.clone(); }
+    function nearStatics(S) { const p = partPos(S, 'pelvis'), near = CITY.C.colliders.filter((c) => { if (c.car) return false; const b = c.box; return p.x > b.min.x - 6 && p.x < b.max.x + 6 && p.z > b.min.z - 6 && p.z < b.max.z + 6; }).slice(0, 14); S.rag.setStatics(near.map((c) => c.box)); S.staticAt = p.clone(); }
     function cityPerson(S, pos, ry, look) {
       use(S); S.idx = -1;
       S.body.clearWounds(); S.rag.stop(); S.rag.clear(); S.viscera.clear(); S.headFx.rk = S.headFx.rkMax = 0; S.headFx.mouth = false; S.headFx.jawBroken = false; S.headFx.mouthK = 0; S.handBlood.L = S.handBlood.R = 0;
@@ -1165,11 +1165,11 @@
       giveGun(S, cityWeapon(state.wi)); nearStatics(S); CITY.downT = 0;
     }
     const cityWeapon = (i) => (G.WEAPONS[i] ? i : 1);
-    function spawnPed(S) {
+    function spawnPed(S, at) {
       // on the sidewalk of the player's block or one next to it, somewhere he is not looking straight at
       const pp = partPos(CITY.player, 'pelvis'), near = CITY.C.walk.slice().sort((A, B) => Math.hypot(A[0][0] + A[2][0] - 2 * pp.x, A[0][1] + A[2][1] - 2 * pp.z) - Math.hypot(B[0][0] + B[2][0] - 2 * pp.x, B[0][1] + B[2][1] - 2 * pp.z)).slice(0, 3);
       let loop, k, pos; for (let tries = 0; tries < 12; tries++) { loop = near[Math.floor(Math.random() * near.length)]; k = Math.floor(Math.random() * 4); const a = loop[k], b = loop[(k + 1) % 4], u = Math.random(); pos = new V3(a[0] + (b[0] - a[0]) * u, 0, a[1] + (b[1] - a[1]) * u); const d = pos.distanceTo(pp); if (d > 7 && d < 45 && (tries > 8 || !CITY.subs.some((T) => T !== S && T.body.root.visible && partPos(T, 'pelvis').distanceTo(pos) < 3))) break; }
-      cityPerson(S, pos, Math.random() * 6.28);
+      if (at) pos = at.clone(); cityPerson(S, pos, Math.random() * 6.28);
       S.ai = { ped: true, loop, wp: (k + 1) % 4, dir: Math.random() < 0.5 ? 1 : -1, alarm: null, alarmT: 0, idleT: 0, cower: false, clock: 0 };
       S.npc = G.NPC(S.body, S.phys, S.rag, { threat: () => (S.ai.alarm ? S.ai.alarm.from : null), event: npcEvent, ai: (N) => pedIntent(S, N) });
       nearStatics(S);
@@ -1185,6 +1185,152 @@
       giveGun(S, wi); nearStatics(S);
     }
     function despawn(S) { use(S); if (S.gunModel) { scene.remove(S.gunModel); S.gunModel = null; } if (S.ai && S.ai.flash) S.ai.flash.intensity = 0; S.ai = null; S.rag.stop(); S.body.clearWounds(); S.body.root.visible = false; }
+
+    // ---------------- vehicles ----------------
+    // Arcade car physics on the flat streets (a kinematic bicycle model with grip, drag, braking, reversing and a
+    // handbrake), collisions with buildings, street furniture and other cars, and real impacts with people: the
+    // bumper takes the legs (breaking them above walking pace), the body goes onto the bonnet and is thrown, the head
+    // strikes the windscreen at speed. Ambient traffic drives the streets on the right, turns at junctions and stops
+    // for whatever is in front of it.
+    const VEH = { traffic: [], driving: null, sinceHit: new Map() };
+    CITY.veh = VEH;
+    const carFwd = (c) => new V3(Math.sin(c.ry), 0, Math.cos(c.ry));
+    function carCollide(c, dt) {
+      const f = carFwd(c), r = c.W / 2 + 0.05; let hit = 0;
+      for (const k of [-0.36, 0, 0.36]) {
+        const px = c.x + f.x * c.L * k, pz = c.z + f.z * c.L * k;
+        for (const col of CITY.C.colliders) { if (col === c.col) continue; const b = col.box; const qx = Math.max(b.min.x, Math.min(px, b.max.x)), qz = Math.max(b.min.z, Math.min(pz, b.max.z)), dx = px - qx, dz = pz - qz, d = Math.hypot(dx, dz);
+          if (d < r) { const nx = d > 1e-4 ? dx / d : (px - (b.min.x + b.max.x) / 2 > 0 ? 1 : -1), nz = d > 1e-4 ? dz / d : 0, pen = r - d; c.x += nx * pen; c.z += nz * pen; const vn = Math.abs(c.v) * Math.abs(f.x * nx + f.z * nz); if (vn > hit) hit = vn; } }
+      }
+      if (hit > 1.5) { c.v *= -0.25; c.spin += (Math.random() - 0.5) * hit * 0.08; if (c === VEH.driving) { state.shake = Math.min(1, (state.shake || 0) + hit * 0.06); } audio.dist = Math.hypot(state.pos.x - c.x, state.pos.z - c.z); audio.thud(Math.min(1, hit / 10)); }
+    }
+    // a person in the way of a moving car
+    function carHits(c) {
+      const f = carFwd(c), rgt = new V3(f.z, 0, -f.x), sp = Math.abs(c.v); if (sp < 1.2) return;
+      for (const T of CITY.subs) {
+        if (!T.body.root.visible || T.inCar) continue; const p = partPos(T, 'pelvis'), dx = p.x - c.x, dz = p.z - c.z, lz = dx * f.x + dz * f.z, lx = dx * rgt.x + dz * rgt.z;
+        if (Math.abs(lx) > c.W / 2 + 0.3 || Math.abs(lz) > c.L / 2 + 0.35 || (Math.sign(lz) !== Math.sign(c.v) && Math.abs(lz) < c.L / 2 - 0.4)) continue;
+        const last = VEH.sinceHit.get(T) || -9; if (CITY.C.t - last < 1.2) continue; VEH.sinceHit.set(T, CITY.C.t);
+        use(T); const dir = f.clone().multiplyScalar(Math.sign(c.v)), kmh = Math.round(sp * 3.6), side = lx > 0 ? 'R' : 'L';
+        // the bumper sweeps the legs, then the trunk folds onto the bonnet and the whole body is thrown ahead and up
+        const J = 70 * sp;
+        npc.impulse(body.segs['shin' + side], partPos(T, 'shin' + side), { x: dir.x * J * 0.12, y: 0, z: dir.z * J * 0.12 });
+        npc.impulse(body.segs['shin' + (side === 'L' ? 'R' : 'L')], partPos(T, 'shin' + (side === 'L' ? 'R' : 'L')), { x: dir.x * J * 0.08, y: 0, z: dir.z * J * 0.08 });
+        npc.impulse(body.segs.pelvis, partPos(T, 'pelvis'), { x: dir.x * J * 0.2, y: J * (sp > 6 ? 0.08 : 0.02), z: dir.z * J * 0.2 });
+        npc.impulse(body.segs.thorax, partPos(T, 'thorax'), { x: dir.x * J * 0.16, y: J * (sp > 6 ? 0.07 : 0.0), z: dir.z * J * 0.16 });
+        phys.pain = Math.min(1, phys.pain + 0.25 + sp * 0.03); npc.stagger = 1;
+        if (sp > 6.5) { phys.legBroken[side] = true; rag.fracture('shinX' + side); phys.addInjury('carLeg' + side, (side === 'L' ? 'Left' : 'Right') + ' tibia and fibula broken by the bumper', 1); }
+        if (sp > 10) { phys.headImpact(sp * 0.55); phys.addInjury('carHead', 'Head struck the windscreen', 1); }
+        if (sp > 14) { phys.pelvisBroken = true; phys.addInjury('carPelvis', 'Pelvis fractured', 2); phys.addBleed('Pelvic fracture', 60 + sp * 4, null); }
+        phys.addInjury('carHit', 'Struck by a car at ' + kmh + ' km/h', sp > 10 ? 2 : 1); phys.addBleed('Road abrasions', 6 + sp * 1.5, null);
+        c.v *= 0.82; audio.thud(Math.min(1, sp / 12));
+        if (c === VEH.driving) CITY.heat = Math.min(5, CITY.heat + 1);
+      }
+    }
+    function carVisual(c, dt) {
+      c.g.position.set(c.x, 0, c.z); c.g.rotation.set(c.pitch, c.ry, c.roll, 'YXZ');
+      c.rot = (c.rot || 0) + c.v * dt / 0.34; for (const w of c.wheels) { w.t.rotation.set(c.rot, w.front ? c.steer : 0, Math.PI / 2, 'YXZ'); }
+      c.syncBox();
+    }
+    // the player's car: W/S throttle and brake (reverse once stopped), A/D steer, Space handbrake
+    function drivePlayer(dt) {
+      const c = VEH.driving, k = state.keys, f = carFwd(c);
+      const thr = k.w ? 1 : 0, brk = k.s ? 1 : 0, hb = k[' '] ? 1 : 0, st = (k.a ? 1 : 0) - (k.d ? 1 : 0);
+      const maxSt = 0.62 / (1 + Math.abs(c.v) / 11); c.steer += (st * maxSt - c.steer) * Math.min(1, dt * 6);
+      if (thr) c.v += (c.v < 0 ? 12 : 7.5 * (1 - Math.max(0, c.v) / 34)) * dt;
+      if (brk) c.v -= (c.v > 0.3 ? 13 : 4.5) * dt; if (c.v < -8) c.v = -8;
+      if (!thr && !brk) c.v -= Math.sign(c.v) * Math.min(Math.abs(c.v), (0.7 + Math.abs(c.v) * 0.05) * dt);
+      if (hb) c.v -= Math.sign(c.v) * Math.min(Math.abs(c.v), 6 * dt);
+      const wb = c.L * 0.62, yaw = (c.v * Math.tan(c.steer) / wb) * (hb ? 1.7 : 1) + c.spin; c.spin *= Math.exp(-dt * 3);
+      c.ry += yaw * dt; c.x += Math.sin(c.ry) * c.v * dt; c.z += Math.cos(c.ry) * c.v * dt;
+      c.roll += (-yaw * Math.abs(c.v) * 0.004 - c.roll) * Math.min(1, dt * 5); c.pitch += (-(thr - brk) * 0.012 * Math.min(1, Math.abs(c.v) / 3) - c.pitch) * Math.min(1, dt * 4);
+      carCollide(c, dt); carHits(c); carVisual(c, dt);
+    }
+    // ambient traffic on the four through-streets: right-hand lanes 3 m off the centre line; at junctions some turn
+    const L0 = () => CITY.C.layout;
+    function laneXZ(tr) { const o = 2.6 * tr.dir; return tr.axis === 'z' ? [tr.c - o, tr.t] : [tr.t, tr.c + o]; }
+    function laneRY(tr) { return tr.axis === 'z' ? (tr.dir > 0 ? 0 : Math.PI) : (tr.dir > 0 ? Math.PI / 2 : -Math.PI / 2); }
+    function spawnTraffic(n) {
+      const lay = L0();
+      for (let i = 0; i < n; i++) { const cr = CITY.C.makeCar(0, 0, 0, true); const tr = { car: cr, axis: Math.random() < 0.5 ? 'z' : 'x', c: lay.centres[Math.floor(Math.random() * 2)], dir: Math.random() < 0.5 ? 1 : -1, t: (Math.random() - 0.5) * lay.HALF * 1.6, v: 9, junc: null };
+        const [x, z] = laneXZ(tr); cr.x = x; cr.z = z; cr.ry = laneRY(tr); cr.lit = true; carVisual(cr, 0); VEH.traffic.push(tr); }
+      CITY.C.setTime(CITY.C.hour);
+    }
+    function trafficStep(dt) {
+      const lay = L0();
+      for (const tr of VEH.traffic) {
+        const c = tr.car; if (c.driven) continue;
+        // anything in the lane ahead (a person, a car, the player's car): slow and stop short of it
+        const f = carFwd(c); let gap = 99;
+        const look = (px, pz, wdt) => { const dx = px - c.x, dz = pz - c.z, a = dx * f.x + dz * f.z, lat = Math.abs(dx * f.z - dz * f.x); if (a > 0 && a < 22 && lat < wdt) gap = Math.min(gap, a); };
+        for (const T of CITY.subs) if (T.body.root.visible && !T.inCar) { const p = partPos(T, 'pelvis'); look(p.x, p.z, 1.7); }
+        for (const o of CITY.C.cars) if (o !== c && (o.traffic || o.driven || Math.abs(o.v) > 0.1 || true)) look(o.x, o.z, 1.5);
+        const want = gap < 6.5 ? 0 : gap < 16 ? 9 * (gap - 6.5) / 9.5 : 10.5;
+        tr.v += Math.max(-9 * dt, Math.min(3 * dt, want - tr.v)); tr.t += tr.v * tr.dir * dt;
+        // junctions: straight on mostly, sometimes a turn onto the cross street
+        for (const j of lay.centres) { const before = tr.t - tr.v * tr.dir * dt; if ((before - j) * (tr.t - j) <= 0 && tr.junc !== j) { tr.junc = j; if (Math.random() < 0.35) { const ndir = Math.random() < 0.5 ? 1 : -1, here = laneXZ(tr); tr.axis = tr.axis === 'z' ? 'x' : 'z'; const oldc = tr.c; tr.c = j; tr.dir = ndir; tr.t = tr.axis === 'z' ? here[1] : here[0]; } } }
+        if (Math.abs(tr.t) > lay.HALF - 4) { tr.dir = -Math.sign(tr.t); tr.t = Math.sign(tr.t) * (lay.HALF - 4.5); tr.junc = null; } // the end of the street: turn round
+        const [x, z] = laneXZ(tr), ry = laneRY(tr); let dr = ry - c.ry; dr = Math.atan2(Math.sin(dr), Math.cos(dr));
+        c.x += (x - c.x) * Math.min(1, dt * 2.5); c.z += (z - c.z) * Math.min(1, dt * 2.5); c.ry += dr * Math.min(1, dt * 3); c.steer = Math.max(-0.5, Math.min(0.5, dr)); c.v = tr.v; c.pitch = 0; c.roll = -dr * 0.03;
+        carHits(c); carVisual(c, dt);
+      }
+    }
+    // getting in and out (F): into the nearest car within reach; out on the driver's side
+    function enterCar() {
+      const S = CITY.player; if (!S.phys.conscious || S.npc.posture !== 'stand') return;
+      const p = partPos(S, 'pelvis'); let best = null, bd = 3.4; for (const c of CITY.C.cars) { const d = Math.hypot(c.x - p.x, c.z - p.z); if (d < bd) { bd = d; best = c; } }
+      if (!best) { CITY.msg = 'No car close enough'; CITY.msgT = 1.5; return; }
+      const tr = VEH.traffic.find((t) => t.car === best); if (tr) { best.v = tr.v; VEH.traffic.splice(VEH.traffic.indexOf(tr), 1); best.traffic = false; } // pulled from the traffic
+      VEH.driving = best; best.driven = true; S.inCar = best; if (S.gunModel) S.gunModel.visible = false;
+      S.body.root.visible = false; S.rag.stop(); CITY.camYaw = null; CITY.C.setTime(CITY.C.hour);
+    }
+    function exitCar() {
+      const S = CITY.player, c = VEH.driving; if (Math.abs(c.v) > 4) { CITY.msg = 'Slow down to get out'; CITY.msgT = 1.2; return; }
+      const f = carFwd(c), door = CITY.C.free(new V3(c.x + f.z * (c.W / 2 + 0.7), 0, c.z - f.x * (c.W / 2 + 0.7)));
+      c.driven = false; c.v = 0; VEH.driving = null; S.inCar = null; use(S);
+      S.body.root.position.copy(door); S.body.root.rotation.set(0, c.ry, 0); S.body.root.visible = true; S.staticAt = null;
+      S.npc = G.NPC(S.body, S.phys, S.rag, { threat: () => CITY.aimPt, event: npcEvent, fighter: true, ai: (N) => playerIntent(S, N) });
+      if (S.gunModel) S.gunModel.visible = true; nearStatics(S); state.yaw = c.ry + Math.PI; CITY.C.setTime(CITY.C.hour);
+    }
+    CITY.debugPed = (T, at) => spawnPed(T, at); // tests
+    CITY.useKey = () => { if (VEH.driving) exitCar(); else enterCar(); };
+    // chase camera behind the car, swinging back behind it as it drives; the mouse looks round
+    function carCamera(dt) {
+      const c = VEH.driving, behind = c.ry + Math.PI * (c.v < -1 ? 0 : 1);
+      if (CITY.lookT > 0) CITY.lookT -= dt; else { let d = behind - state.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); state.yaw += d * Math.min(1, dt * 2.2); state.pitch += (-0.18 - state.pitch) * Math.min(1, dt * 2); }
+      state.pitch = Math.max(-0.8, Math.min(0.4, state.pitch));
+      const fwd = new V3(-Math.sin(state.yaw) * Math.cos(state.pitch), Math.sin(state.pitch), -Math.cos(state.yaw) * Math.cos(state.pitch));
+      const piv = new V3(c.x, 1.5, c.z), dist = 6 + Math.min(3, Math.abs(c.v) * 0.08), want = piv.clone().addScaledVector(fwd, -dist).add(new V3(0, 0.6, 0));
+      const dir = want.clone().sub(piv), L = dir.length(); dir.normalize(); const hit = CITY.C.ray(piv, dir, L + 0.3);
+      camera.position.copy(hit && !hit.n.y ? piv.clone().addScaledVector(dir, Math.max(1.5, hit.t - 0.4)) : want);
+      state.shake = Math.max(0, (state.shake || 0) - dt * 4); const sk = state.shake * state.shake * 0.01;
+      camera.rotation.set(state.pitch + (Math.random() - 0.5) * sk, state.yaw + (Math.random() - 0.5) * sk, 0); camera.updateMatrixWorld();
+      camera.fov += ((62 + Math.min(14, Math.abs(c.v) * 0.45)) - camera.fov) * Math.min(1, dt * 3); camera.updateProjectionMatrix(); // the view widens with speed
+      state.pos.copy(camera.position); CITY.aimPt.set(c.x, 1.2, c.z); CITY.C.follow(piv);
+      // keep the (stopped) body with the car, so the responders hunt the car
+      const S = CITY.player; for (const k in S.rag.parts) { const b = S.rag.parts[k].b; b.position.set(c.x + (b.position.x - (S.carPel ? S.carPel.x : b.position.x)), b.position.y, c.z + (b.position.z - (S.carPel ? S.carPel.z : b.position.z))); }
+      S.carPel = new V3(c.x, 0, c.z);
+    }
+    // ---------------- the minimap ----------------
+    let mapCv = null, mapBase = null;
+    function drawMap() {
+      if (!mapCv) { mapCv = document.createElement('canvas'); mapCv.id = 'minimap'; mapCv.width = mapCv.height = 180; document.getElementById('app').appendChild(mapCv); }
+      mapCv.hidden = !CITY.on || cfg.map === false; if (mapCv.hidden) return;
+      const lay = L0(), x = mapCv.getContext('2d'), R = 90, sc = 1.5, S = CITY.player, me = VEH.driving ? new V3(VEH.driving.x, 0, VEH.driving.z) : partPos(S, 'pelvis');
+      x.save(); x.clearRect(0, 0, 180, 180); x.beginPath(); x.arc(R, R, R - 2, 0, 6.283); x.clip();
+      x.fillStyle = 'rgba(28,34,38,0.86)'; x.fillRect(0, 0, 180, 180);
+      x.translate(R, R); x.rotate(state.yaw); x.scale(sc, sc); x.translate(-me.x, -me.z);
+      x.fillStyle = '#3a8fa4'; x.fillRect(lay.HALF + 38, -400, 600, 800); x.fillStyle = '#b8a77e'; x.fillRect(lay.HALF + 2, -400, 36, 800);
+      x.fillStyle = '#5b6266'; x.fillRect(-lay.HALF - 6, -lay.HALF - 6, lay.HALF * 2 + 8, lay.HALF * 2 + 12);
+      for (const [bx, bz] of lay.blockC) { const s2 = lay.BLOCK + lay.SIDE * 2; x.fillStyle = '#9aa0a0'; x.fillRect(bx - s2 / 2, bz - s2 / 2, s2, s2); x.fillStyle = '#c9c5bb'; x.fillRect(bx - lay.BLOCK / 2, bz - lay.BLOCK / 2, lay.BLOCK, lay.BLOCK); }
+      for (const c of CITY.C.cars) if (c.traffic || c.driven) { x.fillStyle = c.driven ? '#ffffff' : '#e8d070'; x.fillRect(c.x - 1.2, c.z - 1.2, 2.4, 2.4); }
+      for (const T of CITY.subs) { if (!T.body.root.visible || T === S) continue; const p = partPos(T, 'pelvis'); x.fillStyle = T.ai && T.ai.cop ? '#ff4b3e' : T.phys.dead ? '#6a1a1a' : '#f2f2f2'; x.beginPath(); x.arc(p.x, p.z, T.ai && T.ai.cop ? 2.2 : 1.4, 0, 6.283); x.fill(); }
+      x.restore();
+      // the player: an arrow in the centre pointing the way the camera looks; north marker on the rim
+      x.save(); x.translate(R, R); x.fillStyle = '#ffffff'; x.beginPath(); x.moveTo(0, -8); x.lineTo(6, 6); x.lineTo(0, 2); x.lineTo(-6, 6); x.closePath(); x.fill(); x.restore();
+      const na = state.yaw + Math.PI; x.fillStyle = '#f0d27a'; x.font = '600 12px IBM Plex Mono, monospace'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('N', R + Math.sin(-na + Math.PI) * 0 + Math.cos(na - Math.PI / 2) * 0, 12);
+      x.strokeStyle = 'rgba(255,255,255,0.5)'; x.lineWidth = 2; x.beginPath(); x.arc(R, R, R - 2, 0, 6.283); x.stroke();
+    }
     // ---- the player's own body, driven by the controls
     function playerIntent(S, N) {
       const ai = S.ai, P = S.phys, dt = Math.max(0, N.clock - (ai.clock || N.clock)); ai.clock = N.clock;
@@ -1251,7 +1397,9 @@
       CITY.C.follow(P);
     }
     CITY.update = (dt) => {
-      const S = CITY.player; stepDrops(dt); CITY.C.update(dt);
+      const S = CITY.player; stepDrops(dt); CITY.C.update(dt); if (scene.environment !== CITY.C.env) scene.environment = CITY.C.env; renderer.toneMappingExposure = CITY.C.exposure;
+      if (VEH.driving) drivePlayer(dt); trafficStep(dt); drawMap();
+      for (const c of CITY.C.cars) if (!c.traffic && !c.driven && Math.abs(c.v) > 0.05) { c.v -= Math.sign(c.v) * Math.min(Math.abs(c.v), 5 * dt); c.x += Math.sin(c.ry) * c.v * dt; c.z += Math.cos(c.ry) * c.v * dt; carCollide(c, dt); carHits(c); carVisual(c, dt); } // a car left rolling
       for (const T of CITY.subs) { if (!T.body.root.visible) continue; if (T.ai && T.gunModel) gunTick(T); const p = partPos(T, 'pelvis'); if (!T.staticAt || T.staticAt.distanceTo(p) > 2.5) nearStatics(T); }
       // the heat: responders matching it come in; it cools off once they have lost him and he has stopped shooting
       CITY.quietT += dt; const seen = CITY.cops.some((T) => T.ai && T.body.root.visible && T.ai.lastSeen < 6);
@@ -1260,7 +1408,7 @@
       if (live.length < want && S.phys.conscious) { const T = CITY.cops.find((c) => !c.body.root.visible); if (T && (CITY.copT = (CITY.copT || 0) - dt) <= 0) { spawnCop(T); CITY.copT = 4; } }
       if (CITY.heat < 0.1) for (const T of live) if (T.ai.lastSeen > 8 && !T.phys.dead) despawn(T);
       // the player down: a few seconds, then back on his feet at the start, the heat gone
-      if (!S.phys.conscious || S.phys.dead || (S.npc.posture !== 'stand' && S.ai.downT > 20)) { CITY.downT += dt; if (CITY.downT > 7) { for (const T of CITY.cops) if (T.body.root.visible) despawn(T); CITY.heat = 0; spawnPlayer(); } } else CITY.downT = 0;
+      if (!S.inCar && (!S.phys.conscious || S.phys.dead || (S.npc.posture !== 'stand' && S.ai.downT > 20))) { CITY.downT += dt; if (CITY.downT > 7) { for (const T of CITY.cops) if (T.body.root.visible) despawn(T); CITY.heat = 0; spawnPlayer(); } } else CITY.downT = 0;
       for (const T of CITY.subs) if (T.ai && T.ai.player) T.ai.downT = T.npc.posture === 'stand' ? 0 : (T.ai.downT || 0) + dt;
       // a quiet street refills: someone who has been lying dead a while out of sight is replaced by a new passer-by
       for (const T of CITY.peds) { if (!T.body.root.visible) continue; if (T.phys.dead) T.deadT = (T.deadT || 0) + dt; else T.deadT = 0; const far = partPos(T, 'pelvis').distanceTo(partPos(S, 'pelvis')); if ((T.deadT > 90 && far > 35) || (far > 70 && !T.ai.alarm && T.phys.conscious)) spawnPed(T); } // the street round him stays alive
@@ -1268,11 +1416,13 @@
       CITY.msgT -= dt;
       if (cityHud && Math.floor(CITY.C.t * 4) !== CITY.hudT) { CITY.hudT = Math.floor(CITY.C.t * 4);
         const pips = Math.ceil(CITY.heat - 0.05); let h = '<div class="heat">' + (pips > 0 ? 'HEAT ' + '<b>' + '●'.repeat(pips) + '</b>' + '○'.repeat(5 - pips) : '') + '</div>';
-        const ai = S.ai, w = ai && G.WEAPONS[ai.wi]; if (w) h += '<div class="ammo">' + w.name + ' · ' + (ai.reloadT > 0 ? 'reloading' : ai.ammo + ' / ' + WMAG[ai.wi]) + '</div>';
+        const ai = S.ai, w = ai && G.WEAPONS[ai.wi], hh = Math.floor(CITY.C.hour), mm = Math.floor((CITY.C.hour - hh) * 60);
+        h += '<div class="clock">' + String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0') + '</div>';
+        if (VEH.driving) h += '<div class="ammo">' + Math.round(Math.abs(VEH.driving.v) * 3.6) + ' km/h</div>'; else if (w) h += '<div class="ammo">' + w.name + ' · ' + (ai.reloadT > 0 ? 'reloading' : ai.ammo + ' / ' + WMAG[ai.wi]) + '</div>';
         const m = CITY.downT > 0 ? 'Down. Back on your feet in ' + Math.max(1, Math.ceil(7 - CITY.downT)) : CITY.msgT > 0 ? CITY.msg : '';
         h += '<div class="msg">' + m + '</div>'; cityHud.innerHTML = h; }
     };
-    CITY.camera = cityCamera;
+    CITY.camera = (dt) => (VEH.driving ? carCamera(dt) : cityCamera(dt));
     CITY.start = () => {
       if (D.on) D.stop();
       if (!CITY.C) { CITY.C = G.buildCity(scene, renderer); CITY.props = CITY.C.colliders.map((c) => ({ box: c.box, low: c.low, h: c.h, T: { m: 'concrete' }, mesh: { position: c.box.getCenter(new V3()) }, bodies: [] })); }
@@ -1282,9 +1432,11 @@
       CITY.on = true; D.props = CITY.props; cityScenery(true); document.body.classList.add('city'); cityHud.hidden = false; gun.raise = 0; state.threat = null; ui.report(null);
       state.yaw = Math.PI; state.pitch = -0.12; // looking along the sidewalk CITY.heat = 0; CITY.camPivot = null; world.clear(); projectiles.clear(); pending.length = 0;
       spawnPlayer(); for (const T of CITY.peds) spawnPed(T); for (const T of CITY.cops) despawn(T);
-      CITY.msg = 'WASD move · Shift run · right mouse aim · left mouse fire · R reload · C crouch · 1–0 weapons · O leave'; CITY.msgT = 9;
+      if (!VEH.traffic.length) { spawnTraffic(7); CITY.props = CITY.C.colliders.map((c) => ({ box: c.box, low: c.low, h: c.h, T: { m: 'concrete' }, mesh: { position: c.box.getCenter(new V3()) }, bodies: [] })); D.props = CITY.props; } CITY.C.setTime(17.5);
+      CITY.msg = 'WASD move · Shift run · right mouse aim · left mouse fire · F car in/out · R reload · C crouch · T +1 hour · O leave'; CITY.msgT = 10;
     };
     CITY.stop = () => {
+      if (VEH.driving) { VEH.driving.driven = false; VEH.driving.v = 0; VEH.driving = null; CITY.player.inCar = null; } if (mapCv) mapCv.hidden = true;
       CITY.on = false; for (const T of CITY.subs) { if (T !== primary) despawn(T); else { if (T.gunModel) { scene.remove(T.gunModel); T.gunModel = null; } T.ai = null; } T.rag.setWalls(true); T.rag.setStatics([]); }
       D.props = []; cityScenery(false); document.body.classList.remove('city'); if (cityHud) cityHud.hidden = true; if (document.pointerLockElement) document.exitPointerLock();
       primary.body.root.position.set(0, 0, 0); primary.body.root.rotation.set(0, 0, 0); camera.fov = 62; camera.updateProjectionMatrix(); gun.raise = 1; state.pos.set(0, 1.62, 3); state.yaw = 0; state.pitch = -0.06; use(primary); reset();

@@ -1,4 +1,4 @@
-# Port-Marlowe — Wound Ballistics Lab (v3.0)
+# Port-Marlowe — Wound Ballistics Lab (v3.1)
 
 A browser-based 3D simulator of gunshot wounds. A test subject stands in a chamber; every
 round is traced millimetre by millimetre through skin, bone, organs and vessels, and the
@@ -6,6 +6,17 @@ body then responds in real time (bleeding, blood pressure, breathing, consciousn
 
 **Run it:** serve this folder with any static server (`python3 -m http.server`) and open
 `index.html`. No build step. `node tools/build.js` bundles a single-file page into `dist/`.
+
+**v3.1 — driving, traffic, day and night, minimap**: F gets you into the nearest car (a parked one, or one out of
+the traffic) and out again on the driver's side. Arcade car handling: W/S throttle and brake (then reverse), A/D
+steer (less at speed), Space handbrake, with body roll and dive, turning wheels, crashes into buildings, lamp posts,
+palms and other cars, and a chase camera that swings back behind the car and widens with speed. Ambient traffic drives
+the through-streets on the right, turns at junctions, turns round at the ends and brakes for whatever is ahead. A car
+hitting a person is a real impact: the bumper takes the legs (broken above walking pace), the body folds onto the
+bonnet and is thrown, the head strikes the windscreen at speed, the pelvis breaks in a fast hit. The day goes round
+(one game minute a second, T jumps an hour): the sun rises over the sea and sets in the west, dusk paints the sky,
+at night the windows and shops light up, street lamps throw pools of light, headlights come on and the stars come
+out. A minimap (Settings) shows the streets, the sea, traffic, people and responders, turning with the view.
 
 **v3.0 — Port Marlowe, open world** (start screen, "Port Marlowe · open world"): a third-person sandbox on the sunny
 streets of an original coastal town - nine blocks of pastel stucco buildings with shopfronts and awnings, palm-lined
